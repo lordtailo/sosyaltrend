@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SosyalTrend • Gündem</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="assets/css/style.css">
+  <link rel="icon" type="image/x-icon" href="assets/img/strendsaydamv2.ico">
+</head>
+<body>
+<header>
+  <div class="header-left">
+  <a href="index.html" onclick="navigateTo('feed')" style="color:var(--text-main); font-size: 1.3rem; text-decoration: none; display: flex; align-items: center; gap: 10px;">
+    <i class="fa-solid fa-house-chimney"></i>
+    <span class="logo" style="font-weight: bold;">SosyalTrend</span>
+  </a>
+</div>
+  <form action="search.html" method="GET" class="header-center">
+    <div class="search-wrapper">
+      <i class="fa-solid fa-magnifying-glass"></i>
+      <input type="text" name="q" id="globalSearch" data-i18n-placeholder="searchPlaceholder">
+    </div>
+    <button type="submit" class="search-btn" data-i18n="searchBtn" id="mainSearchBtn">Ara</button>
+</form>
+  <div class="header-right">
+    <div class="profile-trigger" id="profileTrigger">
+        <img id="headerAvatar" src="">
+    </div>
+    <div class="dropdown-menu" id="dropdownMenu">
+        <div style="padding: 10px; border-bottom: 1px solid var(--border); margin-bottom: 5px;">
+            <p id="menuDisplayName" style="font-weight: 800; font-size: 0.85rem;">...</p>
+            <p id="menuUsername" style="font-size: 0.75rem; color: var(--text-muted);">@...</p>
+        </div>
+        <button class="menu-style-btn" id="adminMenuBtn" onclick="window.location.href='admin.html'" style="display:none; color: var(--primary);">
+    <i class="fa-solid fa-user-shield"></i> <span>Yönetici Paneli</span>
+</button>
+        <button class="menu-style-btn" onclick="window.location.href='profil.html'"><i class="fa-solid fa-user"></i> <span data-i18n="menuProfile">Profiliniz</span></button>
+<button class="menu-style-btn" onclick="window.location.href='settings.html'"><i class="fa-solid fa-gear"></i> <span data-i18n="menuSettings">Ayarlar</span></button>        
+<button class="menu-style-btn" onclick="logout()" style="color:#ef4444; border-top:1px solid var(--border); margin-top:5px;"><i class="fa-solid fa-right-from-bracket"></i> <span>Çıkış Yap</span></button>
+    </div>
+  </div>
+</header>
+
+<div class="app-container">
+  <aside>
+    <div class="glass-card sidebar-profile-card" onclick="navigateTo('profile')" style="
+    cursor: pointer;
+    padding: 21px;
+    text-align: center;
+    align-items: center;">
+        <img id="sidebarAvatar" src="" style="
+    width: 97px;
+    height: 99px;
+    border-radius: 50%;
+    border: 2px solid var(--primary);
+    object-fit: cover;">
+        <div style="overflow: hidden;">
+            <div id="sidebarDisplayName" style="font-weight: 800; font-size: 0.95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">...</div>
+            <div id="sidebarUsername" style="font-size: 0.8rem; color: var(--text-muted);">@...</div>
+        </div>
+    </div>
+    <div class="glass-card sidebar-container">
+        <div class="sidebar-title" data-i18n="menuTitle">Sosyal Menü</div>
+        <a href="index.html" onclick="navigateTo('feed')" class="menu-style-btn nav-item" id="btn-feed">
+            <i class="fa-solid fa-house"></i> <span data-i18n="navFeed">Anasayfa</span>
+        </a>
+        <a href="pages.html" onclick="navigateTo('pages')" class="menu-style-btn nav-item" id="btn-pages">
+            <i class="fa-solid fa-flag"></i> <span data-i18n="navPages">Topluluk Sayfaları</span>
+        </a>
+        <a href="gundem.html" onclick="navigateTo('gundem')" class="menu-style-btn nav-item active" id="btn-gundem">
+            <i class="fa-solid fa-bolt-lightning"></i> <span data-i18n="navGundem">Gündem</span>
+        </a>
+    </div>
+  </aside>
+
+  <main id="main-content">
+<div class="gundem-container">
+    <div class="post-card gundem-creator">
+        <div class="creator-header">
+            <i class="fa-solid fa-bolt-lightning" style="color: var(--primary);"></i>
+            <span style="font-weight: 800;">Gündem Oluştur</span>
+        </div>
+        <textarea id="gundemInput" placeholder="Sıcak bir gelişme mi var? Detayları buraya yaz..."></textarea>
+        
+        <div class="gundem-controls">
+            <div class="category-pill-selector" style="position: relative; display: flex; align-items: center; gap: 10px;">
+    <input type="radio" name="cat" id="cat-haber" value="haber" checked>
+    <label for="cat-haber">📰 Haber</label>
+
+    <input type="radio" name="cat" id="cat-bilgi" value="bilgi">
+    <label for="cat-bilgi">💡 Bilgi</label>
+
+    <input type="radio" name="cat" id="cat-bildirim" value="bildirim">
+    <label for="cat-bildirim">🔔 Bildirim</label>
+
+    <div class="emoji-wrapper" style="position: relative; margin-left: 5px;">
+        <button type="button" class="tool-btn" id="emojiToggle" style="cursor: pointer;">
+            <i class="fa-regular fa-face-smile"></i>
+        </button>
+
+        <div id="emojiPicker" class="glass-card" style="
+            display: none; /* Başlangıçta gizli */
+            position: absolute;
+            bottom: 45px; /* Butonun üstünde açılması için */
+            left: 0;
+            z-index: 100;
+            gap: 7px;
+            padding: 10px;
+            grid-template-columns: repeat(7, 1fr);
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            width: max-content;">
+            
+            <span style="cursor:pointer">😊</span><span style="cursor:pointer">😁</span><span style="cursor:pointer">😂</span><span style="cursor:pointer">🤣</span><span style="cursor:pointer">😡</span><span style="cursor:pointer">😠</span><span style="cursor:pointer">😭</span>
+            <span style="cursor:pointer">❤️</span><span style="cursor:pointer">💚</span><span style="cursor:pointer">💙</span><span style="cursor:pointer">💔</span><span style="cursor:pointer">💘</span><span style="cursor:pointer">💗</span><span style="cursor:pointer">💝</span>
+            <span style="cursor:pointer">👍</span><span style="cursor:pointer">👎</span><span style="cursor:pointer">🙌</span><span style="cursor:pointer">🙏</span><span style="cursor:pointer">✨</span><span style="cursor:pointer">📺</span><span style="cursor:pointer">🎞️</span>
+            <span style="cursor:pointer">🔒</span><span style="cursor:pointer">🔥</span><span style="cursor:pointer">🚀</span><span style="cursor:pointer">🎉</span><span style="cursor:pointer">💯</span><span style="cursor:pointer">😇</span><span style="cursor:pointer">😇</span>
+            <span style="cursor:pointer">🍏</span><span style="cursor:pointer">🍎</span><span style="cursor:pointer">🍌</span><span style="cursor:pointer">🍐</span><span style="cursor:pointer">🍇</span><span style="cursor:pointer">🍳</span><span style="cursor:pointer">🍔</span>
+            <span style="cursor:pointer">🚗</span><span style="cursor:pointer">🚕</span><span style="cursor:pointer">🚌</span><span style="cursor:pointer">🚑</span><span style="cursor:pointer">🚒</span><span style="cursor:pointer">🚢</span><span style="cursor:pointer">✈️</span>
+        </div>
+    </div>
+</div>
+            <button onclick="shareGundem()" class="gundem-post-btn">Paylaş</button>
+        </div>
+    </div>
+
+    <div class="gundem-nav">
+        <button class="gundem-tab active" data-filter="all">Tümü</button>
+        <button class="gundem-tab" data-filter="haber">Haberler</button>
+        <button class="gundem-tab" data-filter="bilgi">Bilgi Akışı</button>
+        <button class="gundem-tab" data-filter="bildirim">Resmi Duyurular</button>
+    </div>
+
+    <div id="gundemFeed" class="gundem-feed-grid"></div>
+</div>
+  </main>
+
+  <aside class="right-panel">
+    <div class="glass-card widget-clock">
+      <div class="analog-clock">
+        <div class="hand hour-hand" id="hourHand"></div>
+        <div class="hand min-hand" id="minHand"></div>
+        <div class="hand sec-hand" id="secHand"></div>
+      </div>
+      <div id="digiClock" style="font-size: 1.5rem; font-weight: 800;">00:00:00</div>
+      <div id="dateDisplay" class="date-display">...</div>
+    </div>
+    <div class="glass-card">
+        <div class="sidebar-title" style="border-bottom: 1px solid var(--border);" data-i18n="trendPagesTitle">🔥 Trend Sayfalar</div>
+        <div id="trend-pages-list"></div>
+    </div>
+  </aside>
+</div>
+
+<footer>
+  <div class="footer-container">
+    <div class="footer-brand" style="display: flex; align-items: center; gap: 15px;">
+      <img src="assets/img/strendsaydamv2.png" alt="SosyalTrend Logo" style="width: 124px;height: 123px;object-fit: contain;">
+      
+      <div>
+        <div class="logo" style="margin-bottom: 5px;">SosyalTrend</div>
+        <p style="color:var(--text-muted); font-size:0.9rem; margin: 0;" data-i18n="footerTagline">
+          Topluluğunuzla her zaman bir adım önde olun.
+        </p>
+      </div>
+    </div>
+
+    <div class="footer-section">
+      <h4 data-i18n="footerMenu">Hızlı Menü</h4>
+      <ul class="footer-links">
+        <li><a href="index.html" onclick="navigateTo('feed')" data-i18n="navFeed">Anasayfa</a></li>
+        <li><a href="profil.html" onclick="navigateTo('profile')"data-i18n="navProfil">Profiliniz</a></li>
+        <li><a href="pages.html" onclick="navigateTo('pages')" data-i18n="navPages">Topluluk Sayfaları</a></li>
+        <li><a href="likepost.html" onclick="navigateTo('navSubs')">Beğendikleriniz</a></li>
+        <li><a href="savepost.html" onclick="navigateTo('navBookmarks')" data-i18n="navBookmarks">Kaydettikleriniz</a></li>
+      </ul>
+    </div>
+
+    <div class="footer-section">
+      <h4 data-i18n="footerCorp">Kurumsal</h4>
+      <ul class="footer-links">
+        <li><a href="#" data-i18n="footerAbout">Hakkımızda</a></li>
+        <li><a href="#" data-i18n="footerCareer">Kariyer</a></li>
+      </ul>
+    </div>
+
+    <div class="footer-section">
+      <h4 data-i18n="footerSupport">Destek</h4>
+      <ul class="footer-links">
+        <li><a href="contact.html" onclick="navigateTo('contact')" data-i18n="footerContact">İletişim</a></li>
+        <li><a href="yardim.html" onclick="navigateTo('help')" data-i18n="footerHelp">Yardım Merkezi</a></li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="footer-bottom">
+    <div style="color:var(--text-muted); font-size:0.85rem;">&copy; 2026 <strong>SosyalTrend</strong>. <span data-i18n="footerRights">Tüm Hakları Saklıdır.</span></div>
+    <div style="display: flex;gap: 8px;align-items: center;padding: 0px 10px 0 23px;">
+        <div class="lang-switcher" style="display:flex; gap:10px; font-size: 0.85rem; font-weight: 600;">
+            <span id="lang-tr" onclick="changeLanguage('tr')">TR</span>
+            <span id="lang-en" onclick="changeLanguage('en')">EN</span>
+        </div>
+        <div style="width: 1px; height: 15px; background: var(--border);"></div>
+        <i class="fa-solid fa-earth-americas" style="color:var(--text-muted); font-size: 0.9rem;"></i>
+    </div>
+  </div>
+</footer>
+
+<script type="module" src="assets/js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SosyalTrend • Profiliniz</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="assets/css/style.css">
+  <link rel="icon" type="image/x-icon" href="assets/img/strendsaydamv2.ico">
+</head>
+<body>
+<header>
+  <div class="header-left">
+  <a href="index.html" onclick="navigateTo('feed')" style="color:var(--text-main); font-size: 1.3rem; text-decoration: none; display: flex; align-items: center; gap: 10px;">
+    <i class="fa-solid fa-house-chimney"></i>
+    <span class="logo" style="font-weight: bold;">SosyalTrend</span>
+  </a>
+</div>
+  <form action="search.html" method="GET" class="header-center">
+    <div class="search-wrapper">
+      <i class="fa-solid fa-magnifying-glass"></i>
+      <input type="text" name="q" id="globalSearch" data-i18n-placeholder="searchPlaceholder">
+    </div>
+    <button type="submit" class="search-btn" data-i18n="searchBtn" id="mainSearchBtn">Ara</button>
+</form>
+  <div class="header-right">
+    <div class="profile-trigger" id="profileTrigger">
+        <img id="headerAvatar" src="">
+    </div>
+    <div class="dropdown-menu" id="dropdownMenu">
+        <div style="padding: 10px; border-bottom: 1px solid var(--border); margin-bottom: 5px;">
+            <p id="menuDisplayName" style="font-weight: 800; font-size: 0.85rem;">...</p>
+            <p id="menuUsername" style="font-size: 0.75rem; color: var(--text-muted);">@...</p>
+        </div>
+        <button class="menu-style-btn" id="adminMenuBtn" onclick="window.location.href='admin.html'" style="display:none; color: var(--primary);">
+    <i class="fa-solid fa-user-shield"></i> <span>Yönetici Paneli</span>
+</button>
+        <button class="menu-style-btn" onclick="window.location.href='profil.html'"><i class="fa-solid fa-user"></i> <span data-i18n="menuProfile">Profiliniz</span></button>
+<button class="menu-style-btn" onclick="window.location.href='settings.html'"><i class="fa-solid fa-gear"></i> <span data-i18n="menuSettings">Ayarlar</span></button>        
+<button class="menu-style-btn" onclick="logout()" style="color:#ef4444; border-top:1px solid var(--border); margin-top:5px;"><i class="fa-solid fa-right-from-bracket"></i> <span>Çıkış Yap</span></button>
+    </div>
+  </div>
+</header>
+
+<div class="app-container">
+  <aside>
+    <div class="glass-card sidebar-profile-card" onclick="navigateTo('profile')" style="
+    cursor: pointer;
+    padding: 21px;
+    text-align: center;
+    align-items: center;">
+        <img id="sidebarAvatar" src="" style="
+    width: 97px;
+    height: 99px;
+    border-radius: 50%;
+    border: 2px solid var(--primary);
+    object-fit: cover;">
+        <div style="overflow: hidden;">
+            <div id="sidebarDisplayName" style="font-weight: 800; font-size: 0.95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">...</div>
+            <div id="sidebarUsername" style="font-size: 0.8rem; color: var(--text-muted);">@...</div>
+        </div>
+    </div>
+    <div class="glass-card sidebar-container">
+        <div class="sidebar-title" data-i18n="menuTitle">Sosyal Menü</div>
+        <a href="index.html" onclick="navigateTo('feed')" class="menu-style-btn nav-item" id="btn-feed">
+            <i class="fa-solid fa-house"></i> <span data-i18n="navFeed">Anasayfa</span>
+        </a>
+        <a href="pages.html" onclick="navigateTo('pages')" class="menu-style-btn nav-item" id="btn-pages">
+            <i class="fa-solid fa-flag"></i> <span data-i18n="navPages">Topluluk Sayfaları</span>
+        </a>
+        <a href="gundem.html" onclick="navigateTo('gundem')" class="menu-style-btn nav-item" id="btn-gundem">
+            <i class="fa-solid fa-bolt-lightning"></i> <span data-i18n="navGundem">Gündem</span>
+        </a>
+    </div>
+  </aside>
+
+  <main id="main-content">
+<div id="page-profile" class="page-content active">
+        <div class="glass-card" style="padding: 40px; text-align: center; position: relative;">
+            <div id="selfPrivateIndicator" style="display:none; position:absolute; top:10px; right:10px; background:#fef2f2; color:#ef4444; padding:4px 12px; border-radius:20px; font-size:0.7rem; font-weight:700; border:1px solid #fecaca;">
+                <i class="fa-solid fa-eye-slash"></i> Profiliniz Gizli
+            </div>
+            <img id="profilePageAvatar" src="" style="width: 100px; height: 100px; border-radius: 50%; border: 4px solid var(--primary); object-fit: cover;">
+            <h2 id="profilePageName" style="margin-top: 15px;">...</h2>
+            <p id="profilePageHandle" style="color: var(--text-muted); margin-bottom: 15px;">@...</p>
+            <div style="display: flex; justify-content: center; gap: 10px; flex-wrap: wrap;">
+                <button onclick="toggleEditProfile()" style="background: var(--input-bg); border: 1px solid var(--border); padding: 8px 20px; border-radius: 10px; font-size: 0.8rem; font-weight: 600; cursor: pointer; color: var(--text-main);" data-i18n="editProfileBtn">Profili Düzenle</button>
+                <button onclick="window.location.href='likepost.html'" class="admin-btn" style="flex:none; padding: 8px 15px; border-radius: 10px;">
+                    <i class="fa-solid fa-heart" style="color:#ef4444"></i> <span data-i18n="navSubs">Beğendiklerim</span>
+                </button>
+                <button onclick="window.location.href='savepost.html'" class="admin-btn" style="flex:none; padding: 8px 15px; border-radius: 10px;">
+<i class="fa-solid fa-bookmark" style="color:#f59e0b"></i> <span data-i18n="navBookmarks">Kaydedilenler</span></button>
+            </div>
+
+            <div id="editProfileSection" class="edit-profile-form">
+                <div class="section-subtitle">Profil Bilgileri</div>
+                
+                <div style="margin-bottom: 20px;">
+                    <label class="form-label">Görünen Ad</label>
+                    <input type="text" id="newNameInput" class="form-input" placeholder="Adınızı girin">
+                </div>
+
+                <div style="background: var(--bg); padding: 15px; border-radius: 12px; border: 1px solid var(--border);">
+                    <label class="form-label" style="color: var(--primary);"><i class="fa-solid fa-camera"></i> Profil Resmini Güncelle</label>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px;">
+                        <button onclick="document.getElementById('fileAvatarInput').click()" class="admin-btn" style="padding: 10px; height: auto; display: block;">
+                            <i class="fa-solid fa-upload"></i><br>Cihazdan Seç
+                        </button>
+                        <button onclick="promptDiceBear()" class="admin-btn" style="padding: 10px; height: auto; display: block;">
+                            <i class="fa-solid fa-wand-magic-sparkles"></i><br>İsimden Oluştur
+                        </button>
+                    </div>
+                    <input type="file" id="fileAvatarInput" accept="image/*" style="display: none;" onchange="handleFileSelect(this)">
+                    
+                    <div style="margin-top: 15px;">
+                        <label class="form-label">Veya Görsel URL Yapıştır</label>
+                        <input type="text" id="newAvatarUrlInput" class="form-input" style="margin-bottom: 0;" placeholder="https://..." oninput="handleUrlInput(this)">
+                    </div>
+                </div>
+
+                <div style="margin-top: 25px; display: flex; gap: 10px;">
+                    <button onclick="saveProfileChanges()" class="form-btn" style="flex: 2;">
+                        <i class="fa-solid fa-floppy-disk"></i> Değişiklikleri Kaydet
+                    </button>
+                    <button onclick="toggleEditProfile()" class="form-btn" style="flex: 1; background: var(--text-muted);">
+                        İptal
+                    </button>
+                </div>
+            </div>
+            </div>
+        <div id="profile-content-area">
+            <h3 class="profile-section-title" data-i18n="myPostsTitle">Paylaşımlarım</h3>
+            <div id="my-posts-list"></div>
+        </div>
+    </div>
+
+    <div id="page-settings" class="page-content">
+        <div class="glass-card" style="padding:30px;">
+            <h2 data-i18n="menuSettings" style="margin-bottom:20px;">Ayarlar</h2>
+            <div class="section-subtitle">Görünüm & Gizlilik</div>
+            <div class="settings-row">
+                <div>
+                    <div style="font-weight:700;" data-i18n="settingPrivate">Gizli Profil</div>
+                    <div style="font-size:0.8rem; color:var(--text-muted);" data-i18n="settingPrivateDesc">Profilinizi ve paylaşımlarınızı diğer kullanıcılardan gizleyin.</div>
+                </div>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="privacyToggle" onchange="togglePrivacy()">
+                    <span class="slider"></span>
+                </label>
+            </div>
+            <div class="settings-row">
+                <div style="font-weight:700;" data-i18n="settingTheme">Koyu Tema</div>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="themeToggle" onchange="toggleDarkMode()">
+                    <span class="slider"></span>
+                </label>
+            </div>
+            <div class="section-subtitle" style="margin-top: 30px;">Hesap Güvenliği</div>
+            <div class="settings-row">
+                <div>
+                    <div style="font-weight:700;">E-posta Adresi</div>
+                    <div id="currentEmailDisplay" style="font-size:0.8rem; color:var(--text-muted);">yükleniyor...</div>
+                </div>
+                <button onclick="updateUserEmail()" class="admin-btn" style="flex:none; padding:8px 15px;">Değiştir</button>
+            </div>
+            <div class="settings-row">
+                <div>
+                    <div style="font-weight:700;">Şifre İşlemleri</div>
+                    <div style="font-size:0.8rem; color:var(--text-muted);">Güvenliğiniz için şifre sıfırlama maili gönderin.</div>
+                </div>
+                <button onclick="sendResetMail()" class="admin-btn" style="flex:none; padding:8px 15px; border-color:var(--primary); color:var(--primary);">Şifre Sıfırla</button>
+            </div>
+        </div>
+    </div>
+  </main>
+
+  <aside class="right-panel">
+    <div class="glass-card widget-clock">
+      <div class="analog-clock">
+        <div class="hand hour-hand" id="hourHand"></div>
+        <div class="hand min-hand" id="minHand"></div>
+        <div class="hand sec-hand" id="secHand"></div>
+      </div>
+      <div id="digiClock" style="font-size: 1.5rem; font-weight: 800;">00:00:00</div>
+      <div id="dateDisplay" class="date-display">...</div>
+    </div>
+    <div class="glass-card">
+        <div class="sidebar-title" style="border-bottom: 1px solid var(--border);" data-i18n="trendPagesTitle">🔥 Trend Sayfalar</div>
+        <div id="trend-pages-list"></div>
+    </div>
+  </aside>
+</div>
+
+<footer>
+  <div class="footer-container">
+    <div class="footer-brand" style="display: flex; align-items: center; gap: 15px;">
+      <img src="assets/img/strendsaydamv2.png" alt="SosyalTrend Logo" style="width: 124px;height: 123px;object-fit: contain;">
+      
+      <div>
+        <div class="logo" style="margin-bottom: 5px;">SosyalTrend</div>
+        <p style="color:var(--text-muted); font-size:0.9rem; margin: 0;" data-i18n="footerTagline">
+          Topluluğunuzla her zaman bir adım önde olun.
+        </p>
+      </div>
+    </div>
+
+    <div class="footer-section">
+      <h4 data-i18n="footerMenu">Hızlı Menü</h4>
+      <ul class="footer-links">
+        <li><a href="index.html" onclick="navigateTo('feed')" data-i18n="navFeed">Anasayfa</a></li>
+        <li><a href="profil.html" onclick="navigateTo('profile')"data-i18n="navProfil">Profiliniz</a></li>
+        <li><a href="pages.html" onclick="navigateTo('pages')" data-i18n="navPages">Topluluk Sayfaları</a></li>
+        <li><a href="likepost.html" onclick="navigateTo('navSubs')">Beğendikleriniz</a></li>
+        <li><a href="savepost.html" onclick="navigateTo('navBookmarks')" data-i18n="navBookmarks">Kaydettikleriniz</a></li>
+      </ul>
+    </div>
+
+    <div class="footer-section">
+      <h4 data-i18n="footerCorp">Kurumsal</h4>
+      <ul class="footer-links">
+        <li><a href="#" data-i18n="footerAbout">Hakkımızda</a></li>
+        <li><a href="#" data-i18n="footerCareer">Kariyer</a></li>
+      </ul>
+    </div>
+
+    <div class="footer-section">
+      <h4 data-i18n="footerSupport">Destek</h4>
+      <ul class="footer-links">
+        <li><a href="contact.html" onclick="navigateTo('contact')" data-i18n="footerContact">İletişim</a></li>
+        <li><a href="yardim.html" onclick="navigateTo('help')" data-i18n="footerHelp">Yardım Merkezi</a></li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="footer-bottom">
+    <div style="color:var(--text-muted); font-size:0.85rem;">&copy; 2026 <strong>SosyalTrend</strong>. <span data-i18n="footerRights">Tüm Hakları Saklıdır.</span></div>
+    <div style="display: flex;gap: 8px;align-items: center;padding: 0px 10px 0 23px;">
+        <div class="lang-switcher" style="display:flex; gap:10px; font-size: 0.85rem; font-weight: 600;">
+            <span id="lang-tr" onclick="changeLanguage('tr')">TR</span>
+            <span id="lang-en" onclick="changeLanguage('en')">EN</span>
+        </div>
+        <div style="width: 1px; height: 15px; background: var(--border);"></div>
+        <i class="fa-solid fa-earth-americas" style="color:var(--text-muted); font-size: 0.9rem;"></i>
+    </div>
+  </div>
+</footer>
+
+<script type="module" src="assets/js/app.js"></script>
+</body>
+</html>

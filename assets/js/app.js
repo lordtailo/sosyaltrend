@@ -1,0 +1,1279 @@
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, doc, updateDoc, arrayUnion, arrayRemove, deleteDoc, getDoc, getDocs, limit } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getAuth, onAuthStateChanged, signOut, updateEmail, sendPasswordResetEmail, updateProfile } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+// Bileşenleri dinamik olarak yükleme fonksiyonu    
+async function loadComponents() {
+    try {
+        // Header'ı yükle
+        const headerRes = await fetch('components/header.html');
+        const headerData = await headerRes.text();
+        document.getElementById('header-placeholder').innerHTML = headerData;
+
+        // Footer'ı yükle
+        const footerRes = await fetch('components/footer.html');
+        const footerData = await footerRes.text();
+        document.getElementById('footer-placeholder').innerHTML = footerData;
+
+        if (typeof i18nInit === 'function') i18nInit();
+    } catch (error) {
+        console.error("Bileşenler yüklenirken hata oluştu:", error);
+    }
+}
+
+// Sayfa yüklendiğinde çalıştır
+document.addEventListener('DOMContentLoaded', loadComponents);
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBegJHqlfPagx8biFyS_FnE3iXOksgfoAU",
+    authDomain: "sosyaltrend-21d21.firebaseapp.com",
+    projectId: "sosyaltrend-21d21",
+    storageBucket: "sosyaltrend-21d21.firebasestorage.app",
+    messagingSenderId: "207734473261",
+    appId: "1:207734473261:web:f31b6bf2908c6d88986ea4"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+  const auth = getAuth(app);
+
+  let user = {
+  displayName: "Misafir",
+  avatar: "Felix",
+  isAdmin: false
+};
+
+  const ADMIN_EMAIL = "officialfthuzun@gmail.com";
+  let gundemLimit = 7; 
+  let currentGundemFilter = "all";
+
+  onAuthStateChanged(auth, (fbUser) => {
+    if (!fbUser) {
+      window.location.href = 'login.html';
+    } else {
+      user.username = fbUser.email.split('@')[0];
+      user.displayName = localStorage.getItem('st_displayName') || fbUser.displayName || user.username;
+      user.avatarSeed = localStorage.getItem('st_avatar') || "Felix";
+      
+      user.isAdmin = fbUser.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+      
+      const emailEl = document.getElementById('currentEmailDisplay');
+      if(emailEl) emailEl.innerText = fbUser.email;
+
+      const adminBtn = document.getElementById('adminMenuBtn');
+      if(adminBtn) {
+          adminBtn.style.display = user.isAdmin ? 'flex' : 'none';
+      }
+
+      if(user.isAdmin) {
+          updateAdminStats();
+      }
+
+      updateUIWithUser();
+    }
+  });
+
+
+  async function updateAdminStats() {
+      if(!user.isAdmin) return;
+      const postsSnap = await getDocs(collection(db, "posts"));
+      const pagesSnap = await getDocs(collection(db, "pages"));
+      document.getElementById('stat-total-posts').innerText = postsSnap.size;
+      document.getElementById('stat-total-pages').innerText = pagesSnap.size;
+  }
+
+  // --- PROFIL DUZENLEME VE AVATAR FONKSIYONLARI ---
+  let tempAvatarBuffer = null;
+
+  window.toggleEditProfile = () => {
+    const form = document.getElementById('editProfileSection');
+    form.classList.toggle('active');
+    document.getElementById('newNameInput').value = user.displayName;
+    document.getElementById('newAvatarUrlInput').value = (user.avatarSeed.startsWith('http') ? user.avatarSeed : "");
+    tempAvatarBuffer = null;
+  };
+
+  window.handleFileSelect = (input) => {
+    const file = input.files[0];
+    if (file) {
+        if (file.size > 2 * 1024 * 1024) { // 2MB Limit
+            alert("Dosya boyutu çok büyük! Maksimum 2MB yükleyebilirsiniz.");
+            return;
+        }
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            tempAvatarBuffer = e.target.result;
+            document.getElementById('profilePageAvatar').src = e.target.result;
+            document.getElementById('newAvatarUrlInput').value = ""; // URL alanını temizle
+        };
+        reader.readAsDataURL(file);
+    }
+  };
+
+  window.handleUrlInput = (input) => {
+      const url = input.value.trim();
+      if(url.startsWith('http')) {
+          document.getElementById('profilePageAvatar').src = url;
+          tempAvatarBuffer = null; // Dosya secilmisse iptal et
+      }
+  };
+
+  window.promptDiceBear = () => {
+    const seed = prompt("Avatarınız için bir anahtar kelime yazın (Örn: Felix, Oscar, Gizem):");
+    if(seed) {
+        const newUrl = `https://api.dicebear.com/7.x/avataaars/svg?seed=${seed}`;
+        document.getElementById('newAvatarUrlInput').value = "";
+        document.getElementById('profilePageAvatar').src = newUrl;
+        tempAvatarBuffer = newUrl; // Dicebear linkini buffer'a al
+    }
+  };
+
+  window.saveProfileChanges = () => {
+    const name = document.getElementById('newNameInput').value.trim();
+    const urlInput = document.getElementById('newAvatarUrlInput').value.trim();
+
+    if(name) { 
+        user.displayName = name; 
+        localStorage.setItem('st_displayName', name); 
+    }
+    
+    // Oncelik: Yuklenen Dosya/DiceBear > URL Input
+    if(tempAvatarBuffer) {
+        user.avatarSeed = tempAvatarBuffer;
+        localStorage.setItem('st_avatar', tempAvatarBuffer);
+    } else if(urlInput) {
+        user.avatarSeed = urlInput;
+        localStorage.setItem('st_avatar', urlInput);
+    }
+
+    finishUpdate();
+  };
+  // --- /FONKSIYONLAR SONU ---
+
+  function finishUpdate() {
+    alert("Profil başarıyla güncellendi!");
+    location.reload();
+  }
+
+  window.updateUserEmail = async () => {
+    const mail = prompt("Yeni e-posta:");
+    if(mail && auth.currentUser) {
+      try {
+        await updateEmail(auth.currentUser, mail);
+        alert("Başarılı! Lütfen yeni maille giriş yapın.");
+        logout();
+      } catch(e) { alert("Hata: " + e.message); }
+    }
+  };
+
+  window.sendResetMail = async () => {
+    try {
+      await sendPasswordResetEmail(auth, auth.currentUser.email);
+      alert("Sıfırlama bağlantısı gönderildi.");
+    } catch(e) { alert("Hata: " + e.message); }
+  };
+
+  window.logout = async () => {
+    await signOut(auth);
+    window.location.href = 'login.html';
+  };
+
+  window.toggleDarkMode = () => {
+    const isDark = document.getElementById('themeToggle').checked;
+    if (isDark) { document.body.classList.add('dark-mode'); localStorage.setItem('st_theme', 'dark'); }
+    else { document.body.classList.remove('dark-mode'); localStorage.setItem('st_theme', 'light'); }
+  };
+
+  if (localStorage.getItem('st_theme') === 'dark') {
+    document.body.classList.add('dark-mode');
+    setTimeout(() => { if(document.getElementById('themeToggle')) document.getElementById('themeToggle').checked = true; }, 100);
+  }
+
+  // --- ÇEVİRİLER VE KAYDETME ÖZELLİĞİ ---
+  const translations = {
+    tr: {
+      searchPlaceholder: "Arkadaş veya Sayfa ara!",
+      searchBtn: "Ara",
+      menuProfile: "Profiliniz",
+      menuSettings: "Ayarlar",
+      menuTitle: "Sosyal Menü",
+      navFeed: "Anasayfa",
+      navPages: "Topluluk Sayfaları",
+      navBookmarks: "Kaydedilenler",
+      navBookmarkss: "Kaydettiklerinizi bu sayfa altına topladık, buradan takip edebilir veya kaydettiklerinizi kaldırabilirsiniz.",
+      navSubs: "Beğendiklerim",
+      navSubss: "Beğendiğiniz içerikleri bu sayfa altına topladık, buradan takip edebilir veya beğenileri kaldırabilirsiniz.",
+      navSearch: "Aramalar",
+      searchHeading: "Arama Sonuçları",
+      postPlaceholder: "Neler oluyor?",
+      shareBtn: "Paylaş",
+      pagesHeading: "Topluluk Sayfaları",
+      pagesSub: "Yeni topluluklar kur ve insanlarla etkileşime geç.",
+      newPagePlaceholder: "Yeni sayfa adı...",
+      createBtn: "Oluştur",
+      editProfileBtn: "Profili Düzenle",
+      trendPagesTitle: "🔥 Trend Sayfalar",
+      footerTagline: "Topluluğunuzla her zaman bir adım önde olun.",
+      footerMenu: "Hızlı Menü",
+      footerCorp: "Kurumsal",
+      footerAbout: "Hakkımızda",
+      footerCareer: "Kariyer",
+      footerSupport: "Destek",
+      footerContact: "İletişim",
+      footerHelp: "Yardım Merkezi",
+      footerRights: "Tüm Hakları Saklıdır.",
+      subBtn: "Abone Ol",
+      unsubBtn: "Bırak",
+      promptNewName: "Yeni Görünen Ad:",
+      confirmDelete: "Bu gönderiyi silmek istediğine emin misin?",
+      confirmDeletePage: "Bu sayfayı ve tüm verilerini silmek istediğine emin misin?",
+      confirmDeleteComment: "Yorumu silmek istediğine emin misin?",
+      myPostsTitle: "Paylaşımlarım",
+      settingPrivate: "Gizli Profil",
+      settingPrivateDesc: "Profilinizi ve paylaşımlarınızı diğer kullanıcılardan gizleyin.",
+      settingTheme: "Koyu Tema",
+      commentPlaceholder: "Yorum yaz...",
+      sendComment: "Gönder",
+      helpHeading: "Yardım Merkezi",
+      helpSub: "Sıkça Sorulan Sorular",
+      helpText: "SosyalTrend kullanımı hakkında merak ettiğiniz her şey burada.",
+      contactHeading: "İletişim",
+      contactText: "Bizimle iletişime geçmek için officialfthuzun@gmail.com adresine mail atabilirsiniz.",
+      sendBtn: "Mesajı Gönder"
+    },
+    en: {
+      searchPlaceholder: "Search pages or people...",
+      searchBtn: "Search",
+      menuProfile: "Your Profile",
+      menuSettings: "Settings",
+      menuTitle: "Menu",
+      navFeed: "Feed",
+      navPages: "Pages",
+      navBookmarks: "Bookmarks",
+      navSubs: "Liked Posts",
+      navSearch: "Search",
+      searchHeading: "Search Results",
+      postPlaceholder: "What's happening?",
+      shareBtn: "Post",
+      pagesHeading: "Community Pages",
+      pagesSub: "Build new communities and engage with people.",
+      newPagePlaceholder: "New page name...",
+      createBtn: "Create",
+      editProfileBtn: "Edit Profile",
+      trendPagesTitle: "🔥 Trending Pages",
+      footerTagline: "Always stay ahead with your community.",
+      footerMenu: "Quick Menu",
+      footerCorp: "Corporate",
+      footerAbout: "About Us",
+      footerCareer: "Careers",
+      footerSupport: "Support",
+      footerContact: "Contact",
+      footerHelp: "Help Center",
+      footerRights: "All Rights Reserved.",
+      subBtn: "Subscribe",
+      unsubBtn: "Leave",
+      promptNewName: "New Display Name:",
+      confirmDelete: "Are sure you want to delete this post?",
+      confirmDeletePage: "Are sure you want to delete this page and all its data?",
+      confirmDeleteComment: "Are sure you want to delete this comment?",
+      myPostsTitle: "My Posts",
+      settingPrivate: "Private Profile",
+      settingPrivateDesc: "Hide your profile and posts from other users.",
+      settingTheme: "Dark Theme",
+      commentPlaceholder: "Write a comment...",
+      sendComment: "Send",
+      helpHeading: "Help Center",
+      helpSub: "Frequently Asked Questions",
+      helpText: "Everything you wonder about using SosyalTrend is here.",
+      contactHeading: "Contact",
+      contactText: "To contact us, you can send an e-mail to officialfthuzun@gmail.com.",
+      sendBtn: "Send Message"
+    }
+  };
+
+  let currentLang = localStorage.getItem('st_lang') || 'tr';
+  let isPrivate = localStorage.getItem('st_isPrivate') === 'true';
+
+  window.changeLanguage = (lang) => {
+    console.log("Dil değişti: " + lang);
+    currentLang = lang;
+    localStorage.setItem('st_lang', lang);
+    applyTranslations(); // Çevirileri uygula
+  };
+
+  function applyTranslations() {
+    const t = translations[currentLang];
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+      const key = el.getAttribute('data-i18n');
+      if (t[key]) el.innerText = t[key];
+    });
+    document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+      const key = el.getAttribute('data-i18n-placeholder');
+      if (t[key]) el.placeholder = t[key];
+    });
+    const trBtn = document.getElementById('lang-tr');
+    const enBtn = document.getElementById('lang-en');
+    if(trBtn) trBtn.className = currentLang === 'tr' ? 'active' : 'inactive';
+    if(enBtn) enBtn.className = currentLang === 'en' ? 'active' : 'inactive';
+  }
+  applyTranslations();
+
+  function getAvatarUrl(seed, type = 'user') {
+    if (!seed) return "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix";
+    if (seed === 'admin-shield') return "https://api.dicebear.com/7.x/bottts/svg?seed=Admin";
+    if (seed.startsWith('http') || seed.startsWith('data:image')) return seed;
+    return type === 'user' 
+      ? `https://api.dicebear.com/7.x/avataaars/svg?seed=${seed}` 
+      : `https://api.dicebear.com/7.x/identicon/svg?seed=${seed}`;
+  }
+
+  function updateUIWithUser() {
+    const avatarUrl = getAvatarUrl(user.avatarSeed, 'user');
+    
+    // --- ELEMENT TANIMLAMALARI ---
+    // Header
+    const hAv = document.getElementById('headerAvatar');
+    const mDn = document.getElementById('menuDisplayName');
+    const mUn = document.getElementById('menuUsername');
+
+    // Sol Menü (Yeni Sidebar Profil)
+    const sAv = document.getElementById('sidebarAvatar');
+    const sDn = document.getElementById('sidebarDisplayName');
+    const sUn = document.getElementById('sidebarUsername');
+
+    // Profil Sayfası
+    const pAv = document.getElementById('profilePageAvatar');
+    const pPn = document.getElementById('profilePageName');
+    const pPh = document.getElementById('profilePageHandle');
+
+    // Gizlilik Ayarları ve Göstergeleri
+    const pTg = document.getElementById('privacyToggle');
+    const sPi = document.getElementById('selfPrivateIndicator');
+
+    // --- GÜNCELLEMELER ---
+    // Header Güncelleme
+    if(hAv) hAv.src = avatarUrl;
+    if(mDn) mDn.innerText = user.displayName;
+    if(mUn) mUn.innerText = `@${user.username}`;
+
+    // Sol Menü Güncelleme
+    if(sAv) sAv.src = avatarUrl;
+    if(sDn) sDn.innerText = user.displayName;
+    if(sUn) sUn.innerText = `@${user.username}`;
+
+    // Profil Sayfası Güncelleme
+    if(pAv) pAv.src = avatarUrl;
+    if(pPn) pPn.innerText = user.displayName;
+    if(pPh) pPh.innerText = `@${user.username}`;
+
+    // Gizlilik Durumu Güncelleme
+    if(pTg) pTg.checked = isPrivate;
+    if(sPi) sPi.style.display = isPrivate ? 'block' : 'none';
+}
+
+  window.togglePrivacy = () => {
+      isPrivate = document.getElementById('privacyToggle').checked;
+      localStorage.setItem('st_isPrivate', isPrivate);
+      updateUIWithUser();
+  };
+
+  window.navigateTo = (pageId) => {
+      console.log(pageId + " sayfasına gidiliyor...");
+      
+      if(pageId === 'admin' && !user.isAdmin) {
+          alert("Bu bölüme sadece yönetici erişebilir!");
+          window.navigateTo('feed');
+          return;
+      }
+
+      // Sayfa içeriklerini gizle/göster
+      document.querySelectorAll('.page-content').forEach(p => p.classList.remove('active'));
+      const target = document.getElementById('page-' + pageId);
+      if(target) target.classList.add('active');
+
+      // Navigasyon butonlarını aktif yap
+      document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+      const btn = document.getElementById('btn-' + pageId);
+      if(btn) btn.classList.add('active');
+
+      window.scrollTo(0,0);
+  };
+
+
+//* SEARCH ARAMA FONKSIYONLARI *//
+
+document.addEventListener('DOMContentLoaded', function() {
+    // 1. Örnek Veri Seti (Gerçek verilerinle burayı değiştirebilirsin)
+    const database = {
+        pages: [
+            { name: "Yardım Merkezi", link: "yardim.html", icon: "fa-life-ring" },
+            { name: "Topluluk Kuralları", link: "kurallar.html", icon: "fa-gavel" },
+            { name: "Hakkımızda", link: "hakkimizda.html", icon: "fa-info-circle" }
+        ],
+        users: [
+            { name: "Ahmet Yılmaz", role: "Moderatör", img: "https://via.placeholder.com/40" },
+            { name: "Ayşe Demir", role: "Yazar", img: "https://via.placeholder.com/40" },
+            { name: "Caner Kurt", role: "Üye", img: "https://via.placeholder.com/40" }
+        ]
+    };
+
+    // 2. URL'den Arama Terimini Al
+    const urlParams = new URLSearchParams(window.location.search);
+    const query = urlParams.get('q')?.toLowerCase() || "";
+
+    // Elementleri Seç
+    const resultText = document.getElementById('result-text');
+    const searchStatus = document.getElementById('searchStatus');
+    const pagesContainer = document.getElementById('search-results-pages');
+    const usersContainer = document.getElementById('search-results-users');
+    const sectionPages = document.getElementById('section-pages');
+    const sectionUsers = document.getElementById('section-users');
+    const noResults = document.getElementById('search-no-results');
+
+    if (query) {
+        resultText.innerText = `"${query}" için sonuçlar`;
+        
+        // 3. Filtreleme İşlemi
+        const filteredPages = database.pages.filter(p => p.name.toLowerCase().includes(query));
+        const filteredUsers = database.users.filter(u => u.name.toLowerCase().includes(query));
+
+        let totalCount = filteredPages.length + filteredUsers.length;
+        searchStatus.innerText = `${totalCount} sonuç bulundu.`;
+
+        // 4. Sonuçları Ekrana Yazdır
+        if (totalCount > 0) {
+            // Sayfaları Listele
+            if (filteredPages.length > 0) {
+                sectionPages.style.display = 'block';
+                filteredPages.forEach(p => {
+                    pagesContainer.innerHTML += `
+                        <div class="result-item" style="padding:10px; border-bottom:1px solid #eee;">
+                            <a href="${p.link}"><i class="fa-solid ${p.icon}"></i> ${p.name}</a>
+                        </div>`;
+                });
+            }
+
+            // Kişileri Listele
+            if (filteredUsers.length > 0) {
+                sectionUsers.style.display = 'block';
+                filteredUsers.forEach(u => {
+                    usersContainer.innerHTML += `
+                        <div class="user-item" style="display:flex; align-items:center; gap:10px; padding:10px;">
+                            <img src="${u.img}" style="border-radius:50%; width:30px;">
+                            <div><strong>${u.name}</strong> <small>(${u.role})</small></div>
+                        </div>`;
+                });
+            }
+        } else {
+            noResults.style.display = 'block';
+        }
+    } else {
+        resultText.innerText = "Lütfen bir arama terimi girin.";
+    }
+});
+
+// Sayfa yüklendiğinde çalışır
+document.addEventListener('DOMContentLoaded', function() {
+    // URL'deki ?q=terim kısmını analiz eder
+    const urlParams = new URLSearchParams(window.location.search);
+    const searchQuery = urlParams.get('q'); // 'q' parametresini alır
+
+    const resultDisplay = document.getElementById('result-text');
+    
+    if (searchQuery) {
+        // Arama terimi varsa ekrana yazdırır
+        resultDisplay.innerText = `"${searchQuery}" için sonuçlar gösteriliyor...`;
+        
+        // Burada gerçek arama fonksiyonunu (filtreleme) çağırabilirsin
+        performSearch(searchQuery);
+    } else {
+        resultDisplay.innerText = "Herhangi bir arama yapılmadı.";
+    }
+});
+
+  function formatTime(timestamp) {
+    if(!timestamp) return "...";
+    try {
+        const date = timestamp.toDate();
+        const diff = Math.floor((new Date() - date) / 1000);
+        const t = currentLang === 'tr' ? {s:'sn', m:'dk', h:'sa', d:'gn'} : {s:'s', m:'m', h:'h', d:'d'};
+        if (diff < 60) return `${diff}${t.s}`;
+        if (diff < 3600) return `${Math.floor(diff/60)}${t.m}`;
+        if (diff < 86400) return `${Math.floor(diff/3600)}${t.h}`;
+        return `${Math.floor(diff/86400)}${t.d}`;
+    } catch(e) { return "..."; }
+  }
+
+  document.getElementById('mainSearchBtn').addEventListener('click', function() {
+    const searchQuery = document.getElementById('globalSearch').value;
+    // Arama terimiyle birlikte yönlendirir (Örn: search.html?q=kelime)
+    window.location.href = `search.html?q=${encodeURIComponent(searchQuery)}`;
+});
+
+// Enter tuşuna basıldığında da çalışması için:
+document.getElementById('globalSearch').addEventListener('keypress', function (e) {
+    if (e.key === 'Enter') {
+        document.getElementById('mainSearchBtn').click();
+    }
+});
+
+  window.performGlobalSearch = async () => {
+      const searchInput = document.getElementById('globalSearch');
+      const queryStr = searchInput.value.trim().toLowerCase();
+      if (!queryStr) return;
+
+      navigateTo('search');
+      
+      const pagesContainer = document.getElementById('search-results-pages');
+      const usersContainer = document.getElementById('search-results-users');
+      const secPages = document.getElementById('section-pages');
+      const secUsers = document.getElementById('section-users');
+      const noResults = document.getElementById('search-no-results');
+      const status = document.getElementById('searchStatus');
+      const t = translations[currentLang];
+
+      if(pagesContainer) pagesContainer.innerHTML = "";
+      if(usersContainer) usersContainer.innerHTML = "";
+      if(secPages) secPages.style.display = "none";
+      if(usersContainer && secUsers) secUsers.style.display = "none";
+      if(noResults) noResults.style.display = "none";
+      if(status) status.innerText = `"${queryStr}" için sonuçlar aranıyor...`;
+
+      try {
+          const pagesSnap = await getDocs(collection(db, "pages"));
+          let pagesFound = 0;
+          
+          pagesSnap.forEach(docSnap => {
+              const data = docSnap.data();
+              if (data.name && data.name.toLowerCase().includes(queryStr)) {
+                  pagesFound++;
+                  const isSub = (data.subscribers || []).includes(user.username);
+                  if(pagesContainer) pagesContainer.innerHTML += `
+                  <div class="glass-card page-card">
+                      <img src="${getAvatarUrl(data.avatarSeed, 'page')}" class="page-icon" style="width: 50px; height: 50px; border-radius: 8px; margin: 10px auto; display: block;">
+                      <div style="font-weight:800; text-align:center;">${data.name}</div>
+                      <div style="font-size:0.7rem; color:var(--text-muted); margin-bottom:10px; text-align:center;">Sayfa • ${(data.subscribers || []).length} Takipçi</div>
+                      <button class="btn-subscribe ${isSub ? 'subscribed' : ''}" onclick="toggleSubscription('${docSnap.id}', ${isSub})">${isSub ? t.unsubBtn : t.subBtn}</button>
+                  </div>`;
+              }
+          });
+
+          const postsSnap = await getDocs(collection(db, "posts"));
+          let usersFoundCount = 0;
+          let processedUsers = new Set();
+
+          postsSnap.forEach(pDoc => {
+              const p = pDoc.data();
+              const usernameMatch = p.username && p.username.toLowerCase().includes(queryStr);
+              const nameMatch = p.name && p.name.toLowerCase().includes(queryStr);
+              
+              if (p.username && !p.username.startsWith('page_') && (usernameMatch || nameMatch) && !processedUsers.has(p.username)) {
+                  processedUsers.add(p.username);
+                  usersFoundCount++;
+                  if(usersContainer) usersContainer.innerHTML += `
+                  <div class="glass-card page-card">
+                      <img src="${getAvatarUrl(p.avatarSeed, 'user')}" class="page-icon" style="border-radius:50%; width: 50px; height: 50px; margin: 10px auto; display: block; cursor:pointer;" onclick="navigateTo('${p.username === user.username ? 'profile' : 'feed'}')">
+                      <div style="font-weight:800; text-align:center; cursor:pointer;" onclick="navigateTo('${p.username === user.username ? 'profile' : 'feed'}')">${p.name || 'Kullanıcı'}</div>
+                      <div style="font-size:0.7rem; color:var(--text-muted); margin-bottom:10px; text-align:center;">@${p.username}</div>
+                      <button class="btn-subscribe" onclick="navigateTo('${p.username === user.username ? 'profile' : 'feed'}')">Profiline Git</button>
+                  </div>`;
+              }
+          });
+
+          if (pagesFound > 0 && secPages) secPages.style.display = "block";
+          if (usersFoundCount > 0 && secUsers) secUsers.style.display = "block";
+
+          const totalFound = pagesFound + usersFoundCount;
+          if (totalFound === 0) {
+              if(noResults) noResults.style.display = "block";
+              if(status) status.innerText = `"${queryStr}" için hiçbir sonuç bulunamadı.`;
+          } else {
+              if(status) status.innerText = `"${queryStr}" için ${totalFound} sonuç bulundu.`;
+          }
+
+      } catch (e) {
+          console.error("Arama hatası:", e);
+          if(status) status.innerText = "Arama yapılırken bir hata oluştu.";
+      }
+  };
+
+  const mainSearchBtn = document.getElementById('mainSearchBtn');
+  if(mainSearchBtn) mainSearchBtn.onclick = performGlobalSearch;
+  
+  const gSearch = document.getElementById('globalSearch');
+  if(gSearch) gSearch.addEventListener('keypress', (e) => {
+      if(e.key === 'Enter') performGlobalSearch();
+  });
+
+  window.searchTrend = (tag) => { 
+    const gSearch = document.getElementById('globalSearch');
+    if(gSearch) {
+      gSearch.value = tag; 
+      performGlobalSearch();
+    }
+  };
+
+  window.likePost = async (id, isLiked) => { const ref = doc(db, "posts", id); await updateDoc(ref, { likes: isLiked ? arrayRemove(user.username) : arrayUnion(user.username) }); };
+  window.toggleBookmark = async (id, isSaved) => { const ref = doc(db, "posts", id); await updateDoc(ref, { savedBy: isSaved ? arrayRemove(user.username) : arrayUnion(user.username) }); };
+  window.toggleCommentSection = (id) => { const el = document.getElementById(`comments-${id}`); if(el) el.style.display = el.style.display === 'none' ? 'block' : 'none'; };
+  
+  window.addComment = async (id) => {
+      const input = document.getElementById(`input-${id}`);
+      const text = input.value.trim();
+      if(!text) return;
+      await updateDoc(doc(db, "posts", id), {
+          comments: arrayUnion({ 
+              username: user.username, 
+              displayName: user.displayName, 
+              avatarSeed: user.avatarSeed, 
+              text: text, 
+              time: Date.now(),
+              replies: []
+          })
+      });
+      input.value = "";
+  };
+
+  window.addReply = async (postId, commentTime) => {
+      const replyText = prompt("Yanıtınızı yazın:");
+      if (!replyText) return;
+
+      const ref = doc(db, "posts", postId);
+      const snap = await getDoc(ref);
+      if (snap.exists()) {
+          const comments = snap.data().comments;
+          const index = comments.findIndex(c => c.time === commentTime);
+          if (index !== -1) {
+              if (!comments[index].replies) comments[index].replies = [];
+              comments[index].replies.push({
+                  username: user.username,
+                  displayName: user.displayName,
+                  avatarSeed: user.avatarSeed,
+                  text: replyText,
+                  time: Date.now()
+              });
+              await updateDoc(ref, { comments: comments });
+          }
+      }
+  };
+
+  window.deleteComment = async (postId, commentTime, commentText) => {
+    if(confirm(translations[currentLang].confirmDeleteComment)) {
+        const ref = doc(db, "posts", postId);
+        const snap = await getDoc(ref);
+        if(snap.exists()){
+            const data = snap.data();
+            const commentToRemove = data.comments.find(c => c.time === commentTime && c.text === commentText);
+            if(commentToRemove) { await updateDoc(ref, { comments: arrayRemove(commentToRemove) }); }
+        }
+    }
+  };
+
+  window.deleteReply = async (postId, commentTime, replyTime) => {
+      if(confirm("Bu yanıtı silmek istediğinize emin misiniz?")) {
+          const ref = doc(db, "posts", postId);
+          const snap = await getDoc(ref);
+          if (snap.exists()) {
+              const comments = snap.data().comments;
+              const cIndex = comments.findIndex(c => c.time === commentTime);
+              if (cIndex !== -1) {
+                  comments[cIndex].replies = comments[cIndex].replies.filter(r => r.time !== replyTime);
+                  await updateDoc(ref, { comments: comments });
+              }
+          }
+      }
+  };
+
+  window.deletePost = async (id) => { if(confirm(translations[currentLang].confirmDelete)) await deleteDoc(doc(db, "posts", id)); }
+  window.deletePage = async (id) => { if(confirm(translations[currentLang].confirmDeletePage)) await deleteDoc(doc(db, "pages", id)); }
+  
+  window.createNewPage = async () => {
+      const name = document.getElementById('newPageName').value.trim();
+      if(!name) return;
+      await addDoc(collection(db, "pages"), { 
+          name, 
+          creator: user.username, 
+          avatarSeed: name, 
+          subscribers: [], 
+          createdAt: serverTimestamp() 
+      });
+      document.getElementById('newPageName').value = "";
+  };
+
+  window.changePageAvatar = async (id) => {
+    const choice = prompt("Sayfa avatarı değiştir:\n1: URL/GIF Gir\n2: Cihazdan Yükle\n3: Kelime Gir (Icon)");
+    if(choice === "1") {
+        const url = prompt("URL:");
+        if(url) await updateDoc(doc(db, "pages", id), { avatarSeed: url });
+    } else if(choice === "2") {
+        const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*';
+        input.onchange = e => {
+            const reader = new FileReader();
+            reader.onload = async () => { await updateDoc(doc(db, "pages", id), { avatarSeed: reader.result }); };
+            reader.readAsDataURL(e.target.files[0]);
+        };
+        input.click();
+    } else if(choice === "3") {
+        const seed = prompt("İkon için bir kelime girin:");
+        if(seed) await updateDoc(doc(db, "pages", id), { avatarSeed: seed });
+    }
+  };
+
+  window.postAsPage = async (id, pageName, pageSeed) => {
+    let content;
+    if(id === 'system_notice') {
+        content = document.getElementById('adminNoticeInput').value.trim();
+        if(!content) return;
+    } else {
+        content = prompt(`${pageName} adına ne paylaşmak istersin?`);
+    }
+
+    if(content) {
+        await addDoc(collection(db, "posts"), { 
+            name: pageName, 
+            username: id === 'system_notice' ? 'official_system' : `page_${id}`, 
+            adminUser: user.username, 
+            avatarSeed: pageSeed, 
+            content: content, 
+            timestamp: serverTimestamp(), 
+            likes: [], 
+            savedBy: [], 
+            comments: [] 
+        });
+        if(id === 'system_notice') {
+            document.getElementById('adminNoticeInput').value = "";
+            alert("Sistem duyurusu yayınlandı!");
+        }
+    }
+  };
+
+  window.toggleSubscription = async (id, isSub) => { 
+      await updateDoc(doc(db, "pages", id), { 
+          subscribers: isSub ? arrayRemove(user.username) : arrayUnion(user.username) 
+      }); 
+  };
+
+  onSnapshot(collection(db, "pages"), (snap) => {
+      const allList = document.getElementById('all-pages-list');
+      const trendList = document.getElementById('trend-pages-list');
+      const t = translations[currentLang];
+      
+      if(allList) allList.innerHTML = ""; 
+      if(trendList) trendList.innerHTML = "";
+      
+      let pArr = [];
+
+      snap.forEach(d => {
+          const data = d.data();
+          const subs = data.subscribers || [];
+          const isSub = subs.includes(user.username);
+          const isAdmin = data.creator === user.username;
+          const pAvatar = getAvatarUrl(data.avatarSeed, 'page');
+          pArr.push({id: d.id, ...data});
+
+          if(allList) {
+            const adminPanel = isAdmin ? `
+              <div class="admin-actions" style="border-top: 1px solid var(--border); margin-top: 10px; padding-top: 10px;">
+                  <button class="admin-btn" title="Avatar Değiştir" onclick="changePageAvatar('${d.id}')"><i class="fa-solid fa-image"></i></button>
+                  <button class="admin-btn" style="background:var(--primary); color:white; border:none;" onclick="postAsPage('${d.id}', '${data.name}', '${data.avatarSeed}')">${t.shareBtn}</button>
+                  <button class="admin-btn" style="color:#ef4444;" title="Sayfayı Sil" onclick="deletePage('${d.id}')"><i class="fa-solid fa-trash"></i></button>
+              </div>` : '';
+
+            allList.innerHTML += `
+              <div class="advanced-page-card">
+                  <div class="card-cover"></div>
+                  <div class="card-body">
+                      <img src="${pAvatar}" class="card-avatar" style="cursor:pointer" onclick="navigateTo('pages')">
+                      <div style="font-weight:800; font-size: 0.95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor:pointer" onclick="navigateTo('pages')">
+                          ${data.name} ${isAdmin ? '👑' : ''}
+                      </div>
+                      <div style="font-size:0.75rem; color:var(--text-muted); margin-bottom: 12px;">
+                          <i class="fa-solid fa-users"></i> ${subs.length} takipçi
+                      </div>
+                      <button class="btn-subscribe ${isSub ? 'subscribed' : ''}" onclick="toggleSubscription('${d.id}', ${isSub})">
+                          ${isSub ? '<i class="fa-solid fa-check"></i> ' + t.unsubBtn : '<i class="fa-solid fa-plus"></i> ' + t.subBtn}
+                      </button>
+                      ${adminPanel}
+                  </div>
+              </div>`;
+          }
+      });
+
+      pArr.sort((a,b) => (b.subscribers?.length || 0) - (a.subscribers?.length || 0)).slice(0, 5).forEach(p => {
+          if(trendList) trendList.innerHTML += `
+              <div class="trend-item" onclick="navigateTo('pages')" style="cursor:pointer">
+                  <img src="${getAvatarUrl(p.avatarSeed, 'page')}" style="width:30px; height:30px; border-radius:8px; margin-right:10px; object-fit:cover;">
+                  <div class="trend-info">
+                      <div class="trend-name">${p.name}</div>
+                      <div class="trend-meta">${(p.subscribers || []).length} takipçi</div>
+                  </div>
+              </div>`;
+      });
+  });
+
+  onSnapshot(query(collection(db, "posts"), orderBy("timestamp", "desc")), (snap) => {
+      const feed = document.getElementById('feed-items'), 
+            myPosts = document.getElementById('my-posts-list'), 
+            myLikes = document.getElementById('my-liked-list'), 
+            bookItems = document.getElementById('bookmark-items'), 
+            t = translations[currentLang];
+
+      if(feed) feed.innerHTML = ""; 
+      if(myPosts) myPosts.innerHTML = ""; 
+      if(bookItems) bookItems.innerHTML = ""; 
+      if(myLikes) myLikes.innerHTML = "";
+
+      snap.forEach(d => {
+          const p = d.data(), 
+                isPage = p.username?.startsWith('page_') || p.username === 'official_system', 
+                isMine = p.username === user.username || p.adminUser === user.username, 
+                isLiked = p.likes?.includes(user.username), 
+                isSaved = p.savedBy?.includes(user.username);
+          
+          const avatarUrl = getAvatarUrl(p.avatarSeed, isPage ? 'page' : 'user');
+          const contentWithLinks = (p.content || "").replace(/(#[\wığüşöçİĞÜŞÖÇ]+)/g, '<span class="hashtag-link" onclick="searchTrend(\'$1\')">$1</span>');
+          const targetNav = isMine ? 'profile' : (isPage ? 'pages' : 'feed');
+          
+          const postHtml = `
+          <div class="glass-card post" style="${p.username === 'official_system' ? 'border: 2px solid var(--primary); background: rgba(99, 102, 241, 0.05);' : ''}">
+              ${isMine ? `<button class="post-delete-btn" onclick="deletePost('${d.id}')"><i class="fa-solid fa-trash"></i></button>` : ''}
+              <div style="display:flex; gap:10px; margin-bottom:10px;">
+                  <img src="${avatarUrl}" class="${isPage ? 'page-avatar' : 'user-avatar'}" style="cursor:pointer;" onclick="navigateTo('${targetNav}')">
+                  <div>
+                      <div style="font-weight:700; display:flex; align-items:center; gap:5px; cursor:pointer;" onclick="navigateTo('${targetNav}')">
+                          ${p.name} ${isPage ? '<i class="fa-solid fa-circle-check" style="color:var(--primary); font-size:0.7rem;"></i>' : ''}
+                          <span class="post-time">• ${formatTime(p.timestamp)}</span>
+                      </div>
+                      <div style="font-size:0.75rem; color:var(--text-muted); cursor:pointer;" onclick="navigateTo('${targetNav}')">@${p.username}</div>
+                  </div>
+              </div>
+              <p style="white-space: pre-wrap; margin-bottom:15px;">${contentWithLinks}</p>
+              <div style="display:flex; gap:12px;">
+                  <button class="tool-btn" onclick="likePost('${d.id}', ${isLiked})" style="gap:5px; color:${isLiked ? '#ef4444' : ''}"><i class="${isLiked ? 'fa-solid' : 'fa-regular'} fa-heart"></i><span>${p.likes?.length || 0}</span></button>
+                  <button class="tool-btn" onclick="toggleCommentSection('${d.id}')" style="gap:5px;"><i class="fa-regular fa-comment"></i><span>${p.comments?.length || 0}</span></button>
+                  <button class="tool-btn" onclick="toggleBookmark('${d.id}', ${isSaved})" style="color:${isSaved ? '#f59e0b' : ''}"><i class="${isSaved ? 'fa-solid' : 'fa-regular'} fa-bookmark"></i></button>
+              </div>
+              
+              <div id="comments-${d.id}" class="comment-area" style="display:none;">
+                  <div id="list-${d.id}">
+                      ${(p.comments || []).map(c => `
+                          <div class="comment-item" style="flex-direction: column; align-items: flex-start; gap: 5px;">
+                              <div style="display: flex; align-items: center; width: 100%; gap: 10px;">
+                                  <img src="${getAvatarUrl(c.avatarSeed, 'user')}" style="width: 24px; height: 24px; border-radius: 50%; cursor:pointer;" onclick="navigateTo('${c.username === user.username ? 'profile' : 'feed'}')">
+                                  <div style="flex: 1;">
+                                      <span class="comment-meta" style="cursor:pointer;" onclick="navigateTo('${c.username === user.username ? 'profile' : 'feed'}')">${c.displayName}</span> 
+                                      <span style="font-size: 0.8rem;">${c.text}</span>
+                                  </div>
+                                  ${(c.username === user.username || user.isAdmin) ? `
+                                      <button class="comment-del-btn" onclick="deleteComment('${d.id}', ${c.time}, '${c.text}')">
+                                          <i class="fa-solid fa-trash-can"></i>
+                                      </button>` : ''}
+                              </div>
+                              <div style="margin-left: 34px; width: calc(100% - 34px);">
+                                  ${(c.replies || []).map(r => `
+                                      <div style="display: flex; align-items: center; gap: 8px; margin-top: 5px; background: rgba(0,0,0,0.03); padding: 5px; border-radius: 8px;">
+                                          <img src="${getAvatarUrl(r.avatarSeed, 'user')}" style="width: 18px; height: 18px; border-radius: 50%; cursor:pointer;" onclick="navigateTo('${r.username === user.username ? 'profile' : 'feed'}')">
+                                          <div style="font-size: 0.75rem; flex: 1;">
+                                              <b style="color:var(--primary); cursor:pointer;" onclick="navigateTo('${r.username === user.username ? 'profile' : 'feed'}')">${r.displayName}</b> ${r.text}
+                                          </div>
+                                          ${(r.username === user.username || user.isAdmin) ? `
+                                              <button class="comment-del-btn" style="font-size:0.6rem" onclick="deleteReply('${d.id}', ${c.time}, ${r.time})">
+                                                  <i class="fa-solid fa-xmark"></i>
+                                              </button>` : ''}
+                                      </div>
+                                  `).join('')}
+                                  <button onclick="addReply('${d.id}', ${c.time})" style="background:none; border:none; color:var(--text-muted); font-size:0.7rem; cursor:pointer; margin-top:5px; font-weight:bold;">Yanıtla</button>
+                              </div>
+                          </div>`).join('')}
+                  </div>
+                  <div style="display:flex; gap:8px; margin-top:10px;">
+                      <input type="text" id="input-${d.id}" placeholder="${t.commentPlaceholder}" style="flex:1; padding:8px 12px; border-radius:10px; border:1px solid var(--border); outline:none; background: var(--input-bg); color: var(--text-main);">
+                      <button onclick="addComment('${d.id}')" style="background:var(--primary); color:white; border:none; padding:0 15px; border-radius:10px; cursor:pointer;">${t.sendComment}</button>
+                  </div>
+              </div>
+          </div>`;
+          if(feed) feed.innerHTML += postHtml;
+          if(p.username === user.username && myPosts) myPosts.innerHTML += postHtml;
+          if(isLiked && myLikes) myLikes.innerHTML += postHtml;
+          if(isSaved && bookItems) bookItems.innerHTML += postHtml;
+      });
+  });
+
+  const shareBtn = document.getElementById('shareBtn');
+  if(shareBtn) {
+    shareBtn.onclick = async () => {
+      const val = document.getElementById('postInput').value.trim();
+      if(val) {
+        await addDoc(collection(db, "posts"), { 
+            name: user.displayName, 
+            username: user.username, 
+            avatarSeed: user.avatarSeed, 
+            content: val, 
+            timestamp: serverTimestamp(), 
+            likes: [], 
+            savedBy: [], 
+            comments: [] 
+        });
+        document.getElementById('postInput').value = "";
+      }
+    };
+  }
+
+  setInterval(() => {
+    const n = new Date();
+    const sH = document.getElementById('secHand');
+    const mH = document.getElementById('minHand');
+    const hH = document.getElementById('hourHand');
+    const dC = document.getElementById('digiClock');
+    const dD = document.getElementById('dateDisplay');
+
+    if(sH) sH.style.transform = `translateX(-50%) rotate(${n.getSeconds()*6}deg)`;
+    if(mH) mH.style.transform = `translateX(-50%) rotate(${n.getMinutes()*6}deg)`;
+    if(hH) hH.style.transform = `translateX(-50%) rotate(${(n.getHours()*30)+(n.getMinutes()/2)}deg)`;
+    if(dC) dC.innerText = n.toLocaleTimeString(currentLang === 'tr' ? 'tr-TR' : 'en-US');
+    
+    if(dD) {
+      const options = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' };
+      dD.innerText = n.toLocaleDateString(currentLang === 'tr' ? 'tr-TR' : 'en-US', options);
+    }
+  }, 1000);
+
+  const profileTrigger = document.getElementById('profileTrigger');
+  if(profileTrigger) {
+    profileTrigger.onclick = (e) => { 
+      e.stopPropagation(); 
+      const menu = document.getElementById('dropdownMenu');
+      if(menu) menu.classList.toggle('active'); 
+    };
+  }
+
+  window.onclick = () => {
+    const menu = document.getElementById('dropdownMenu');
+    if(menu) menu.classList.remove('active');
+  };
+  
+  // Gündem Paylaşma Fonksiyonu
+const shareGundem = async () => {
+    const text = document.getElementById('gundemInput').value;
+    const category = document.querySelector('input[name="cat"]:checked').value;
+    
+    if (!text.trim()) return alert("Lütfen bir şeyler yazın.");
+    if (!auth.currentUser) return alert("Paylaşım yapmak için giriş yapmalısınız.");
+
+    try {
+        await addDoc(collection(db, "gundem"), {
+            content: text,
+            category: category,
+            author: auth.currentUser.displayName || "Kullanıcı",
+            authorAvatar: auth.currentUser.photoURL || "",
+            timestamp: serverTimestamp()
+        });
+        document.getElementById('gundemInput').value = "";
+    } catch (err) {
+        console.error("Hata:", err);
+    }
+};
+
+// Gündemi Yükle ve Filtrele
+const fetchGundem = (filter = "all") => {
+    currentGundemFilter = filter;
+    const feed = document.getElementById('gundemFeed');
+    if(!feed) return;
+
+    // Sorguya limit(gundemLimit) ekledik
+    const q = query(collection(db, "gundem"), orderBy("timestamp", "desc"), limit(gundemLimit));
+
+    onSnapshot(q, (snapshot) => {
+        feed.innerHTML = "";
+        snapshot.forEach((docSnap) => {
+            const data = docSnap.data();
+            const docId = docSnap.id;
+            
+            if (filter !== "all" && data.category !== filter) return;
+
+            const isOwnerOrAdmin = (auth.currentUser && auth.currentUser.displayName === data.author) || user.isAdmin;
+            const time = data.timestamp ? new Date(data.timestamp.seconds * 1000).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : "...";
+
+            feed.innerHTML += `
+                <div class="g-card cat-${data.category}">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                        <span class="g-badge bg-${data.category}">${data.category}</span>
+                        ${isOwnerOrAdmin ? `
+                            <button class="gundem-del-btn" onclick="deleteGundem('${docId}')">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                        ` : ''}
+                    </div>
+                    <div style="font-size: 1.05rem; line-height: 1.5; margin-top: 10px; margin-bottom: 12px;">${data.content}</div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; opacity: 0.7; font-size: 0.8rem;">
+                        <span><strong>@${data.author}</strong> tarafından</span>
+                        <span><i class="fa-regular fa-clock"></i> ${time}</span>
+                    </div>
+                </div>
+            `;
+        });
+
+        // EĞER DAHA FAZLA VERİ VARSA BUTONU GÖSTER
+        if (snapshot.docs.length >= gundemLimit) {
+            feed.innerHTML += `
+                <button onclick="window.loadMoreGundem()" style="width:100%; padding:12px; margin-top:10px; background:var(--primary); color:white; border:none; border-radius:8px; cursor:pointer; font-weight:bold;">
+                    Daha Fazla Yükle
+                </button>`;
+        }
+    });
+};
+
+// Limiti artıran buton fonksiyonu
+window.loadMoreGundem = () => {
+    gundemLimit += 7; // Her tıkta 7 artar
+    fetchGundem(currentGundemFilter);
+};
+
+// Olay Dinleyicileri (Filtre Butonları İçerik Değişimi)
+document.addEventListener('click', (e) => {
+    if (e.target.classList.contains('gundem-tab')) {
+        document.querySelectorAll('.gundem-tab').forEach(t => t.classList.remove('active'));
+        e.target.classList.add('active');
+        fetchGundem(e.target.dataset.filter);
+    }
+});
+
+// Sayfa açıldığında verileri çek
+window.addEventListener('load', () => fetchGundem());
+
+// Global erişim
+window.shareGundem = shareGundem;
+
+// Gündem Silme Fonksiyonu
+window.deleteGundem = async (id) => {
+    if (confirm("Bu gündem içeriğini silmek istediğinize emin misiniz?")) {
+        try {
+            await deleteDoc(doc(db, "gundem", id));
+            alert("İçerik başarıyla silindi.");
+        } catch (err) {
+            console.error("Silme hatası:", err);
+            alert("Silme işlemi sırasında bir hata oluştu.");
+        }
+    }
+};
+
+document.addEventListener('DOMContentLoaded', () => {
+    const emojiToggle = document.getElementById('emojiToggle');
+    const emojiPicker = document.getElementById('emojiPicker');
+    
+    // Önce index'teki ID'yi dene, yoksa gundem'deki ID'yi al
+    const postInput = document.getElementById('postInput') || document.getElementById('gundemInput');
+
+    // Eğer sayfada ne emoji butonu ne de giriş alanı varsa çalışma
+    if (!emojiToggle || !postInput) return;
+
+    // Menüyü aç/kapat
+    emojiToggle.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isHidden = emojiPicker.style.display === 'none' || emojiPicker.style.display === '';
+        emojiPicker.style.display = isHidden ? 'grid' : 'none';
+    });
+
+    // Emoji seçme işlemi
+    emojiPicker.querySelectorAll('span').forEach(emoji => {
+        emoji.addEventListener('click', (e) => {
+            const start = postInput.selectionStart;
+            const end = postInput.selectionEnd;
+            const text = postInput.value;
+            const emojiChar = emoji.innerText;
+            
+            // Emojiyi doğru aralığa ekle
+            postInput.value = text.slice(0, start) + emojiChar + text.slice(end);
+            
+            // İmleci odakla ve emojiden sonraya taşı
+            postInput.focus();
+            const newPos = start + emojiChar.length;
+            postInput.setSelectionRange(newPos, newPos);
+            
+            emojiPicker.style.display = 'none';
+        });
+    });
+
+    // Dışarı tıklayınca kapatma
+    document.addEventListener('click', (e) => {
+        if (emojiPicker && !emojiPicker.contains(e.target) && e.target !== emojiToggle) {
+            emojiPicker.style.display = 'none';
+        }
+    });
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+    const leftBtn = document.getElementById('leftOpenBtn');
+    const rightBtn = document.getElementById('rightOpenBtn');
+    const leftAside = document.querySelector('aside');
+    const rightAside = document.querySelector('.right-panel');
+    const overlay = document.getElementById('sideOverlay');
+
+    const toggleLeft = () => {
+        leftAside.classList.toggle('active');
+        overlay.classList.toggle('active');
+    };
+
+    const toggleRight = () => {
+        rightAside.classList.toggle('active');
+        overlay.classList.toggle('active');
+    };
+
+    const closeAll = () => {
+        leftAside.classList.remove('active');
+        rightAside.classList.remove('active');
+        overlay.classList.remove('active');
+    };
+
+    leftBtn.onclick = toggleLeft;
+    rightBtn.onclick = toggleRight;
+    overlay.onclick = closeAll;
+});
+
+// Sayfa yönlendirme fonksiyonu
+function navigateTo(page) {
+    if (page === 'profile') {
+        window.location.href = 'profile.html';
+    } else if (page === 'feed' || page === 'home') {
+        window.location.href = 'profile.html';
+    } else {
+        // Diğer sayfalar (search, settings vb.) için otomatik .html ekler
+        window.location.href = page + '.html';
+    }
+}
+
+// Eğer modül (type="module") kullanıyorsan, HTML'den erişilmesi için bunu eklemelisin:
+window.navigateTo = navigateTo;
+
+
+// --- 1. Resim Yönetimi ---
+function handleImageSelect(event) {
+    const file = event.target.files[0];
+    if (file) {
+        selectedImageFile = file;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            document.getElementById('postExtrasPreview').style.display = 'block';
+            document.getElementById('imagePreviewContainer').style.display = 'block';
+            document.getElementById('previewImg').src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
+}
+
+function clearImage() {
+    selectedImageFile = null;
+    document.getElementById('imageInput').value = '';
+    document.getElementById('imagePreviewContainer').style.display = 'none';
+    checkAllExtras();
+}
+
+// --- 2. Ruh Hali Yönetimi ---
+function toggleMoodPicker() {
+    const picker = document.getElementById('moodPicker');
+    picker.style.display = (picker.style.display === 'none' || picker.style.display === '') ? 'grid' : 'none';
+}
+
+function selectMood(emoji, label) {
+    selectedMood = { emoji, label };
+    document.getElementById('postExtrasPreview').style.display = 'block';
+    document.getElementById('moodPreviewContainer').style.display = 'block';
+    document.getElementById('selectedMoodDisplay').innerText = `${emoji} ${label} hissediyor`;
+    document.getElementById('moodPicker').style.display = 'none';
+}
+
+function clearMood() {
+    selectedMood = null;
+    document.getElementById('moodPreviewContainer').style.display = 'none';
+    checkAllExtras();
+}
+
+// --- 3. Anket Yönetimi ---
+function togglePollCreator() {
+    isPollActive = !isPollActive;
+    document.getElementById('postExtrasPreview').style.display = isPollActive ? 'block' : 'none';
+    document.getElementById('pollPreviewContainer').style.display = isPollActive ? 'block' : 'none';
+    if(!isPollActive) checkAllExtras();
+}
+
+function addPollOption() {
+    const container = document.getElementById('pollInputs');
+    if (container.children.length < 5) {
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'poll-opt';
+        input.placeholder = `Seçenek ${container.children.length + 1}`;
+        input.style = "width:100%; margin-bottom:8px; padding:10px; border-radius:8px; border:1px solid var(--border); background: var(--card-bg); color: var(--text-main);";
+        container.appendChild(input);
+    }
+}
+
+// Görünürlük Kontrolü
+function checkAllExtras() {
+    const hasImage = selectedImageFile !== null;
+    const hasMood = selectedMood !== null;
+    const hasPoll = isPollActive;
+    
+    if (!hasImage && !hasMood && !hasPoll) {
+        document.getElementById('postExtrasPreview').style.display = 'none';
+    }
+}
+
+window.toggleMoodPicker = () => {
+    const picker = document.getElementById('moodPicker');
+    picker.style.display = (picker.style.display === 'none' || picker.style.display === '') ? 'grid' : 'none';
+};
+
+// 2. Fonksiyonlar
+window.toggleMoodPicker = function() {
+    const p = document.getElementById('moodPicker');
+    p.style.display = p.style.display === 'none' ? 'block' : 'none';
+}
+
+window.selectMood = function(emoji, text) {
+    selectedMood = { emoji, text };
+    document.getElementById('postExtrasPreview').style.display = 'block';
+    document.getElementById('moodPreviewContainer').style.display = 'block';
+    document.getElementById('selectedMoodDisplay').innerText = emoji + " " + text + " hissediyor";
+    document.getElementById('moodPicker').style.display = 'none';
+}
+
+window.clearMood = function() {
+    selectedMood = null;
+    document.getElementById('moodPreviewContainer').style.display = 'none';
+    checkPreviewVisibility();
+}
+
+window.handleImageSelect = function(e) {
+    const file = e.target.files[0];
+    if(file) {
+        selectedImageFile = file;
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            document.getElementById('postExtrasPreview').style.display = 'block';
+            document.getElementById('imagePreviewContainer').style.display = 'block';
+            document.getElementById('previewImg').src = event.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
+}
+
+window.clearImage = function() {
+    selectedImageFile = null;
+    document.getElementById('imageInput').value = '';
+    document.getElementById('imagePreviewContainer').style.display = 'none';
+    checkPreviewVisibility();
+}
+
+window.togglePollCreator = function() {
+    isPollOpen = !isPollOpen;
+    document.getElementById('postExtrasPreview').style.display = isPollOpen ? 'block' : 'none';
+    document.getElementById('pollPreviewContainer').style.display = isPollOpen ? 'block' : 'none';
+    if(!isPollOpen) checkPreviewVisibility();
+}
+
+function checkPreviewVisibility() {
+    if (!selectedMood && !selectedImageFile && !isPollOpen) {
+        document.getElementById('postExtrasPreview').style.display = 'none';
+    }
+}
