@@ -87,6 +87,29 @@
                     <button class="tool-btn"><i class="fa-regular fa-image"></i></button>
                     <button class="tool-btn"><i class="fa-solid fa-list-ul"></i></button>
 
+                    <input type="file" id="imageInput" style="display:none" onchange="handleImageSelect(event)">
+
+<div id="postExtrasPreview" style="display:none; border: 1px solid #ccc; padding: 10px;">
+    
+    <div id="imagePreviewContainer" style="display:none;">
+        <img id="previewImg" src="" style="width:100px;">
+        <button onclick="clearImage()">Kaldır</button>
+    </div>
+
+    <div id="moodPreviewContainer" style="display:none;">
+        <span id="selectedMoodDisplay"></span>
+        <button onclick="clearMood()">Kaldır</button>
+    </div>
+
+    <div id="pollPreviewContainer" style="display:none;">
+        <div id="pollInputs">
+            <input type="text" placeholder="Seçenek 1" class="poll-opt">
+            <input type="text" placeholder="Seçenek 2" class="poll-opt">
+        </div>
+        <button onclick="addPollOption()">Seçenek Ekle</button>
+    </div>
+</div>
+
                     <button class="tool-btn" id="emojiToggle" type="button"><i class="fa-regular fa-face-smile"></i></button>
                     
                     <div id="emojiPicker" class="glass-card" style="

@@ -4,21 +4,12 @@ import { getAuth, onAuthStateChanged, signOut, updateEmail, sendPasswordResetEma
 
 // Bileşenleri dinamik olarak yükleme fonksiyonu    
 async function loadComponents() {
-    try {
-        // Header'ı yükle
-        const headerRes = await fetch('components/header.html');
-        const headerData = await headerRes.text();
-        document.getElementById('header-placeholder').innerHTML = headerData;
-
-        // Footer'ı yükle
-        const footerRes = await fetch('components/footer.html');
-        const footerData = await footerRes.text();
-        document.getElementById('footer-placeholder').innerHTML = footerData;
-
-        if (typeof i18nInit === 'function') i18nInit();
-    } catch (error) {
-        console.error("Bileşenler yüklenirken hata oluştu:", error);
-    }
+try { document.getElementById('header-placeholder').innerHTML = headerData;
+    const footerData = await footerRes.text();
+document.getElementById('footer-placeholder').innerHTML = footerData;
+if (typeof i18nInit === 'function') i18nInit();} 
+catch (error) { 
+    console.error("Bileşenler yüklenirken hata oluştu:", error);}
 }
 
 // Sayfa yüklendiğinde çalıştır
@@ -223,7 +214,7 @@ document.addEventListener('DOMContentLoaded', loadComponents);
       footerHelp: "Yardım Merkezi",
       footerRights: "Tüm Hakları Saklıdır.",
       subBtn: "Abone Ol",
-      unsubBtn: "Bırak",
+      unsubBtn: "Abonelikten Çık",
       promptNewName: "Yeni Görünen Ad:",
       confirmDelete: "Bu gönderiyi silmek istediğine emin misin?",
       confirmDeletePage: "Bu sayfayı ve tüm verilerini silmek istediğine emin misin?",
@@ -343,7 +334,7 @@ document.addEventListener('DOMContentLoaded', loadComponents);
 
     // Profil Sayfası
     const pAv = document.getElementById('profilePageAvatar');
-    const pPn = document.getElementById('profilePageName');
+    const pPn = document.getElementById('profilePageuserName');
     const pPh = document.getElementById('profilePageHandle');
 
     // Gizlilik Ayarları ve Göstergeleri
@@ -790,7 +781,7 @@ document.getElementById('globalSearch').addEventListener('keypress', function (e
                       <div style="font-size:0.75rem; color:var(--text-muted); margin-bottom: 12px;">
                           <i class="fa-solid fa-users"></i> ${subs.length} takipçi
                       </div>
-                      <button class="btn-subscribe ${isSub ? 'subscribed' : ''}" onclick="toggleSubscription('${d.id}', ${isSub})">
+                      <button class="admin-btn" style="background:black; color:white; border:none; padding:8px 10px; border-radius:10px; font-weight:600; cursor:pointer;" ${isSub ? 'subscribed' : ''}" onclick="toggleSubscription('${d.id}', ${isSub})">
                           ${isSub ? '<i class="fa-solid fa-check"></i> ' + t.unsubBtn : '<i class="fa-solid fa-plus"></i> ' + t.subBtn}
                       </button>
                       ${adminPanel}
@@ -1144,136 +1135,3 @@ function navigateTo(page) {
 
 // Eğer modül (type="module") kullanıyorsan, HTML'den erişilmesi için bunu eklemelisin:
 window.navigateTo = navigateTo;
-
-
-// --- 1. Resim Yönetimi ---
-function handleImageSelect(event) {
-    const file = event.target.files[0];
-    if (file) {
-        selectedImageFile = file;
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            document.getElementById('postExtrasPreview').style.display = 'block';
-            document.getElementById('imagePreviewContainer').style.display = 'block';
-            document.getElementById('previewImg').src = e.target.result;
-        };
-        reader.readAsDataURL(file);
-    }
-}
-
-function clearImage() {
-    selectedImageFile = null;
-    document.getElementById('imageInput').value = '';
-    document.getElementById('imagePreviewContainer').style.display = 'none';
-    checkAllExtras();
-}
-
-// --- 2. Ruh Hali Yönetimi ---
-function toggleMoodPicker() {
-    const picker = document.getElementById('moodPicker');
-    picker.style.display = (picker.style.display === 'none' || picker.style.display === '') ? 'grid' : 'none';
-}
-
-function selectMood(emoji, label) {
-    selectedMood = { emoji, label };
-    document.getElementById('postExtrasPreview').style.display = 'block';
-    document.getElementById('moodPreviewContainer').style.display = 'block';
-    document.getElementById('selectedMoodDisplay').innerText = `${emoji} ${label} hissediyor`;
-    document.getElementById('moodPicker').style.display = 'none';
-}
-
-function clearMood() {
-    selectedMood = null;
-    document.getElementById('moodPreviewContainer').style.display = 'none';
-    checkAllExtras();
-}
-
-// --- 3. Anket Yönetimi ---
-function togglePollCreator() {
-    isPollActive = !isPollActive;
-    document.getElementById('postExtrasPreview').style.display = isPollActive ? 'block' : 'none';
-    document.getElementById('pollPreviewContainer').style.display = isPollActive ? 'block' : 'none';
-    if(!isPollActive) checkAllExtras();
-}
-
-function addPollOption() {
-    const container = document.getElementById('pollInputs');
-    if (container.children.length < 5) {
-        const input = document.createElement('input');
-        input.type = 'text';
-        input.className = 'poll-opt';
-        input.placeholder = `Seçenek ${container.children.length + 1}`;
-        input.style = "width:100%; margin-bottom:8px; padding:10px; border-radius:8px; border:1px solid var(--border); background: var(--card-bg); color: var(--text-main);";
-        container.appendChild(input);
-    }
-}
-
-// Görünürlük Kontrolü
-function checkAllExtras() {
-    const hasImage = selectedImageFile !== null;
-    const hasMood = selectedMood !== null;
-    const hasPoll = isPollActive;
-    
-    if (!hasImage && !hasMood && !hasPoll) {
-        document.getElementById('postExtrasPreview').style.display = 'none';
-    }
-}
-
-window.toggleMoodPicker = () => {
-    const picker = document.getElementById('moodPicker');
-    picker.style.display = (picker.style.display === 'none' || picker.style.display === '') ? 'grid' : 'none';
-};
-
-// 2. Fonksiyonlar
-window.toggleMoodPicker = function() {
-    const p = document.getElementById('moodPicker');
-    p.style.display = p.style.display === 'none' ? 'block' : 'none';
-}
-
-window.selectMood = function(emoji, text) {
-    selectedMood = { emoji, text };
-    document.getElementById('postExtrasPreview').style.display = 'block';
-    document.getElementById('moodPreviewContainer').style.display = 'block';
-    document.getElementById('selectedMoodDisplay').innerText = emoji + " " + text + " hissediyor";
-    document.getElementById('moodPicker').style.display = 'none';
-}
-
-window.clearMood = function() {
-    selectedMood = null;
-    document.getElementById('moodPreviewContainer').style.display = 'none';
-    checkPreviewVisibility();
-}
-
-window.handleImageSelect = function(e) {
-    const file = e.target.files[0];
-    if(file) {
-        selectedImageFile = file;
-        const reader = new FileReader();
-        reader.onload = (event) => {
-            document.getElementById('postExtrasPreview').style.display = 'block';
-            document.getElementById('imagePreviewContainer').style.display = 'block';
-            document.getElementById('previewImg').src = event.target.result;
-        };
-        reader.readAsDataURL(file);
-    }
-}
-
-window.clearImage = function() {
-    selectedImageFile = null;
-    document.getElementById('imageInput').value = '';
-    document.getElementById('imagePreviewContainer').style.display = 'none';
-    checkPreviewVisibility();
-}
-
-window.togglePollCreator = function() {
-    isPollOpen = !isPollOpen;
-    document.getElementById('postExtrasPreview').style.display = isPollOpen ? 'block' : 'none';
-    document.getElementById('pollPreviewContainer').style.display = isPollOpen ? 'block' : 'none';
-    if(!isPollOpen) checkPreviewVisibility();
-}
-
-function checkPreviewVisibility() {
-    if (!selectedMood && !selectedImageFile && !isPollOpen) {
-        document.getElementById('postExtrasPreview').style.display = 'none';
-    }
-}

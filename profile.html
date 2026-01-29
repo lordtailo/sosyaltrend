@@ -3,10 +3,29 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>SosyalTrend • Profiliniz</title>
+  <title>SosyalTrend • Profiliniz & Mesajlar</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="stylesheet" href="assets/css/style.css">
   <link rel="icon" type="image/x-icon" href="assets/img/strendsaydamv2.ico">
+  <style>
+    /* Yeni Eklenen Stiller */
+    .profile-grid-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px; }
+    @media (max-width: 768px) { .profile-grid-layout { grid-template-columns: 1fr; } }
+    
+    .content-box { background: var(--card-bg); border-radius: var(--radius); border: 1px solid var(--border); padding: 15px;}
+    .content-header { border-bottom: 2px solid var(--bg); padding-bottom: 10px; margin-bottom: 15px; display: flex; align-items: center; gap: 10px; font-weight: bold; color: var(--primary); }
+
+    /* Mesajlar (DM) Stilleri */
+    .dm-container { position: fixed; bottom: 20px; right: 20px; width: 350px; height: 450px; background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); display: none; flex-direction: column; z-index: 2000; overflow: hidden; }
+    .dm-container.active { display: flex; }
+    .dm-header { background: var(--primary); color: white; padding: 15px; display: flex; justify-content: space-between; align-items: center; }
+    .dm-messages { flex: 1; padding: 15px; overflow-y: auto; background: var(--bg); display: flex; flex-direction: column; gap: 10px; }
+    .message { padding: 8px 12px; border-radius: 12px; max-width: 80%; font-size: 0.85rem; }
+    .message.sent { background: var(--primary); color: white; align-self: flex-end; border-bottom-right-radius: 2px; }
+    .message.received { background: var(--input-bg); color: var(--text-main); align-self: flex-start; border-bottom-left-radius: 2px; }
+    .dm-input-area { padding: 10px; border-top: 1px solid var(--border); display: flex; gap: 5px; }
+    .dm-input { flex: 1; padding: 8px; border-radius: 8px; border: 1px solid var(--border); background: var(--input-bg); color: var(--text-main); outline: none; }
+  </style>
 </head>
 <body>
 <header>
@@ -74,12 +93,80 @@
     </div>
   </aside>
 
-  <main id="main-content">
-    <div id="page-feed" class="page-content active">
-        <div class="glass-card">
-<div style="text-align: center; font-size: 20px; padding: 30px;">Yapım aşamasında...</div>
- </div>
+  <main>
+    <div class="glass-card" style="padding: 30px; text-align: center;">
+        <img id="profilePageAvatar" src="" style="width: 100px; height: 100px; border-radius: 50%; border: 4px solid var(--primary);">
+        <h2 id="profilePageName" style="margin-top: 15px;">...</h2>
+        <p id="profilePageHandle" style="color: var(--text-muted); height: 44px;">@...</p>
+        <div style="display: flex; justify-content: center; gap: 10px; flex-wrap: wrap;">
+                <button onclick="toggleEditProfile()" style="background: var(--input-bg); border: 1px solid var(--border); padding: 8px 20px; border-radius: 10px; font-size: 0.8rem; font-weight: 600; cursor: pointer; color: var(--text-main);" data-i18n="editProfileBtn">Profili Düzenle</button>
+                <button onclick="window.location.href='likepost.html'" class="admin-btn" style="flex:none; padding: 8px 15px; border-radius: 10px;">
+                    <i class="fa-solid fa-heart" style="color:#ef4444"></i> <span data-i18n="navSubs">Beğendiklerim</span>
+                </button>
+                <button onclick="window.location.href='savepost.html'" class="admin-btn" style="flex:none; padding: 8px 15px; border-radius: 10px;">
+<i class="fa-solid fa-bookmark" style="color:#f59e0b"></i> <span data-i18n="navBookmarks">Kaydedilenler</span></button>
+            <button onclick="toggleDM()" class="admin-btn" style="padding: 8px 20px; background: var(--primary); color:white;">Mesaj At</button>
+            </div>
+
+            <div id="editProfileSection" class="edit-profile-form">
+                <div class="section-subtitle">Profil Bilgileri</div>
+                
+                <div style="margin-bottom: 20px;">
+                    <label class="form-label">Görünen Ad</label>
+                    <input type="text" id="newNameInput" class="form-input" placeholder="Adınızı girin">
+                </div>
+
+                <div style="background: var(--bg); padding: 15px; border-radius: 12px; border: 1px solid var(--border);">
+                    <label class="form-label" style="color: var(--primary);"><i class="fa-solid fa-camera"></i> Profil Resmini Güncelle</label>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px;">
+                        <button onclick="document.getElementById('fileAvatarInput').click()" class="admin-btn" style="padding: 10px; height: auto; display: block;">
+                            <i class="fa-solid fa-upload"></i><br>Cihazdan Seç
+                        </button>
+                        <button onclick="promptDiceBear()" class="admin-btn" style="padding: 10px; height: auto; display: block;">
+                            <i class="fa-solid fa-wand-magic-sparkles"></i><br>İsimden Oluştur
+                        </button>
+                    </div>
+                    <input type="file" id="fileAvatarInput" accept="image/*" style="display: none;" onchange="handleFileSelect(this)">
+                    
+                    <div style="margin-top: 15px;">
+                        <label class="form-label">Veya Görsel URL Yapıştır</label>
+                        <input type="text" id="newAvatarUrlInput" class="form-input" style="margin-bottom: 0;" placeholder="https://..." oninput="handleUrlInput(this)">
+                    </div>
+                </div>
+
+                <div style="margin-top: 25px; display: flex; gap: 10px;">
+                    <button onclick="saveProfileChanges()" class="form-btn" style="flex: 2;">
+                        <i class="fa-solid fa-floppy-disk"></i> Değişiklikleri Kaydet
+                    </button>
+                    <button onclick="toggleEditProfile()" class="form-btn" style="flex: 1; background: var(--text-muted);">
+                        İptal
+                    </button>
+                </div></div>
+
+        <div id="editProfileSection" class="edit-profile-form" style="margin-top:20px; display:none;">
+            <input type="text" id="newNameInput" class="form-input" placeholder="Yeni Ad">
+            <button onclick="saveProfileChanges()" class="form-btn">Kaydet</button>
+        </div>
+    </div>
+
+    <div class="profile-grid-layout">
+        <div class="content-box">
+            <div class="content-header"><i class="fa-solid fa-pen-nib"></i> Paylaşımlarım</div>
+            <div id="my-posts-list">
+                <p style="text-align:center; color:var(--text-muted); font-size:0.8rem; padding:20px;">Henüz bir paylaşım yok.</p>
+            </div>
+        </div>
+
+        <div class="content-box">
+            <div class="content-header"><i class="fa-solid fa-comments"></i> Yorumlarım</div>
+            <div id="my-comments-list">
+                <p style="text-align:center; color:var(--text-muted); font-size:0.8rem; padding:20px;">Henüz bir yorum yok.</p>
+            </div>
+        </div>
+    </div>
   </main>
+
 
   <aside class="right-panel">
     <div class="glass-card widget-clock">
@@ -96,6 +183,20 @@
         <div id="trend-pages-list"></div>
     </div>
   </aside>
+</div>
+
+<div class="dm-container" id="dmBox">
+    <div class="dm-header">
+        <span><i class="fa-solid fa-paper-plane"></i> Mesajlar</span>
+        <i class="fa-solid fa-xmark" onclick="toggleDM()" style="cursor:pointer;"></i>
+    </div>
+    <div class="dm-messages" id="dmMessages">
+        <div class="message received">Merhaba! SosyalTrend'e hoş geldiniz. 👋</div>
+    </div>
+    <div class="dm-input-area">
+        <input type="text" class="dm-input" id="dmMsgInput" placeholder="Mesaj yazın...">
+        <button onclick="sendDM()" class="search-btn" style="padding: 5px 15px;"><i class="fa-solid fa-location-arrow"></i></button>
+    </div>
 </div>
 
 <footer>
@@ -152,6 +253,91 @@
   </div>
 </footer>
 
+<script type="module">
+  // --- UI VE DM FONKSİYONLARI ---
+  window.toggleDM = () => {
+    const dmBox = document.getElementById('dmBox');
+    dmBox.classList.toggle('active');
+  };
+
+  window.sendDM = () => {
+    const input = document.getElementById('dmMsgInput');
+    const container = document.getElementById('dmMessages');
+    if(input.value.trim() !== "") {
+        const msgDiv = document.createElement('div');
+        msgDiv.className = 'message sent';
+        msgDiv.innerText = input.value;
+        container.appendChild(msgDiv);
+        input.value = "";
+        container.scrollTop = container.scrollHeight;
+    }
+  };
+
+  // --- DİNAMİK İÇERİK YÜKLEME (PAYLAŞIMLAR VE BAĞLANTILI YORUMLAR) ---
+  document.addEventListener('DOMContentLoaded', () => {
+    const postsList = document.getElementById('my-posts-list');
+    const commentsList = document.getElementById('my-comments-list');
+    
+    // Uygulama verilerini LocalStorage'dan al
+    const currentUser = JSON.parse(localStorage.getItem('currentUser')) || { username: 'misafir' };
+    const allPosts = JSON.parse(localStorage.getItem('posts')) || [];
+    const allComments = JSON.parse(localStorage.getItem('comments')) || [];
+
+    // 1. PAYLAŞIMLARIM ENTEGRASYONU
+    const myPosts = allPosts.filter(p => p.author === currentUser.username);
+    if (myPosts.length > 0) {
+        postsList.innerHTML = ''; 
+        myPosts.forEach(post => {
+            postsList.innerHTML += `
+                <div style="padding:15px; border-bottom:1px solid var(--border); transition: 0.2s;">
+                    <div style="font-size:0.7rem; font-weight:800; color:var(--primary); margin-bottom:5px; text-transform:uppercase; letter-spacing:0.5px;">
+                        <i class="fa-solid fa-feather"></i> PAYLAŞTIĞINIZ
+                    </div>
+                    <div style="font-size:0.9rem; color:var(--text-main); line-height:1.4;">${post.content}</div>
+                    <div style="font-size:0.65rem; color:var(--text-muted); margin-top:10px;">
+                        <i class="fa-regular fa-clock"></i> ${post.timestamp || 'Yeni'}
+                    </div>
+                </div>`;
+        });
+    }
+
+    // 2. YORUMLARIM ENTEGRASYONU (Bağlantılı Paylaşım Görünümü)
+    const myComments = allComments.filter(c => c.author === currentUser.username);
+    if (myComments.length > 0) {
+        commentsList.innerHTML = '';
+        myComments.forEach(comment => {
+            // Yorumun yapıldığı orijinal postu bul
+            const parentPost = allPosts.find(p => p.id === comment.postId);
+            const postSnippet = parentPost ? parentPost.content.substring(0, 45) + "..." : "Bir paylaşım";
+
+            commentsList.innerHTML += `
+                <div style="padding:15px; border-bottom:1px solid var(--border); background: var(--card-bg);">
+                    <div style="font-size:0.75rem; color:var(--text-muted); margin-bottom:10px; display:flex; align-items:center; gap:6px;">
+                        <i class="fa-solid fa-reply" style="color: var(--primary); transform: scaleX(-1);"></i>
+                        <span><strong style="color:var(--primary);">"${postSnippet}"</strong> altına yazdınız:</span>
+                    </div>
+                    
+                    <div style="
+                        background: var(--bg);
+                        padding: 12px;
+                        border-radius: 12px;
+                        border-left: 4px solid var(--primary);
+                        font-size: 0.85rem;
+                        color: var(--text-main);
+                        line-height: 1.5;
+                        box-shadow: inset 0 0 5px rgba(0,0,0,0.02);
+                    ">
+                        ${comment.text}
+                    </div>
+                    
+                    <div style="font-size:0.6rem; color:var(--text-muted); margin-top:8px; text-align:right; font-weight:500;">
+                        ${comment.date || 'Az önce'}
+                    </div>
+                </div>`;
+        });
+    }
+  });
+</script>
 <script type="module" src="assets/js/app.js"></script>
 </body>
 </html>
