@@ -311,62 +311,11 @@ display: block; font-size: 0.8rem; font-weight: 700; margin-bottom: 8px; color: 
 .form-btn { width: 100%; padding: 12px; border-radius: 10px; border: none; background: var(--primary); color: white; font-weight: 700; cursor: pointer; transition: 0.2s; }
 .form-btn:hover { background: var(--primary-dark); }
 
-
-/* =========================================
-   12. PROFİL SAYFASI ÖZEL STİLİ
-   ========================================= */.profile-header-card { position: relative; padding-bottom: 20px; }
-.profile-cover { height: 160px; background: var(--line-gradient); opacity: 0.8; }
-.profile-info-main { display: flex; align-items: flex-end; padding: 0 30px; margin-top: -60px; gap: 25px; flex-wrap: wrap; }
-.profile-avatar-wrapper { width: 130px; height: 130px; border-radius: 50%; border: 5px solid var(--card-bg); background: var(--card-bg); overflow: hidden; box-shadow: var(--shadow); }
-.profile-avatar-wrapper img { width: 100%; height: 100%; object-fit: cover; }
-.profile-details { flex: 1; min-width: 200px; padding-bottom: 10px; }
-.profile-details h2 { font-size: 1.8rem; font-weight: 800; color: var(--text-main); }
-.profile-stats { display: flex; gap: 20px; margin-top: 10px; color: var(--text-muted); font-size: 0.95rem; }
-.profile-actions { padding-bottom: 15px; display: flex; gap: 10px; }
-
-@media (max-width: 768px) {
-    .profile-info-main { flex-direction: column; align-items: center; text-align: center; }
-    .profile-details { display: flex; flex-direction: column; align-items: center; }
-}
-
 .section-subtitle { 
 font-size: 0.9rem; font-weight: 800; color: var(--primary); margin: 20px 0 10px; text-transform: uppercase; }
 
 #postInput { background: #ffffff; color: var(--text-main); }
     
-/* =========================================
-   13. FOOTER (ALT BİLGİ) 
-   ========================================= */
-footer { background: var(--card-bg); border-top: 1px solid var(--border); padding: 17px 8px 8px 8px; margin-top: 0px; position: relative;}
-footer::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 4px; background: var(--line-gradient); }
-.footer-container { max-width: 100%; margin: 0 auto; display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 40px; }
-.footer-section h4 { font-size: 1rem; font-weight: 700; padding: 18px 0px 3px 0px; margin: 0px 0px 8px 0px; text-transform: uppercase; }
-.footer-links { list-style: none; }
-.footer-links li { margin-bottom: 4px; }
-.footer-links a { text-decoration: none; color: var(--text-muted); font-size: 0.9rem; transition: 0.3s; }
-.footer-links a:hover { color: var(--primary); }
-.footer-bottom { max-width: 100%; margin: 5px auto 0; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; padding-top: 9px;}
-
-/* =========================================
-   14. MOBİL DİKEY FOOTER 
-   ========================================= */
-@media (max-width: 768px) {
-.footer-content, .footer-container { display: flex !important; flex-direction: column !important; align-items: stretch !important; padding: 10px 10px !important; gap: 7px !important; }
-.footer-section h4 { color: red; padding: 5px; margin: 0 0 5px 0; font-size: 1rem; text-align: center; border-radius: 7px 7px 0 0; }
-.footer-links { display: flex !important; flex-direction: column !important; gap: 2px !important; padding: 0 !important; margin: 0 !important; list-style: none !important;}
-.footer-links li a { display: block !important; width: 100% !important; padding: 3px 3px !important; background: var(--card-bg) !important; color: var(--text-main) !important; text-align: center !important; text-decoration: none !important; font-size: 1rem !important; border-radius: 3px; box-sizing: border-box; transition: background 0.3s ease;}
-}
-
-/* =========================================
-   15. GENEL AYARLAR VE YARDIMCI SINIFLAR 
-   ========================================= */
-.admin-actions { display: flex; gap: 5px; margin-top: 8px; }
-.admin-btn { flex: 1; padding: 6px; font-size: 0.7rem; border-radius: 8px; border: 1px solid var(--border); cursor: pointer; transition: 0.2s; background: transparent; color: var(--text-main); }
-.admin-btn:hover { background: var(--input-bg); }
-.lang-switcher span { cursor: pointer; transition: 0.3s; }
-.lang-switcher span.active { color: var(--primary); font-weight: bold; }
-.lang-switcher span.inactive { color: var(--text-muted); opacity: 0.6; }
-.section-subtitle { font-size: 0.9rem; font-weight: 800; color: var(--primary); margin: 20px 0 10px; text-transform: uppercase; }
 .back-btn-container { display: flex; align-items: center; gap: 15px; margin-bottom: 15px; }
 .back-btn { background: var(--input-bg); border: 1px solid var(--border); width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: var(--text-main); cursor: pointer; transition: 0.2s; }
 .back-btn:hover { background: var(--border); color: var(--primary); }
