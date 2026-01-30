@@ -948,8 +948,7 @@ document.getElementById('globalSearch').addEventListener('keypress', function (e
   };
   
 
-// Gündem Paylaşma Fonksiyonu
-// Yardımcı Fonksiyon: Element seçimi
+/* GÜNDEM KODLARI */
 const $ = (id) => document.getElementById(id);
 
 const shareGundem = async () => {
@@ -1006,7 +1005,6 @@ const fetchGundem = (filter = "all") => {
     });
 };
 
-// Fonksiyonları Global Yapma
 window.loadMoreGundem = () => { gundemLimit += 7; fetchGundem(currentGundemFilter); };
 window.deleteGundem = async (id) => {
     if (confirm("Silmek istiyor musunuz?")) {
@@ -1016,7 +1014,6 @@ window.deleteGundem = async (id) => {
 };
 window.shareGundem = shareGundem;
 
-// Event Listeners
 document.addEventListener('click', (e) => {
     if (e.target.classList.contains('gundem-tab')) {
         document.querySelectorAll('.gundem-tab').forEach(t => t.classList.remove('active'));
