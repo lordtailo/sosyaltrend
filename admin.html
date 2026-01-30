@@ -1,18 +1,57 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>SosyalTrend • Yönetici Paneli</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="stylesheet" href="assets/css/style.css">
-  <link rel="icon" type="image/x-icon" href="assets/img/strendsaydamv2.ico">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SosyalTrend • Yönetici Paneli</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="assets/css/style.css">
+    <style>
+        :root {
+            --primary: #6366f1;
+            --danger: #ef4444;
+            --success: #10b981;
+            --warning: #f59e0b;
+        }
+
+        .admin-main { margin: 0 auto; }
+        .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px; }
+        .stat-card { padding: 20px; text-align: center; border: 1px solid var(--border); }
+        .stat-card i { font-size: 2rem; color: var(--primary); margin-bottom: 10px; }
+        .stat-card h3 { font-size: 1.8rem; margin: 5px 0; }
+        .stat-card p { color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase; }
+
+        .admin-tabs { display: flex; gap: 15px; margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 10px; overflow-x: auto; }
+        .tab-btn { background: none; border: none; color: var(--text-muted); padding: 8px 16px; cursor: pointer; font-weight: 600; transition: 0.3s; white-space: nowrap; }
+        .tab-btn.active { color: var(--primary); border-bottom: 2px solid var(--primary); }
+
+        .admin-section { display: none; animation: fadeIn 0.3s ease; }
+        .admin-section.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .data-table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        .data-table th, .data-table td { padding: 12px; text-align: left; border-bottom: 1px solid var(--border); }
+        .user-row img, .page-row img { width: 32px; height: 32px; border-radius: 50%; vertical-align: middle; margin-right: 10px; }
+
+        .badge { padding: 4px 8px; border-radius: 12px; font-size: 0.7rem; font-weight: bold; }
+        .badge-admin { background: var(--primary); color: white; }
+        .badge-user { background: var(--border); color: var(--text-main); }
+
+        .action-btn { padding: 8px 15px; border-radius: 6px; border: none; cursor: pointer; font-size: 0.85rem; transition: 0.2s; display: inline-flex; align-items: center; gap: 8px; font-weight: 600; }
+        .btn-delete { background: rgba(239, 68, 68, 0.1); color: var(--danger); }
+        .btn-delete:hover { background: var(--danger); color: white; }
+        
+        /* Sistem Sekmesi Özel */
+        .system-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-top: 15px; }
+        .status-item { display: flex; justify-content: space-between; align-items: center; padding: 12px; background: var(--input-bg); border-radius: 8px; margin-bottom: 10px; font-size: 0.9rem; }
+    </style>
 </head>
-<body>
+<body class="admin-page">
+
 <header>
   <div class="header-left">
   <a href="index.html" onclick="navigateTo('feed')" style="color:var(--text-main); font-size: 1.3rem; text-decoration: none; display: flex; align-items: center; gap: 10px;">
-  <img class="logo" style="width:175px;" src="assets/img/strendlogo.png"></img>
+    <span class="logo" style="font-weight: bold;">SosyalTrend</span>
   </a>
 </div>
   <form id="mainSearchBtn" action="search.html" method="GET" class="header-center">
@@ -41,7 +80,6 @@
     </div>
   </div>
 </header>
-
 <div class="app-container">
   <aside>
     <div class="glass-card sidebar-profile-card" onclick="navigateTo('profile')" style="
@@ -74,48 +112,192 @@
     </div>
   </aside>
 
-  <main id="main-content">
-   <div id="page-admin" class="page-content active">
+ <main id="main-content">
+    <div class="admin-main">
+        <div class="stat-grid">
+            <div class="glass-card stat-card"><i class="fa-solid fa-signs-post"></i><h3 id="stat-posts">0</h3><p>Gönderi</p></div>
+            <div class="glass-card stat-card"><i class="fa-solid fa-folder-tree"></i><h3 id="stat-pages">0</h3><p>Sayfa</p></div>
+            <div class="glass-card stat-card"><i class="fa-solid fa-users"></i><h3 id="stat-users">0</h3><p>Üye</p></div>
+            <div class="glass-card stat-card"><i class="fa-solid fa-bolt" style="color:var(--warning)"></i><h3 id="stat-gundem">0</h3><p>Gündem</p></div>
+        </div>
+
         <div class="glass-card" style="padding: 25px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
-                <h2 style="display: flex; align-items: center; gap: 12px;">
-                    <i class="fa-solid fa-user-shield" style="color:var(--primary)"></i> Yönetici Kontrol Paneli
-                </h2>
-                <span style="background: var(--primary); color: white; padding: 4px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 800;">ADMIN MODU</span>
+            <div class="admin-tabs">
+                <button class="tab-btn active" onclick="switchTab('announcement')">Sistem Duyurusu</button>
+                <button class="tab-btn" onclick="switchTab('users')">Kullanıcılar</button>
+                <button class="tab-btn" onclick="switchTab('pages')">Sayfalar</button>
+                <button class="tab-btn" onclick="switchTab('moderation')">İçerik</button>
+                <button class="tab-btn" onclick="switchTab('system')" style="color: var(--warning);"><i class="fa-solid fa-gears"></i> Sistem & Önbellek</button>
             </div>
 
-            <div class="page-grid" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-bottom: 30px;">
-                <div class="glass-card" style="padding: 20px; text-align: center; border-color: var(--primary);">
-                    <div style="font-size: 1.5rem; font-weight: 800;" id="stat-total-posts">0</div>
-                    <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">Toplam Gönderi</div>
-                </div>
-                <div class="glass-card" style="padding: 20px; text-align: center;">
-                    <div style="font-size: 1.5rem; font-weight: 800;" id="stat-total-pages">0</div>
-                    <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">Toplam Sayfa</div>
-                </div>
-                <div class="glass-card" style="padding: 20px; text-align: center;">
-                    <div style="font-size: 1.5rem; font-weight: 800;">Aktif</div>
-                    <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">Sunucu Durumu</div>
-                </div>
+            <div id="section-announcement" class="admin-section active">
+                <div class="section-subtitle">Duyuru Yayınla</div>
+                <textarea id="adminNoticeInput" class="form-input" style="min-height: 100px; margin-bottom: 15px;" placeholder="Mesajınız..."></textarea>
+                <button id="broadcastBtn" class="form-btn" style="width: auto; padding: 10px 25px;">Yayınla</button>
             </div>
 
-            <div class="section-subtitle">Sistem Duyurusu Yayınla</div>
-            <div style="background: var(--input-bg); padding: 20px; border-radius: var(--radius); border: 1px solid var(--border);">
-                <textarea id="adminNoticeInput" class="form-input" style="min-height: 80px;" placeholder="Tüm kullanıcılara görünecek resmi bir duyuru yazın..."></textarea>
-                <button onclick="postAsPage('system_notice', 'Sistem Duyurusu', 'admin-shield')" class="form-btn" style="width: auto; padding: 10px 30px;">
-                    <i class="fa-solid fa-bullhorn"></i> Duyuruyu Paylaş
-                </button>
+            <div id="section-users" class="admin-section">
+                <table class="data-table">
+                    <thead><tr><th>Kullanıcı</th><th>Kullanıcı Adı</th><th>Rol</th><th>İşlem</th></tr></thead>
+                    <tbody id="user-list-body"></tbody>
+                </table>
             </div>
 
-            <div class="section-subtitle" style="margin-top: 30px;">Hızlı İşlemler</div>
-            <div style="display: flex; gap: 10px;">
-                <button onclick="alert('Önbellek temizlendi!')" class="admin-btn" style="padding: 10px;"><i class="fa-solid fa-broom"></i> Önbelleği Temizle</button>
-                <button onclick="navigateTo('feed')" class="admin-btn" style="padding: 10px;"><i class="fa-solid fa-eye"></i> Kullanıcı Gözüyle Bak</button>
+            <div id="section-pages" class="admin-section">
+                <table class="data-table">
+                    <thead><tr><th>Sayfa</th><th>Kategori</th><th>Sahip</th><th>İşlem</th></tr></thead>
+                    <tbody id="page-list-body"></tbody>
+                </table>
+            </div>
+
+            <div id="section-moderation" class="admin-section"><div id="admin-feed-list"></div></div>
+
+            <div id="section-system" class="admin-section">
+                <div class="section-subtitle">Sistem Sağlığı ve Önbellek Yönetimi</div>
+                <div class="system-grid">
+                    <div class="glass-card" style="padding: 20px; border-top: 3px solid var(--warning);">
+                        <h4><i class="fa-solid fa-broom"></i> Tarayıcı Önbelleği</h4>
+                        <p style="font-size: 0.8rem; color: var(--text-muted); margin: 10px 0;">Hatalı veri yüklemelerini düzeltmek için yerel depolamayı temizleyin.</p>
+                        <button class="action-btn" style="background: var(--warning); color: white; width: 100%;" onclick="clearSystemCache()">
+                            <i class="fa-solid fa-trash-can"></i> Önbelleği Temizle
+                        </button>
+                    </div>
+
+                    <div class="glass-card" style="padding: 20px; border-top: 3px solid var(--success);">
+                        <h4><i class="fa-solid fa-network-wired"></i> Entegrasyon Durumu</h4>
+                        <div style="margin: 15px 0;">
+                            <div class="status-item"><span>Veritabanı (Firestore)</span> <span id="db-status"><i class="fa-solid fa-circle-check" style="color:var(--success)"></i></span></div>
+                            <div class="status-item"><span>Kimlik Doğrulama (Auth)</span> <span id="auth-status"><i class="fa-solid fa-circle-check" style="color:var(--success)"></i></span></div>
+                            <div class="status-item"><span>Gecikme (Ping)</span> <span id="ping-status" style="font-weight: bold;">...</span></div>
+                        </div>
+                        <button class="action-btn" style="background: var(--primary); color: white; width: 100%;" onclick="checkIntegrations()">
+                            <i class="fa-solid fa-rotate"></i> Bağlantıyı Test Et
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
   </main>
-  <aside class="right-panel">
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getFirestore, collection, getDocs, addDoc, serverTimestamp, query, orderBy, limit, deleteDoc, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyBegJHqlfPagx8biFyS_FnE3iXOksgfoAU",
+        authDomain: "sosyaltrend-21d21.firebaseapp.com",
+        projectId: "sosyaltrend-21d21",
+        storageBucket: "sosyaltrend-21d21.firebasestorage.app",
+        messagingSenderId: "207734473261",
+        appId: "1:207734473261:web:f31b6bf2908c6d88986ea4"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth(app);
+    const ADMIN_EMAIL = "officialfthuzun@gmail.com";
+
+    onAuthStateChanged(auth, (user) => {
+        if (!user || user.email !== ADMIN_EMAIL) {
+            window.location.href = "index.html";
+        } else {
+            initAdmin();
+        }
+    });
+
+    async function initAdmin() {
+        loadStats();
+        loadUsersFromPosts();
+        loadAllPages();
+        loadAllPosts();
+        checkIntegrations();
+    }
+
+    // TAB SWITCHER
+    window.switchTab = (tabId) => {
+        document.querySelectorAll('.admin-section').forEach(s => s.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById('section-' + tabId).classList.add('active');
+        event.currentTarget.classList.add('active');
+    };
+
+    // --- ENTEGRASYON VE ÖNBELLEK FONKSİYONLARI ---
+    window.clearSystemCache = () => {
+        if(confirm("Tüm yerel veriler temizlenecek. Oturumunuz kapanabilir. Onaylıyor musunuz?")) {
+            localStorage.clear();
+            sessionStorage.clear();
+            alert("Önbellek temizlendi. Sayfa yenileniyor...");
+            location.reload();
+        }
+    };
+
+    window.checkIntegrations = async () => {
+        const start = Date.now();
+        const pingDisplay = document.getElementById('ping-status');
+        pingDisplay.innerText = "Test ediliyor...";
+
+        try {
+            const testSnap = await getDocs(query(collection(db, "posts"), limit(1)));
+            const end = Date.now();
+            const latency = end - start;
+            pingDisplay.innerText = latency + "ms";
+            pingDisplay.style.color = latency < 500 ? "var(--success)" : "var(--warning)";
+        } catch (e) {
+            pingDisplay.innerText = "Hata!";
+            pingDisplay.style.color = "var(--danger)";
+        }
+    };
+
+    // DİĞER FONKSİYONLAR (Kısaltılmış)
+    async function loadStats() {
+        onSnapshot(collection(db, "posts"), s => document.getElementById('stat-posts').innerText = s.size);
+        onSnapshot(collection(db, "pages"), s => document.getElementById('stat-pages').innerText = s.size);
+        onSnapshot(collection(db, "gundem"), s => document.getElementById('stat-gundem').innerText = s.size);
+        const p = await getDocs(collection(db, "posts"));
+        const u = new Set(); p.forEach(d => u.add(d.data().username));
+        document.getElementById('stat-users').innerText = u.size;
+    }
+
+    async function loadUsersFromPosts() {
+        const snap = await getDocs(collection(db, "posts"));
+        const users = {};
+        snap.forEach(d => {
+            const data = d.data();
+            if(!data.username.startsWith('page_')) users[data.username] = data;
+        });
+        const tbody = document.getElementById('user-list-body');
+        tbody.innerHTML = "";
+        Object.keys(users).forEach(un => {
+            const u = users[un];
+            tbody.innerHTML += `<tr class="user-row"><td><img src="https://api.dicebear.com/7.x/avataaars/svg?seed=${u.avatarSeed}"><b>${u.name}</b></td><td>@${un}</td><td><span class="badge badge-user">Üye</span></td><td><button class="action-btn btn-delete"><i class="fa-solid fa-ban"></i></button></td></tr>`;
+        });
+    }
+
+    async function loadAllPages() {
+        onSnapshot(collection(db, "pages"), snap => {
+            const tbody = document.getElementById('page-list-body'); tbody.innerHTML = "";
+            snap.forEach(d => {
+                const p = d.data();
+                tbody.innerHTML += `<tr><td><b>${p.name}</b></td><td>${p.category || 'Genel'}</td><td>@${p.ownerUsername}</td><td><button class="action-btn btn-delete" onclick="deletePageAdmin('${d.id}')">Sil</button></td></tr>`;
+            });
+        });
+    }
+
+    async function loadAllPosts() {
+        const q = query(collection(db, "posts"), orderBy("timestamp", "desc"), limit(20));
+        onSnapshot(q, snap => {
+            const cont = document.getElementById('admin-feed-list'); cont.innerHTML = "";
+            snap.forEach(d => {
+                const p = d.data();
+                cont.innerHTML += `<div class="glass-card" style="padding:15px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center;"><div><small>@${p.username}</small><p>${p.content.substring(0, 50)}...</p></div><button class="action-btn btn-delete" onclick="deletePostAdmin('${d.id}')"><i class="fa-solid fa-trash"></i></button></div>`;
+            });
+        });
+    }
+</script>
+
+<aside class="right-panel">
     <div class="glass-card widget-clock">
       <div class="analog-clock">
         <div class="hand hour-hand" id="hourHand"></div>
@@ -187,5 +369,6 @@
 </footer>
 
 <script type="module" src="assets/js/app.js"></script>
+
 </body>
 </html>
