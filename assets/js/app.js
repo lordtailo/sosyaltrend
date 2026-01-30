@@ -4,21 +4,6 @@ import { getAuth, onAuthStateChanged, signOut, updateEmail, sendPasswordResetEma
 
 // Bileşenleri dinamik olarak yükleme fonksiyonu    
 async function loadComponents() {
-    try {
-        // Header'ı yükle
-        const headerRes = await fetch('components/header.html');
-        const headerData = await headerRes.text();
-        document.getElementById('header-placeholder').innerHTML = headerData;
-
-        // Footer'ı yükle
-        const footerRes = await fetch('components/footer.html');
-        const footerData = await footerRes.text();
-        document.getElementById('footer-placeholder').innerHTML = footerData;
-
-        if (typeof i18nInit === 'function') i18nInit();
-    } catch (error) {
-        console.error("Bileşenler yüklenirken hata oluştu:", error);
-    }
 }
 
 // Sayfa yüklendiğinde çalıştır
@@ -178,16 +163,26 @@ document.addEventListener('DOMContentLoaded', loadComponents);
     window.location.href = 'login.html';
   };
 
-  window.toggleDarkMode = () => {
-    const isDark = document.getElementById('themeToggle').checked;
-    if (isDark) { document.body.classList.add('dark-mode'); localStorage.setItem('st_theme', 'dark'); }
-    else { document.body.classList.remove('dark-mode'); localStorage.setItem('st_theme', 'light'); }
-  };
+// --- DARK MODE -- //
+window.toggleDarkMode = () => {
+  const btn = document.getElementById('themeToggleBtn');
+  const isDark = document.body.classList.toggle('dark-mode');
 
+  btn.innerHTML = isDark
+    ? '<i class="fa-solid fa-sun"></i>'
+    : '<i class="fa-solid fa-moon"></i>';
+
+  localStorage.setItem('st_theme', isDark ? 'dark' : 'light');
+};
+
+document.addEventListener('DOMContentLoaded', () => {
   if (localStorage.getItem('st_theme') === 'dark') {
     document.body.classList.add('dark-mode');
-    setTimeout(() => { if(document.getElementById('themeToggle')) document.getElementById('themeToggle').checked = true; }, 100);
+    document.getElementById('themeToggleBtn').innerHTML =
+      '<i class="fa-solid fa-sun"></i>';
   }
+});
+// ============================================================= //
 
   // --- ÇEVİRİLER VE KAYDETME ÖZELLİĞİ ---
   const translations = {
@@ -1060,47 +1055,29 @@ window.deleteGundem = async (id) => {
 document.addEventListener('DOMContentLoaded', () => {
     const emojiToggle = document.getElementById('emojiToggle');
     const emojiPicker = document.getElementById('emojiPicker');
-    
-    // Önce index'teki ID'yi dene, yoksa gundem'deki ID'yi al
-    const postInput = document.getElementById('postInput') || document.getElementById('gundemInput');
+    const postInput = document.getElementById('postInput');
 
-    // Eğer sayfada ne emoji butonu ne de giriş alanı varsa çalışma
-    if (!emojiToggle || !postInput) return;
+    if (!emojiToggle || !emojiPicker || !postInput) return;
 
-    // Menüyü aç/kapat
     emojiToggle.addEventListener('click', (e) => {
         e.stopPropagation();
-        const isHidden = emojiPicker.style.display === 'none' || emojiPicker.style.display === '';
-        emojiPicker.style.display = isHidden ? 'grid' : 'none';
+        emojiPicker.style.display =
+            emojiPicker.style.display === 'grid' ? 'none' : 'grid';
     });
 
-    // Emoji seçme işlemi
     emojiPicker.querySelectorAll('span').forEach(emoji => {
-        emoji.addEventListener('click', (e) => {
-            const start = postInput.selectionStart;
-            const end = postInput.selectionEnd;
-            const text = postInput.value;
-            const emojiChar = emoji.innerText;
-            
-            // Emojiyi doğru aralığa ekle
-            postInput.value = text.slice(0, start) + emojiChar + text.slice(end);
-            
-            // İmleci odakla ve emojiden sonraya taşı
-            postInput.focus();
-            const newPos = start + emojiChar.length;
-            postInput.setSelectionRange(newPos, newPos);
-            
+        emoji.addEventListener('click', () => {
+            postInput.value += emoji.textContent;
             emojiPicker.style.display = 'none';
+            postInput.focus();
         });
     });
 
-    // Dışarı tıklayınca kapatma
-    document.addEventListener('click', (e) => {
-        if (emojiPicker && !emojiPicker.contains(e.target) && e.target !== emojiToggle) {
-            emojiPicker.style.display = 'none';
-        }
+    document.addEventListener('click', () => {
+        emojiPicker.style.display = 'none';
     });
 });
+
 
 document.addEventListener('DOMContentLoaded', () => {
     const leftBtn = document.getElementById('leftOpenBtn');
@@ -1130,150 +1107,25 @@ document.addEventListener('DOMContentLoaded', () => {
     overlay.onclick = closeAll;
 });
 
-// Sayfa yönlendirme fonksiyonu
-function navigateTo(page) {
-    if (page === 'profile') {
-        window.location.href = 'profile.html';
-    } else if (page === 'feed' || page === 'home') {
-        window.location.href = 'profile.html';
-    } else {
-        // Diğer sayfalar (search, settings vb.) için otomatik .html ekler
-        window.location.href = page + '.html';
+// GLOBAL YÖNLENDİRME FONKSİYONU
+window.navigateTo = function (page, userId = null) {
+    if (!page) return;
+
+    page = page.toLowerCase();
+
+    if (page === 'profile' || page === 'profil') {
+        if (userId) {
+            location.href = `profil.html?id=${encodeURIComponent(userId)}`;
+        } else {
+            location.href = `profil.html`;
+        }
+        return;
     }
-}
 
-// Eğer modül (type="module") kullanıyorsan, HTML'den erişilmesi için bunu eklemelisin:
-window.navigateTo = navigateTo;
-
-
-// --- 1. Resim Yönetimi ---
-function handleImageSelect(event) {
-    const file = event.target.files[0];
-    if (file) {
-        selectedImageFile = file;
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            document.getElementById('postExtrasPreview').style.display = 'block';
-            document.getElementById('imagePreviewContainer').style.display = 'block';
-            document.getElementById('previewImg').src = e.target.result;
-        };
-        reader.readAsDataURL(file);
+    if (page === 'feed' || page === 'home' || page === 'index') {
+        location.href = 'index.html';
+        return;
     }
-}
 
-function clearImage() {
-    selectedImageFile = null;
-    document.getElementById('imageInput').value = '';
-    document.getElementById('imagePreviewContainer').style.display = 'none';
-    checkAllExtras();
-}
-
-// --- 2. Ruh Hali Yönetimi ---
-function toggleMoodPicker() {
-    const picker = document.getElementById('moodPicker');
-    picker.style.display = (picker.style.display === 'none' || picker.style.display === '') ? 'grid' : 'none';
-}
-
-function selectMood(emoji, label) {
-    selectedMood = { emoji, label };
-    document.getElementById('postExtrasPreview').style.display = 'block';
-    document.getElementById('moodPreviewContainer').style.display = 'block';
-    document.getElementById('selectedMoodDisplay').innerText = `${emoji} ${label} hissediyor`;
-    document.getElementById('moodPicker').style.display = 'none';
-}
-
-function clearMood() {
-    selectedMood = null;
-    document.getElementById('moodPreviewContainer').style.display = 'none';
-    checkAllExtras();
-}
-
-// --- 3. Anket Yönetimi ---
-function togglePollCreator() {
-    isPollActive = !isPollActive;
-    document.getElementById('postExtrasPreview').style.display = isPollActive ? 'block' : 'none';
-    document.getElementById('pollPreviewContainer').style.display = isPollActive ? 'block' : 'none';
-    if(!isPollActive) checkAllExtras();
-}
-
-function addPollOption() {
-    const container = document.getElementById('pollInputs');
-    if (container.children.length < 5) {
-        const input = document.createElement('input');
-        input.type = 'text';
-        input.className = 'poll-opt';
-        input.placeholder = `Seçenek ${container.children.length + 1}`;
-        input.style = "width:100%; margin-bottom:8px; padding:10px; border-radius:8px; border:1px solid var(--border); background: var(--card-bg); color: var(--text-main);";
-        container.appendChild(input);
-    }
-}
-
-// Görünürlük Kontrolü
-function checkAllExtras() {
-    const hasImage = selectedImageFile !== null;
-    const hasMood = selectedMood !== null;
-    const hasPoll = isPollActive;
-    
-    if (!hasImage && !hasMood && !hasPoll) {
-        document.getElementById('postExtrasPreview').style.display = 'none';
-    }
-}
-
-window.toggleMoodPicker = () => {
-    const picker = document.getElementById('moodPicker');
-    picker.style.display = (picker.style.display === 'none' || picker.style.display === '') ? 'grid' : 'none';
+    location.href = `${page}.html`;
 };
-
-// 2. Fonksiyonlar
-window.toggleMoodPicker = function() {
-    const p = document.getElementById('moodPicker');
-    p.style.display = p.style.display === 'none' ? 'block' : 'none';
-}
-
-window.selectMood = function(emoji, text) {
-    selectedMood = { emoji, text };
-    document.getElementById('postExtrasPreview').style.display = 'block';
-    document.getElementById('moodPreviewContainer').style.display = 'block';
-    document.getElementById('selectedMoodDisplay').innerText = emoji + " " + text + " hissediyor";
-    document.getElementById('moodPicker').style.display = 'none';
-}
-
-window.clearMood = function() {
-    selectedMood = null;
-    document.getElementById('moodPreviewContainer').style.display = 'none';
-    checkPreviewVisibility();
-}
-
-window.handleImageSelect = function(e) {
-    const file = e.target.files[0];
-    if(file) {
-        selectedImageFile = file;
-        const reader = new FileReader();
-        reader.onload = (event) => {
-            document.getElementById('postExtrasPreview').style.display = 'block';
-            document.getElementById('imagePreviewContainer').style.display = 'block';
-            document.getElementById('previewImg').src = event.target.result;
-        };
-        reader.readAsDataURL(file);
-    }
-}
-
-window.clearImage = function() {
-    selectedImageFile = null;
-    document.getElementById('imageInput').value = '';
-    document.getElementById('imagePreviewContainer').style.display = 'none';
-    checkPreviewVisibility();
-}
-
-window.togglePollCreator = function() {
-    isPollOpen = !isPollOpen;
-    document.getElementById('postExtrasPreview').style.display = isPollOpen ? 'block' : 'none';
-    document.getElementById('pollPreviewContainer').style.display = isPollOpen ? 'block' : 'none';
-    if(!isPollOpen) checkPreviewVisibility();
-}
-
-function checkPreviewVisibility() {
-    if (!selectedMood && !selectedImageFile && !isPollOpen) {
-        document.getElementById('postExtrasPreview').style.display = 'none';
-    }
-}
