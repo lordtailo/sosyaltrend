@@ -16,13 +16,12 @@
     <span class="logo" style="font-weight: bold;">SosyalTrend</span>
   </a>
 </div>
-  <form action="search.html" method="GET" class="header-center">
+  <form id="mainSearchBtn" action="search.html" method="GET" class="header-center">
     <div class="search-wrapper">
       <i class="fa-solid fa-magnifying-glass"></i>
       <input type="text" name="q" id="globalSearch" data-i18n-placeholder="searchPlaceholder">
     </div>
-    <button type="submit" class="search-btn" data-i18n="searchBtn" id="mainSearchBtn">Ara</button>
-</form>
+  </form>
 
   <div class="header-right">
 <button id="themeToggleBtn" class="theme-btn" onclick="toggleDarkMode()" title="Tema Değiştir"><i class="fa-solid fa-moon"></i></button>
@@ -83,6 +82,7 @@
             <div style="padding: 20px;">
                 <textarea id="postInput" style="width:100%; border:none; outline:none; resize:none; font-size:1.1rem; min-height:80px;" data-i18n-placeholder="postPlaceholder"></textarea>
             </div>
+            
             <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border); padding: 15px 20px;">
                 <div style="display:flex; gap:8px; position: relative;">
                     <button class="tool-btn"><i class="fa-regular fa-image"></i></button>
