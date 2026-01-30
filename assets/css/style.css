@@ -407,7 +407,7 @@ font-size: 0.9rem; font-weight: 800; color: var(--primary); margin: 20px 0 10px;
 aside, .right-panel { display: none; } }
 
 /* Gündem Sayfası Özel Tasarımı */
-.gundem-container { max-width: 700px; margin: 20px auto; padding: 0 15px; }
+.gundem-container { max-width: 100%; }
 
 .gundem-creator { 
     background: var(--card-bg);padding: 20px; border-radius: 20px; box-shadow: var(--shadow); border: 2px solid transparent; transition: 0.3s; }
@@ -613,3 +613,6 @@ aside, .right-panel { display: none; } }
 .sidebar-profile-card:hover #sidebarAvatar {
     border-color: var(--primary-dark);
 }
+
+/* GÜNDEM DAHA FAZLA YÜKLE KODU */
+.load-more-btn { width: 100%; padding: 12px; margin-top: 10px; background: var(--primary); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; }

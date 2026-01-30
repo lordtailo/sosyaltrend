@@ -96,35 +96,6 @@
     <input type="radio" name="cat" id="cat-bildirim" value="bildirim">
     <label for="cat-bildirim">🔔 Bildirim</label>
 
-    <div class="emoji-wrapper" style="position: relative; margin-left: 5px;">
-        <button type="button" class="tool-btn" id="emojiToggle" style="cursor: pointer;">
-            <i class="fa-regular fa-face-smile"></i>
-        </button>
-
-        <div id="emojiPicker" class="glass-card" style="
-            display: none; /* Başlangıçta gizli */
-            position: absolute;
-            bottom: 45px; /* Butonun üstünde açılması için */
-            left: 0;
-            z-index: 100;
-            gap: 7px;
-            padding: 10px;
-            grid-template-columns: repeat(7, 1fr);
-            background: rgba(255, 255, 255, 0.2);
-            backdrop-filter: blur(10px);
-            border-radius: 10px;
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-            width: max-content;">
-            
-            <span style="cursor:pointer">😊</span><span style="cursor:pointer">😁</span><span style="cursor:pointer">😂</span><span style="cursor:pointer">🤣</span><span style="cursor:pointer">😡</span><span style="cursor:pointer">😠</span><span style="cursor:pointer">😭</span>
-            <span style="cursor:pointer">❤️</span><span style="cursor:pointer">💚</span><span style="cursor:pointer">💙</span><span style="cursor:pointer">💔</span><span style="cursor:pointer">💘</span><span style="cursor:pointer">💗</span><span style="cursor:pointer">💝</span>
-            <span style="cursor:pointer">👍</span><span style="cursor:pointer">👎</span><span style="cursor:pointer">🙌</span><span style="cursor:pointer">🙏</span><span style="cursor:pointer">✨</span><span style="cursor:pointer">📺</span><span style="cursor:pointer">🎞️</span>
-            <span style="cursor:pointer">🔒</span><span style="cursor:pointer">🔥</span><span style="cursor:pointer">🚀</span><span style="cursor:pointer">🎉</span><span style="cursor:pointer">💯</span><span style="cursor:pointer">😇</span><span style="cursor:pointer">😇</span>
-            <span style="cursor:pointer">🍏</span><span style="cursor:pointer">🍎</span><span style="cursor:pointer">🍌</span><span style="cursor:pointer">🍐</span><span style="cursor:pointer">🍇</span><span style="cursor:pointer">🍳</span><span style="cursor:pointer">🍔</span>
-            <span style="cursor:pointer">🚗</span><span style="cursor:pointer">🚕</span><span style="cursor:pointer">🚌</span><span style="cursor:pointer">🚑</span><span style="cursor:pointer">🚒</span><span style="cursor:pointer">🚢</span><span style="cursor:pointer">✈️</span>
-        </div>
-    </div>
 </div>
             <button onclick="shareGundem()" class="gundem-post-btn">Paylaş</button>
         </div>
@@ -132,9 +103,9 @@
 
     <div class="gundem-nav">
         <button class="gundem-tab active" data-filter="all">Tümü</button>
-        <button class="gundem-tab" data-filter="haber">Haberler</button>
-        <button class="gundem-tab" data-filter="bilgi">Bilgi Akışı</button>
-        <button class="gundem-tab" data-filter="bildirim">Resmi Duyurular</button>
+        <button class="gundem-tab" data-filter="haber">📰 Haberler</button>
+        <button class="gundem-tab" data-filter="bilgi">💡Bilgiler</button>
+        <button class="gundem-tab" data-filter="bildirim">🔔 Bilgilendirme</button>
     </div>
 
     <div id="gundemFeed" class="gundem-feed-grid"></div>

@@ -947,84 +947,76 @@ document.getElementById('globalSearch').addEventListener('keypress', function (e
     if(menu) menu.classList.remove('active');
   };
   
-  // Gündem Paylaşma Fonksiyonu
+
+// Gündem Paylaşma Fonksiyonu
+// Yardımcı Fonksiyon: Element seçimi
+const $ = (id) => document.getElementById(id);
+
 const shareGundem = async () => {
-    const text = document.getElementById('gundemInput').value;
-    const category = document.querySelector('input[name="cat"]:checked').value;
+    const text = $('gundemInput').value.trim();
+    const category = document.querySelector('input[name="cat"]:checked')?.value;
     
-    if (!text.trim()) return alert("Lütfen bir şeyler yazın.");
-    if (!auth.currentUser) return alert("Paylaşım yapmak için giriş yapmalısınız.");
+    if (!text || !auth.currentUser) return alert(text ? "Giriş yapmalısınız." : "Bir şeyler yazın.");
 
     try {
         await addDoc(collection(db, "gundem"), {
-            content: text,
-            category: category,
+            content: text, category,
             author: auth.currentUser.displayName || "Kullanıcı",
             authorAvatar: auth.currentUser.photoURL || "",
             timestamp: serverTimestamp()
         });
-        document.getElementById('gundemInput').value = "";
-    } catch (err) {
-        console.error("Hata:", err);
-    }
+        $('gundemInput').value = "";
+    } catch (err) { console.error("Hata:", err); }
 };
 
-// Gündemi Yükle ve Filtrele
 const fetchGundem = (filter = "all") => {
     currentGundemFilter = filter;
-    const feed = document.getElementById('gundemFeed');
+    const feed = $('gundemFeed');
     if(!feed) return;
 
-    // Sorguya limit(gundemLimit) ekledik
     const q = query(collection(db, "gundem"), orderBy("timestamp", "desc"), limit(gundemLimit));
 
     onSnapshot(q, (snapshot) => {
-        feed.innerHTML = "";
+        let html = "";
         snapshot.forEach((docSnap) => {
             const data = docSnap.data();
-            const docId = docSnap.id;
-            
             if (filter !== "all" && data.category !== filter) return;
 
-            const isOwnerOrAdmin = (auth.currentUser && auth.currentUser.displayName === data.author) || user.isAdmin;
+            const isOwner = (auth.currentUser?.displayName === data.author) || user.isAdmin;
             const time = data.timestamp ? new Date(data.timestamp.seconds * 1000).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : "...";
 
-            feed.innerHTML += `
+            html += `
                 <div class="g-card cat-${data.category}">
-                    <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                    <div style="display: flex; justify-content: space-between;">
                         <span class="g-badge bg-${data.category}">${data.category}</span>
-                        ${isOwnerOrAdmin ? `
-                            <button class="gundem-del-btn" onclick="deleteGundem('${docId}')">
-                                <i class="fa-solid fa-trash-can"></i>
-                            </button>
-                        ` : ''}
+                        ${isOwner ? `<button class="gundem-del-btn" onclick="deleteGundem('${docSnap.id}')"><i class="fa-solid fa-trash-can"></i></button>` : ''}
                     </div>
-                    <div style="font-size: 1.05rem; line-height: 1.5; margin-top: 10px; margin-bottom: 12px;">${data.content}</div>
-                    <div style="display: flex; justify-content: space-between; align-items: center; opacity: 0.7; font-size: 0.8rem;">
-                        <span><strong>@${data.author}</strong> tarafından</span>
+                    <div style="margin: 10px 0; font-size: 1.05rem;">${data.content}</div>
+                    <div style="display: flex; justify-content: space-between; opacity: 0.7; font-size: 0.8rem;">
+                        <span><strong>@${data.author}</strong></span>
                         <span><i class="fa-regular fa-clock"></i> ${time}</span>
                     </div>
-                </div>
-            `;
+                </div>`;
         });
 
-        // EĞER DAHA FAZLA VERİ VARSA BUTONU GÖSTER
         if (snapshot.docs.length >= gundemLimit) {
-            feed.innerHTML += `
-                <button onclick="window.loadMoreGundem()" style="width:100%; padding:12px; margin-top:10px; background:var(--primary); color:white; border:none; border-radius:8px; cursor:pointer; font-weight:bold;">
-                    Daha Fazla Yükle
-                </button>`;
+            html += `<button onclick="loadMoreGundem()" class="load-more-btn">Daha Fazla Yükle</button>`;
         }
+        feed.innerHTML = html;
     });
 };
 
-// Limiti artıran buton fonksiyonu
-window.loadMoreGundem = () => {
-    gundemLimit += 7; // Her tıkta 7 artar
-    fetchGundem(currentGundemFilter);
+// Fonksiyonları Global Yapma
+window.loadMoreGundem = () => { gundemLimit += 7; fetchGundem(currentGundemFilter); };
+window.deleteGundem = async (id) => {
+    if (confirm("Silmek istiyor musunuz?")) {
+        try { await deleteDoc(doc(db, "gundem", id)); } 
+        catch (err) { alert("Hata oluştu."); }
+    }
 };
+window.shareGundem = shareGundem;
 
-// Olay Dinleyicileri (Filtre Butonları İçerik Değişimi)
+// Event Listeners
 document.addEventListener('click', (e) => {
     if (e.target.classList.contains('gundem-tab')) {
         document.querySelectorAll('.gundem-tab').forEach(t => t.classList.remove('active'));
@@ -1033,25 +1025,10 @@ document.addEventListener('click', (e) => {
     }
 });
 
-// Sayfa açıldığında verileri çek
 window.addEventListener('load', () => fetchGundem());
+/* ============================   */
 
-// Global erişim
-window.shareGundem = shareGundem;
-
-// Gündem Silme Fonksiyonu
-window.deleteGundem = async (id) => {
-    if (confirm("Bu gündem içeriğini silmek istediğinize emin misiniz?")) {
-        try {
-            await deleteDoc(doc(db, "gundem", id));
-            alert("İçerik başarıyla silindi.");
-        } catch (err) {
-            console.error("Silme hatası:", err);
-            alert("Silme işlemi sırasında bir hata oluştu.");
-        }
-    }
-};
-
+/* EMOJİ KODU */
 document.addEventListener('DOMContentLoaded', () => {
     const emojiToggle = document.getElementById('emojiToggle');
     const emojiPicker = document.getElementById('emojiPicker');
@@ -1079,6 +1056,36 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 /* ============================   */
 
+/* MOBİLE VERSİYONDA İÇERİK AYARLAMA */
+document.addEventListener('DOMContentLoaded', () => {
+    const leftBtn = document.getElementById('leftOpenBtn');
+    const rightBtn = document.getElementById('rightOpenBtn');
+    const leftAside = document.querySelector('aside');
+    const rightAside = document.querySelector('.right-panel');
+    const overlay = document.getElementById('sideOverlay');
+
+    const toggleLeft = () => {
+        leftAside.classList.toggle('active');
+        overlay.classList.toggle('active');
+    };
+
+    const toggleRight = () => {
+        rightAside.classList.toggle('active');
+        overlay.classList.toggle('active');
+    };
+
+    const closeAll = () => {
+        leftAside.classList.remove('active');
+        rightAside.classList.remove('active');
+        overlay.classList.remove('active');
+    };
+
+    leftBtn.onclick = toggleLeft;
+    rightBtn.onclick = toggleRight;
+    overlay.onclick = closeAll;
+});
+/* ============================   */
+
 // PROFİL YÖNLENDİRME
 window.navigateTo = function (page, userId = null) {
     if (!page) return;
@@ -1101,3 +1108,4 @@ window.navigateTo = function (page, userId = null) {
 
     location.href = `${page}.html`;
 };
+/* ============================   */
