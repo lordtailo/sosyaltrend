@@ -1078,7 +1078,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 /* ============================   */
-/* ============================   */
 
 // PROFİL YÖNLENDİRME
 window.navigateTo = function (page, userId = null) {
