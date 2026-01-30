@@ -86,20 +86,16 @@
                 <div style="display:flex; gap:8px; position: relative;">
                     <button class="tool-btn"><i class="fa-regular fa-image"></i></button>
                     <button class="tool-btn"><i class="fa-solid fa-list-ul"></i></button>
-
                     <button class="tool-btn" id="emojiToggle" type="button"><i class="fa-regular fa-face-smile"></i></button>
-                    
                     <div id="emojiPicker" class="glass-card" style="
-                        display: none; /* 'grid' yerine 'none' yaparak kapalı başlamasını sağladık */
-                        position: absolute;
-                        top: -140px; /* Diğer butonlarla çakışmaması için hafif yukarı aldık */
-                        left: 140px;    /* Butonun tam altından/üstünden hizalansın */
-                        z-index: 100;
-                        padding: 10px;
-                        width: 265px;
-                        grid-template-columns: repeat(7, 1fr);
-                        gap: 7px;
-                    ">
+                    display: grid; 
+                    position: absolute;
+                    top: -136px; left: 135px;
+                    z-index: 100;
+                    padding: 4px;
+                    width: 200px;
+                    grid-template-columns: repeat(7, 1fr);
+                    gap: 6px;">
                         <span style="cursor:pointer">😊</span><span style="cursor:pointer">😁</span><span style="cursor:pointer">😂</span><span style="cursor:pointer">🤣</span><span style="cursor:pointer">😡</span><span style="cursor:pointer">😠</span><span style="cursor:pointer">😭</span>
                         <span style="cursor:pointer">❤️</span><span style="cursor:pointer">💚</span><span style="cursor:pointer">💙</span><span style="cursor:pointer">💔</span><span style="cursor:pointer">💘</span><span style="cursor:pointer">💗</span><span style="cursor:pointer">💝</span>
                         <span style="cursor:pointer">👍</span><span style="cursor:pointer">👎</span><span style="cursor:pointer">🙌</span><span style="cursor:pointer">🙏</span><span style="cursor:pointer">✨</span><span style="cursor:pointer">📺</span><span style="cursor:pointer">🎞️</span>

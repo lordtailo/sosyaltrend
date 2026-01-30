@@ -187,8 +187,8 @@ document.addEventListener('DOMContentLoaded', () => {
   // --- ÇEVİRİLER VE KAYDETME ÖZELLİĞİ ---
   const translations = {
     tr: {
-      searchPlaceholder: "Arkadaş veya Sayfa ara!",
-      searchBtn: "Ara",
+      searchPlaceholder: "Arama",
+      searchBtn: "Arama",
       menuProfile: "Profiliniz",
       menuSettings: "Ayarlar",
       menuTitle: "Sosyal Menü",
