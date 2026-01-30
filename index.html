@@ -12,15 +12,15 @@
 <header>
   <div class="header-left">
   <a href="index.html" onclick="navigateTo('feed')" style="color:var(--text-main); font-size: 1.3rem; text-decoration: none; display: flex; align-items: center; gap: 10px;">
+    <i class="fa-solid fa-house-chimney"></i>
     <span class="logo" style="font-weight: bold;">SosyalTrend</span>
   </a>
 </div>
   <form id="mainSearchBtn" action="search.html" method="GET" class="header-center">
     <div class="search-wrapper">
-      <i class="fa-solid fa-magnifying-glass"></i>
       <input type="text" name="q" id="globalSearch" data-i18n-placeholder="searchPlaceholder">
     </div>
-  </form>
+</form>
 
   <div class="header-right">
 <button id="themeToggleBtn" class="theme-btn" onclick="toggleDarkMode()" title="Tema Değiştir"><i class="fa-solid fa-moon"></i></button>
@@ -86,9 +86,11 @@
                 <div style="display:flex; gap:8px; position: relative;">
                     <button class="tool-btn"><i class="fa-regular fa-image"></i></button>
                     <button class="tool-btn"><i class="fa-solid fa-list-ul"></i></button>
+
                     <button class="tool-btn" id="emojiToggle" type="button"><i class="fa-regular fa-face-smile"></i></button>
+                    
                     <div id="emojiPicker" class="glass-card" style="
-                    display: grid; 
+                    display: none; 
                     position: absolute;
                     top: -136px; left: 135px;
                     z-index: 100;
