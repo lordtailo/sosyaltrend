@@ -94,13 +94,38 @@ body.dark-mode .theme-btn i{
 /* ========================================= */
 
 * { 
-margin:0; padding:0; box-sizing:border-box; font-family: 'Inter', system-ui, sans-serif; transition: background-color 0.2s, border-color 0.2s, color 0.1s; }
+    margin:0; 
+    padding:0; 
+    box-sizing:border-box; 
+    font-family: 'Inter', system-ui, sans-serif; 
+    transition: background-color 0.2s, border-color 0.2s, color 0.1s; 
+}
 
 /* BAŞLIK */
 header {
-background: var(--card-bg);backdrop-filter: blur(12px); gap:15px;height: 72px; display: grid; grid-template-columns: 1.2fr 2fr 1.2fr;align-items: center; padding: 0 5%; position: sticky; top: 0; z-index: 1000;border-bottom: 1px solid var(--border);}
+    background: var(--card-bg);
+    backdrop-filter: blur(12px); 
+    gap:15px;
+    height: 72px; 
+    display: grid; 
+    grid-template-columns: 1.2fr 2fr 1.2fr;
+    align-items: center; padding: 0 5%; 
+    position: sticky; 
+    top: 0; 
+    z-index: 1000;
+    border-bottom: 1px solid var(--border);
+}
+
 header::after { 
-content: ""; position: absolute; bottom: 0; left: 0; right: 0; height: 3px; background: var(--line-gradient); }
+    content: ""; 
+    position: absolute; 
+    bottom: 0; 
+    left: 0; 
+    right: 0; 
+    height: 3px; 
+    background: var(--line-gradient); 
+}
+
 .header-left { 
 display: flex; align-items: center; gap: 20px; }
 .logo { 
