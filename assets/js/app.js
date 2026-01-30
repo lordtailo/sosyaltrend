@@ -1077,37 +1077,10 @@ document.addEventListener('DOMContentLoaded', () => {
         emojiPicker.style.display = 'none';
     });
 });
+/* ============================   */
+/* ============================   */
 
-
-document.addEventListener('DOMContentLoaded', () => {
-    const leftBtn = document.getElementById('leftOpenBtn');
-    const rightBtn = document.getElementById('rightOpenBtn');
-    const leftAside = document.querySelector('aside');
-    const rightAside = document.querySelector('.right-panel');
-    const overlay = document.getElementById('sideOverlay');
-
-    const toggleLeft = () => {
-        leftAside.classList.toggle('active');
-        overlay.classList.toggle('active');
-    };
-
-    const toggleRight = () => {
-        rightAside.classList.toggle('active');
-        overlay.classList.toggle('active');
-    };
-
-    const closeAll = () => {
-        leftAside.classList.remove('active');
-        rightAside.classList.remove('active');
-        overlay.classList.remove('active');
-    };
-
-    leftBtn.onclick = toggleLeft;
-    rightBtn.onclick = toggleRight;
-    overlay.onclick = closeAll;
-});
-
-// GLOBAL YÖNLENDİRME FONKSİYONU
+// PROFİL YÖNLENDİRME
 window.navigateTo = function (page, userId = null) {
     if (!page) return;
 
