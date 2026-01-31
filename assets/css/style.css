@@ -167,13 +167,13 @@ display: flex; justify-content: flex-end; position: relative; align-items: cente
 
 /* Header logo */
 .logo { 
-   font-size: 2.4rem; 
-   font-weight: 800; 
-   background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-   -webkit-background-clip: text; 
-   -webkit-text-fill-color: transparent;
-   cursor: pointer; 
-    height: 59px;
+    font-size: 1.5rem;
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    cursor: pointer;
+    height: 50%;
+    width: 100%;
 }
 
 /* Header orta */
