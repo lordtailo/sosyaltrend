@@ -7,68 +7,69 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="stylesheet" href="assets/css/style.css">
   <link rel="icon" type="image/x-icon" href="assets/img/strendsaydamv2.ico">
-  <style>
-    /* Senin mevcut stillerin... */
-    .top-bar {
-        background: var(--card-bg);
-        backdrop-filter: blur(15px);
-        border-bottom: 1px solid var(--border);
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 8px 25px; /* Padding'i biraz artırdım */
-        font-size: 0.8rem;
-        font-weight: 600;
-        color: var(--text-main);
-        position: sticky; /* top: 3px yerine sticky daha stabil çalışır */
-        top: 0;
-        z-index: 2001;
-    }
-
-    /* Saat alanını sağa sabitle ve genişliği ayarla */
-    #topBarDateTime {
-        min-width: 220px; /* Gün bilgisi geldiği için genişliği artırdık */
-        text-align: right;
-        display: flex;
-        justify-content: flex-end;
-        align-items: center;
-        gap: 10px;
-    }
-
-    /* Küçük ekranlarda gün bilgisini kısaltmak için */
-    @media (max-width: 480px) {
-        #topBarDateTime { min-width: auto; }
-        #topBarDateTime span:first-child { display: none; } /* Mobilde sadece saati göster */
-    }
-</style>
 </head>
 <body>
+<style>
+    /* 1. Top-bar'ın yüksekliğini sabit tutalım */
+.top-bar {
+    position: fixed; /* Sticky yerine fixed daha kararlı çalışır */
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 45px; /* Mevcut yüksekliğiniz */
+    z-index: 2001;
+}
+
+/* 2. Header'ı top-bar'ın hemen altına sabitleyelim */
+header {
+    position: fixed;
+    top: 45px; /* Top-bar'ın yüksekliği kadar boşluk bıraktık */
+    left: 0;
+    right: 0;
+    z-index: 2000;
+    /* Mevcut diğer header stilleriniz buraya... */
+}
+
+/* 3. Sayfa içeriğinin en üstte kaybolmaması için boşluk ekleyelim */
+.app-container {
+    margin-top: 120px; /* (Top-bar 45px) + (Header yaklaşık 70px) */
+}
+
+/* Mobil uyumluluk için header yüksekliği değişirse burayı güncelleyin */
+@media (max-width: 600px) {
+    .app-container {
+        margin-top: 100px;
+    }
+}
+</style>
 
 <div class="top-bar">
   <div class="top-bar-left">
-    <i class="fa-solid fa-circle-check" style="font-size: 0.6rem; animation: pulse 2s infinite;"></i>
-    <span style="color: var(--primary)" id="welcomeMessage">misafir, Hoş geldin!</span>
+    <i class="fa-solid fa-circle-check pulse-icon"> </i>
+    <span id="welcomeMessage">misafir, Hoş geldin!</span>
   </div>
   <div class="top-bar-right">
-    <span id="topBarDateTime"><i class="fa-regular fa-clock"></i> Yükleniyor...</span>
+    <div id="topBarDateTime">
+        <i class="fa-regular fa-clock"> </i> Yükleniyor... 
+    </div>
   </div>
 </div>
 
 <header>
   <div class="header-left">
-    <a href="index.html" onclick="navigateTo('feed')" style="color:var(--text-main); font-size: 1.3rem; text-decoration: none; display: flex; align-items: center; gap: 10px;">
-      <span class="logo" style="font-weight: bold;">SosyalTrend</span>
-    </a>
-  </div>
+  <a href="index.html" onclick="navigateTo('feed')" style="color:var(--text-main); font-size: 1.3rem; text-decoration: none; display: flex; align-items: center; gap: 10px;">
+    <span class="logo" style="font-weight: bold;">SosyalTrend</span>
+  </a>
+</div>
   <form id="mainSearchBtn" action="search.html" method="GET" class="header-center">
     <div class="search-wrapper">
-      <input type="text" name="q" id="globalSearch" placeholder="Trendleri keşfet...">
+      <input type="text" name="q" id="globalSearch" data-i18n-placeholder="searchPlaceholder">
     </div>
-  </form>
+</form>
 
   <div class="header-right">
-    <button id="themeToggleBtn" class="theme-btn" onclick="toggleDarkMode()" title="Tema Değiştir"><i class="fa-solid fa-moon"></i></button>
-    <div class="profile-trigger" id="profileTrigger">
+<button id="themeToggleBtn" class="theme-btn" onclick="toggleDarkMode()" title="Tema Değiştir"><i class="fa-solid fa-moon"></i></button>
+<div class="profile-trigger" id="profileTrigger">
         <img id="headerAvatar" src="">
     </div>
     <div class="dropdown-menu" id="dropdownMenu">
@@ -77,56 +78,85 @@
             <p id="menuUsername" style="font-size: 0.75rem; color: var(--text-muted);">@...</p>
         </div>
         <button class="menu-style-btn" id="adminMenuBtn" onclick="window.location.href='admin.html'" style="display:none; color: var(--primary);">
-            <i class="fa-solid fa-user-shield"></i> <span>Yönetici Paneli</span>
-        </button>
-        <button class="menu-style-btn" onclick="window.location.href='profil.html'"><i class="fa-solid fa-user"></i> <span>Profiliniz</span></button>
-        <button class="menu-style-btn" onclick="window.location.href='settings.html'"><i class="fa-solid fa-gear"></i> <span>Ayarlar</span></button>        
-        <button class="menu-style-btn" onclick="logout()" style="color:#ef4444; border-top:1px solid var(--border); margin-top:5px;"><i class="fa-solid fa-right-from-bracket"></i> <span>Çıkış Yap</span></button>
+    <i class="fa-solid fa-user-shield"></i> <span>Yönetici Paneli</span>
+</button>
+        <button class="menu-style-btn" onclick="window.location.href='profil.html'"><i class="fa-solid fa-user"></i> <span data-i18n="menuProfile">Profiliniz</span></button>
+<button class="menu-style-btn" onclick="window.location.href='settings.html'"><i class="fa-solid fa-gear"></i> <span data-i18n="menuSettings">Ayarlar</span></button>        
+<button class="menu-style-btn" onclick="logout()" style="color:#ef4444; border-top:1px solid var(--border); margin-top:5px;"><i class="fa-solid fa-right-from-bracket"></i> <span>Çıkış Yap</span></button>
     </div>
   </div>
 </header>
 
 <div class="app-container">
   <aside>
-    <div class="glass-card sidebar-profile-card" onclick="navigateTo('profile')" style="cursor: pointer; padding: 21px; text-align: center;">
-        <img id="sidebarAvatar" src="" style="width: 97px; height: 99px; border-radius: 50%; border: 2px solid var(--primary); object-fit: cover;">
+    
+    <div class="glass-card sidebar-profile-card" onclick="navigateTo('profile')" style="
+    cursor: pointer;
+    padding: 21px;
+    text-align: center;
+    align-items: center;">
+        <img id="sidebarAvatar" src="" style="
+    width: 97px;
+    height: 99px;
+    border-radius: 50%;
+    border: 2px solid var(--primary);
+    object-fit: cover;">
         <div style="overflow: hidden;">
             <div id="sidebarDisplayName" style="font-weight: 800; font-size: 0.95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">...</div>
             <div id="sidebarUsername" style="font-size: 0.8rem; color: var(--text-muted);">@...</div>
         </div>
     </div>
     <div class="glass-card sidebar-container">
-        <div class="sidebar-title">Sosyal Menü</div>
-        <a href="index.html" class="menu-style-btn nav-item active" id="btn-feed">
-            <i class="fa-solid fa-house"></i> <span>Anasayfa</span>
+        <div class="sidebar-title" data-i18n="menuTitle">Sosyal Menü</div>
+        <a href="index.html" onclick="navigateTo('feed')" class="menu-style-btn nav-item active" id="btn-feed">
+            <i class="fa-solid fa-house"></i> <span data-i18n="navFeed">Anasayfa</span>
         </a>
-        <a href="pages.html" class="menu-style-btn nav-item" id="btn-pages">
-            <i class="fa-solid fa-flag"></i> <span>Topluluk Sayfaları</span>
+        <a href="pages.html" onclick="navigateTo('pages')" class="menu-style-btn nav-item" id="btn-pages">
+            <i class="fa-solid fa-flag"></i> <span data-i18n="navPages">Topluluk Sayfaları</span>
         </a>
-        <a href="gundem.html" class="menu-style-btn nav-item" id="btn-gundem">
-            <i class="fa-solid fa-bolt-lightning"></i> <span>Gündem</span>
+        <a href="gundem.html" onclick="navigateTo('gundem')" class="menu-style-btn nav-item" id="btn-gundem">
+            <i class="fa-solid fa-bolt-lightning"></i> <span data-i18n="navGundem">Gündem</span>
         </a>
     </div>
   </aside>
 
-  <main id="main-content">
+ <main id="main-content">
     <div id="page-feed" class="page-content active">
         <div class="glass-card">
             <div style="padding: 20px;">
-                <textarea id="postInput" style="width:100%; border:none; outline:none; resize:none; font-size:1.1rem; min-height:80px; background: transparent; color: var(--text-main);" placeholder="Neler oluyor?"></textarea>
+                <textarea id="postInput" style="width:100%; border:none; outline:none; resize:none; font-size:1.1rem; min-height:80px;" data-i18n-placeholder="postPlaceholder"></textarea>
             </div>
+            
             <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border); padding: 15px 20px;">
-                <div style="display:flex; gap:8px;">
+                <div style="display:flex; gap:8px; position: relative;">
                     <button class="tool-btn"><i class="fa-regular fa-image"></i></button>
                     <button class="tool-btn"><i class="fa-solid fa-list-ul"></i></button>
-                    <button class="tool-btn" id="emojiToggle"><i class="fa-regular fa-face-smile"></i></button>
+
+                    <button class="tool-btn" id="emojiToggle" type="button"><i class="fa-regular fa-face-smile"></i></button>
+                    
+                    <div id="emojiPicker" class="glass-card" style="
+                    display: none; 
+                    position: absolute;
+                    top: -136px; left: 135px;
+                    z-index: 100;
+                    padding: 4px;
+                    width: 200px;
+                    grid-template-columns: repeat(7, 1fr);
+                    gap: 6px;">
+                        <span style="cursor:pointer">😊</span><span style="cursor:pointer">😁</span><span style="cursor:pointer">😂</span><span style="cursor:pointer">🤣</span><span style="cursor:pointer">😡</span><span style="cursor:pointer">😠</span><span style="cursor:pointer">😭</span>
+                        <span style="cursor:pointer">❤️</span><span style="cursor:pointer">💚</span><span style="cursor:pointer">💙</span><span style="cursor:pointer">💔</span><span style="cursor:pointer">💘</span><span style="cursor:pointer">💗</span><span style="cursor:pointer">💝</span>
+                        <span style="cursor:pointer">👍</span><span style="cursor:pointer">👎</span><span style="cursor:pointer">🙌</span><span style="cursor:pointer">🙏</span><span style="cursor:pointer">✨</span><span style="cursor:pointer">📺</span><span style="cursor:pointer">🎞️</span>
+                        <span style="cursor:pointer">🔒</span><span style="cursor:pointer">🔥</span><span style="cursor:pointer">🚀</span><span style="cursor:pointer">🎉</span><span style="cursor:pointer">💯</span><span style="cursor:pointer">😇</span><span style="cursor:pointer">😇</span>
+                        <span style="cursor:pointer">🍏</span><span style="cursor:pointer">🍎</span><span style="cursor:pointer">🍌</span><span style="cursor:pointer">🍐</span><span style="cursor:pointer">🍇</span><span style="cursor:pointer">🍳</span><span style="cursor:pointer">🍔</span>
+                        <span style="cursor:pointer">🚗</span><span style="cursor:pointer">🚕</span><span style="cursor:pointer">🚌</span><span style="cursor:pointer">🚑</span><span style="cursor:pointer">🚒</span><span style="cursor:pointer">🚢</span><span style="cursor:pointer">✈️</span>
+                    </div>
                 </div>
-                <button id="shareBtn" style="background: var(--primary); color: white; border: none; padding: 10px 25px; border-radius: 50px; font-weight: 700; cursor: pointer;">Paylaş</button>
+                <button id="shareBtn" style="background: var(--primary); color: white; border: none; padding: 10px 25px; border-radius: 50px; font-weight: 700; cursor: pointer;" data-i18n="shareBtn">Paylaş</button>
             </div>
         </div>
         <div id="feed-items"></div>
     </div>
-  </main>
+</main>
 
   <aside class="right-panel">
     <div class="glass-card widget-clock">
@@ -135,97 +165,126 @@
         <div class="hand min-hand" id="minHand"></div>
         <div class="hand sec-hand" id="secHand"></div>
       </div>
-      <div id="digiClock" style="font-size: 1.5rem; font-weight: 800;">00:00:00</div>
-      <div id="dateDisplay" class="date-display">...</div>
+      <div id="digiClock" style="font-size: 1.5rem; font-weight: 800;"> 00:00:00</div>
+      <div id="dateDisplay" class="date-display"> ...</div>
     </div>
     <div class="glass-card">
-        <div class="sidebar-title" style="border-bottom: 1px solid var(--border);">🔥 Trend Sayfalar</div>
+        <div class="sidebar-title" style="border-bottom: 1px solid var(--border);" data-i18n="trendPagesTitle">🔥 Trend Sayfalar</div>
         <div id="trend-pages-list"></div>
     </div>
   </aside>
 </div>
 
+
 <footer>
   <div class="footer-container">
     <div class="footer-brand" style="display: flex; align-items: center; gap: 15px;">
-      <img src="assets/img/strendsaydamv2.png" alt="Logo" style="width: 80px; height: 80px; object-fit: contain;">
+      <img src="assets/img/strendsaydamv2.png" alt="SosyalTrend Logo" style="width: 124px;height: 123px;object-fit: contain;">
+      
       <div>
-        <div class="logo">SosyalTrend</div>
-        <p style="color:var(--text-muted); font-size:0.9rem; margin: 0;">Topluluğunuzla bir adım önde olun.</p>
+        <div class="logo" style="margin-bottom: 5px;">SosyalTrend</div>
+        <p style="color:var(--text-muted); font-size:0.9rem; margin: 0;" data-i18n="footerTagline">
+          Topluluğunuzla her zaman bir adım önde olun.
+        </p>
       </div>
     </div>
+
     <div class="footer-section">
-      <h4>Hızlı Menü</h4>
+      <h4 data-i18n="footerMenu">Hızlı Menü</h4>
       <ul class="footer-links">
-        <li><a href="index.html">Anasayfa</a></li>
-        <li><a href="profil.html">Profiliniz</a></li>
-        <li><a href="savepost.html">Kaydettikleriniz</a></li>
+        <li><a href="index.html" onclick="navigateTo('feed')" data-i18n="navFeed">Anasayfa</a></li>
+        <li><a href="profil.html" onclick="navigateTo('profile')"data-i18n="navProfil">Profiliniz</a></li>
+        <li><a href="pages.html" onclick="navigateTo('pages')" data-i18n="navPages">Topluluk Sayfaları</a></li>
+        <li><a href="likepost.html" onclick="navigateTo('navSubs')">Beğendikleriniz</a></li>
+        <li><a href="savepost.html" onclick="navigateTo('navBookmarks')" data-i18n="navBookmarks">Kaydettikleriniz</a></li>
       </ul>
     </div>
+
     <div class="footer-section">
-      <h4>Destek</h4>
+      <h4 data-i18n="footerCorp">Kurumsal</h4>
       <ul class="footer-links">
-        <li><a href="contact.html">İletişim</a></li>
-        <li><a href="yardim.html">Yardım Merkezi</a></li>
+        <li><a href="#" data-i18n="footerAbout">Hakkımızda</a></li>
+        <li><a href="#" data-i18n="footerCareer">Kariyer</a></li>
+      </ul>
+    </div>
+
+    <div class="footer-section">
+      <h4 data-i18n="footerSupport">Destek</h4>
+      <ul class="footer-links">
+        <li><a href="contact.html" onclick="navigateTo('contact')" data-i18n="footerContact">İletişim</a></li>
+        <li><a href="yardim.html" onclick="navigateTo('help')" data-i18n="footerHelp">Yardım Merkezi</a></li>
       </ul>
     </div>
   </div>
+
   <div class="footer-bottom">
-    <div style="color:var(--text-muted); font-size:0.85rem;">&copy; 2026 <strong>SosyalTrend</strong>. Tüm Hakları Saklıdır.</div>
+    <div style="color:var(--text-muted); font-size:0.85rem;">&copy; 2026 <strong>SosyalTrend</strong>. <span data-i18n="footerRights">Tüm Hakları Saklıdır.</span></div>
+    <div style="display: flex;gap: 8px;align-items: center;padding: 0px 10px 0 23px;">
+        <div class="lang-switcher" style="display:flex; gap:10px; font-size: 0.85rem; font-weight: 600;">
+            <span id="lang-tr" onclick="changeLanguage('tr')">TR</span>
+            <span id="lang-en" onclick="changeLanguage('en')">EN</span>
+        </div>
+        <div style="width: 1px; height: 15px; background: var(--border);"></div>
+        <i class="fa-solid fa-earth-americas" style="color:var(--text-muted); font-size: 0.9rem;"></i>
+    </div>
   </div>
 </footer>
+
+<div id="sideOverlay" class="side-overlay"></div>
+<script type="module" src="assets/js/app.js"></script>
+<div id="editModal" class="modal-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; align-items: center; justify-content: center;">
+    <div class="glass-card" style="width: 90%; max-width: 500px; padding: 20px;">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 15px;">
+            <h3 style="margin: 0;">Gönderiyi Düzenle</h3>
+            <button onclick="closeEditModal()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-main);">&times;</button>
+        </div>
+        <textarea id="editPostInput" style="width: 100%; min-height: 120px; border: 1px solid var(--border); border-radius: 8px; padding: 10px; background: transparent; color: var(--text-main); outline: none; resize: vertical;"></textarea>
+        <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 15px;">
+            <button onclick="closeEditModal()" style="padding: 8px 20px; border-radius: 20px; border: 1px solid var(--border); background: transparent; cursor: pointer;">İptal</button>
+            <button id="saveEditBtn" style="padding: 8px 20px; border-radius: 20px; border: none; background: var(--primary); color: white; font-weight: bold; cursor: pointer;">Kaydet</button>
+        </div>
+    </div>
+</div>
 
 <script type="module">
   // Dinamik Zaman, Tarih ve Gün Mantığı
   function updateClock() {
     const now = new Date();
     
-    // Tarih Ayarları (Örn: 31 Ocak 2026 Cumartesi)
-    const dateOptions = { 
-      day: 'numeric', 
-      month: 'long', 
-      year: 'numeric', 
-      weekday: 'long' 
-    };
-    
-    // Saat Ayarları (Örn: 10:32:05)
-    const timeOptions = { 
-      hour: '2-digit', 
-      minute: '2-digit', 
-      second: '2-digit' 
-    };
-    
-    const dateStr = now.toLocaleDateString('tr-TR', dateOptions);
-    const timeStr = now.toLocaleTimeString('tr-TR', timeOptions);
+    // Intl.DateTimeFormat kullanımı performans açısından daha iyidir
+    const dateStr = new Intl.DateTimeFormat('tr-TR', {
+      day: 'numeric', month: 'long', year: 'numeric', weekday: 'long' 
+    }).format(now);
+
+    const timeStr = new Intl.DateTimeFormat('tr-TR', {
+      hour: '2-digit', minute: '2-digit', second: '2-digit'
+    }).format(now);
     
     const timeElement = document.getElementById('topBarDateTime');
     if(timeElement) {
-        // Tarih ve Saati farklı opasitelerle ayırarak daha okunaklı kıldık
         timeElement.innerHTML = `
-            <span style="opacity: 0.7;">
-                <i class="fa-regular fa-calendar-check"></i> ${dateStr}
+            <span class="date-part">
+                <i class="fa-regular fa-calendar-check"></i>${dateStr}
             </span>
-            <span style="margin: 0 8px; opacity: 0.3;">|</span>
-            <span style="color: var(--primary); font-weight: 700;">
-                <i class="fa-regular fa-clock"></i> ${timeStr}
+            <span class="separator">|</span>
+            <span class="time-part">
+                <i class="fa-regular fa-clock"></i>${timeStr}
             </span>
         `;
     }
   }
 
-  // Her saniye güncelleme başlat
-  setInterval(updateClock, 1000);
+  // Başlatma ve Interval (Değişkene atamak hafıza yönetimi için iyidir)
+  const clockInterval = setInterval(updateClock, 1000);
   updateClock();
 
-  // Karşılama mesajı için global fonksiyon (app.js'den çağrılacak)
-  window.updateWelcomeMessage = (username) => {
+  // Hoş geldin mesajı (Global scope'a güvenli aktarım)
+  window.updateWelcomeMessage = (username = "misafir") => {
     const welcomeEl = document.getElementById('welcomeMessage');
     if (welcomeEl) {
-      const name = username ? username : "misafir";
-      welcomeEl.innerText = `@${name.toLowerCase()}, Sosyal Trend'e hoş geldiniz..`;
+      welcomeEl.innerText = `@${username.toLowerCase()}, Sosyal Trend'e hoş geldiniz..`;
     }
   };
 </script>
-<script type="module" src="assets/js/app.js"></script>
 </body>
 </html>

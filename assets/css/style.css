@@ -676,3 +676,36 @@ aside, .right-panel { display: none; } }
 
 /* GÜNDEM DAHA FAZLA YÜKLE KODU */
 .load-more-btn { width: 100%; padding: 12px; margin-top: 10px; background: var(--primary); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; }
+
+/* Senin mevcut stillerin... */
+    .top-bar {
+        background: var(--card-bg);
+        backdrop-filter: blur(15px);
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 25px; /* Padding'i biraz artırdım */
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: var(--text-main);
+        position: sticky; /* top: 3px yerine sticky daha stabil çalışır */
+        top: 0;
+        z-index: 2001;
+    }
+
+    /* Saat alanını sağa sabitle ve genişliği ayarla */
+    #topBarDateTime {
+        min-width: 220px; /* Gün bilgisi geldiği için genişliği artırdık */
+        text-align: right;
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        gap: 10px;
+    }
+
+    /* Küçük ekranlarda gün bilgisini kısaltmak için */
+    @media (max-width: 480px) {
+        #topBarDateTime { min-width: auto; }
+        #topBarDateTime span:first-child { display: none; } /* Mobilde sadece saati göster */
+    }

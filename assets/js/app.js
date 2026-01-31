@@ -42,14 +42,6 @@ document.addEventListener('DOMContentLoaded', loadComponents);
       
       user.isAdmin = fbUser.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
       
-      // --- EKLEME YAPILAN KISIM ---
-      const welcomeEl = document.getElementById('welcomeMessage');
-      if (welcomeEl) {
-          // localStorage veya displayName'den gelen ismi kullanıyoruz
-          welcomeEl.innerText = `${user.displayName.toLowerCase()}, Hoş geldin!`;
-      }
-      // ----------------------------
-
       const emailEl = document.getElementById('currentEmailDisplay');
       if(emailEl) emailEl.innerText = fbUser.email;
 
@@ -64,7 +56,7 @@ document.addEventListener('DOMContentLoaded', loadComponents);
 
       updateUIWithUser();
     }
-});
+  });
 
 
   async function updateAdminStats() {
