@@ -75,7 +75,7 @@ function updateClock() {
     const welcomeEl = document.getElementById('welcomeMessage');
     if (welcomeEl) {
       const name = username ? username : "misafir";
-      welcomeEl.innerText = `@${name.toLowerCase()}, Hoş geldiniz!`;
+      welcomeEl.innerText = `${name.toLowerCase()}, Hoş geldiniz!`;
     }
   };
 
@@ -398,7 +398,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (welcomeEl) {
         // user.displayName veya user.username kullanarak içeriği değiştiriyoruz
         const currentName = user.username || user.displayName || "misafir";
-        welcomeEl.innerHTML = `<i class="fa-solid fa-circle-check" style="font-size: 0.6rem; animation: pulse 2s infinite;"></i> @${currentName.toLowerCase()}, Hoş geldiniz!`;
+        welcomeEl.innerHTML = `<i class="fa-solid fa-circle-check" style="font-size: 0.6rem; color: #fff; animation: pulse 2s infinite;"></i> ${currentName.toLowerCase()}, Hoş geldiniz!`;
     }
 
     // Header Güncelleme
