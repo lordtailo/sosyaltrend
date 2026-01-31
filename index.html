@@ -10,27 +10,6 @@
 </head>
 <body>
 
-<style>
-    /* Zengin Metin Editörü Stilleri */
-    .editor-wrapper { border: 1px solid var(--border); border-radius: 12px; overflow: hidden; background: var(--card-bg); transition: 0.3s; }
-    .editor-wrapper:focus-within { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1); }
-    
-    .editor-toolbar { display: flex; gap: 5px; padding: 10px; border-bottom: 1px solid var(--border); background: var(--input-bg); }
-    .editor-toolbar button { background: transparent; border: none; color: var(--text-main); cursor: pointer; width: 32px; height: 32px; border-radius: 6px; transition: 0.2s; display: flex; align-items: center; justify-content: center; }
-    .editor-toolbar button:hover { background: var(--border); color: var(--primary); }
-    
-    .rich-editor { width: 100%; min-height: 120px; padding: 15px; color: var(--text-main); font-size: 1.1rem; outline: none; background: transparent; overflow-y: auto; }
-    .rich-editor[contenteditable]:empty:before { content: attr(data-placeholder); color: var(--text-muted); }
-    
-    /* Emoji Seçici Geliştirmeleri */
-    #emojiPicker { grid-template-columns: repeat(7, 1fr); box-shadow: var(--shadow); border: 1px solid var(--border); border-radius: 12px; max-height: 200px; overflow-y: auto; }
-    #emojiPicker span { font-size: 1.2rem; padding: 5px; border-radius: 6px; transition: 0.2s; display: flex; align-items: center; justify-content: center; }
-    #emojiPicker span:hover { background: var(--input-bg); transform: scale(1.2); }
-
-    /* Modal Düzenlemeleri */
-    .modal-rich-wrapper { border: 1px solid var(--border); border-radius: 8px; margin-top: 15px; }
-  </style>
-
 <div class="top-bar">
   <div class="top-bar-left">
   <span id="welcomeMessage" style="opacity: 0.8;"><i class="fa-solid fa-circle-check" style="font-size: 0.6rem; animation: pulse 2s infinite;"></i> Yükleniyor...
@@ -108,32 +87,36 @@
 
  <main id="main-content">
     <div id="page-feed" class="page-content active">
-        <div class="glass-card" style="padding: 0;">
-            <div class="editor-toolbar">
-                <button onclick="execCmd('bold')" title="Kalın"><i class="fa-solid fa-bold"></i></button>
-                <button onclick="execCmd('italic')" title="İtalik"><i class="fa-solid fa-italic"></i></button>
-                <button onclick="execCmd('insertUnorderedList')" title="Liste"><i class="fa-solid fa-list-ul"></i></button>
-                <button onclick="execCmd('justifyLeft')" title="Sola Yasla"><i class="fa-solid fa-align-left"></i></button>
-                <button onclick="execCmd('justifyCenter')" title="Ortala"><i class="fa-solid fa-align-center"></i></button>
+        <div class="glass-card">
+            <div style="padding: 20px;">
+                <textarea id="postInput" style="width:100%; border:none; outline:none; resize:none; font-size:1.1rem; min-height:80px;" data-i18n-placeholder="postPlaceholder"></textarea>
             </div>
             
-            <div id="postInput" class="rich-editor" contenteditable="true" data-placeholder="Neler oluyor?"></div>
-            
-            <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border); padding: 12px 20px;">
-                <div style="display:flex; gap:12px; position: relative;">
-                    <button class="tool-btn" title="Resim Ekle"><i class="fa-regular fa-image"></i></button>
+            <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border); padding: 15px 20px;">
+                <div style="display:flex; gap:8px; position: relative;">
+                    <button class="tool-btn"><i class="fa-regular fa-image"></i></button>
+                    <button class="tool-btn"><i class="fa-solid fa-list-ul"></i></button>
+
                     <button class="tool-btn" id="emojiToggle" type="button"><i class="fa-regular fa-face-smile"></i></button>
                     
-                    <div id="emojiPicker" class="glass-card" style="display: none; position: absolute; bottom: 50px; left: 0; z-index: 1000; padding: 10px; width: 266px; background: var(--card-bg);">
-                        <div style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 5px;" id="emojiList">
-                            <span onclick="addEmoji('😊')">😊</span><span onclick="addEmoji('😂')">😂</span><span onclick="addEmoji('😍')">😍</span>
-                            <span onclick="addEmoji('🔥')">🔥</span><span onclick="addEmoji('👍')">👍</span><span onclick="addEmoji('❤️')">❤️</span>
-                            <span onclick="addEmoji('🚀')">🚀</span><span onclick="addEmoji('✨')">✨</span><span onclick="addEmoji('💯')">💯</span>
-                            <span onclick="addEmoji('🙏')">🙏</span><span onclick="addEmoji('😎')">😎</span><span onclick="addEmoji('🤔')">🤔</span>
-                        </div>
+                    <div id="emojiPicker" class="glass-card" style="
+                    display: none; 
+                    position: absolute;
+                    top: -136px; left: 135px;
+                    z-index: 100;
+                    padding: 4px;
+                    width: 200px;
+                    grid-template-columns: repeat(7, 1fr);
+                    gap: 6px;">
+                        <span style="cursor:pointer">😊</span><span style="cursor:pointer">😁</span><span style="cursor:pointer">😂</span><span style="cursor:pointer">🤣</span><span style="cursor:pointer">😡</span><span style="cursor:pointer">😠</span><span style="cursor:pointer">😭</span>
+                        <span style="cursor:pointer">❤️</span><span style="cursor:pointer">💚</span><span style="cursor:pointer">💙</span><span style="cursor:pointer">💔</span><span style="cursor:pointer">💘</span><span style="cursor:pointer">💗</span><span style="cursor:pointer">💝</span>
+                        <span style="cursor:pointer">👍</span><span style="cursor:pointer">👎</span><span style="cursor:pointer">🙌</span><span style="cursor:pointer">🙏</span><span style="cursor:pointer">✨</span><span style="cursor:pointer">📺</span><span style="cursor:pointer">🎞️</span>
+                        <span style="cursor:pointer">🔒</span><span style="cursor:pointer">🔥</span><span style="cursor:pointer">🚀</span><span style="cursor:pointer">🎉</span><span style="cursor:pointer">💯</span><span style="cursor:pointer">😇</span><span style="cursor:pointer">😇</span>
+                        <span style="cursor:pointer">🍏</span><span style="cursor:pointer">🍎</span><span style="cursor:pointer">🍌</span><span style="cursor:pointer">🍐</span><span style="cursor:pointer">🍇</span><span style="cursor:pointer">🍳</span><span style="cursor:pointer">🍔</span>
+                        <span style="cursor:pointer">🚗</span><span style="cursor:pointer">🚕</span><span style="cursor:pointer">🚌</span><span style="cursor:pointer">🚑</span><span style="cursor:pointer">🚒</span><span style="cursor:pointer">🚢</span><span style="cursor:pointer">✈️</span>
                     </div>
                 </div>
-                <button id="shareBtn" style="background: var(--primary); color: white; border: none; padding: 10px 30px; border-radius: 50px; font-weight: 700; cursor: pointer;">Paylaş</button>
+                <button id="shareBtn" style="background: var(--primary); color: white; border: none; padding: 10px 25px; border-radius: 50px; font-weight: 700; cursor: pointer;" data-i18n="shareBtn">Paylaş</button>
             </div>
         </div>
         <div id="feed-items"></div>
@@ -230,34 +213,6 @@
 
 <div id="sideOverlay" class="side-overlay"></div>
 
-<script>
-    // Zengin Metin İşlevleri
-    function execCmd(command) {
-        document.execCommand(command, false, null);
-    }
-
-    // Emoji İşlevleri
-    const emojiToggle = document.getElementById('emojiToggle');
-    const emojiPicker = document.getElementById('emojiPicker');
-    
-    if(emojiToggle) {
-        emojiToggle.onclick = (e) => {
-            e.stopPropagation();
-            emojiPicker.style.display = emojiPicker.style.display === 'none' ? 'block' : 'none';
-        };
-    }
-
-    function addEmoji(emoji) {
-        const editor = document.getElementById('postInput');
-        editor.focus();
-        document.execCommand('insertText', false, emoji);
-    }
-
-    // Picker dışına tıklanırsa kapat
-    document.addEventListener('click', () => {
-        if(emojiPicker) emojiPicker.style.display = 'none';
-    });
-</script>
 <script type="module" src="../assets/js/app.js"></script>
 </body>
 </html>
