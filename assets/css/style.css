@@ -95,19 +95,19 @@ body.dark-mode .theme-btn i{
 
 /* TOP BAR HEADER ÜSTÜ */
 .top-bar {
-        background: linear-gradient(90deg, #6366f1, #a855f7, #6366f1);
-        backdrop-filter: blur(15px);
-        border-bottom: 1px solid var(--border);
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 8px 25px; 
-        font-size: 0.8rem;
-        font-weight: 600;
-        color: #fff;
-        position: sticky; 
-        top: 0;
-        z-index: 2001;
+    background: linear-gradient(90deg, #6366f1, #a855f7, #6366f1);
+    backdrop-filter: blur(15px);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 10px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: #fff;
+    position: sticky;
+    top: 0;
+    z-index: 2001;
     }
 
 .top-bar::after {
