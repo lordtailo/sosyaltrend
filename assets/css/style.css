@@ -96,19 +96,19 @@ body.dark-mode .theme-btn i{
 
 /* Header üstü */
     .top-bar {
-        background: var(--card-bg);
-        backdrop-filter: blur(15px);
-        border-bottom: 1px solid var(--border);
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 8px 25px; /* Padding'i biraz artırdım */
-        font-size: 0.8rem;
-        font-weight: 600;
-        color: var(--text-main);
-        top: 0px;
-        z-index: 9999;
-    }
+    background: var(--card-bg);
+    backdrop-filter: blur(15px);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 25px;
+    font-size: 0.8rem;
+    position: sticky;
+    font-weight: 600;
+    color: var(--text-main);
+}
+
 .top-bar::after {
     content: ""; 
     position: absolute; 
@@ -147,7 +147,7 @@ header {
     align-items: center; 
     padding: 0 5%; 
     position: sticky; 
-    top: 32px; 
+    top: 34px; 
     z-index: 9998;
     border-bottom: 1px solid var(--border);
 }
