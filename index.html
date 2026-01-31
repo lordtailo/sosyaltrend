@@ -8,64 +8,46 @@
   <link rel="stylesheet" href="assets/css/style.css">
   <link rel="icon" type="image/x-icon" href="assets/img/strendsaydamv2.ico">
   <style>
-    /* Üst Bilgi Çubuğu (Top Bar) Stilleri */
+    /* Senin mevcut stillerin... */
     .top-bar {
-    background: var(--card-bg);
-    backdrop-filter: blur(15px);
-    border-bottom: 1px solid var(--border);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 6px 25px;
-    font-size: 0.8rem;
-    font-weight: 600;
-    color: var(--text-main);
-    top: 3px;
-    z-index: 2001;
-    }
-    .top-bar::before {
-    content: "";
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 1px;
-    background: var(--line-gradient);
+        background: var(--card-bg);
+        backdrop-filter: blur(15px);
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 25px; /* Padding'i biraz artırdım */
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: var(--text-main);
+        position: sticky; /* top: 3px yerine sticky daha stabil çalışır */
+        top: 0;
+        z-index: 2001;
     }
 
-    .top-bar-left {
-      color: var(--primary);
-      display: flex;
-      align-items: center;
-      gap: 5px;
-    }
-
-    .top-bar-right {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      opacity: 0.9;
-    }
-
-    /* Hareketli zaman efekti */
+    /* Saat alanını sağa sabitle ve genişliği ayarla */
     #topBarDateTime {
-      min-width: 180px;
-      text-align: right;
+        min-width: 220px; /* Gün bilgisi geldiği için genişliği artırdık */
+        text-align: right;
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        gap: 10px;
     }
-    
-    @media (max-width: 768px) {
-      .top-bar-left { font-size: 0.7rem; }
-      .top-bar-right { font-size: 0.7rem; }
+
+    /* Küçük ekranlarda gün bilgisini kısaltmak için */
+    @media (max-width: 480px) {
+        #topBarDateTime { min-width: auto; }
+        #topBarDateTime span:first-child { display: none; } /* Mobilde sadece saati göster */
     }
-  </style>
+</style>
 </head>
 <body>
 
 <div class="top-bar">
   <div class="top-bar-left">
     <i class="fa-solid fa-circle-check" style="font-size: 0.6rem; animation: pulse 2s infinite;"></i>
-    <span id="welcomeMessage">misafir, Hoş geldin!</span>
+    <span style="color: var(--primary)" id="welcomeMessage">misafir, Hoş geldin!</span>
   </div>
   <div class="top-bar-right">
     <span id="topBarDateTime"><i class="fa-regular fa-clock"></i> Yükleniyor...</span>
@@ -194,28 +176,56 @@
 </footer>
 
 <script type="module">
-  // Dinamik Zaman ve Karşılama Mantığı
+  // Dinamik Zaman, Tarih ve Gün Mantığı
   function updateClock() {
     const now = new Date();
-    const timeOptions = { hour: '2-digit', minute: '2-digit', second: '2-digit' };
-    const dateOptions = { day: 'numeric', month: 'long', year: 'numeric' };
     
-    const timeStr = now.toLocaleTimeString('tr-TR', timeOptions);
+    // Tarih Ayarları (Örn: 31 Ocak 2026 Cumartesi)
+    const dateOptions = { 
+      day: 'numeric', 
+      month: 'long', 
+      year: 'numeric', 
+      weekday: 'long' 
+    };
+    
+    // Saat Ayarları (Örn: 10:32:05)
+    const timeOptions = { 
+      hour: '2-digit', 
+      minute: '2-digit', 
+      second: '2-digit' 
+    };
+    
     const dateStr = now.toLocaleDateString('tr-TR', dateOptions);
+    const timeStr = now.toLocaleTimeString('tr-TR', timeOptions);
     
     const timeElement = document.getElementById('topBarDateTime');
     if(timeElement) {
-        timeElement.innerHTML = `<i class="fa-regular fa-calendar-check"></i> ${dateStr} | <i class="fa-regular fa-clock"></i> ${timeStr}`;
+        // Tarih ve Saati farklı opasitelerle ayırarak daha okunaklı kıldık
+        timeElement.innerHTML = `
+            <span style="opacity: 0.7;">
+                <i class="fa-regular fa-calendar-check"></i> ${dateStr}
+            </span>
+            <span style="margin: 0 8px; opacity: 0.3;">|</span>
+            <span style="color: var(--primary); font-weight: 700;">
+                <i class="fa-regular fa-clock"></i> ${timeStr}
+            </span>
+        `;
     }
   }
 
-  // Firebase Auth entegrasyonu (Basitleştirilmiş)
-  // Not: Gerçek veriyi app.js içindeki onAuthStateChanged'dan alacaktır.
-  // Burada başlangıç için simüle ediyoruz.
+  // Her saniye güncelleme başlat
   setInterval(updateClock, 1000);
   updateClock();
-</script>
 
+  // Karşılama mesajı için global fonksiyon (app.js'den çağrılacak)
+  window.updateWelcomeMessage = (username) => {
+    const welcomeEl = document.getElementById('welcomeMessage');
+    if (welcomeEl) {
+      const name = username ? username : "misafir";
+      welcomeEl.innerText = `@${name.toLowerCase()}, Sosyal Trend'e hoş geldiniz..`;
+    }
+  };
+</script>
 <script type="module" src="assets/js/app.js"></script>
 </body>
 </html>
