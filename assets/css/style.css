@@ -305,6 +305,7 @@ max-width: 100%; margin: 0 auto; display: grid; grid-template-columns: 2fr 1fr 1
 .footer-links a { 
 text-decoration: none; color: var(--text-muted); font-size: 0.9rem; transition: 0.3s; }
 .footer-links a:hover { color: var(--primary); }
+/* ===================================== */
 
 .admin-actions { 
 display: flex; gap: 5px; margin-top: 8px; }
