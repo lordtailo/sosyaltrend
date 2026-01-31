@@ -42,6 +42,14 @@ document.addEventListener('DOMContentLoaded', loadComponents);
       
       user.isAdmin = fbUser.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
       
+      // --- EKLEME YAPILAN KISIM ---
+      const welcomeEl = document.getElementById('welcomeMessage');
+      if (welcomeEl) {
+          // localStorage veya displayName'den gelen ismi kullanıyoruz
+          welcomeEl.innerText = `${user.displayName.toLowerCase()}, Sosyal Trend'e hoş geldin!`;
+      }
+      // ----------------------------
+
       const emailEl = document.getElementById('currentEmailDisplay');
       if(emailEl) emailEl.innerText = fbUser.email;
 
@@ -56,7 +64,7 @@ document.addEventListener('DOMContentLoaded', loadComponents);
 
       updateUIWithUser();
     }
-  });
+});
 
 
   async function updateAdminStats() {
@@ -830,14 +838,24 @@ document.getElementById('globalSearch').addEventListener('keypress', function (e
           const targetNav = isMine ? 'profile' : (isPage ? 'pages' : 'feed');
           
           const postHtml = `
-          <div class="glass-card post" style="${p.username === 'official_system' ? 'border: 2px solid var(--primary); background: rgba(99, 102, 241, 0.05);' : ''}">
-              ${isMine ? `<button class="post-delete-btn" onclick="deletePost('${d.id}')"><i class="fa-solid fa-trash"></i></button>` : ''}
+          <div class="glass-card post" style="${p.username === 'official_system' ? 'border: 2px solid var(--primary); background: rgba(99, 102, 241, 0.05);' : ''}; position: relative;">
+              <div style="position: absolute; top: 15px; right: 15px; display: flex; gap: 8px;">
+                  ${isMine ? `
+                      <button onclick="openEditModal('${d.id}', \`${p.content.replace(/`/g, '\\`').replace(/\n/g, '\\n')}\`, 'post')" style="background:none; border:none; color:var(--text-muted); cursor:pointer;">
+                          <i class="fa-solid fa-pen"></i>
+                      </button>
+                      <button class="post-delete-btn" style="position:static;" onclick="deletePost('${d.id}')">
+                          <i class="fa-solid fa-trash"></i>
+                      </button>
+                  ` : ''}
+              </div>
               <div style="display:flex; gap:10px; margin-bottom:10px;">
                   <img src="${avatarUrl}" class="${isPage ? 'page-avatar' : 'user-avatar'}" style="cursor:pointer;" onclick="navigateTo('${targetNav}')">
                   <div>
                       <div style="font-weight:700; display:flex; align-items:center; gap:5px; cursor:pointer;" onclick="navigateTo('${targetNav}')">
                           ${p.name} ${isPage ? '<i class="fa-solid fa-circle-check" style="color:var(--primary); font-size:0.7rem;"></i>' : ''}
                           <span class="post-time">• ${formatTime(p.timestamp)}</span>
+                          ${p.isEdited ? `<span style="font-size: 0.6rem; color: var(--text-muted); font-weight: normal;">(düzenlendi)</span>` : ''}
                       </div>
                       <div style="font-size:0.75rem; color:var(--text-muted); cursor:pointer;" onclick="navigateTo('${targetNav}')">@${p.username}</div>
                   </div>
@@ -858,11 +876,20 @@ document.getElementById('globalSearch').addEventListener('keypress', function (e
                                   <div style="flex: 1;">
                                       <span class="comment-meta" style="cursor:pointer;" onclick="navigateTo('${c.username === user.username ? 'profile' : 'feed'}')">${c.displayName}</span> 
                                       <span style="font-size: 0.8rem;">${c.text}</span>
+                                      ${c.isEdited ? `<small style="font-size: 0.65rem; color: var(--text-muted); margin-left: 4px;">(düzenlendi)</small>` : ''}
                                   </div>
-                                  ${(c.username === user.username || user.isAdmin) ? `
-                                      <button class="comment-del-btn" onclick="deleteComment('${d.id}', ${c.time}, '${c.text}')">
-                                          <i class="fa-solid fa-trash-can"></i>
-                                      </button>` : ''}
+                                  <div style="display: flex; gap: 5px;">
+                                    ${(c.username === user.username) ? `
+                                        <button onclick="openEditModal('${d.id}', \`${c.text.replace(/`/g, '\\`').replace(/\n/g, '\\n')}\`, 'comment', ${c.time})" style="background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:0.75rem;">
+                                            <i class="fa-solid fa-pen"></i>
+                                        </button>
+                                    ` : ''}
+                                    ${(c.username === user.username || user.isAdmin) ? `
+                                        <button class="comment-del-btn" onclick="deleteComment('${d.id}', ${c.time}, '${c.text}')">
+                                            <i class="fa-solid fa-trash-can"></i>
+                                        </button>
+                                    ` : ''}
+                                  </div>
                               </div>
                               <div style="margin-left: 34px; width: calc(100% - 34px);">
                                   ${(c.replies || []).map(r => `
@@ -870,11 +897,20 @@ document.getElementById('globalSearch').addEventListener('keypress', function (e
                                           <img src="${getAvatarUrl(r.avatarSeed, 'user')}" style="width: 18px; height: 18px; border-radius: 50%; cursor:pointer;" onclick="navigateTo('${r.username === user.username ? 'profile' : 'feed'}')">
                                           <div style="font-size: 0.75rem; flex: 1;">
                                               <b style="color:var(--primary); cursor:pointer;" onclick="navigateTo('${r.username === user.username ? 'profile' : 'feed'}')">${r.displayName}</b> ${r.text}
+                                              ${r.isEdited ? `<small style="font-size: 0.6rem; color: var(--text-muted); margin-left: 4px;">(düzenlendi)</small>` : ''}
                                           </div>
-                                          ${(r.username === user.username || user.isAdmin) ? `
-                                              <button class="comment-del-btn" style="font-size:0.6rem" onclick="deleteReply('${d.id}', ${c.time}, ${r.time})">
-                                                  <i class="fa-solid fa-xmark"></i>
-                                              </button>` : ''}
+                                          <div style="display: flex; gap: 5px; align-items: center;">
+                                              ${(r.username === user.username) ? `
+                                                  <button onclick="openEditModal('${d.id}', \`${r.text.replace(/`/g, '\\`').replace(/\n/g, '\\n')}\`, 'reply', ${c.time}, ${r.time})" style="background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:0.7rem;">
+                                                      <i class="fa-solid fa-pen"></i>
+                                                  </button>
+                                              ` : ''}
+                                              ${(r.username === user.username || user.isAdmin) ? `
+                                                  <button class="comment-del-btn" style="font-size:0.6rem; position:static; background:none; border:none; color:#ef4444; cursor:pointer;" onclick="deleteReply('${d.id}', ${c.time}, ${r.time})">
+                                                      <i class="fa-solid fa-xmark"></i>
+                                                  </button>
+                                              ` : ''}
+                                          </div>
                                       </div>
                                   `).join('')}
                                   <button onclick="addReply('${d.id}', ${c.time})" style="background:none; border:none; color:var(--text-muted); font-size:0.7rem; cursor:pointer; margin-top:5px; font-weight:bold;">Yanıtla</button>
@@ -1106,3 +1142,81 @@ window.navigateTo = function (page, userId = null) {
     location.href = `${page}.html`;
 };
 /* ============================   */
+
+let currentEditType = null; 
+let editTarget = {}; // { postId, commentTime, replyTime }
+
+// Modalı Aç (Post, Comment ve Reply destekli)
+window.openEditModal = function(postId, content, type = 'post', commentTime = null, replyTime = null) {
+    currentEditType = type;
+    editTarget = { postId, commentTime, replyTime };
+    
+    const modal = document.getElementById('editModal');
+    const input = document.getElementById('editPostInput');
+    const title = modal.querySelector('h3');
+
+    if (modal && input) {
+        // Başlığı tipe göre dinamik yapıyoruz
+        if(type === 'post') title.innerText = "Gönderiyi Düzenle";
+        else if(type === 'comment') title.innerText = "Yorumu Düzenle";
+        else if(type === 'reply') title.innerText = "Yanıtı Düzenle";
+        
+        input.value = content;
+        modal.style.display = 'flex';
+    }
+};
+
+window.closeEditModal = function() {
+    const modal = document.getElementById('editModal');
+    if (modal) modal.style.display = 'none';
+    currentEditType = null;
+    editTarget = {};
+};
+
+// Ortak Kaydetme İşlemi
+document.getElementById('saveEditBtn').onclick = async () => {
+    const newContent = document.getElementById('editPostInput').value.trim();
+    if (!newContent || !editTarget.postId) return;
+
+    try {
+        const postRef = doc(db, "posts", editTarget.postId);
+
+        if (currentEditType === 'post') {
+            // 1. GÖNDERİ GÜNCELLEME
+            await updateDoc(postRef, {
+                content: newContent,
+                isEdited: true
+            });
+        } 
+        else {
+            // Yorum veya Yanıt güncellemek için önce belgeyi çekiyoruz
+            const postSnap = await getDoc(postRef);
+            if (postSnap.exists()) {
+                const comments = postSnap.data().comments || [];
+                
+                const updatedComments = comments.map(c => {
+                    // 2. YORUM GÜNCELLEME
+                    if (currentEditType === 'comment' && c.time === editTarget.commentTime) {
+                        return { ...c, text: newContent, isEdited: true };
+                    }
+                    
+                    // 3. YANIT GÜNCELLEME (Yorumun içindeki yanıtlar dizisi)
+                    if (currentEditType === 'reply' && c.time === editTarget.commentTime) {
+                        const updatedReplies = (c.replies || []).map(r => 
+                            r.time === editTarget.replyTime ? { ...r, text: newContent, isEdited: true } : r
+                        );
+                        return { ...c, replies: updatedReplies };
+                    }
+                    
+                    return c;
+                });
+
+                await updateDoc(postRef, { comments: updatedComments });
+            }
+        }
+        window.closeEditModal();
+    } catch (error) {
+        console.error("Güncelleme hatası:", error);
+        alert("İşlem başarısız oldu.");
+    }
+};
