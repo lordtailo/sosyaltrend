@@ -46,7 +46,7 @@ document.addEventListener('DOMContentLoaded', loadComponents);
       const welcomeEl = document.getElementById('welcomeMessage');
       if (welcomeEl) {
           // localStorage veya displayName'den gelen ismi kullanıyoruz
-          welcomeEl.innerText = `${user.displayName.toLowerCase()}, Sosyal Trend'e hoş geldin!`;
+          welcomeEl.innerText = `${user.displayName.toLowerCase()}, Aramıza hoş geldin!`;
       }
       // ----------------------------
 
