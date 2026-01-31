@@ -59,7 +59,7 @@ function updateClock() {
                 <i class="fa-regular fa-calendar-check"></i> ${dateStr}
             </span>
             <span style="margin: 0 8px; opacity: 0.3;">|</span>
-            <span style="color: #fff; opacity: 0.8; font-weight: 700;">
+            <span style="color: var(--primary); font-weight: 700;">
                 <i class="fa-regular fa-clock"></i> ${timeStr}
             </span>
         `;
@@ -75,7 +75,7 @@ function updateClock() {
     const welcomeEl = document.getElementById('welcomeMessage');
     if (welcomeEl) {
       const name = username ? username : "misafir";
-      welcomeEl.innerText = `${name.toLowerCase()}`;
+      welcomeEl.innerText = `@${name.toLowerCase()}, Hoş geldiniz!`;
     }
   };
 
@@ -398,7 +398,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (welcomeEl) {
         // user.displayName veya user.username kullanarak içeriği değiştiriyoruz
         const currentName = user.username || user.displayName || "misafir";
-        welcomeEl.innerHTML = `<i class="fa-solid fa-circle-check" style="font-size: 0.6rem; color: #fff; animation: pulse 2s infinite;"></i> ${currentName.toLowerCase()}`;
+        welcomeEl.innerHTML = `<i class="fa-solid fa-circle-check" style="font-size: 0.6rem; animation: pulse 2s infinite;"></i> @${currentName.toLowerCase()}, Hoş geldiniz!`;
     }
 
     // Header Güncelleme
@@ -1269,26 +1269,4 @@ document.getElementById('saveEditBtn').onclick = async () => {
         console.error("Güncelleme hatası:", error);
         alert("İşlem başarısız oldu.");
     }
-};
-
-window.firebasePublishPost = async (text, file) => {
-    let mediaUrl = "";
-
-    // 1. Varsa Görseli Storage'a yükle
-    if (file) {
-        const storageRef = ref(storage, `posts/${Date.now()}_${file.name}`);
-        const snapshot = await uploadBytes(storageRef, file);
-        mediaUrl = await getDownloadURL(snapshot.ref);
-    }
-
-    // 2. Firestore'a veriyi yaz
-    await addDoc(collection(db, "posts"), {
-        content: text,
-        image: mediaUrl,
-        authorId: auth.currentUser.uid,
-        authorName: auth.currentUser.displayName || "Anonim",
-        createdAt: serverTimestamp(),
-        likes: [],
-        commentCount: 0
-    });
 };
