@@ -59,7 +59,7 @@ function updateClock() {
                 <i class="fa-regular fa-calendar-check"></i> ${dateStr}
             </span>
             <span style="margin: 0 8px; opacity: 0.3;">|</span>
-            <span style="color: var(--primary); font-weight: 700;">
+            <span style="color: var(--primary); color:"#fff"; font-weight: 700;">
                 <i class="fa-regular fa-clock"></i> ${timeStr}
             </span>
         `;
