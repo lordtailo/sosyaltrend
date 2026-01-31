@@ -398,7 +398,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (welcomeEl) {
         // user.displayName veya user.username kullanarak içeriği değiştiriyoruz
         const currentName = user.username || user.displayName || "misafir";
-        welcomeEl.innerHTML = `<i class="fa-solid fa-circle-check" style="font-size: 0.6rem; animation: pulse 2s infinite;"></i> @${currentName.toLowerCase()}, Sosyal Trend'e hoş geldiniz..`;
+        welcomeEl.innerHTML = `<i class="fa-solid fa-circle-check" style="font-size: 0.6rem; animation: pulse 2s infinite;"></i> @${currentName.toLowerCase()}, Hoş geldiniz!`;
     }
 
     // Header Güncelleme
