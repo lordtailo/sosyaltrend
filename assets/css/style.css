@@ -15,7 +15,7 @@
    --premium-gradient: linear-gradient(135deg, #8b5cf6 0%, #d946ef 100%);
    --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
 }
-s
+
 body { 
     background: var(--bg); 
     color: var(--text-main); 
