@@ -1,105 +1,273 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gelişmiş Metin Editörü</title>
-    
-    <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
-    
-    <style>
-        /* Mevcut tasarımını korumak için temel stiller */
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f0f2f5;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            margin: 0;
-        }
-        .container {
-            width: 90%;
-            max-width: 900px;
-            background: white;
-            padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-        }
-        h1 {
-            color: #333;
-            text-align: center;
-            margin-bottom: 20px;
-        }
-        /* Editör Yüksekliği */
-        #editor-container {
-            height: 400px;
-            margin-bottom: 20px;
-        }
-        .btn-save {
-            display: block;
-            width: 100%;
-            padding: 12px;
-            background-color: #28a745;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: background 0.3s;
-        }
-        .btn-save:hover {
-            background-color: #218838;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SosyalTrend • Anasayfa</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="assets/css/style.css">
+  <link rel="icon" type="image/x-icon" href="assets/img/strendsaydamv2.ico">
+  <style>
+    /* Premium Tasarım Entegrasyonu */
+    :root {
+      --premium-gradient: linear-gradient(135deg, #8b5cf6 0%, #d946ef 100%);
+      --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+    }
+
+    .glass-card {
+        backdrop-filter: blur(12px) saturate(180%);
+        -webkit-backdrop-filter: blur(12px) saturate(180%);
+        box-shadow: var(--glass-shadow);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .glass-card:hover { 
+        transform: translateY(-3px); 
+        box-shadow: 0 12px 40px 0 rgba(31, 38, 135, 0.25); 
+    }
+
+    .nav-item { position: relative; overflow: hidden; }
+    .nav-item::after {
+        content: ''; position: absolute; bottom: 0; left: -100%;
+        width: 100%; height: 3px; background: var(--premium-gradient);
+        transition: 0.4s ease;
+    }
+    .nav-item:hover::after { left: 0; }
+
+    #shareBtn {
+        background: var(--premium-gradient) !important;
+        box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4);
+        transition: all 0.3s ease;
+    }
+    #shareBtn:hover { filter: brightness(1.1); transform: scale(1.05); }
+
+    .tool-btn { 
+        width: 36px; height: 36px; border-radius: 50%; display: flex; 
+        align-items: center; justify-content: center; transition: 0.2s; 
+        background: var(--bg-secondary); color: var(--text-muted); border: none; cursor: pointer;
+    }
+    .tool-btn:hover { background: var(--premium-gradient); color: white; transform: rotate(8deg); }
+
+    .widget-clock { 
+        background: var(--premium-gradient); 
+        border: none;
+    }
+    .widget-clock * { color: white !important; }
+    .widget-clock .analog-clock { border-color: rgba(255,255,255,0.3); }
+
+    .suggestion-item {
+        display: flex; align-items: center; gap: 12px; padding: 12px;
+        border-radius: 15px; transition: 0.2s; cursor: pointer;
+    }
+    .suggestion-item:hover { background: var(--bg-secondary); }
+
+    #emojiPicker {
+        grid-template-columns: repeat(7, 1fr);
+        display: none;
+        position: absolute;
+        top: -180px; left: 0;
+        z-index: 100;
+        padding: 10px;
+        width: 250px;
+        gap: 8px;
+    }
+    #emojiPicker span { font-size: 1.2rem; transition: transform 0.2s; }
+    #emojiPicker span:hover { transform: scale(1.3); }
+  </style>
 </head>
 <body>
 
-<div class="container">
-    <h1>İçerik Editörü</h1>
-    
-    <div id="editor-container">
-        <p>Düzenlemek istediğiniz metni buraya yazın...</p>
+  <div class="top-bar">
+    <div class="top-bar-left">
+      <span id="welcomeMessage" style="opacity: 0.8;"><i class="fa-solid fa-circle-check" style="font-size: 0.6rem; animation: pulse 2s infinite;"></i> Sistem Aktif</span>
+    </div>
+    <div class="top-bar-right"><span id="topBarDateTime"><i class="fa-regular fa-clock"></i> Yükleniyor...</span></div>
+  </div>
+
+<header>
+  <div class="header-left">
+    <a href="index.html" onclick="navigateTo('feed')" style="color:var(--text-main); font-size: 1.4rem; text-decoration: none; display: flex; align-items: center; gap: 10px;">
+        <i class="fa-solid fa-layer-group" style="color: var(--primary);"></i>
+        <span class="logo" style="font-weight: 900; letter-spacing: -1px;">SosyalTrend</span>
+    </a>
+  </div>
+  <form id="mainSearchBtn" action="search.html" method="GET" class="header-center">
+    <div class="search-wrapper">
+      <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 15px; top: 12px; color: var(--text-muted);"></i>
+      <input type="text" name="q" id="globalSearch" data-i18n-placeholder="searchPlaceholder" style="padding-left: 45px;">
+    </div>
+  </form>
+
+  <div class="header-right">
+    <button id="themeToggleBtn" class="theme-btn" onclick="toggleDarkMode()"><i class="fa-solid fa-moon"></i></button>
+    <div class="profile-trigger" id="profileTrigger">
+        <img id="headerAvatar" src="">
+    </div>
+    <div class="dropdown-menu" id="dropdownMenu">
+        <div style="padding: 10px; border-bottom: 1px solid var(--border); margin-bottom: 5px;">
+            <p id="menuDisplayName" style="font-weight: 800; font-size: 0.85rem;">...</p>
+            <p id="menuUsername" style="font-size: 0.75rem; color: var(--text-muted);">@...</p>
+        </div>
+        <button class="menu-style-btn" id="adminMenuBtn" onclick="window.location.href='admin.html'" style="display:none; color: var(--primary);">
+            <i class="fa-solid fa-user-shield"></i> <span>Yönetici Paneli</span>
+        </button>
+        <button class="menu-style-btn" onclick="window.location.href='profil.html'"><i class="fa-solid fa-user"></i> <span data-i18n="menuProfile">Profiliniz</span></button>
+        <button class="menu-style-btn" onclick="window.location.href='settings.html'"><i class="fa-solid fa-gear"></i> <span data-i18n="menuSettings">Ayarlar</span></button>        
+        <button class="menu-style-btn" onclick="logout()" style="color:#ef4444; border-top:1px solid var(--border); margin-top:5px;"><i class="fa-solid fa-right-from-bracket"></i> <span>Çıkış Yap</span></button>
+    </div>
+  </div>
+</header>
+
+<div class="app-container">
+  <aside>
+    <div class="glass-card sidebar-profile-card" onclick="navigateTo('profile')" style="cursor: pointer; padding: 25px; text-align: center;">
+        <div style="position: relative; display: inline-block;">
+            <img id="sidebarAvatar" src="" style="width: 100px; height: 100px; border-radius: 50%; border: 3px solid var(--primary); object-fit: cover;">
+            <div style="position: absolute; bottom: 5px; right: 5px; width: 15px; height: 15px; background: #22c55e; border-radius: 50%; border: 2px solid white;"></div>
+        </div>
+        <div style="margin-top: 15px;">
+            <div id="sidebarDisplayName" style="font-weight: 800; font-size: 1.1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">...</div>
+            <div id="sidebarUsername" style="font-size: 0.85rem; color: var(--text-muted);">@...</div>
+        </div>
+    </div>
+    <div class="glass-card sidebar-container" style="margin-top: 20px;">
+        <div class="sidebar-title" data-i18n="menuTitle">Sosyal Menü</div>
+        <a href="index.html" class="menu-style-btn nav-item active" id="btn-feed"><i class="fa-solid fa-house"></i> <span data-i18n="navFeed">Anasayfa</span></a>
+        <a href="pages.html" class="menu-style-btn nav-item" id="btn-pages"><i class="fa-solid fa-flag"></i> <span data-i18n="navPages">Topluluk Sayfaları</span></a>
+        <a href="gundem.html" class="menu-style-btn nav-item" id="btn-gundem"><i class="fa-solid fa-bolt-lightning"></i> <span data-i18n="navGundem">Gündem</span></a>
+    </div>
+  </aside>
+
+ <main id="main-content">
+    <div id="page-feed" class="page-content active">
+        <div class="glass-card" style="border-radius: 20px; overflow: hidden;">
+            <div style="padding: 20px 20px 10px 20px; display: flex; gap: 15px;">
+                <img id="postAreaAvatar" src="" style="width: 45px; height: 45px; border-radius: 50%; object-fit: cover;">
+                <textarea id="postInput" maxlength="280" style="width:100%; border:none; outline:none; resize:none; font-size:1.2rem; min-height:80px; background: transparent; color: var(--text-main);" data-i18n-placeholder="postPlaceholder"></textarea>
+            </div>
+            
+            <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border); padding: 12px 20px;">
+                <div style="display:flex; gap:12px; position: relative;">
+                    <button class="tool-btn" title="Görsel Ekle"><i class="fa-regular fa-image"></i></button>
+                    <button class="tool-btn" title="Anket"><i class="fa-solid fa-list-ul"></i></button>
+                    <button class="tool-btn" id="emojiToggle" type="button"><i class="fa-regular fa-face-smile"></i></button>
+                    
+                    <div id="emojiPicker" class="glass-card">
+                        <span style="cursor:pointer">😊</span><span style="cursor:pointer">😂</span><span style="cursor:pointer">🔥</span><span style="cursor:pointer">🚀</span><span style="cursor:pointer">✨</span><span style="cursor:pointer">❤️</span><span style="cursor:pointer">👍</span>
+                        <span style="cursor:pointer">🙌</span><span style="cursor:pointer">🎉</span><span style="cursor:pointer">💯</span><span style="cursor:pointer">😇</span><span style="cursor:pointer">😭</span><span style="cursor:pointer">😍</span><span style="cursor:pointer">🤔</span>
+                    </div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <span id="charCounter" style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600;">0 / 280</span>
+                    <button id="shareBtn" style="padding: 10px 28px; border-radius: 50px; font-weight: 800; border: none; color: white; cursor: pointer;" data-i18n="shareBtn">Paylaş</button>
+                </div>
+            </div>
+        </div>
+        <div id="feed-items" style="margin-top: 25px;"></div>
+    </div>
+</main>
+
+  <aside class="right-panel">
+    <div class="glass-card widget-clock" style="text-align: center; padding: 25px;">
+      <div class="analog-clock" style="margin-bottom: 15px;">
+        <div class="hand hour-hand" id="hourHand"></div>
+        <div class="hand min-hand" id="minHand"></div>
+        <div class="hand sec-hand" id="secHand"></div>
+      </div>
+      <div id="digiClock" style="font-size: 1.8rem; font-weight: 900; letter-spacing: 1px;">00:00:00</div>
+      <div id="dateDisplay" style="font-weight: 500; opacity: 0.9;">...</div>
     </div>
 
-    <button class="btn-save" onclick="getEditorContent()">İçeriği Kaydet / HTML Al</button>
+    <div class="glass-card" style="margin-top: 20px;">
+        <div class="sidebar-title" style="border-bottom: 1px solid var(--border); font-weight: 800; padding-bottom: 10px; margin-bottom: 15px;" data-i18n="trendPagesTitle">🔥 Trend Sayfalar</div>
+        <div id="trend-pages-list"></div>
+    </div>
+
+    <div class="glass-card" style="margin-top: 20px;">
+        <div class="sidebar-title" style="border-bottom: 1px solid var(--border); font-weight: 800; padding-bottom: 10px; margin-bottom: 15px;">✨ Önerilen Takip</div>
+        <div class="suggestion-item">
+            <div style="width:40px; height:40px; border-radius:50%; background: var(--premium-gradient); display:flex; align-items:center; justify-content:center; color:white;"><i class="fa-solid fa-star"></i></div>
+            <div style="flex:1">
+                <div style="font-size:0.85rem; font-weight:bold;">SosyalTrend Plus</div>
+                <div style="font-size:0.75rem; color:var(--text-muted);">@strend_official</div>
+            </div>
+            <button style="background:var(--primary); color:white; border:none; border-radius:20px; padding:5px 12px; font-size:0.7rem; cursor:pointer;">Takip</button>
+        </div>
+    </div>
+  </aside>
 </div>
 
-<script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
+<footer>
+  <div class="footer-container">
+    <div class="footer-brand" style="display: flex; align-items: center; gap: 15px;">
+      <img src="assets/img/strendsaydamv2.png" alt="SosyalTrend Logo" style="width: 100px; height: 100px; object-fit: contain;">
+      <div>
+        <div class="logo" style="font-size: 1.5rem;">SosyalTrend</div>
+        <p style="color:var(--text-muted); font-size:0.9rem; max-width: 250px;" data-i18n="footerTagline">Topluluğunuzla her zaman bir adım önde olun.</p>
+      </div>
+    </div>
 
+    <div class="footer-section">
+      <h4 data-i18n="footerMenu">Hızlı Menü</h4>
+      <ul class="footer-links">
+        <li><a href="index.html" data-i18n="navFeed">Anasayfa</a></li>
+        <li><a href="profil.html" data-i18n="navProfil">Profiliniz</a></li>
+        <li><a href="pages.html" data-i18n="navPages">Topluluk Sayfaları</a></li>
+        <li><a href="savepost.html" data-i18n="navBookmarks">Kaydettikleriniz</a></li>
+      </ul>
+    </div>
+
+    <div class="footer-section">
+      <h4 data-i18n="footerSupport">Destek</h4>
+      <ul class="footer-links">
+        <li><a href="contact.html" data-i18n="footerContact">İletişim</a></li>
+        <li><a href="yardim.html" data-i18n="footerHelp">Yardım Merkezi</a></li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="footer-bottom">
+    <div style="color:var(--text-muted); font-size:0.85rem;">&copy; 2026 <strong>SosyalTrend</strong>. <span data-i18n="footerRights">Tüm Hakları Saklıdır.</span></div>
+    <div class="lang-switcher">
+        <span id="lang-tr" onclick="changeLanguage('tr')">TR</span> | 
+        <span id="lang-en" onclick="changeLanguage('en')">EN</span>
+    </div>
+  </div>
+</footer>
+
+<script type="module" src="assets/js/app.js"></script>
 <script>
-    // 1. Editörü Yapılandır (Full Toolbar)
-    var quill = new Quill('#editor-container', {
-        theme: 'snow',
-        modules: {
-            toolbar: [
-                [{ 'header': [1, 2, 3, 4, false] }],
-                ['bold', 'italic', 'underline', 'strike'], 
-                [{ 'color': [] }, { 'background': [] }],
-                [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-                [{ 'align': [] }],
-                ['link', 'image', 'video', 'code-block'],
-                ['clean']
-            ]
-        }
+    // Dinamik Karakter Sayacı ve Emoji Picker Kontrolü
+    const postInp = document.getElementById('postInput');
+    const charCount = document.getElementById('charCounter');
+    const emojToggle = document.getElementById('emojiToggle');
+    const emojPicker = document.getElementById('emojiPicker');
+
+    if(postInp) {
+        postInp.addEventListener('input', () => {
+            const length = postInp.value.length;
+            charCount.innerText = `${length} / 280`;
+            charCount.style.color = length > 250 ? "#ef4444" : "var(--text-muted)";
+        });
+    }
+
+    if(emojToggle) {
+        emojToggle.addEventListener('click', (e) => {
+            e.stopPropagation();
+            emojPicker.style.display = emojPicker.style.display === 'grid' ? 'none' : 'grid';
+        });
+    }
+
+    document.querySelectorAll('#emojiPicker span').forEach(s => {
+        s.addEventListener('click', () => {
+            postInp.value += s.innerText;
+            emojPicker.style.display = 'none';
+            postInp.focus();
+        });
     });
 
-    // 2. İçeriği Çekme Fonksiyonu
-    function getEditorContent() {
-        // Quill'deki veriyi HTML olarak al
-        var htmlContent = quill.root.innerHTML;
-        
-        // Konsola yazdır (Geliştirme için)
-        console.log("Çıktı (HTML):", htmlContent);
-        
-        // Kullanıcıya bilgi ver
-        alert("İçerik başarıyla yakalandı!\n\nHTML kodunu konsolda (F12) görebilirsiniz.");
-        
-        // Eğer bir formu post edeceksen buraya 'hidden input' ataması yapabilirsin
-        return htmlContent;
-    }
+    document.addEventListener('click', () => { if(emojPicker) emojPicker.style.display = 'none'; });
 </script>
-
 </body>
 </html>
