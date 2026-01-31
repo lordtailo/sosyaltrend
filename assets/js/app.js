@@ -59,7 +59,7 @@ function updateClock() {
                 <i class="fa-regular fa-calendar-check"></i> ${dateStr}
             </span>
             <span style="margin: 0 8px; opacity: 0.3;">|</span>
-            <span style="color: var(--primary); color:"#fff"; font-weight: 700;">
+            <span style="color: #fff; color:"#fff"; font-weight: 700;">
                 <i class="fa-regular fa-clock"></i> ${timeStr}
             </span>
         `;
@@ -75,7 +75,7 @@ function updateClock() {
     const welcomeEl = document.getElementById('welcomeMessage');
     if (welcomeEl) {
       const name = username ? username : "misafir";
-      welcomeEl.innerText = `@${name.toLowerCase()}, Hoş geldiniz!`;
+      welcomeEl.innerText = `${name.toLowerCase()}, Hoş geldin!`;
     }
   };
 
@@ -398,7 +398,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (welcomeEl) {
         // user.displayName veya user.username kullanarak içeriği değiştiriyoruz
         const currentName = user.username || user.displayName || "misafir";
-        welcomeEl.innerHTML = `<i class="fa-solid fa-circle-check" style="font-size: 0.6rem; animation: pulse 2s infinite;"></i> @${currentName.toLowerCase()}, Hoş geldiniz!`;
+        welcomeEl.innerHTML = `<i class="fa-solid fa-circle-check" style="font-size: 0.6rem; animation: pulse 2s infinite;"></i> ${currentName.toLowerCase()}, Hoş geldin!`;
     }
 
     // Header Güncelleme
