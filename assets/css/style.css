@@ -280,6 +280,17 @@ footer::before {
    background: var(--line-gradient); 
 }
 
+/* Alt kısım butonu */
+.footer-bottom {
+    max-width: 100%;
+    margin: 5px auto 0;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 9px;
+}
+    
 .footer-container { 
 max-width: 100%; margin: 0 auto; display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 40px; }
 .footer-section h4 { 
@@ -294,14 +305,6 @@ max-width: 100%; margin: 0 auto; display: grid; grid-template-columns: 2fr 1fr 1
 .footer-links a { 
 text-decoration: none; color: var(--text-muted); font-size: 0.9rem; transition: 0.3s; }
 .footer-links a:hover { color: var(--primary); }
-.footer-bottom {
-    max-width: 100%;
-    margin: 5px auto 0;
-    border-top: 1px solid var(--border);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding-top: 9px;}
 
 .admin-actions { 
 display: flex; gap: 5px; margin-top: 8px; }
