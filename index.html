@@ -10,48 +10,55 @@
 </head>
 <body>
 <style>
-    /* 1. Top-bar'ın yüksekliğini sabit tutalım */
-.top-bar {
-    position: fixed; /* Sticky yerine fixed daha kararlı çalışır */
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 45px; /* Mevcut yüksekliğiniz */
-    z-index: 2001;
-}
+    .top-bar {
+        background: var(--card-bg);
+        backdrop-filter: blur(15px);
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 25px; /* Padding'i biraz artırdım */
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: var(--text-main);
+        position: sticky; /* top: 3px yerine sticky daha stabil çalışır */
+        top: 0;
+        z-index: 2001;
+    }
 
-/* 2. Header'ı top-bar'ın hemen altına sabitleyelim */
-header {
-    position: fixed;
-    top: 45px; /* Top-bar'ın yüksekliği kadar boşluk bıraktık */
-    left: 0;
-    right: 0;
-    z-index: 2000;
+    /* 2. Header'ı top-bar'ın hemen altına sabitleyelim */
+    header {
+      position: fixed;
+      top: 34px; /* Top-bar'ın yüksekliği kadar boşluk bıraktık */
+      left: 0;
+      right: 0;
+      z-index: 2000;
     /* Mevcut diğer header stilleriniz buraya... */
 }
-
-/* 3. Sayfa içeriğinin en üstte kaybolmaması için boşluk ekleyelim */
-.app-container {
-    margin-top: 120px; /* (Top-bar 45px) + (Header yaklaşık 70px) */
-}
-
-/* Mobil uyumluluk için header yüksekliği değişirse burayı güncelleyin */
-@media (max-width: 600px) {
-    .app-container {
-        margin-top: 100px;
+    /* Saat alanını sağa sabitle ve genişliği ayarla */
+    #topBarDateTime {
+        min-width: 220px; /* Gün bilgisi geldiği için genişliği artırdık */
+        text-align: right;
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        gap: 10px;
     }
-}
+
+    /* Küçük ekranlarda gün bilgisini kısaltmak için */
+    @media (max-width: 480px) {
+        #topBarDateTime { min-width: auto; }
+        #topBarDateTime span:first-child { display: none; } /* Mobilde sadece saati göster */
+    }
 </style>
 
 <div class="top-bar">
   <div class="top-bar-left">
-    <i class="fa-solid fa-circle-check pulse-icon"> </i>
-    <span id="welcomeMessage">misafir, Hoş geldin!</span>
+    <i class="fa-solid fa-circle-check" style="font-size: 0.6rem; animation: pulse 2s infinite;"></i>
+    <span style="color: var(--primary)" id="welcomeMessage">misafir, Hoş geldin!</span>
   </div>
   <div class="top-bar-right">
-    <div id="topBarDateTime">
-        <i class="fa-regular fa-clock"> </i> Yükleniyor... 
-    </div>
+    <span id="topBarDateTime"><i class="fa-regular fa-clock"></i> Yükleniyor...</span>
   </div>
 </div>
 
@@ -247,42 +254,51 @@ header {
 </div>
 
 <script type="module">
-  // Dinamik Zaman, Tarih ve Gün Mantığı
   function updateClock() {
     const now = new Date();
-    
-    // Intl.DateTimeFormat kullanımı performans açısından daha iyidir
-    const dateStr = new Intl.DateTimeFormat('tr-TR', {
-      day: 'numeric', month: 'long', year: 'numeric', weekday: 'long' 
-    }).format(now);
 
-    const timeStr = new Intl.DateTimeFormat('tr-TR', {
-      hour: '2-digit', minute: '2-digit', second: '2-digit'
-    }).format(now);
-    
+    // Tarih Ayarları (Örn: 31 Ocak 2026 Cumartesi)
+    const dateOptions = {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+      weekday: 'long'
+    };
+
+    // Saat Ayarları (Örn: 10:32:05)
+    const timeOptions = {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    };
+
+    const dateStr = now.toLocaleDateString('tr-TR', dateOptions);
+    const timeStr = now.toLocaleTimeString('tr-TR', timeOptions);
     const timeElement = document.getElementById('topBarDateTime');
     if(timeElement) {
+        // Tarih ve Saati farklı opasitelerle ayırarak daha okunaklı kıldık
         timeElement.innerHTML = `
-            <span class="date-part">
-                <i class="fa-regular fa-calendar-check"></i>${dateStr}
+            <span style="opacity: 0.7;">
+                <i class="fa-regular fa-calendar-check"></i> ${dateStr}
             </span>
-            <span class="separator">|</span>
-            <span class="time-part">
-                <i class="fa-regular fa-clock"></i>${timeStr}
+            <span style="margin: 0 8px; opacity: 0.3;">|</span>
+            <span style="color: var(--primary); font-weight: 700;">
+                <i class="fa-regular fa-clock"></i> ${timeStr}
             </span>
         `;
     }
   }
 
-  // Başlatma ve Interval (Değişkene atamak hafıza yönetimi için iyidir)
-  const clockInterval = setInterval(updateClock, 1000);
+  // Her saniye güncelleme başlat
+  setInterval(updateClock, 1000);
   updateClock();
 
-  // Hoş geldin mesajı (Global scope'a güvenli aktarım)
-  window.updateWelcomeMessage = (username = "misafir") => {
+  // Karşılama mesajı için global fonksiyon (app.js'den çağrılacak)
+  window.updateWelcomeMessage = (username) => {
     const welcomeEl = document.getElementById('welcomeMessage');
     if (welcomeEl) {
-      welcomeEl.innerText = `@${username.toLowerCase()}, Sosyal Trend'e hoş geldiniz..`;
+      const name = username ? username : "misafir";
+      welcomeEl.innerText = `@${name.toLowerCase()}, Sosyal Trend'e hoş geldiniz..`;
     }
   };
 </script>
