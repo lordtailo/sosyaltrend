@@ -373,12 +373,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const avatarUrl = getAvatarUrl(user.avatarSeed, 'user');
     
     // --- ELEMENT TANIMLAMALARI ---
-    // Header
+    const welcomeEl = document.getElementById('welcomeMessage'); // Karşılama metni
     const hAv = document.getElementById('headerAvatar');
     const mDn = document.getElementById('menuDisplayName');
     const mUn = document.getElementById('menuUsername');
 
-    // Sol Menü (Yeni Sidebar Profil)
+    // Sol Menü
     const sAv = document.getElementById('sidebarAvatar');
     const sDn = document.getElementById('sidebarDisplayName');
     const sUn = document.getElementById('sidebarUsername');
@@ -388,11 +388,19 @@ document.addEventListener('DOMContentLoaded', () => {
     const pPn = document.getElementById('profilePageName');
     const pPh = document.getElementById('profilePageHandle');
 
-    // Gizlilik Ayarları ve Göstergeleri
+    // Gizlilik Ayarları
     const pTg = document.getElementById('privacyToggle');
     const sPi = document.getElementById('selfPrivateIndicator');
 
     // --- GÜNCELLEMELER ---
+    
+    // Üst Bar Karşılama Mesajı Güncelleme
+    if (welcomeEl) {
+        // user.displayName veya user.username kullanarak içeriği değiştiriyoruz
+        const currentName = user.username || user.displayName || "misafir";
+        welcomeEl.innerHTML = `<i class="fa-solid fa-circle-check" style="font-size: 0.6rem; animation: pulse 2s infinite;"></i> @${currentName.toLowerCase()}, Sosyal Trend'e hoş geldiniz..`;
+    }
+
     // Header Güncelleme
     if(hAv) hAv.src = avatarUrl;
     if(mDn) mDn.innerText = user.displayName;
