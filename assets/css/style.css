@@ -258,7 +258,9 @@ width: 2px; height: 45px; background: #ef4444; }
 
 .date-display { 
 margin-top: 5px; font-size: 0.9rem; color: var(--text-muted); font-weight: 600; letter-spacing: 0.5px; }
+/* ===================================== */
 
+/* Alt kısım */
 footer { 
     background: var(--card-bg);
     border-top: 1px solid var(--border);
@@ -266,8 +268,18 @@ footer {
     margin-top: 0px;
     position: relative;
 }
+
+/* Alt kısım çubuk */
 footer::before { 
-content: ""; position: absolute; top: 0; left: 0; right: 0; height: 4px; background: var(--line-gradient); }
+   content: ""; 
+   position: absolute; 
+   top: 0; 
+   left: 0; 
+   right: 0; 
+   height: 4px; 
+   background: var(--line-gradient); 
+}
+
 .footer-container { 
 max-width: 100%; margin: 0 auto; display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 40px; }
 .footer-section h4 { 
