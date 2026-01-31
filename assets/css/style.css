@@ -74,35 +74,11 @@ body.dark-mode .theme-btn{
   border-color:#475569;
 }
 
-/* Dark mode icon switch animation */
+/* Dark mode icon animation */
 body.dark-mode .theme-btn i{
   transform:rotate(180deg) scale(1.1);
 }
-
-
-/* Hayalet ekran */
-/* BUTTON (dark mode tarzı) */
-.ghost-btn {
-    background: none;
-    border: none;
-    font-size: 1.1rem;
-    cursor: pointer;
-    color: #666;
-    transition: transform .15s ease, color .15s ease;
-    position: relative;
-    z-index: 1001; /* overlay üstünde */
-}
-
-.ghost-btn:hover {
-    transform: scale(1.1);
-    color: #6366f1;
-}
-
-.ghost-btn.active {
-    color: #6366f1;
-}
-
-/* ========================================= */
+/* ===================================== */
 
 * { 
     margin:0; 
@@ -111,6 +87,7 @@ body.dark-mode .theme-btn i{
     font-family: 'Inter', system-ui, sans-serif; 
     transition: background-color 0.2s, border-color 0.2s, color 0.1s; 
 }
+/* ===================================== */
 
 /* BAŞLIK */
 header {
@@ -128,6 +105,7 @@ header {
     border-bottom: 1px solid var(--border);
 }
 
+/* Header mor çubuk */
 header::after { 
     content: ""; 
     position: absolute; 
@@ -138,12 +116,18 @@ header::after {
     background: var(--line-gradient); 
 }
 
+/* Header sol */
 .header-left { 
    display: flex; 
    align-items: center; 
    gap: 20px; 
 }
 
+/* Header sağ */
+.header-right { 
+display: flex; justify-content: flex-end; position: relative; align-items: center; gap: 14px;}
+
+/* Header logo */
 .logo { 
    font-size: 1.5rem; 
    font-weight: 800; 
@@ -151,10 +135,12 @@ header::after {
    -webkit-background-clip: text; 
    -webkit-text-fill-color: transparent;
    cursor: pointer; }
-   
+
+/* Header orta */
 .header-center { 
 display: flex; justify-content: center; align-items: center; gap: 10px; }
 
+/* Header arama */
 .search-wrapper { 
 position: relative; width: 100%; max-width: 400px; }
 .search-wrapper input { 
@@ -164,116 +150,31 @@ position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: va
 .search-btn { 
 background: var(--primary); color: white; border: none; padding: 10px 20px; border-radius: 12px; font-weight: 600; cursor: pointer; }
 
-.header-right { 
-display: flex; justify-content: flex-end; position: relative; align-items: center; gap: 14px;}
-
+/* Header profil */
 .profile-trigger { 
 width: 42px; height: 42px; cursor: pointer; border-radius: 50%; border: 2px solid var(--primary); overflow: hidden; }
 .profile-trigger img { 
 width: 100%; height: 100%; object-fit: cover; }
-    
+
+/* header menü */
 .dropdown-menu {
 position: absolute; top: 55px; right: 0; width: 220px; background: var(--card-bg);border-radius: var(--radius); border: 1px solid var(--border); box-shadow: var(--shadow);display: none; flex-direction: column; padding: 8px; z-index: 1001;}
 .dropdown-menu.active { display: flex; }
 
+/* Header menü stili */
 .menu-style-btn { 
 display: flex; align-items: center; gap: 12px; padding: 12px; text-decoration: none; color: var(--text-main); font-size: 0.9rem;font-weight: 600; border-radius: 10px; border:none; background:none; cursor:pointer; width:100%; text-align:left; transition: 0.2s; }
+
+/* Header menü stil çizgisi */
 .menu-style-btn:hover { 
 background: var(--input-bg); color: var(--primary); }
 .menu-style-btn i { 
 width: 20px; font-size: 1.1rem; text-align: center; }
+/* ===================================== */
 
-/* Ruh Hali (Mood) Menüsü */
-#moodPicker {
-    display: none;
-    position: absolute;
-    bottom: 55px;
-    left: 0;
-    background: var(--card-bg);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    z-index: 1001;
-    padding: 10px;
-    box-shadow: var(--shadow);
-    width: 220px;
-    grid-template-columns: 1fr 1fr;
-    gap: 8px;
-}
 
-.mood-item {
-    padding: 10px;
-    cursor: pointer;
-    border-radius: 8px;
-    font-size: 0.85rem;
-    font-weight: 500;
-    transition: 0.2s;
-    text-align: center;
-    border: 1px solid transparent;
-}
+/* ######## MEVCUT CSS DEVAMI ######## */
 
-.mood-item:hover {
-    background: var(--input-bg);
-    border-color: var(--primary);
-    color: var(--primary);
-}
-
-/* Önizleme Alanı */
-#postExtrasPreview {
-    margin-top: 15px;
-    padding-top: 15px;
-    border-top: 1px dashed var(--border);
-}
-
-/* Resim Önizleme */
-#imagePreviewContainer img {
-    display: block;
-    margin: 0 auto;
-    border: 2px solid var(--border);
-    transition: 0.3s;
-}
-
-#imagePreviewContainer:hover img {
-    border-color: var(--primary);
-}
-
-/* Anket Tasarımı */
-#pollPreviewContainer {
-    animation: fadeIn 0.3s ease;
-}
-
-.poll-opt {
-    transition: 0.2s;
-}
-
-.poll-opt:focus {
-    border-color: var(--primary) !important;
-    background: var(--bg) !important;
-}
-
-/* Paylaşım Akışındaki Anket Butonları */
-.poll-option-btn {
-    width: 100%;
-    padding: 12px;
-    margin-top: 8px;
-    background: var(--input-bg);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    cursor: pointer;
-    text-align: left;
-    font-weight: 600;
-    color: var(--text-main);
-    display: flex;
-    justify-content: space-between;
-    transition: 0.2s;
-}
-
-.poll-option-btn:hover {
-    background: var(--primary);
-    color: white;
-    border-color: var(--primary-dark);
-}
-
-/* --- MEVCUT CSS DEVAMI --- */
 .sidebar-container { 
 padding: 8px; }
 .sidebar-title { 
