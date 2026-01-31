@@ -75,7 +75,7 @@ function updateClock() {
     const welcomeEl = document.getElementById('welcomeMessage');
     if (welcomeEl) {
       const name = username ? username : "misafir";
-      welcomeEl.innerText = `@${name.toLowerCase()}, Sosyal Trend'e hoş geldiniz..`;
+      welcomeEl.innerText = `@${name.toLowerCase()}, Hoş geldiniz!`;
     }
   };
 
