@@ -172,7 +172,9 @@ display: flex; justify-content: flex-end; position: relative; align-items: cente
    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
    -webkit-background-clip: text; 
    -webkit-text-fill-color: transparent;
-   cursor: pointer; }
+   cursor: pointer; 
+    height: 59px;
+}
 
 /* Header orta */
 .header-center { 
