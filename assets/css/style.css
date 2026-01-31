@@ -95,8 +95,8 @@ body.dark-mode .theme-btn i{
 /* ===================================== */
 
 /* TOP BAR HEADER ÜSTÜ */
-    .top-bar {
-        background: var(--card-bg);
+.top-bar {
+        background: linear-gradient(90deg, #6366f1, #a855f7, #6366f1);
         backdrop-filter: blur(15px);
         border-bottom: 1px solid var(--border);
         display: flex;
@@ -105,7 +105,7 @@ body.dark-mode .theme-btn i{
         padding: 8px 25px; /* Padding'i biraz artırdım */
         font-size: 0.8rem;
         font-weight: 600;
-        color: var(--text-main);
+        color: #fff;
         position: sticky; /* top: 3px yerine sticky daha stabil çalışır */
         top: 0;
         z-index: 2001;
@@ -118,6 +118,7 @@ body.dark-mode .theme-btn i{
     left: 0; 
     right: 0; 
     height: 1px; 
+    color: #fff;
     background: var(--line-gradient);
 }
 
@@ -127,14 +128,15 @@ body.dark-mode .theme-btn i{
         text-align: right;
         display: flex;
         justify-content: flex-end;
+        color: #fff;
         align-items: center;
         gap: 0px;
     }
 
     /* Küçük ekranlarda gün bilgisini kısaltmak için */
     @media (max-width: 480px) {
-        #topBarDateTime { min-width: auto; }
-        #topBarDateTime span:first-child { display: none; } /* Mobilde sadece saati göster */
+        #topBarDateTime { min-width: auto; color:#fff;}
+        #topBarDateTime span:first-child { display: none; color:#fff;} /* Mobilde sadece saati göster */
     }
 /* ===================================== */
 

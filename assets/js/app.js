@@ -59,7 +59,7 @@ function updateClock() {
                 <i class="fa-regular fa-calendar-check"></i> ${dateStr}
             </span>
             <span style="margin: 0 8px; opacity: 0.3;">|</span>
-            <span style="color: var(--primary); font-weight: 700;">
+            <span style="color: #fff; opacity: 0.8; font-weight: 700;">
                 <i class="fa-regular fa-clock"></i> ${timeStr}
             </span>
         `;
@@ -1269,4 +1269,26 @@ document.getElementById('saveEditBtn').onclick = async () => {
         console.error("Güncelleme hatası:", error);
         alert("İşlem başarısız oldu.");
     }
+};
+
+window.firebasePublishPost = async (text, file) => {
+    let mediaUrl = "";
+
+    // 1. Varsa Görseli Storage'a yükle
+    if (file) {
+        const storageRef = ref(storage, `posts/${Date.now()}_${file.name}`);
+        const snapshot = await uploadBytes(storageRef, file);
+        mediaUrl = await getDownloadURL(snapshot.ref);
+    }
+
+    // 2. Firestore'a veriyi yaz
+    await addDoc(collection(db, "posts"), {
+        content: text,
+        image: mediaUrl,
+        authorId: auth.currentUser.uid,
+        authorName: auth.currentUser.displayName || "Anonim",
+        createdAt: serverTimestamp(),
+        likes: [],
+        commentCount: 0
+    });
 };
