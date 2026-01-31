@@ -151,7 +151,7 @@ header {
     align-items: center; 
     padding: 8px 5%; 
     position: sticky; 
-    top: 33px; 
+    top: 31px; 
     z-index: 9998;
     border-bottom: 1px solid var(--border);
 }
