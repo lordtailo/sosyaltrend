@@ -470,7 +470,7 @@ background: var(--input-bg); }
 }
 
 .lang-switcher span.active { 
-   cursorcolor: var(--primary); 
+   color: var(--primary); 
    font-weight: bold; 
 }
 
