@@ -29,8 +29,55 @@ document.addEventListener('DOMContentLoaded', loadComponents);
 };
 
   const ADMIN_EMAIL = "officialfthuzun@gmail.com";
-  let gundemLimit = 7; 
-  let currentGundemFilter = "all";
+
+  /* Header üstü bilgi ekranı*/
+function updateClock() {
+    const now = new Date();
+
+    // Tarih Ayarları (Örn: 31 Ocak 2026 Cumartesi)
+    const dateOptions = {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+      weekday: 'long'
+    };
+
+    // Saat Ayarları (Örn: 10:32:05)
+    const timeOptions = {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    };
+
+    const dateStr = now.toLocaleDateString('tr-TR', dateOptions);
+    const timeStr = now.toLocaleTimeString('tr-TR', timeOptions);
+    const timeElement = document.getElementById('topBarDateTime');
+    if(timeElement) {
+        // Tarih ve Saati farklı opasitelerle ayırarak daha okunaklı kıldık
+        timeElement.innerHTML = `
+            <span style="opacity: 0.7;">
+                <i class="fa-regular fa-calendar-check"></i> ${dateStr}
+            </span>
+            <span style="margin: 0 8px; opacity: 0.3;">|</span>
+            <span style="color: var(--primary); font-weight: 700;">
+                <i class="fa-regular fa-clock"></i> ${timeStr}
+            </span>
+        `;
+    }
+  }
+
+  // Her saniye güncelleme başlat
+  setInterval(updateClock, 1000);
+  updateClock();
+
+  // Karşılama mesajı için global fonksiyon (app.js'den çağrılacak)
+  window.updateWelcomeMessage = (username) => {
+    const welcomeEl = document.getElementById('welcomeMessage');
+    if (welcomeEl) {
+      const name = username ? username : "misafir";
+      welcomeEl.innerText = `@${name.toLowerCase()}, Sosyal Trend'e hoş geldiniz..`;
+    }
+  };
 
   onAuthStateChanged(auth, (fbUser) => {
     if (!fbUser) {
@@ -1049,6 +1096,9 @@ document.addEventListener('click', (e) => {
         fetchGundem(e.target.dataset.filter);
     }
 });
+
+  let gundemLimit = 7; 
+  let currentGundemFilter = "all";
 
 window.addEventListener('load', () => fetchGundem());
 /* ============================   */

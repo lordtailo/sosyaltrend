@@ -9,48 +9,6 @@
   <link rel="icon" type="image/x-icon" href="assets/img/strendsaydamv2.ico">
 </head>
 <body>
-<style>
-    .top-bar {
-        background: var(--card-bg);
-        backdrop-filter: blur(15px);
-        border-bottom: 1px solid var(--border);
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 8px 25px; /* Padding'i biraz artırdım */
-        font-size: 0.8rem;
-        font-weight: 600;
-        color: var(--text-main);
-        position: sticky; /* top: 3px yerine sticky daha stabil çalışır */
-        top: 0;
-        z-index: 2001;
-    }
-
-    /* 2. Header'ı top-bar'ın hemen altına sabitleyelim */
-    header {
-      position: fixed;
-      top: 34px; /* Top-bar'ın yüksekliği kadar boşluk bıraktık */
-      left: 0;
-      right: 0;
-      z-index: 2000;
-    /* Mevcut diğer header stilleriniz buraya... */
-}
-    /* Saat alanını sağa sabitle ve genişliği ayarla */
-    #topBarDateTime {
-        min-width: 220px; /* Gün bilgisi geldiği için genişliği artırdık */
-        text-align: right;
-        display: flex;
-        justify-content: flex-end;
-        align-items: center;
-        gap: 10px;
-    }
-
-    /* Küçük ekranlarda gün bilgisini kısaltmak için */
-    @media (max-width: 480px) {
-        #topBarDateTime { min-width: auto; }
-        #topBarDateTime span:first-child { display: none; } /* Mobilde sadece saati göster */
-    }
-</style>
 
 <div class="top-bar">
   <div class="top-bar-left">
@@ -253,54 +211,8 @@
     </div>
 </div>
 
-<script type="module">
-  function updateClock() {
-    const now = new Date();
+<div id="sideOverlay" class="side-overlay"></div>
 
-    // Tarih Ayarları (Örn: 31 Ocak 2026 Cumartesi)
-    const dateOptions = {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-      weekday: 'long'
-    };
-
-    // Saat Ayarları (Örn: 10:32:05)
-    const timeOptions = {
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-    };
-
-    const dateStr = now.toLocaleDateString('tr-TR', dateOptions);
-    const timeStr = now.toLocaleTimeString('tr-TR', timeOptions);
-    const timeElement = document.getElementById('topBarDateTime');
-    if(timeElement) {
-        // Tarih ve Saati farklı opasitelerle ayırarak daha okunaklı kıldık
-        timeElement.innerHTML = `
-            <span style="opacity: 0.7;">
-                <i class="fa-regular fa-calendar-check"></i> ${dateStr}
-            </span>
-            <span style="margin: 0 8px; opacity: 0.3;">|</span>
-            <span style="color: var(--primary); font-weight: 700;">
-                <i class="fa-regular fa-clock"></i> ${timeStr}
-            </span>
-        `;
-    }
-  }
-
-  // Her saniye güncelleme başlat
-  setInterval(updateClock, 1000);
-  updateClock();
-
-  // Karşılama mesajı için global fonksiyon (app.js'den çağrılacak)
-  window.updateWelcomeMessage = (username) => {
-    const welcomeEl = document.getElementById('welcomeMessage');
-    if (welcomeEl) {
-      const name = username ? username : "misafir";
-      welcomeEl.innerText = `@${name.toLowerCase()}, Sosyal Trend'e hoş geldiniz..`;
-    }
-  };
-</script>
+<script type="module" src="../assets/js/app.js"></script>
 </body>
 </html>
