@@ -34,19 +34,35 @@ onAuthStateChanged(auth, (fbUser) => {
     if (!fbUser) {
         window.location.href = 'login.html';
     } else {
-        // Kullanıcı bilgilerini öncelikle Firebase'den, yoksa yerelden al
+        // Kullanıcı bilgilerini güncelle
         user.username = fbUser.email.split('@')[0];
         user.displayName = localStorage.getItem('st_displayName') || fbUser.displayName || user.username;
         
-        // KRİTİK NOKTA: Buradaki atama avatarın kalıcı olmasını sağlar
+        // Avatar kalıcılığı
         const savedAvatar = localStorage.getItem('st_avatar');
         user.avatarSeed = savedAvatar || "Felix"; 
 
+        // Admin Kontrolü
         user.isAdmin = fbUser.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
         
-        // UI Güncelleme
+        // UI Güncelleme (Profil resmi, isimler vb.)
         updateUIWithUser(); 
-        if(user.isAdmin) { updateAdminStats(); }
+
+        // ADMIN ÖZEL İŞLEMLERİ
+        const adminBtn = document.getElementById('adminMenuBtn');
+        if (user.isAdmin) {
+            // İstatistikleri çek
+            updateAdminStats();
+            // HTML'deki butonu görünür yap
+            if (adminBtn) {
+                adminBtn.style.display = 'flex'; // Veya 'block', tasarımınıza göre
+            }
+        } else {
+            // Eğer admin değilse butonu gizle (Güvenlik için önlem)
+            if (adminBtn) {
+                adminBtn.style.display = 'none';
+            }
+        }
     }
 });
 
@@ -788,6 +804,7 @@ onSnapshot(query(collection(db, "posts"), orderBy("timestamp", "desc")), (snap) 
                 isMine = p.username === user.username || p.adminUser === user.username, 
                 isLiked = p.likes?.includes(user.username), 
                 isSaved = p.savedBy?.includes(user.username);
+            
           
           const avatarUrl = getAvatarUrl(p.avatarSeed, isPage ? 'page' : 'user');
           const contentWithLinks = (p.content || "").replace(/(#[\wığüşöçİĞÜŞÖÇ]+)/g, '<span class="hashtag-link" onclick="searchTrend(\'$1\')">$1</span>');
@@ -796,7 +813,7 @@ onSnapshot(query(collection(db, "posts"), orderBy("timestamp", "desc")), (snap) 
           const postHtml = `
           <div class="glass-card post" style="${p.username === 'official_system' ? 'border: 2px solid var(--primary); background: rgba(99, 102, 241, 0.05);' : ''}; position: relative;">
               <div style="position: absolute; top: 15px; right: 15px; display: flex; gap: 8px;">
-                  ${isMine ? `
+                 ${(isMine || user.isAdmin) ? `
                       <button onclick="openEditModal('${d.id}', \`${p.content.replace(/`/g, '\\`').replace(/"/g, '&quot;').replace(/\n/g, '\\n')}\`, 'post')" style="background:none; border:none; color:var(--text-muted); cursor:pointer;">
                           <i class="fa-solid fa-pen"></i>
                       </button>
