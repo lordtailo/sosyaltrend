@@ -34,26 +34,34 @@ onAuthStateChanged(auth, (fbUser) => {
     if (!fbUser) {
         window.location.href = 'login.html';
     } else {
-        // Bellekteki kullanıcı nesnesini güncelle
+        // 1. Bellekteki kullanıcı bilgilerini Firebase'den gelenle güncelle
         user.username = fbUser.email.split('@')[0];
         user.displayName = localStorage.getItem('st_displayName') || fbUser.displayName || user.username;
         
         const savedAvatar = localStorage.getItem('st_avatar');
         user.avatarSeed = savedAvatar || "Felix"; 
+        
+        // 2. Admin kontrolü (E-posta eşleşmesi)
         user.isAdmin = fbUser.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
         
-        // 1. UI Güncelleme fonksiyonunu çağır
+        // 3. UI (Profil Resmi, İsimler vb.) Güncelleme
         updateUIWithUser(); 
 
-        // 2. EĞER welcomeMessage elementi varsa ismi oraya da yazdır (Zorlama güncelleme)
+        // 4. Karşılama Mesajını Güncelle
         const welcomeEl = document.getElementById('welcomeMessage');
         if (welcomeEl) {
             welcomeEl.innerText = `${user.displayName.toLowerCase()}, Hoş geldin!`;
         }
-        
-        if(user.isAdmin) { updateAdminStats();
-            document.getElementById('admin-link').style.display = 'block';
-}
+
+        // 5. Admin Paneli Görünürlüğü
+        if(user.isAdmin) { 
+            updateAdminStats();
+            // HTML tarafında admin linkinin id'si 'admin-link' ise burası çalışır
+            const adminLink = document.getElementById('admin-link');
+            if (adminLink) {
+                adminLink.style.display = 'block'; 
+            }
+        }
     }
 });
 
