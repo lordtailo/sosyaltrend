@@ -54,6 +54,15 @@ onAuthStateChanged(auth, (fbUser) => {
         if(user.isAdmin) { updateAdminStats(); }
     }
 });
+
+async function updateAdminStats() {
+    if(!user.isAdmin) return;
+      const postsSnap = await getDocs(collection(db, "posts"));
+      const pagesSnap = await getDocs(collection(db, "pages"));
+      document.getElementById('stat-total-posts').innerText = postsSnap.size;
+      document.getElementById('stat-total-pages').innerText = pagesSnap.size;
+}
+
 /* ============================ */
 
 
