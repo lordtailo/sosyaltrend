@@ -754,126 +754,79 @@ onSnapshot(collection(db, "pages"), (snap) => {
 /* ============================ */
 
 /* GÖNDERİ AYARLARI */
-onSnapshot(query(
-    collection(db, "posts"), 
-    orderBy("timestamp", "desc"), 
-    limit(10) // SADECE SON 10 GÖNDERİYİ GETİRİR
-), (snap) => { 
-      const feed = document.getElementById('feed-items'), 
-            myPosts = document.getElementById('my-posts-list'), 
-            myLikes = document.getElementById('my-liked-list'), 
-            bookItems = document.getElementById('bookmark-items'), 
-            t = translations[currentLang];
+/* --- ANA SAYFA POST YÜKLEME SİSTEMİ --- */
+let lastPostDoc = null; // En son yüklenen gönderiyi takip eder
+const POST_LIMIT = 10; // Her seferinde kaç post çekilsin
 
-      if(feed) feed.innerHTML = ""; 
-      if(myPosts) myPosts.innerHTML = ""; 
-      if(bookItems) bookItems.innerHTML = ""; 
-      if(myLikes) myLikes.innerHTML = "";
+// Postları getiren ana fonksiyon
+window.fetchPosts = async (isLoadMore = false) => {
+    const postContainer = document.getElementById('feed-container'); // index.html'deki kapsayıcı ID'si
+    if (!postContainer) return;
 
-      snap.forEach(d => {
-          const p = d.data(), 
-                isPage = p.username?.startsWith('page_') || p.username === 'official_system', 
-                isMine = p.username === user.username || p.adminUser === user.username, 
-                isLiked = p.likes?.includes(user.username), 
-                isSaved = p.savedBy?.includes(user.username);
-            
-          
-          const avatarUrl = getAvatarUrl(p.avatarSeed, isPage ? 'page' : 'user');
-          const contentWithLinks = (p.content || "").replace(/(#[\wığüşöçİĞÜŞÖÇ]+)/g, '<span class="hashtag-link" onclick="searchTrend(\'$1\')">$1</span>');
-          const targetNav = isMine ? 'profile' : (isPage ? 'pages' : 'feed');
-          
-          const postHtml = `
-          <div class="glass-card post" style="${p.username === 'official_system' ? 'border: 2px solid var(--primary); background: rgba(99, 102, 241, 0.05);' : ''}; position: relative;">
-              <div style="position: absolute; top: 15px; right: 15px; display: flex; gap: 8px;">
-                 ${(isMine || user.isAdmin) ? `
-                      <button onclick="openEditModal('${d.id}', \`${p.content.replace(/`/g, '\\`').replace(/"/g, '&quot;').replace(/\n/g, '\\n')}\`, 'post')" style="background:none; border:none; color:var(--text-muted); cursor:pointer;">
-                          <i class="fa-solid fa-pen"></i>
-                      </button>
-                      <button class="post-delete-btn" style="position:static;" onclick="deletePost('${d.id}')">
-                          <i class="fa-solid fa-trash"></i>
-                      </button>
-                  ` : ''}
-              </div>
-              <div style="display:flex; gap:10px; margin-bottom:10px;">
-                  <img src="${avatarUrl}" class="${isPage ? 'page-avatar' : 'user-avatar'}" style="cursor:pointer;" onclick="navigateTo('${targetNav}')">
-                  <div>
-                      <div style="font-weight:700; display:flex; align-items:center; gap:5px; cursor:pointer;" onclick="navigateTo('${targetNav}')">
-                          ${p.name} ${isPage ? '<i class="fa-solid fa-circle-check" style="color:var(--primary); font-size:0.7rem;"></i>' : ''}
-                          <span class="post-time">• ${formatTime(p.timestamp)}</span>
-                          ${p.isEdited ? `<span style="font-size: 0.6rem; color: var(--text-muted); font-weight: normal;">(düzenlendi)</span>` : ''}
-                      </div>
-                      <div style="font-size:0.75rem; color:var(--text-muted); cursor:pointer;" onclick="navigateTo('${targetNav}')">@${p.username}</div>
-                  </div>
-              </div>
-              <p style="white-space: pre-wrap; margin-bottom:15px;">${contentWithLinks}</p>
-              <div style="display:flex; gap:12px;">
-                  <button class="tool-btn" onclick="likePost('${d.id}', ${isLiked})" style="gap:5px; color:${isLiked ? '#ef4444' : ''}"><i class="${isLiked ? 'fa-solid' : 'fa-regular'} fa-heart"></i><span>${p.likes?.length || 0}</span></button>
-                  <button class="tool-btn" onclick="toggleCommentSection('${d.id}')" style="gap:5px;"><i class="fa-regular fa-comment"></i><span>${p.comments?.length || 0}</span></button>
-                  <button class="tool-btn" onclick="toggleBookmark('${d.id}', ${isSaved})" style="color:${isSaved ? '#f59e0b' : ''}"><i class="${isSaved ? 'fa-solid' : 'fa-regular'} fa-bookmark"></i></button>
-              </div>
-              
-              <div id="comments-${d.id}" class="comment-area" style="display:none;">
-                  <div id="list-${d.id}">
-                      ${(p.comments || []).map(c => `
-                          <div class="comment-item" style="flex-direction: column; align-items: flex-start; gap: 5px;">
-                              <div style="display: flex; align-items: center; width: 100%; gap: 10px;">
-                                  <img src="${getAvatarUrl(c.avatarSeed, 'user')}" style="width: 24px; height: 24px; border-radius: 50%; cursor:pointer;" onclick="navigateTo('${c.username === user.username ? 'profile' : 'feed'}')">
-                                  <div style="flex: 1;">
-                                      <span class="comment-meta" style="cursor:pointer;" onclick="navigateTo('${c.username === user.username ? 'profile' : 'feed'}')">${c.displayName}</span> 
-                                      <span style="font-size: 0.8rem;">${c.text}</span>
-                                      ${c.isEdited ? `<small style="font-size: 0.65rem; color: var(--text-muted); margin-left: 4px;">(düzenlendi)</small>` : ''}
-                                  </div>
-                                  <div style="display: flex; gap: 5px;">
-                                    ${(c.username === user.username) ? `
-                                        <button onclick="openEditModal('${d.id}', \`${c.text.replace(/`/g, '\\`').replace(/"/g, '&quot;').replace(/\n/g, '\\n')}\`, 'comment', ${c.time})" style="background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:0.75rem;">
-                                            <i class="fa-solid fa-pen"></i>
-                                        </button>
-                                    ` : ''}
-                                    ${(c.username === user.username || user.isAdmin) ? `
-                                        <button class="comment-del-btn" onclick="deleteComment('${d.id}', ${c.time}, '${c.text.replace(/'/g, "\\'")}')">
-                                            <i class="fa-solid fa-trash-can"></i>
-                                        </button>
-                                    ` : ''}
-                                  </div>
-                              </div>
-                              <div style="margin-left: 34px; width: calc(100% - 34px);">
-                                  ${(c.replies || []).map(r => `
-                                      <div style="display: flex; align-items: center; gap: 8px; margin-top: 5px; background: rgba(0,0,0,0.03); padding: 5px; border-radius: 8px;">
-                                          <img src="${getAvatarUrl(r.avatarSeed, 'user')}" style="width: 18px; height: 18px; border-radius: 50%; cursor:pointer;" onclick="navigateTo('${r.username === user.username ? 'profile' : 'feed'}')">
-                                          <div style="font-size: 0.75rem; flex: 1;">
-                                              <b style="color:var(--primary); cursor:pointer;" onclick="navigateTo('${r.username === user.username ? 'profile' : 'feed'}')">${r.displayName}</b> ${r.text}
-                                              ${r.isEdited ? `<small style="font-size: 0.6rem; color: var(--text-muted); margin-left: 4px;">(düzenlendi)</small>` : ''}
-                                          </div>
-                                          <div style="display: flex; gap: 5px; align-items: center;">
-                                              ${(r.username === user.username) ? `
-                                                  <button onclick="openEditModal('${d.id}', \`${r.text.replace(/`/g, '\\`').replace(/"/g, '&quot;').replace(/\n/g, '\\n')}\`, 'reply', ${c.time}, ${r.time})" style="background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:0.7rem;">
-                                                      <i class="fa-solid fa-pen"></i>
-                                                  </button>
-                                              ` : ''}
-                                              ${(r.username === user.username || user.isAdmin) ? `
-                                                  <button class="comment-del-btn" style="font-size:0.6rem; position:static; background:none; border:none; color:#ef4444; cursor:pointer;" onclick="deleteReply('${d.id}', ${c.time}, ${r.time})">
-                                                      <i class="fa-solid fa-xmark"></i>
-                                                  </button>
-                                              ` : ''}
-                                          </div>
-                                      </div>
-                                  `).join('')}
-                                  <button onclick="addReply('${d.id}', ${c.time})" style="background:none; border:none; color:var(--text-muted); font-size:0.7rem; cursor:pointer; margin-top:5px; font-weight:bold;">Yanıtla</button>
-                              </div>
-                          </div>`).join('')}
-                  </div>
-                  <div style="display:flex; gap:8px; margin-top:10px;">
-                      <input type="text" id="input-${d.id}" placeholder="${t.commentPlaceholder}" style="flex:1; padding:8px 12px; border-radius:10px; border:1px solid var(--border); outline:none; background: var(--input-bg); color: var(--text-main);">
-                      <button onclick="addComment('${d.id}')" style="background:var(--primary); color:white; border:none; padding:0 15px; border-radius:10px; cursor:pointer;">${t.sendComment}</button>
-                  </div>
-              </div>
-          </div>`;
-          if(feed) feed.innerHTML += postHtml;
-          if(p.username === user.username && myPosts) myPosts.innerHTML += postHtml;
-          if(isLiked && myLikes) myLikes.innerHTML += postHtml;
-          if(isSaved && bookItems) bookItems.innerHTML += postHtml;
-      });
-  });
+    // İlk yüklemede spinner göster
+    if (!isLoadMore) {
+        postContainer.innerHTML = '<div style="text-align:center; padding:20px;"><i class="fa-solid fa-circle-notch fa-spin"></i> Yükleniyor...</div>';
+        lastPostDoc = null;
+    }
+
+    let q;
+    if (isLoadMore && lastPostDoc) {
+        // Kaldığımız yerden sonrasını getir (Pagination)
+        q = query(collection(db, "posts"), orderBy("timestamp", "desc"), startAfter(lastPostDoc), limit(POST_LIMIT));
+    } else {
+        // İlk 10 postu getir
+        q = query(collection(db, "posts"), orderBy("timestamp", "desc"), limit(POST_LIMIT));
+    }
+
+    try {
+        const snapshot = await getDocs(q);
+        
+        if (snapshot.empty) {
+            if(!isLoadMore) postContainer.innerHTML = "Henüz paylaşım yok.";
+            toggleLoadMoreButton(false);
+            return;
+        }
+
+        // Son belgeyi kaydet (startAfter için)
+        lastPostDoc = snapshot.docs[snapshot.docs.length - 1];
+
+        let html = "";
+        snapshot.forEach(docSnap => {
+            // Mevcut post çizim mantığınızı buraya entegre edin (örnek HTML yapısı)
+            html += renderPostTemplate(docSnap); 
+        });
+
+        if (!isLoadMore) postContainer.innerHTML = ""; // Spinner'ı temizle
+        
+        // Postları ekle
+        postContainer.insertAdjacentHTML('beforeend', html);
+
+        // Eğer gelen veri limit kadarsa butonu göster, değilse gizle
+        toggleLoadMoreButton(snapshot.docs.length === POST_LIMIT);
+
+    } catch (err) {
+        console.error("Postlar yüklenirken hata:", err);
+    }
+};
+
+// "Daha Fazla Yükle" Butonunu Yöneten Yardımcı Fonksiyon
+function toggleLoadMoreButton(show) {
+    let btn = document.getElementById('loadMoreBtn');
+    if (show) {
+        if (!btn) {
+            const btnHtml = `<button id="loadMoreBtn" onclick="fetchPosts(true)" class="load-more-btn-global">Daha Fazla Göster</button>`;
+            document.getElementById('feed-container').insertAdjacentHTML('afterend', btnHtml);
+        } else {
+            btn.style.display = 'block';
+        }
+    } else if (btn) {
+        btn.style.display = 'none';
+    }
+}
+
+// Sayfa yüklendiğinde otomatik çalıştır
+document.addEventListener('DOMContentLoaded', () => window.fetchPosts());
+
 
   const shareBtn = document.getElementById('shareBtn');
   if(shareBtn) {
