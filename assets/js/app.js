@@ -5,8 +5,6 @@ import { getAuth, onAuthStateChanged, signOut, updateEmail, sendPasswordResetEma
 // Bileşenleri dinamik olarak yükleme fonksiyonu    
 async function loadComponents() {
 }
-
-// --- OTURUM VE YÖNETİCİ KONTROLÜ ---
 document.addEventListener('DOMContentLoaded', loadComponents);
 
   const firebaseConfig = {
@@ -66,7 +64,6 @@ onAuthStateChanged(auth, (fbUser) => {
     }
 });
 
-// --- ADMİN İSTATİSTİKLERİ ---
 async function updateAdminStats() {
     if(!user.isAdmin) return;
     try {
@@ -912,54 +909,27 @@ onSnapshot(query(collection(db, "posts"), orderBy("timestamp", "desc")), (snap) 
       });
   });
 
- // --- GÖNDERİ PAYLAŞMA (METİN + RESİM) ---
-const shareBtn = document.getElementById('shareBtn');
-if (shareBtn) {
+  const shareBtn = document.getElementById('shareBtn');
+  if(shareBtn) {
     shareBtn.onclick = async () => {
-        const input = document.getElementById('postInput');
-        const val = input.value.trim();
-        const fileInput = document.getElementById('postImageInput');
-        const file = fileInput ? fileInput.files[0] : null;
-
-        if (!val && !file) return;
-
-        let imageUrl = null;
-        shareBtn.disabled = true;
-        shareBtn.innerText = "...";
-
-        try {
-            if (file) {
-                const storageRef = sRef(storage, `posts/${Date.now()}_${file.name}`);
-                const snapshot = await uploadBytes(storageRef, file);
-                imageUrl = await getDownloadURL(snapshot.ref);
-            }
-
-            await addDoc(collection(db, "posts"), {
-                name: user.displayName,
-                username: user.username,
-                avatarSeed: user.avatarSeed,
-                content: val,
-                postImage: imageUrl,
-                timestamp: serverTimestamp(),
-                likes: [],
-                savedBy: [],
-                comments: []
-            });
-
-            input.value = "";
-            if (fileInput) fileInput.value = "";
-        } catch (error) {
-            console.error("Paylaşım hatası:", error);
-            alert("Paylaşılamadı!");
-        } finally {
-            shareBtn.disabled = false;
-            shareBtn.innerText = "Paylaş";
-        }
+      const val = document.getElementById('postInput').value.trim();
+      if(val) {
+        await addDoc(collection(db, "posts"), { 
+            name: user.displayName, 
+            username: user.username, 
+            avatarSeed: user.avatarSeed, 
+            content: val, 
+            timestamp: serverTimestamp(), 
+            likes: [], 
+            savedBy: [], 
+            comments: [] 
+        });
+        document.getElementById('postInput').value = "";
+      }
     };
-}
+  }
 
-// --- SAAT, TAKVİM VE DİL ---
-setInterval(() => {
+  setInterval(() => {
     const n = new Date();
     const sH = document.getElementById('secHand');
     const mH = document.getElementById('minHand');
@@ -978,8 +948,7 @@ setInterval(() => {
     }
   }, 1000);
 
-// --- PROFİL MENÜSÜ ---
-const profileTrigger = document.getElementById('profileTrigger');
+  const profileTrigger = document.getElementById('profileTrigger');
   if(profileTrigger) {
     profileTrigger.onclick = (e) => { 
       e.stopPropagation(); 
@@ -992,7 +961,6 @@ const profileTrigger = document.getElementById('profileTrigger');
     const menu = document.getElementById('dropdownMenu');
     if(menu) menu.classList.remove('active');
   };
-
 /* ============================ */
 
 /* GÜNDEM KODLARI */
