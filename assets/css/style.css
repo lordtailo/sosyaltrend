@@ -34,6 +34,16 @@ body.dark-mode {
   --shadow:0 4px 6px -1px rgba(0,0,0,.5);
   --input-bg:#0f172a;
 }
+/* Karanlık Mod Ayarı */
+@media (prefers-color-scheme: dark) {
+  #postInput {
+    background: #1e1e1e; /* İstediğin koyu tonu buraya yazabilirsin */
+    color: #ffffff;
+  }
+}
+.dark-mode #postInput {
+  background: #1e293b; color:#fff
+}
 
 .theme-btn{
   width:44px;
