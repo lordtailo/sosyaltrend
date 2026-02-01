@@ -1,5 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, doc, updateDoc, arrayUnion, arrayRemove, deleteDoc, getDoc, getDocs, limit, where, } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, doc, updateDoc, arrayUnion, arrayRemove, deleteDoc, getDoc, getDocs, limit } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { getAuth, onAuthStateChanged, signOut, updateEmail, sendPasswordResetEmail, updateProfile } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
 // Bileşenleri dinamik olarak yükleme fonksiyonu    
@@ -21,9 +21,6 @@ document.addEventListener('DOMContentLoaded', loadComponents);
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
   const auth = getAuth(app);
-  let lastVisible = null; // En son yüklenen gönderiyi tutacak
-const postsPerPage = 5; // Her seferinde kaç post yüklenecek?
-
 
   let user = {
   displayName: "Misafir",
@@ -395,6 +392,7 @@ const staticDatabase = {
     pages: [
         { name: "Yardım Merkezi", link: "yardim.html", icon: "fa-life-ring" },
         { name: "Topluluk Kuralları", link: "kurallar.html", icon: "fa-gavel" },
+        { name: "Hakkımızda", link: "hakkimizda.html", icon: "fa-info-circle" }
     ]
 };
 
@@ -512,7 +510,7 @@ window.performGlobalSearch = async (forcedQuery = null) => {
 
     } catch (e) {
         console.error("Arama hatası:", e);
-        if(status) status.innerText = "Arama sırasında bir hata oluştu.";
+        if(status) status.innerText = "Arama sırasında bir hata oluşti.";
     }
 };
 
@@ -754,11 +752,7 @@ onSnapshot(collection(db, "pages"), (snap) => {
 /* ============================ */
 
 /* GÖNDERİ AYARLARI */
-onSnapshot(query(
-    collection(db, "posts"), 
-    orderBy("timestamp", "desc"), 
-    limit(mainFeedLimit) 
-), (snap) => {
+onSnapshot(query(collection(db, "posts"), orderBy("timestamp", "desc")), (snap) => {
       const feed = document.getElementById('feed-items'), 
             myPosts = document.getElementById('my-posts-list'), 
             myLikes = document.getElementById('my-liked-list'), 
