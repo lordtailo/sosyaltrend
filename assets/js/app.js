@@ -34,28 +34,53 @@ onAuthStateChanged(auth, (fbUser) => {
     if (!fbUser) {
         window.location.href = 'login.html';
     } else {
-        // Kullanıcı bilgilerini öncelikle Firebase'den, yoksa yerelden al
+        // Kullanıcı bilgilerini güncelle
         user.username = fbUser.email.split('@')[0];
         user.displayName = localStorage.getItem('st_displayName') || fbUser.displayName || user.username;
         
-        // KRİTİK NOKTA: Buradaki atama avatarın kalıcı olmasını sağlar
+        // Avatar kalıcılığı
         const savedAvatar = localStorage.getItem('st_avatar');
         user.avatarSeed = savedAvatar || "Felix"; 
 
+        // Admin Kontrolü
         user.isAdmin = fbUser.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
         
-        // UI Güncelleme
+        // UI Güncelleme (Profil resmi, isimler vb.)
         updateUIWithUser(); 
-        if(user.isAdmin) { updateAdminStats(); }
+
+        // ADMIN ÖZEL İŞLEMLERİ
+        const adminBtn = document.getElementById('adminMenuBtn');
+        if (user.isAdmin) {
+            // İstatistikleri çek
+            updateAdminStats();
+            // HTML'deki butonu görünür yap
+            if (adminBtn) {
+                adminBtn.style.display = 'flex'; // Veya 'block', tasarımınıza göre
+            }
+        } else {
+            // Eğer admin değilse butonu gizle (Güvenlik için önlem)
+            if (adminBtn) {
+                adminBtn.style.display = 'none';
+            }
+        }
     }
 });
 
 async function updateAdminStats() {
     if(!user.isAdmin) return;
-      const postsSnap = await getDocs(collection(db, "posts"));
-      const pagesSnap = await getDocs(collection(db, "pages"));
-      document.getElementById('stat-total-posts').innerText = postsSnap.size;
-      document.getElementById('stat-total-pages').innerText = pagesSnap.size;
+    try {
+        const postsSnap = await getDocs(collection(db, "posts"));
+        const pagesSnap = await getDocs(collection(db, "pages"));
+        
+        // Elementler sayfada varsa güncelle
+        const postStat = document.getElementById('stat-total-posts');
+        const pageStat = document.getElementById('stat-total-pages');
+        
+        if (postStat) postStat.innerText = postsSnap.size;
+        if (pageStat) pageStat.innerText = pagesSnap.size;
+    } catch (error) {
+        console.error("Admin istatistikleri yüklenirken hata:", error);
+    }
 }
 
 // --- PROFIL DUZENLEME VE AVATAR FONKSIYONLARI ---
