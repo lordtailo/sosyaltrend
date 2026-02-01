@@ -21,6 +21,9 @@ document.addEventListener('DOMContentLoaded', loadComponents);
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
   const auth = getAuth(app);
+  let lastVisible = null; // En son yüklenen gönderiyi tutacak
+const postsPerPage = 5; // Her seferinde kaç post yüklenecek?
+
 
   let user = {
   displayName: "Misafir",
