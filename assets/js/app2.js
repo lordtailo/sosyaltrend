@@ -50,8 +50,10 @@ onAuthStateChanged(auth, (fbUser) => {
         if (welcomeEl) {
             welcomeEl.innerText = `${user.displayName.toLowerCase()}, Hoş geldin!`;
         }
-
-        if(user.isAdmin) { updateAdminStats(); }
+        
+        if(user.isAdmin) { updateAdminStats();
+            document.getElementById('admin-link').style.display = 'block';
+}
     }
 });
 
