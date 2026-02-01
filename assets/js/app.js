@@ -1,5 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, doc, updateDoc, arrayUnion, arrayRemove, deleteDoc, getDoc, getDocs, limit } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, doc, updateDoc, arrayUnion, arrayRemove, deleteDoc, getDoc, getDocs, limit, where, } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { getAuth, onAuthStateChanged, signOut, updateEmail, sendPasswordResetEmail, updateProfile } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
 // Bileşenleri dinamik olarak yükleme fonksiyonu    
@@ -751,7 +751,11 @@ onSnapshot(collection(db, "pages"), (snap) => {
 /* ============================ */
 
 /* GÖNDERİ AYARLARI */
-onSnapshot(query(collection(db, "posts"), orderBy("timestamp", "desc")), (snap) => {
+onSnapshot(query(
+    collection(db, "posts"), 
+    orderBy("timestamp", "desc"), 
+    limit(10) // SADECE SON 10 GÖNDERİYİ GETİRİR
+), (snap) => { 
       const feed = document.getElementById('feed-items'), 
             myPosts = document.getElementById('my-posts-list'), 
             myLikes = document.getElementById('my-liked-list'), 
