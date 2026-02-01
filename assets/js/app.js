@@ -1,6 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, doc, updateDoc, arrayUnion, arrayRemove, deleteDoc, getDoc, getDocs, limit } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { getAuth, onAuthStateChanged, signOut, updateEmail, sendPasswordResetEmail, updateProfile } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, doc, updateDoc, arrayUnion, arrayRemove, deleteDoc, getDoc, getDocs, limit, startAfter } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 // Bileşenleri dinamik olarak yükleme fonksiyonu    
 async function loadComponents() {
@@ -733,63 +733,128 @@ window.toggleSubscription = async (id, isSub) => {
 /* ============================ */
 
 /* SAYFA AYARLARI */
-onSnapshot(collection(db, "pages"), (snap) => {
-      const allList = document.getElementById('all-pages-list');
-      const trendList = document.getElementById('trend-pages-list');
-      const t = translations[currentLang];
-      
-      if(allList) allList.innerHTML = ""; 
-      if(trendList) trendList.innerHTML = "";
-      
-      let pArr = [];
+let lastVisiblePost = null; 
+const POSTS_LIMIT = 5;
+let allFetchedPosts = []; 
 
-      snap.forEach(d => {
-          const data = d.data();
-          const subs = data.subscribers || [];
-          const isSub = subs.includes(user.username);
-          const isAdmin = data.creator === user.username;
-          const pAvatar = getAvatarUrl(data.avatarSeed, 'page');
-          pArr.push({id: d.id, ...data});
+// 1. Ana Yükleme Fonksiyonu
+window.loadPosts = async (isNextPage = false) => {
+    const feed = document.getElementById('feed-items');
+    if (!feed) return;
 
-          if(allList) {
-            const adminPanel = isAdmin ? `
-              <div class="admin-actions" style="border-top: 1px solid var(--border); margin-top: 10px; padding-top: 10px;">
-                  <button class="admin-btn" title="Avatar Değiştir" onclick="changePageAvatar('${d.id}')"><i class="fa-solid fa-image"></i></button>
-                  <button class="admin-btn" style="background:var(--primary); color:white; border:none;" onclick="postAsPage('${d.id}', '${data.name}', '${data.avatarSeed}')">${t.shareBtn}</button>
-                  <button class="admin-btn" style="color:#ef4444;" title="Sayfayı Sil" onclick="deletePage('${d.id}')"><i class="fa-solid fa-trash"></i></button>
-              </div>` : '';
+    if (!isNextPage) {
+        allFetchedPosts = [];
+        lastVisiblePost = null;
+    }
 
-            allList.innerHTML += `
-              <div class="advanced-page-card">
-                  <div class="card-cover"></div>
-                  <div class="card-body">
-                      <img src="${pAvatar}" class="card-avatar" style="cursor:pointer" onclick="navigateTo('pages')">
-                      <div style="font-weight:800; font-size: 0.95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor:pointer" onclick="navigateTo('pages')">
-                          ${data.name} ${isAdmin ? '👑' : ''}
-                      </div>
-                      <div style="font-size:0.75rem; color:var(--text-muted); margin-bottom: 12px;">
-                          <i class="fa-solid fa-users"></i> ${subs.length} takipçi
-                      </div>
-                      <button class="btn-subscribe ${isSub ? 'subscribed' : ''}" onclick="toggleSubscription('${d.id}', ${isSub})">
-                          ${isSub ? '<i class="fa-solid fa-check"></i> ' + t.unsubBtn : '<i class="fa-solid fa-plus"></i> ' + t.subBtn}
-                      </button>
-                      ${adminPanel}
-                  </div>
-              </div>`;
-          }
-      });
+    const postsRef = collection(db, "posts");
+    let q = query(postsRef, orderBy("timestamp", "desc"), limit(POSTS_LIMIT));
+    
+    if (isNextPage && lastVisiblePost) {
+        q = query(postsRef, orderBy("timestamp", "desc"), startAfter(lastVisiblePost), limit(POSTS_LIMIT));
+    }
 
-      pArr.sort((a,b) => (b.subscribers?.length || 0) - (a.subscribers?.length || 0)).slice(0, 5).forEach(p => {
-          if(trendList) trendList.innerHTML += `
-              <div class="trend-item" onclick="navigateTo('pages')" style="cursor:pointer">
-                  <img src="${getAvatarUrl(p.avatarSeed, 'page')}" style="width:30px; height:30px; border-radius:8px; margin-right:10px; object-fit:cover;">
-                  <div class="trend-info">
-                      <div class="trend-name">${p.name}</div>
-                      <div class="trend-meta">${(p.subscribers || []).length} takipçi</div>
-                  </div>
-              </div>`;
-      });
-  });
+    try {
+        const snap = await getDocs(q);
+        
+        if (snap.docs.length > 0) {
+            lastVisiblePost = snap.docs[snap.docs.length - 1];
+            
+            snap.forEach(d => {
+                const postData = { id: d.id, ...d.data() };
+                if (!allFetchedPosts.find(p => p.id === d.id)) {
+                    allFetchedPosts.push(postData);
+                }
+            });
+            renderFeedUI();
+        }
+
+        // Buton görünürlüğü
+        const loadMoreContainer = document.getElementById('loadMoreContainer');
+        if (loadMoreContainer) {
+            loadMoreContainer.style.display = (snap.docs.length < POSTS_LIMIT) ? 'none' : 'block';
+        }
+    } catch (err) {
+        console.error("Yükleme hatası:", err);
+    }
+};
+
+// 2. Senin Orijinal Tasarımınla Arayüz Çizici
+function renderFeedUI() {
+    const feed = document.getElementById('feed-items'), 
+          myPosts = document.getElementById('my-posts-list'), 
+          myLikes = document.getElementById('my-liked-list'), 
+          bookItems = document.getElementById('bookmark-items'), 
+          t = translations[currentLang];
+
+    if(feed) feed.innerHTML = ""; 
+    if(myPosts) myPosts.innerHTML = ""; 
+    if(bookItems) bookItems.innerHTML = ""; 
+    if(myLikes) myLikes.innerHTML = "";
+
+    allFetchedPosts.forEach(p => {
+        const d_id = p.id;
+        const isPage = p.username?.startsWith('page_') || p.username === 'official_system', 
+              isMine = p.username === user.username || p.adminUser === user.username, 
+              isLiked = p.likes?.includes(user.username), 
+              isSaved = p.savedBy?.includes(user.username);
+        
+        const avatarUrl = getAvatarUrl(p.avatarSeed, isPage ? 'page' : 'user');
+        const contentWithLinks = (p.content || "").replace(/(#[\wığüşöçİĞÜŞÖÇ]+)/g, '<span class="hashtag-link" onclick="searchTrend(\'$1\')">$1</span>');
+        const targetNav = isMine ? 'profile' : (isPage ? 'pages' : 'feed');
+        
+        const postHtml = `
+        <div class="glass-card post" style="${p.username === 'official_system' ? 'border: 2px solid var(--primary); background: rgba(99, 102, 241, 0.05);' : ''}; position: relative;">
+            <div style="position: absolute; top: 15px; right: 15px; display: flex; gap: 8px;">
+                ${isMine ? `
+                    <button onclick="openEditModal('${d_id}', \`${p.content.replace(/`/g, '\\`').replace(/"/g, '&quot;').replace(/\n/g, '\\n')}\`, 'post')" style="background:none; border:none; color:var(--text-muted); cursor:pointer;"><i class="fa-solid fa-pen"></i></button>
+                    <button class="post-delete-btn" style="position:static;" onclick="deletePost('${d_id}')"><i class="fa-solid fa-trash"></i></button>
+                ` : ''}
+            </div>
+            <div style="display:flex; gap:10px; margin-bottom:10px;">
+                <img src="${avatarUrl}" class="${isPage ? 'page-avatar' : 'user-avatar'}" style="cursor:pointer;" onclick="navigateTo('${targetNav}')">
+                <div>
+                    <div style="font-weight:700; display:flex; align-items:center; gap:5px; cursor:pointer;" onclick="navigateTo('${targetNav}')">
+                        ${p.name} ${isPage ? '<i class="fa-solid fa-circle-check" style="color:var(--primary); font-size:0.7rem;"></i>' : ''}
+                        <span class="post-time">• ${formatTime(p.timestamp)}</span>
+                    </div>
+                    <div style="font-size:0.75rem; color:var(--text-muted); cursor:pointer;" onclick="navigateTo('${targetNav}')">@${p.username}</div>
+                </div>
+            </div>
+            <p style="white-space: pre-wrap; margin-bottom:15px;">${contentWithLinks}</p>
+            <div style="display:flex; gap:12px;">
+                <button class="tool-btn" onclick="likePost('${d_id}', ${isLiked})" style="gap:5px; color:${isLiked ? '#ef4444' : ''}"><i class="${isLiked ? 'fa-solid' : 'fa-regular'} fa-heart"></i><span>${p.likes?.length || 0}</span></button>
+                <button class="tool-btn" onclick="toggleCommentSection('${d_id}')" style="gap:5px;"><i class="fa-regular fa-comment"></i><span>${p.comments?.length || 0}</span></button>
+                <button class="tool-btn" onclick="toggleBookmark('${d_id}', ${isSaved})" style="color:${isSaved ? '#f59e0b' : ''}"><i class="${isSaved ? 'fa-solid' : 'fa-regular'} fa-bookmark"></i></button>
+            </div>
+            <div id="comments-${d_id}" class="comment-area" style="display:none;">
+                <div id="list-${d_id}">
+                    ${(p.comments || []).map(c => `
+                        <div class="comment-item" style="flex-direction: column; align-items: flex-start;">
+                            <div style="display: flex; align-items: center; width: 100%; gap: 10px;">
+                                <img src="${getAvatarUrl(c.avatarSeed, 'user')}" style="width: 24px; border-radius: 50%;">
+                                <div style="flex: 1;"><span class="comment-meta">${c.displayName}</span> <span style="font-size: 0.8rem;">${c.text}</span></div>
+                            </div>
+                        </div>`).join('')}
+                </div>
+                <div style="display:flex; gap:8px; margin-top:10px;">
+                    <input type="text" id="input-${d_id}" placeholder="${t.commentPlaceholder}" style="flex:1; padding:8px; border-radius:10px; border:1px solid var(--border); background: var(--input-bg); color: var(--text-main);">
+                    <button onclick="addComment('${d_id}')" style="background:var(--primary); color:white; border:none; padding:5px 15px; border-radius:10px; cursor:pointer;">Gönder</button>
+                </div>
+            </div>
+        </div>`;
+
+        if(feed) feed.innerHTML += postHtml;
+        if(p.username === user.username && myPosts) myPosts.innerHTML += postHtml;
+        if(isLiked && myLikes) myLikes.innerHTML += postHtml;
+        if(isSaved && bookItems) bookItems.innerHTML += postHtml;
+    });
+}
+
+// 3. Başlangıç Tetikleyicisi
+document.addEventListener('DOMContentLoaded', () => {
+    loadPosts(); 
+});
 /* ============================ */
 
 /* GÖNDERİ AYARLARI */
@@ -909,7 +974,8 @@ onSnapshot(query(collection(db, "posts"), orderBy("timestamp", "desc")), (snap) 
       });
   });
 
-  const shareBtn = document.getElementById('shareBtn');
+/* PAYLAŞ BUTONU AYARLARI */  
+const shareBtn = document.getElementById('shareBtn');
   if(shareBtn) {
     shareBtn.onclick = async () => {
       const val = document.getElementById('postInput').value.trim();
