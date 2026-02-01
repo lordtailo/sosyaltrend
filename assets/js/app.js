@@ -888,7 +888,7 @@ document.getElementById('globalSearch').addEventListener('keypress', function (e
           <div class="glass-card post" style="${p.username === 'official_system' ? 'border: 2px solid var(--primary); background: rgba(99, 102, 241, 0.05);' : ''}; position: relative;">
               <div style="position: absolute; top: 15px; right: 15px; display: flex; gap: 8px;">
                   ${isMine ? `
-                      <button onclick="openEditModal('${d.id}', \`${p.content.replace(/`/g, '\\`').replace(/\n/g, '\\n')}\`, 'post')" style="background:none; border:none; color:var(--text-muted); cursor:pointer;">
+                      <button onclick="openEditModal('${d.id}', \`${p.content.replace(/`/g, '\\`').replace(/"/g, '&quot;').replace(/\n/g, '\\n')}\`, 'post')" style="background:none; border:none; color:var(--text-muted); cursor:pointer;">
                           <i class="fa-solid fa-pen"></i>
                       </button>
                       <button class="post-delete-btn" style="position:static;" onclick="deletePost('${d.id}')">
@@ -927,12 +927,12 @@ document.getElementById('globalSearch').addEventListener('keypress', function (e
                                   </div>
                                   <div style="display: flex; gap: 5px;">
                                     ${(c.username === user.username) ? `
-                                        <button onclick="openEditModal('${d.id}', \`${c.text.replace(/`/g, '\\`').replace(/\n/g, '\\n')}\`, 'comment', ${c.time})" style="background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:0.75rem;">
+                                        <button onclick="openEditModal('${d.id}', \`${c.text.replace(/`/g, '\\`').replace(/"/g, '&quot;').replace(/\n/g, '\\n')}\`, 'comment', ${c.time})" style="background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:0.75rem;">
                                             <i class="fa-solid fa-pen"></i>
                                         </button>
                                     ` : ''}
                                     ${(c.username === user.username || user.isAdmin) ? `
-                                        <button class="comment-del-btn" onclick="deleteComment('${d.id}', ${c.time}, '${c.text}')">
+                                        <button class="comment-del-btn" onclick="deleteComment('${d.id}', ${c.time}, '${c.text.replace(/'/g, "\\'")}')">
                                             <i class="fa-solid fa-trash-can"></i>
                                         </button>
                                     ` : ''}
@@ -948,7 +948,7 @@ document.getElementById('globalSearch').addEventListener('keypress', function (e
                                           </div>
                                           <div style="display: flex; gap: 5px; align-items: center;">
                                               ${(r.username === user.username) ? `
-                                                  <button onclick="openEditModal('${d.id}', \`${r.text.replace(/`/g, '\\`').replace(/\n/g, '\\n')}\`, 'reply', ${c.time}, ${r.time})" style="background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:0.7rem;">
+                                                  <button onclick="openEditModal('${d.id}', \`${r.text.replace(/`/g, '\\`').replace(/"/g, '&quot;').replace(/\n/g, '\\n')}\`, 'reply', ${c.time}, ${r.time})" style="background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:0.7rem;">
                                                       <i class="fa-solid fa-pen"></i>
                                                   </button>
                                               ` : ''}

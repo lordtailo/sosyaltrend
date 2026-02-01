@@ -733,4 +733,14 @@ aside, .right-panel { display: none; } }
     border-color: var(--primary-dark);
 }
 
-.load-more-btn { width: 100%; padding: 12px; margin-top: 10px; background: var(--primary); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; }
+.load-more-btn { 
+    width: 100%; 
+    padding: 12px; 
+    margin-top: 10px; 
+    background: var(--primary); 
+    color: white; 
+    border: none; 
+    border-radius: 8px; 
+    cursor: pointer; 
+    font-weight: bold; 
+}
