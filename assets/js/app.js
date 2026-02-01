@@ -392,7 +392,6 @@ const staticDatabase = {
     pages: [
         { name: "Yardım Merkezi", link: "yardim.html", icon: "fa-life-ring" },
         { name: "Topluluk Kuralları", link: "kurallar.html", icon: "fa-gavel" },
-        { name: "Hakkımızda", link: "hakkimizda.html", icon: "fa-info-circle" }
     ]
 };
 
@@ -510,7 +509,7 @@ window.performGlobalSearch = async (forcedQuery = null) => {
 
     } catch (e) {
         console.error("Arama hatası:", e);
-        if(status) status.innerText = "Arama sırasında bir hata oluşti.";
+        if(status) status.innerText = "Arama sırasında bir hata oluştu.";
     }
 };
 
