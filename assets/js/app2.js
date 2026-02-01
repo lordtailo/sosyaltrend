@@ -185,4 +185,44 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 /* ============================ */
+// --- RESİM VE ANKET YARDIMCI KODLARI ---
+let selectedImageBase64 = null;
 
+// Resim seçme ve önizleme
+window.previewPostImage = (input) => {
+    const file = input.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            selectedImageBase64 = e.target.result;
+            document.getElementById('postImagePreview').src = e.target.result;
+            document.getElementById('imagePreviewContainer').style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+    }
+};
+
+window.removeSelectedImage = () => {
+    selectedImageBase64 = null;
+    document.getElementById('postImageInput').value = "";
+    document.getElementById('imagePreviewContainer').style.display = 'none';
+};
+
+// Anket paneli yönetimi
+window.togglePollCreator = () => {
+    const el = document.getElementById('pollCreator');
+    el.style.display = (el.style.display === 'none') ? 'block' : 'none';
+};
+
+window.addPollOption = () => {
+    const container = document.getElementById('pollOptionsList');
+    if (container.children.length < 4) {
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'poll-option-input';
+        input.placeholder = `Seçenek ${container.children.length + 1}`;
+        input.style = "width:100%; margin-bottom:5px; padding:5px; border-radius:5px; border:1px solid var(--border); background:transparent; color:var(--text-main);";
+        container.appendChild(input);
+    }
+};
+// ---------------------------------------
