@@ -28,127 +28,68 @@ document.addEventListener('DOMContentLoaded', loadComponents);
   isAdmin: false
 };
 
-  const ADMIN_EMAIL = "officialfthuzun@gmail.com";
+const ADMIN_EMAIL = "officialfthuzun@gmail.com";
 
-  /* Header üstü bilgi ekranı*/
-function updateClock() {
-    const now = new Date();
-
-    // Tarih Ayarları (Örn: 31 Ocak 2026 Cumartesi)
-    const dateOptions = {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-      weekday: 'long'
-    };
-
-    // Saat Ayarları (Örn: 10:32:05)
-    const timeOptions = {
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-    };
-
-    const dateStr = now.toLocaleDateString('tr-TR', dateOptions);
-    const timeStr = now.toLocaleTimeString('tr-TR', timeOptions);
-    const timeElement = document.getElementById('topBarDateTime');
-    if(timeElement) {
-        // Tarih ve Saati farklı opasitelerle ayırarak daha okunaklı kıldık
-        timeElement.innerHTML = `
-            <span style="opacity: 0.7;">
-                <i class="fa-regular fa-calendar-check"></i> ${dateStr}
-            </span>
-            <span style="margin: 0 8px; opacity: 0.3;">|</span>
-            <span style="color: #fff; font-weight: 700;">
-                <i class="fa-regular fa-clock"></i> ${timeStr}
-            </span>
-        `;
-    }
-  }
-
-  // Her saniye güncelleme başlat
-  setInterval(updateClock, 1000);
-  updateClock();
-
-  // Karşılama mesajı için global fonksiyon (app.js'den çağrılacak)
-  window.updateWelcomeMessage = (username) => {
-    const welcomeEl = document.getElementById('welcomeMessage');
-    if (welcomeEl) {
-      const name = username ? username : "misafir";
-      welcomeEl.innerText = `${name.toLowerCase()}, Hoş geldin!`;
-    }
-  };
-
-  onAuthStateChanged(auth, (fbUser) => {
+onAuthStateChanged(auth, (fbUser) => {
     if (!fbUser) {
-      window.location.href = 'login.html';
+        window.location.href = 'login.html';
     } else {
-      user.username = fbUser.email.split('@')[0];
-      user.displayName = localStorage.getItem('st_displayName') || fbUser.displayName || user.username;
-      user.avatarSeed = localStorage.getItem('st_avatar') || "Felix";
-      
-      user.isAdmin = fbUser.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
-      
-      const emailEl = document.getElementById('currentEmailDisplay');
-      if(emailEl) emailEl.innerText = fbUser.email;
+        // Kullanıcı bilgilerini öncelikle Firebase'den, yoksa yerelden al
+        user.username = fbUser.email.split('@')[0];
+        user.displayName = localStorage.getItem('st_displayName') || fbUser.displayName || user.username;
+        
+        // KRİTİK NOKTA: Buradaki atama avatarın kalıcı olmasını sağlar
+        const savedAvatar = localStorage.getItem('st_avatar');
+        user.avatarSeed = savedAvatar || "Felix"; 
 
-      const adminBtn = document.getElementById('adminMenuBtn');
-      if(adminBtn) {
-          adminBtn.style.display = user.isAdmin ? 'flex' : 'none';
-      }
-
-      if(user.isAdmin) {
-          updateAdminStats();
-      }
-
-      updateUIWithUser();
+        user.isAdmin = fbUser.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+        
+        // UI Güncelleme
+        updateUIWithUser(); 
+        if(user.isAdmin) { updateAdminStats(); }
     }
-  });
+});
 
-
-  async function updateAdminStats() {
-      if(!user.isAdmin) return;
+async function updateAdminStats() {
+    if(!user.isAdmin) return;
       const postsSnap = await getDocs(collection(db, "posts"));
       const pagesSnap = await getDocs(collection(db, "pages"));
       document.getElementById('stat-total-posts').innerText = postsSnap.size;
       document.getElementById('stat-total-pages').innerText = pagesSnap.size;
-  }
+}
 
-  // --- PROFIL DUZENLEME VE AVATAR FONKSIYONLARI ---
-  let tempAvatarBuffer = null;
+// --- PROFIL DUZENLEME VE AVATAR FONKSIYONLARI ---
+let tempAvatarBuffer = null;
+    window.toggleEditProfile = () => {
+        const form = document.getElementById('editProfileSection');
+            form.classList.toggle('active');
+                document.getElementById('newNameInput').value = user.displayName;
+                document.getElementById('newAvatarUrlInput').value = (user.avatarSeed.startsWith('http') ? user.avatarSeed : "");
+                    tempAvatarBuffer = null;
+    };
 
-  window.toggleEditProfile = () => {
-    const form = document.getElementById('editProfileSection');
-    form.classList.toggle('active');
-    document.getElementById('newNameInput').value = user.displayName;
-    document.getElementById('newAvatarUrlInput').value = (user.avatarSeed.startsWith('http') ? user.avatarSeed : "");
-    tempAvatarBuffer = null;
-  };
-
-  window.handleFileSelect = (input) => {
+/* Profil Resmini(avatarı) Değiştir */
+window.handleFileSelect = (input) => {
     const file = input.files[0];
     if (file) {
-        if (file.size > 2 * 1024 * 1024) { // 2MB Limit
-            alert("Dosya boyutu çok büyük! Maksimum 2MB yükleyebilirsiniz.");
-            return;
-        }
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            tempAvatarBuffer = e.target.result;
-            document.getElementById('profilePageAvatar').src = e.target.result;
-            document.getElementById('newAvatarUrlInput').value = ""; // URL alanını temizle
-        };
-        reader.readAsDataURL(file);
+        if (file.size > 2 * 1024 * 1024) { alert("Dosya boyutu çok büyük! Maksimum 2MB yükleyebilirsiniz.");return;}
+            const reader = new FileReader();
+                reader.onload = (e) => {
+                    tempAvatarBuffer = e.target.result;
+                        document.getElementById('profilePageAvatar').src = e.target.result;
+                        document.getElementById('newAvatarUrlInput').value = ""; // URL alanını temizle
+                };
+                reader.readAsDataURL(file);
     }
-  };
+};
 
-  window.handleUrlInput = (input) => {
-      const url = input.value.trim();
-      if(url.startsWith('http')) {
-          document.getElementById('profilePageAvatar').src = url;
-          tempAvatarBuffer = null; // Dosya secilmisse iptal et
-      }
-  };
+window.handleUrlInput = (input) => {
+    const url = input.value.trim();
+        if(url.startsWith('http')) {
+            document.getElementById('profilePageAvatar').src = url;
+                tempAvatarBuffer = null; // Dosya secilmisse iptal et
+        }
+};
 
   window.promptDiceBear = () => {
     const seed = prompt("Avatarınız için bir anahtar kelime yazın (Örn: Felix, Oscar, Gizem):");
@@ -180,12 +121,12 @@ function updateClock() {
 
     finishUpdate();
   };
-  // --- /FONKSIYONLAR SONU ---
 
   function finishUpdate() {
     alert("Profil başarıyla güncellendi!");
     location.reload();
   }
+
 
   window.updateUserEmail = async () => {
     const mail = prompt("Yeni e-posta:");
@@ -210,28 +151,7 @@ function updateClock() {
     window.location.href = 'login.html';
   };
 
-// --- DARK MODE -- //
-window.toggleDarkMode = () => {
-  const btn = document.getElementById('themeToggleBtn');
-  const isDark = document.body.classList.toggle('dark-mode');
-
-  btn.innerHTML = isDark
-    ? '<i class="fa-solid fa-sun"></i>'
-    : '<i class="fa-solid fa-moon"></i>';
-
-  localStorage.setItem('st_theme', isDark ? 'dark' : 'light');
-};
-
-document.addEventListener('DOMContentLoaded', () => {
-  if (localStorage.getItem('st_theme') === 'dark') {
-    document.body.classList.add('dark-mode');
-    document.getElementById('themeToggleBtn').innerHTML =
-      '<i class="fa-solid fa-sun"></i>';
-  }
-});
-// ============================================================= //
-
-  // --- ÇEVİRİLER VE KAYDETME ÖZELLİĞİ ---
+// --- ÇEVİRİLER VE KAYDETME ÖZELLİĞİ ---
   const translations = {
     tr: {
       searchPlaceholder: "Arama",
@@ -360,14 +280,17 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   applyTranslations();
 
-  function getAvatarUrl(seed, type = 'user') {
+function getAvatarUrl(seed, type = 'user') {
+    // Eğer seed boşsa veya undefined ise varsayılan dön
     if (!seed) return "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix";
-    if (seed === 'admin-shield') return "https://api.dicebear.com/7.x/bottts/svg?seed=Admin";
+    // Eğer zaten bir resim verisi (http veya base64) ise direkt onu dön
     if (seed.startsWith('http') || seed.startsWith('data:image')) return seed;
-    return type === 'user' 
-      ? `https://api.dicebear.com/7.x/avataaars/svg?seed=${seed}` 
-      : `https://api.dicebear.com/7.x/identicon/svg?seed=${seed}`;
-  }
+    // Admin ikon kontrolü
+    if (seed === 'admin-shield') return "https://api.dicebear.com/7.x/bottts/svg?seed=Admin";
+    // Değilse DiceBear API'sini kullan
+    const collection = (type === 'user') ? 'avataaars' : 'identicon';
+    return `https://api.dicebear.com/7.x/${collection}/svg?seed=${encodeURIComponent(seed)}`;
+}
 
   function updateUIWithUser() {
     const avatarUrl = getAvatarUrl(user.avatarSeed, 'user');
@@ -391,9 +314,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Gizlilik Ayarları
     const pTg = document.getElementById('privacyToggle');
     const sPi = document.getElementById('selfPrivateIndicator');
+/* ============================ */
 
     // --- GÜNCELLEMELER ---
-    
     // Üst Bar Karşılama Mesajı Güncelleme
     if (welcomeEl) {
         // user.displayName veya user.username kullanarak içeriği değiştiriyoruz
@@ -421,20 +344,19 @@ document.addEventListener('DOMContentLoaded', () => {
     if(sPi) sPi.style.display = isPrivate ? 'block' : 'none';
 }
 
-  window.togglePrivacy = () => {
+window.togglePrivacy = () => {
       isPrivate = document.getElementById('privacyToggle').checked;
       localStorage.setItem('st_isPrivate', isPrivate);
       updateUIWithUser();
   };
 
-  window.navigateTo = (pageId) => {
+window.navigateTo = (pageId) => {
       console.log(pageId + " sayfasına gidiliyor...");
       
       if(pageId === 'admin' && !user.isAdmin) {
           alert("Bu bölüme sadece yönetici erişebilir!");
-          window.navigateTo('feed');
-          return;
-      }
+          window.navigateTo('feed'); return;
+        }
 
       // Sayfa içeriklerini gizle/göster
       document.querySelectorAll('.page-content').forEach(p => p.classList.remove('active'));
@@ -445,13 +367,11 @@ document.addEventListener('DOMContentLoaded', () => {
       document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
       const btn = document.getElementById('btn-' + pageId);
       if(btn) btn.classList.add('active');
-
       window.scrollTo(0,0);
-  };
+};
 
 
 //* SEARCH ARAMA FONKSIYONLARI *//
-
 document.addEventListener('DOMContentLoaded', function() {
     // 1. Örnek Veri Seti (Gerçek verilerinle burayı değiştirebilirsin)
     const database = {
@@ -503,23 +423,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
             }
 
-            // Kişileri Listele
-            if (filteredUsers.length > 0) {
-                sectionUsers.style.display = 'block';
-                filteredUsers.forEach(u => {
-                    usersContainer.innerHTML += `
-                        <div class="user-item" style="display:flex; align-items:center; gap:10px; padding:10px;">
-                            <img src="${u.img}" style="border-radius:50%; width:30px;">
-                            <div><strong>${u.name}</strong> <small>(${u.role})</small></div>
-                        </div>`;
-                });
-            }
-        } else {
-            noResults.style.display = 'block';
-        }
-    } else {
-        resultText.innerText = "Lütfen bir arama terimi girin.";
+// Kişileri Listele
+if (filteredUsers.length > 0) {
+    sectionUsers.style.display = 'block';
+    filteredUsers.forEach(u => {
+        usersContainer.innerHTML += ` <div class="user-item" style="display:flex; align-items:center; gap:10px; padding:10px;">
+            <img src="${u.img}" style="border-radius:50%; width:30px;">
+            <div><strong>${u.name}</strong> <small>(${u.role})</small></div></div>`;});
     }
+} 
+else {noResults.style.display = 'block';}} 
+else {resultText.innerText = "Lütfen bir arama terimi girin.";}
 });
 
 // Sayfa yüklendiğinde çalışır
@@ -535,13 +449,10 @@ document.addEventListener('DOMContentLoaded', function() {
         resultDisplay.innerText = `"${searchQuery}" için sonuçlar gösteriliyor...`;
         
         // Burada gerçek arama fonksiyonunu (filtreleme) çağırabilirsin
-        performSearch(searchQuery);
-    } else {
-        resultDisplay.innerText = "Herhangi bir arama yapılmadı.";
-    }
-});
+        performSearch(searchQuery);} 
+    else {resultDisplay.innerText = "Herhangi bir arama yapılmadı.";}});
 
-  function formatTime(timestamp) {
+function formatTime(timestamp) {
     if(!timestamp) return "...";
     try {
         const date = timestamp.toDate();
@@ -551,14 +462,12 @@ document.addEventListener('DOMContentLoaded', function() {
         if (diff < 3600) return `${Math.floor(diff/60)}${t.m}`;
         if (diff < 86400) return `${Math.floor(diff/3600)}${t.h}`;
         return `${Math.floor(diff/86400)}${t.d}`;
-    } catch(e) { return "..."; }
-  }
+    } catch(e) { return "..."; }}
 
-  document.getElementById('mainSearchBtn').addEventListener('click', function() {
+document.getElementById('mainSearchBtn').addEventListener('click', function() {
     const searchQuery = document.getElementById('globalSearch').value;
     // Arama terimiyle birlikte yönlendirir (Örn: search.html?q=kelime)
-    window.location.href = `search.html?q=${encodeURIComponent(searchQuery)}`;
-});
+window.location.href = `search.html?q=${encodeURIComponent(searchQuery)}`; });
 
 // Enter tuşuna basıldığında da çalışması için:
 document.getElementById('globalSearch').addEventListener('keypress', function (e) {
@@ -567,20 +476,18 @@ document.getElementById('globalSearch').addEventListener('keypress', function (e
     }
 });
 
-  window.performGlobalSearch = async () => {
+window.performGlobalSearch = async () => {
       const searchInput = document.getElementById('globalSearch');
       const queryStr = searchInput.value.trim().toLowerCase();
-      if (!queryStr) return;
-
-      navigateTo('search');
-      
-      const pagesContainer = document.getElementById('search-results-pages');
-      const usersContainer = document.getElementById('search-results-users');
-      const secPages = document.getElementById('section-pages');
-      const secUsers = document.getElementById('section-users');
-      const noResults = document.getElementById('search-no-results');
-      const status = document.getElementById('searchStatus');
-      const t = translations[currentLang];
+     
+      if (!queryStr) return; navigateTo('search');
+        const pagesContainer = document.getElementById('search-results-pages');
+        const usersContainer = document.getElementById('search-results-users');
+        const secPages = document.getElementById('section-pages');
+         const secUsers = document.getElementById('section-users');
+        const noResults = document.getElementById('search-no-results');
+        const status = document.getElementById('searchStatus');
+        const t = translations[currentLang];
 
       if(pagesContainer) pagesContainer.innerHTML = "";
       if(usersContainer) usersContainer.innerHTML = "";
@@ -589,8 +496,7 @@ document.getElementById('globalSearch').addEventListener('keypress', function (e
       if(noResults) noResults.style.display = "none";
       if(status) status.innerText = `"${queryStr}" için sonuçlar aranıyor...`;
 
-      try {
-          const pagesSnap = await getDocs(collection(db, "pages"));
+      try { const pagesSnap = await getDocs(collection(db, "pages"));
           let pagesFound = 0;
           
           pagesSnap.forEach(docSnap => {
@@ -605,8 +511,7 @@ document.getElementById('globalSearch').addEventListener('keypress', function (e
                       <div style="font-size:0.7rem; color:var(--text-muted); margin-bottom:10px; text-align:center;">Sayfa • ${(data.subscribers || []).length} Takipçi</div>
                       <button class="btn-subscribe ${isSub ? 'subscribed' : ''}" onclick="toggleSubscription('${docSnap.id}', ${isSub})">${isSub ? t.unsubBtn : t.subBtn}</button>
                   </div>`;
-              }
-          });
+              }});
 
           const postsSnap = await getDocs(collection(db, "posts"));
           let usersFoundCount = 0;
@@ -627,8 +532,7 @@ document.getElementById('globalSearch').addEventListener('keypress', function (e
                       <div style="font-size:0.7rem; color:var(--text-muted); margin-bottom:10px; text-align:center;">@${p.username}</div>
                       <button class="btn-subscribe" onclick="navigateTo('${p.username === user.username ? 'profile' : 'feed'}')">Profiline Git</button>
                   </div>`;
-              }
-          });
+              }});
 
           if (pagesFound > 0 && secPages) secPages.style.display = "block";
           if (usersFoundCount > 0 && secUsers) secUsers.style.display = "block";
@@ -644,8 +548,7 @@ document.getElementById('globalSearch').addEventListener('keypress', function (e
       } catch (e) {
           console.error("Arama hatası:", e);
           if(status) status.innerText = "Arama yapılırken bir hata oluştu.";
-      }
-  };
+      }};
 
   const mainSearchBtn = document.getElementById('mainSearchBtn');
   if(mainSearchBtn) mainSearchBtn.onclick = performGlobalSearch;
@@ -660,8 +563,7 @@ document.getElementById('globalSearch').addEventListener('keypress', function (e
     if(gSearch) {
       gSearch.value = tag; 
       performGlobalSearch();
-    }
-  };
+    }};
 
   window.likePost = async (id, isLiked) => { const ref = doc(db, "posts", id); await updateDoc(ref, { likes: isLiked ? arrayRemove(user.username) : arrayUnion(user.username) }); };
   window.toggleBookmark = async (id, isSaved) => { const ref = doc(db, "posts", id); await updateDoc(ref, { savedBy: isSaved ? arrayRemove(user.username) : arrayUnion(user.username) }); };
@@ -684,7 +586,7 @@ document.getElementById('globalSearch').addEventListener('keypress', function (e
       input.value = "";
   };
 
-  window.addReply = async (postId, commentTime) => {
+window.addReply = async (postId, commentTime) => {
       const replyText = prompt("Yanıtınızı yazın:");
       if (!replyText) return;
 
@@ -707,7 +609,7 @@ document.getElementById('globalSearch').addEventListener('keypress', function (e
       }
   };
 
-  window.deleteComment = async (postId, commentTime, commentText) => {
+window.deleteComment = async (postId, commentTime, commentText) => {
     if(confirm(translations[currentLang].confirmDeleteComment)) {
         const ref = doc(db, "posts", postId);
         const snap = await getDoc(ref);
@@ -719,7 +621,7 @@ document.getElementById('globalSearch').addEventListener('keypress', function (e
     }
   };
 
-  window.deleteReply = async (postId, commentTime, replyTime) => {
+window.deleteReply = async (postId, commentTime, replyTime) => {
       if(confirm("Bu yanıtı silmek istediğinize emin misiniz?")) {
           const ref = doc(db, "posts", postId);
           const snap = await getDoc(ref);
@@ -734,8 +636,8 @@ document.getElementById('globalSearch').addEventListener('keypress', function (e
       }
   };
 
-  window.deletePost = async (id) => { if(confirm(translations[currentLang].confirmDelete)) await deleteDoc(doc(db, "posts", id)); }
-  window.deletePage = async (id) => { if(confirm(translations[currentLang].confirmDeletePage)) await deleteDoc(doc(db, "pages", id)); }
+window.deletePost = async (id) => { if(confirm(translations[currentLang].confirmDelete)) await deleteDoc(doc(db, "posts", id)); }
+window.deletePage = async (id) => { if(confirm(translations[currentLang].confirmDeletePage)) await deleteDoc(doc(db, "pages", id)); }
   
   window.createNewPage = async () => {
       const name = document.getElementById('newPageName').value.trim();
@@ -749,7 +651,9 @@ document.getElementById('globalSearch').addEventListener('keypress', function (e
       });
       document.getElementById('newPageName').value = "";
   };
+/* ============================ */
 
+/* AVATAR AYARLARI */
   window.changePageAvatar = async (id) => {
     const choice = prompt("Sayfa avatarı değiştir:\n1: URL/GIF Gir\n2: Cihazdan Yükle\n3: Kelime Gir (Icon)");
     if(choice === "1") {
@@ -766,9 +670,10 @@ document.getElementById('globalSearch').addEventListener('keypress', function (e
     } else if(choice === "3") {
         const seed = prompt("İkon için bir kelime girin:");
         if(seed) await updateDoc(doc(db, "pages", id), { avatarSeed: seed });
-    }
-  };
+    }};
+/* ============================ */
 
+/* GÖNDERİ PAYLAŞMA AYARLARI */
   window.postAsPage = async (id, pageName, pageSeed) => {
     let content;
     if(id === 'system_notice') {
@@ -797,13 +702,15 @@ document.getElementById('globalSearch').addEventListener('keypress', function (e
     }
   };
 
-  window.toggleSubscription = async (id, isSub) => { 
+window.toggleSubscription = async (id, isSub) => { 
       await updateDoc(doc(db, "pages", id), { 
           subscribers: isSub ? arrayRemove(user.username) : arrayUnion(user.username) 
       }); 
   };
+/* ============================ */
 
-  onSnapshot(collection(db, "pages"), (snap) => {
+/* SAYFA AYARLARI */
+onSnapshot(collection(db, "pages"), (snap) => {
       const allList = document.getElementById('all-pages-list');
       const trendList = document.getElementById('trend-pages-list');
       const t = translations[currentLang];
@@ -860,8 +767,10 @@ document.getElementById('globalSearch').addEventListener('keypress', function (e
               </div>`;
       });
   });
+/* ============================ */
 
-  onSnapshot(query(collection(db, "posts"), orderBy("timestamp", "desc")), (snap) => {
+/* GÖNDERİ AYARLARI */
+onSnapshot(query(collection(db, "posts"), orderBy("timestamp", "desc")), (snap) => {
       const feed = document.getElementById('feed-items'), 
             myPosts = document.getElementById('my-posts-list'), 
             myLikes = document.getElementById('my-liked-list'), 
@@ -1029,7 +938,7 @@ document.getElementById('globalSearch').addEventListener('keypress', function (e
     const menu = document.getElementById('dropdownMenu');
     if(menu) menu.classList.remove('active');
   };
-  
+/* ============================ */
 
 /* GÜNDEM KODLARI */
 const $ = (id) => document.getElementById(id);
@@ -1109,34 +1018,6 @@ document.addEventListener('click', (e) => {
   let currentGundemFilter = "all";
 
 window.addEventListener('load', () => fetchGundem());
-/* ============================   */
-
-/* EMOJİ KODU */
-document.addEventListener('DOMContentLoaded', () => {
-    const emojiToggle = document.getElementById('emojiToggle');
-    const emojiPicker = document.getElementById('emojiPicker');
-    const postInput = document.getElementById('postInput');
-
-    if (!emojiToggle || !emojiPicker || !postInput) return;
-
-    emojiToggle.addEventListener('click', (e) => {
-        e.stopPropagation();
-        emojiPicker.style.display =
-            emojiPicker.style.display === 'grid' ? 'none' : 'grid';
-    });
-
-    emojiPicker.querySelectorAll('span').forEach(emoji => {
-        emoji.addEventListener('click', () => {
-            postInput.value += emoji.textContent;
-            emojiPicker.style.display = 'none';
-            postInput.focus();
-        });
-    });
-
-    document.addEventListener('click', () => {
-        emojiPicker.style.display = 'none';
-    });
-});
 /* ============================   */
 
 /* MOBİLE VERSİYONDA İÇERİK AYARLAMA */
