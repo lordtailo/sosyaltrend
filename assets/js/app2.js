@@ -29,6 +29,31 @@ document.addEventListener('DOMContentLoaded', loadComponents);
 };
 
 const ADMIN_EMAIL = "officialfthuzun@gmail.com";
+
+onAuthStateChanged(auth, (fbUser) => {
+    if (!fbUser) {
+        window.location.href = 'login.html';
+    } else {
+        // Bellekteki kullanıcı nesnesini güncelle
+        user.username = fbUser.email.split('@')[0];
+        user.displayName = localStorage.getItem('st_displayName') || fbUser.displayName || user.username;
+        
+        const savedAvatar = localStorage.getItem('st_avatar');
+        user.avatarSeed = savedAvatar || "Felix"; 
+        user.isAdmin = fbUser.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+        
+        // 1. UI Güncelleme fonksiyonunu çağır
+        updateUIWithUser(); 
+
+        // 2. EĞER welcomeMessage elementi varsa ismi oraya da yazdır (Zorlama güncelleme)
+        const welcomeEl = document.getElementById('welcomeMessage');
+        if (welcomeEl) {
+            welcomeEl.innerText = `${user.displayName.toLowerCase()}, Hoş geldin!`;
+        }
+
+        if(user.isAdmin) { updateAdminStats(); }
+    }
+});
 /* ============================ */
 
 
