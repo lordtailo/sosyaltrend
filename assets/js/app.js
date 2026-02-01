@@ -388,86 +388,150 @@ window.navigateTo = (pageId) => {
 
 
 //* SEARCH ARAMA FONKSIYONLARI *//
+const staticDatabase = {
+    pages: [
+        { name: "Yardım Merkezi", link: "yardim.html", icon: "fa-life-ring" },
+        { name: "Topluluk Kuralları", link: "kurallar.html", icon: "fa-gavel" },
+        { name: "Hakkımızda", link: "hakkimizda.html", icon: "fa-info-circle" }
+    ]
+};
+
+// 2. Sayfa Yüklendiğinde Parametre Kontrolü
 document.addEventListener('DOMContentLoaded', function() {
-    // 1. Örnek Veri Seti (Gerçek verilerinle burayı değiştirebilirsin)
-    const database = {
-        pages: [
-            { name: "Yardım Merkezi", link: "yardim.html", icon: "fa-life-ring" },
-            { name: "Topluluk Kuralları", link: "kurallar.html", icon: "fa-gavel" },
-            { name: "Hakkımızda", link: "hakkimizda.html", icon: "fa-info-circle" }
-        ],
-        users: [
-            { name: "Ahmet Yılmaz", role: "Moderatör", img: "https://via.placeholder.com/40" },
-            { name: "Ayşe Demir", role: "Yazar", img: "https://via.placeholder.com/40" },
-            { name: "Caner Kurt", role: "Üye", img: "https://via.placeholder.com/40" }
-        ]
-    };
-
-    // 2. URL'den Arama Terimini Al
     const urlParams = new URLSearchParams(window.location.search);
-    const query = urlParams.get('q')?.toLowerCase() || "";
-
-    // Elementleri Seç
-    const resultText = document.getElementById('result-text');
-    const searchStatus = document.getElementById('searchStatus');
-    const pagesContainer = document.getElementById('search-results-pages');
-    const usersContainer = document.getElementById('search-results-users');
-    const sectionPages = document.getElementById('section-pages');
-    const sectionUsers = document.getElementById('section-users');
-    const noResults = document.getElementById('search-no-results');
-
-    if (query) {
-        resultText.innerText = `"${query}" için sonuçlar`;
-        
-        // 3. Filtreleme İşlemi
-        const filteredPages = database.pages.filter(p => p.name.toLowerCase().includes(query));
-        const filteredUsers = database.users.filter(u => u.name.toLowerCase().includes(query));
-
-        let totalCount = filteredPages.length + filteredUsers.length;
-        searchStatus.innerText = `${totalCount} sonuç bulundu.`;
-
-        // 4. Sonuçları Ekrana Yazdır
-        if (totalCount > 0) {
-            // Sayfaları Listele
-            if (filteredPages.length > 0) {
-                sectionPages.style.display = 'block';
-                filteredPages.forEach(p => {
-                    pagesContainer.innerHTML += `
-                        <div class="result-item" style="padding:10px; border-bottom:1px solid #eee;">
-                            <a href="${p.link}"><i class="fa-solid ${p.icon}"></i> ${p.name}</a>
-                        </div>`;
-                });
-            }
-
-// Kişileri Listele
-if (filteredUsers.length > 0) {
-    sectionUsers.style.display = 'block';
-    filteredUsers.forEach(u => {
-        usersContainer.innerHTML += ` <div class="user-item" style="display:flex; align-items:center; gap:10px; padding:10px;">
-            <img src="${u.img}" style="border-radius:50%; width:30px;">
-            <div><strong>${u.name}</strong> <small>(${u.role})</small></div></div>`;});
+    const searchQuery = urlParams.get('q');
+    
+    if (searchQuery && window.location.pathname.includes('search.html')) {
+        const globalSearchInput = document.getElementById('globalSearch');
+        if(globalSearchInput) globalSearchInput.value = searchQuery;
+        performGlobalSearch(searchQuery);
     }
-} 
-else {noResults.style.display = 'block';}} 
-else {resultText.innerText = "Lütfen bir arama terimi girin.";}
 });
 
-// Sayfa yüklendiğinde çalışır
-document.addEventListener('DOMContentLoaded', function() {
-    // URL'deki ?q=terim kısmını analiz eder
-    const urlParams = new URLSearchParams(window.location.search);
-    const searchQuery = urlParams.get('q'); // 'q' parametresini alır
-
-    const resultDisplay = document.getElementById('result-text');
+// 3. Ana Arama Fonksiyonu (Dinamik & Statik)
+window.performGlobalSearch = async (forcedQuery = null) => {
+    const searchInput = document.getElementById('globalSearch');
+    const queryStr = (forcedQuery || searchInput.value).trim().toLowerCase();
     
-    if (searchQuery) {
-        // Arama terimi varsa ekrana yazdırır
-        resultDisplay.innerText = `"${searchQuery}" için sonuçlar gösteriliyor...`;
-        
-        // Burada gerçek arama fonksiyonunu (filtreleme) çağırabilirsin
-        performSearch(searchQuery);} 
-    else {resultDisplay.innerText = "Herhangi bir arama yapılmadı.";}});
+    if (!queryStr) return;
 
+    // Eğer arama sayfasında değilsek yönlendir
+    if (!window.location.pathname.includes('search.html')) {
+        window.location.href = `search.html?q=${encodeURIComponent(queryStr)}`;
+        return;
+    }
+
+    // Element Seçimleri
+    const pagesContainer = document.getElementById('search-results-pages');
+    const usersContainer = document.getElementById('search-results-users');
+    const secPages = document.getElementById('section-pages');
+    const secUsers = document.getElementById('section-users');
+    const noResults = document.getElementById('search-no-results');
+    const status = document.getElementById('searchStatus');
+    const resultText = document.getElementById('result-text');
+    const t = translations[currentLang] || { subBtn: "Takip Et", unsubBtn: "Takibi Bırak" };
+
+    // Arayüz Sıfırlama
+    if(pagesContainer) pagesContainer.innerHTML = "";
+    if(usersContainer) usersContainer.innerHTML = "";
+    if(secPages) secPages.style.display = "none";
+    if(secUsers) secUsers.style.display = "none";
+    if(noResults) noResults.style.display = "none";
+    if(resultText) resultText.innerText = `"${queryStr}" için sonuçlar`;
+    if(status) status.innerText = `Aranıyor...`;
+
+    try {
+        let totalFound = 0;
+
+        // --- A. STATİK SAYFA FİLTRELEME ---
+        const filteredStatic = staticDatabase.pages.filter(p => p.name.toLowerCase().includes(queryStr));
+        filteredStatic.forEach(p => {
+            totalFound++;
+            secPages.style.display = "block";
+            pagesContainer.innerHTML += `
+                <div class="result-item" style="padding:15px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:12px;">
+                    <i class="fa-solid ${p.icon}" style="color:var(--primary); font-size:1.2rem;"></i>
+                    <a href="${p.link}" style="text-decoration:none; color:var(--text-main); font-weight:600;">${p.name}</a>
+                </div>`;
+        });
+
+        // --- B. FIREBASE SAYFA ARAMASI ---
+    const pagesSnap = await getDocs(collection(db, "pages"));
+    pagesSnap.forEach(docSnap => {
+    const data = docSnap.data();
+    
+    // Sadece tam eşleşme istiyorsan .includes yerine === kullanabilirsin
+    // Veya belirli bir sayfayı hariç tutmak istiyorsan: if (data.name === "İstemediğim Sayfa") return;
+
+    if (data.name && data.name.toLowerCase().includes(queryStr)) {
+                totalFound++;
+                secPages.style.display = "block";
+                const isSub = (data.subscribers || []).includes(user?.username);
+                pagesContainer.innerHTML += `
+                <div class="glass-card page-card" style="margin-top:10px;">
+                    <img src="${getAvatarUrl(data.avatarSeed, 'page')}" class="page-icon" style="width: 50px; height: 50px; border-radius: 8px; margin: 10px auto; display: block;">
+                    <div style="font-weight:800; text-align:center;">${data.name}</div>
+                    <div style="font-size:0.7rem; color:var(--text-muted); margin-bottom:10px; text-align:center;">Topluluk • ${(data.subscribers || []).length} Takipçi</div>
+                    <button class="btn-subscribe ${isSub ? 'subscribed' : ''}" onclick="toggleSubscription('${docSnap.id}', ${isSub})">${isSub ? t.unsubBtn : t.subBtn}</button>
+                </div>`;
+            }
+        });
+
+        // --- C. FIREBASE KULLANICI ARAMASI ---
+        const postsSnap = await getDocs(collection(db, "posts"));
+        let processedUsers = new Set();
+
+        postsSnap.forEach(pDoc => {
+            const p = pDoc.data();
+            const usernameMatch = p.username && p.username.toLowerCase().includes(queryStr);
+            const nameMatch = p.name && p.name.toLowerCase().includes(queryStr);
+            
+            if (p.username && !p.username.startsWith('page_') && (usernameMatch || nameMatch) && !processedUsers.has(p.username)) {
+                processedUsers.add(p.username);
+                totalFound++;
+                secUsers.style.display = "block";
+                usersContainer.innerHTML += `
+                <div class="glass-card page-card" style="margin-top:10px;">
+                    <img src="${getAvatarUrl(p.avatarSeed, 'user')}" class="page-icon" style="border-radius:50%; width: 50px; height: 50px; margin: 10px auto; display: block; cursor:pointer;" onclick="window.location.href='profile.html?u=${p.username}'">
+                    <div style="font-weight:800; text-align:center;">${p.name || 'Kullanıcı'}</div>
+                    <div style="font-size:0.7rem; color:var(--text-muted); margin-bottom:10px; text-align:center;">@${p.username}</div>
+                    <button class="btn-subscribe" onclick="window.location.href='profile.html?u=${p.username}'">Profiline Git</button>
+                </div>`;
+            }
+        });
+
+        // Sonuç Durumu Güncelleme
+        if (totalFound === 0) {
+            noResults.style.display = "block";
+            status.innerText = "Eşleşen sonuç bulunamadı.";
+        } else {
+            status.innerText = `${totalFound} sonuç bulundu.`;
+        }
+
+    } catch (e) {
+        console.error("Arama hatası:", e);
+        if(status) status.innerText = "Arama sırasında bir hata oluşti.";
+    }
+};
+
+// 4. Dinleyiciler ve Yardımcı Fonksiyonlar
+const mainSearchBtn = document.getElementById('mainSearchBtn');
+if(mainSearchBtn) mainSearchBtn.onclick = () => performGlobalSearch();
+
+const gSearch = document.getElementById('globalSearch');
+if(gSearch) gSearch.addEventListener('keypress', (e) => {
+    if(e.key === 'Enter') performGlobalSearch();
+});
+
+window.searchTrend = (tag) => { 
+    const gSearch = document.getElementById('globalSearch');
+    if(gSearch) {
+        gSearch.value = tag.replace('#', ''); 
+        performGlobalSearch();
+    }
+};
+
+// Zaman formatlama fonksiyonun (Aynen korundu)
 function formatTime(timestamp) {
     if(!timestamp) return "...";
     try {
@@ -478,109 +542,11 @@ function formatTime(timestamp) {
         if (diff < 3600) return `${Math.floor(diff/60)}${t.m}`;
         if (diff < 86400) return `${Math.floor(diff/3600)}${t.h}`;
         return `${Math.floor(diff/86400)}${t.d}`;
-    } catch(e) { return "..."; }}
+    } catch(e) { return "..."; }
+}
 
-document.getElementById('mainSearchBtn').addEventListener('click', function() {
-    const searchQuery = document.getElementById('globalSearch').value;
-    // Arama terimiyle birlikte yönlendirir (Örn: search.html?q=kelime)
-window.location.href = `search.html?q=${encodeURIComponent(searchQuery)}`; });
-
-// Enter tuşuna basıldığında da çalışması için:
-document.getElementById('globalSearch').addEventListener('keypress', function (e) {
-    if (e.key === 'Enter') {
-        document.getElementById('mainSearchBtn').click();
-    }
-});
-
-window.performGlobalSearch = async () => {
-      const searchInput = document.getElementById('globalSearch');
-      const queryStr = searchInput.value.trim().toLowerCase();
-     
-      if (!queryStr) return; navigateTo('search');
-        const pagesContainer = document.getElementById('search-results-pages');
-        const usersContainer = document.getElementById('search-results-users');
-        const secPages = document.getElementById('section-pages');
-         const secUsers = document.getElementById('section-users');
-        const noResults = document.getElementById('search-no-results');
-        const status = document.getElementById('searchStatus');
-        const t = translations[currentLang];
-
-      if(pagesContainer) pagesContainer.innerHTML = "";
-      if(usersContainer) usersContainer.innerHTML = "";
-      if(secPages) secPages.style.display = "none";
-      if(usersContainer && secUsers) secUsers.style.display = "none";
-      if(noResults) noResults.style.display = "none";
-      if(status) status.innerText = `"${queryStr}" için sonuçlar aranıyor...`;
-
-      try { const pagesSnap = await getDocs(collection(db, "pages"));
-          let pagesFound = 0;
-          
-          pagesSnap.forEach(docSnap => {
-              const data = docSnap.data();
-              if (data.name && data.name.toLowerCase().includes(queryStr)) {
-                  pagesFound++;
-                  const isSub = (data.subscribers || []).includes(user.username);
-                  if(pagesContainer) pagesContainer.innerHTML += `
-                  <div class="glass-card page-card">
-                      <img src="${getAvatarUrl(data.avatarSeed, 'page')}" class="page-icon" style="width: 50px; height: 50px; border-radius: 8px; margin: 10px auto; display: block;">
-                      <div style="font-weight:800; text-align:center;">${data.name}</div>
-                      <div style="font-size:0.7rem; color:var(--text-muted); margin-bottom:10px; text-align:center;">Sayfa • ${(data.subscribers || []).length} Takipçi</div>
-                      <button class="btn-subscribe ${isSub ? 'subscribed' : ''}" onclick="toggleSubscription('${docSnap.id}', ${isSub})">${isSub ? t.unsubBtn : t.subBtn}</button>
-                  </div>`;
-              }});
-
-          const postsSnap = await getDocs(collection(db, "posts"));
-          let usersFoundCount = 0;
-          let processedUsers = new Set();
-
-          postsSnap.forEach(pDoc => {
-              const p = pDoc.data();
-              const usernameMatch = p.username && p.username.toLowerCase().includes(queryStr);
-              const nameMatch = p.name && p.name.toLowerCase().includes(queryStr);
-              
-              if (p.username && !p.username.startsWith('page_') && (usernameMatch || nameMatch) && !processedUsers.has(p.username)) {
-                  processedUsers.add(p.username);
-                  usersFoundCount++;
-                  if(usersContainer) usersContainer.innerHTML += `
-                  <div class="glass-card page-card">
-                      <img src="${getAvatarUrl(p.avatarSeed, 'user')}" class="page-icon" style="border-radius:50%; width: 50px; height: 50px; margin: 10px auto; display: block; cursor:pointer;" onclick="navigateTo('${p.username === user.username ? 'profile' : 'feed'}')">
-                      <div style="font-weight:800; text-align:center; cursor:pointer;" onclick="navigateTo('${p.username === user.username ? 'profile' : 'feed'}')">${p.name || 'Kullanıcı'}</div>
-                      <div style="font-size:0.7rem; color:var(--text-muted); margin-bottom:10px; text-align:center;">@${p.username}</div>
-                      <button class="btn-subscribe" onclick="navigateTo('${p.username === user.username ? 'profile' : 'feed'}')">Profiline Git</button>
-                  </div>`;
-              }});
-
-          if (pagesFound > 0 && secPages) secPages.style.display = "block";
-          if (usersFoundCount > 0 && secUsers) secUsers.style.display = "block";
-
-          const totalFound = pagesFound + usersFoundCount;
-          if (totalFound === 0) {
-              if(noResults) noResults.style.display = "block";
-              if(status) status.innerText = `"${queryStr}" için hiçbir sonuç bulunamadı.`;
-          } else {
-              if(status) status.innerText = `"${queryStr}" için ${totalFound} sonuç bulundu.`;
-          }
-
-      } catch (e) {
-          console.error("Arama hatası:", e);
-          if(status) status.innerText = "Arama yapılırken bir hata oluştu.";
-      }};
-
-  const mainSearchBtn = document.getElementById('mainSearchBtn');
-  if(mainSearchBtn) mainSearchBtn.onclick = performGlobalSearch;
-  
-  const gSearch = document.getElementById('globalSearch');
-  if(gSearch) gSearch.addEventListener('keypress', (e) => {
-      if(e.key === 'Enter') performGlobalSearch();
-  });
-
-  window.searchTrend = (tag) => { 
-    const gSearch = document.getElementById('globalSearch');
-    if(gSearch) {
-      gSearch.value = tag; 
-      performGlobalSearch();
-    }};
-
+/* --- SEARCH SON --- */
+    
   window.likePost = async (id, isLiked) => { const ref = doc(db, "posts", id); await updateDoc(ref, { likes: isLiked ? arrayRemove(user.username) : arrayUnion(user.username) }); };
   window.toggleBookmark = async (id, isSaved) => { const ref = doc(db, "posts", id); await updateDoc(ref, { savedBy: isSaved ? arrayRemove(user.username) : arrayUnion(user.username) }); };
   window.toggleCommentSection = (id) => { const el = document.getElementById(`comments-${id}`); if(el) el.style.display = el.style.display === 'none' ? 'block' : 'none'; };

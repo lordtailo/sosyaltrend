@@ -193,14 +193,40 @@ display: flex; justify-content: flex-end; position: relative; align-items: cente
 .header-center { 
 display: flex; justify-content: center; align-items: center; gap: 10px; }
 
-.search-wrapper { 
-position: relative; width: 100%; max-width: 400px; }
-.search-wrapper input { 
-width: 100%; padding: 10px 15px 10px 45px; border-radius: 12px; border: 1px solid var(--border); background: var(--input-bg); color: var(--text-main); outline: none; }
-.search-wrapper i { 
-position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: var(--text-muted); }
-.search-btn { 
-background: var(--primary); color: white; border: none; padding: 10px 20px; border-radius: 12px; font-weight: 600; cursor: pointer; }
+/* style.css içindeki mevcut .search-wrapper kısmını bununla değiştirin */
+.search-wrapper {
+    position: relative;
+    width: 100%;
+    max-width: 450px;
+    transition: all 0.3s ease;
+}
+
+.search-wrapper input {
+    width: 100%;
+    padding: 12px 15px 12px 45px;
+    border-radius: 25px; /* Daha oval bir görünüm */
+    border: 2px solid var(--border); /* Kenarlığı biraz kalınlaştırdık */
+    background: var(--input-bg);
+    color: var(--text-main);
+    outline: none;
+    transition: border-color 0.3s, box-shadow 0.3s;
+}
+
+.search-wrapper input:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1); /* Hafif parlama efekti */
+}
+
+.search-wrapper i {
+    position: absolute;
+    left: 18px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+    font-size: 1rem;
+    pointer-events: none; /* İkonun tıklamayı engellememesi için */
+}
+/* ************************* */
 
 .profile-trigger { 
 width: 42px; height: 42px; cursor: pointer; border-radius: 50%; border: 2px solid var(--primary); overflow: hidden; }

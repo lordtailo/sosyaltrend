@@ -83,35 +83,43 @@
     </div>
   </aside>
 
-  <main id="main-content">
-<div id="page-search" class="page-content active">
-        <div class="glass-card" style="padding: 25px;">
-           <h2 id="result-text">Arama yapılıyor...</h2>
+  <main id="main-content"><div id="page-search" class="page-content active">
+    <div class="glass-card" style="padding: 25px;">
+        <div class="search-header" style="margin-bottom: 25px;">
+            <h2 id="result-text" style="margin-bottom: 5px;">Arama Sonuçları</h2>
+            <p id="searchStatus" style="color:var(--text-muted); font-size:0.9rem;">
+                <i class="fa-solid fa-circle-notch fa-spin"></i> Arama yapılıyor...
+            </p>
+        </div>
 
-<div id="search-results-container">
-    
-          <h2 data-i18n="searchHeading">Arama Sonuçları</h2>
-           
-            <p id="searchStatus" style="color:var(--text-muted); margin-bottom:20px; font-size:0.9rem;"></p>
-            <div id="section-pages" style="display:none; margin-bottom: 30px;">
-                <h3 class="section-subtitle" style="display: flex; align-items: center; gap: 8px;">
-                    <i class="fa-solid fa-flag"></i> <span data-i18n="navPages">Topluluk Sayfaları</span>
+        <div id="search-results-container">
+            <div id="section-pages" style="display:none; margin-bottom: 35px;">
+                <h3 class="section-subtitle" style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px; border-bottom: 1px solid var(--border); padding-bottom: 10px;">
+                    <i class="fa-solid fa-shapes" style="color: var(--primary);"></i> 
+                    <span data-i18n="navPages">Topluluklar</span>
                 </h3>
-                <div id="search-results-pages" class="page-grid"></div>
+                <div id="search-results-pages" class="search-grid-layout"></div>
             </div>
-            <div id="section-users" style="display:none;">
-                <h3 class="section-subtitle" style="display: flex; align-items: center; gap: 8px;">
-                    <i class="fa-solid fa-user"></i> <span>Kişiler</span>
+
+            <div id="section-users" style="display:none; margin-bottom: 35px;">
+                <h3 class="section-subtitle" style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px; border-bottom: 1px solid var(--border); padding-bottom: 10px;">
+                    <i class="fa-solid fa-user-group" style="color: var(--primary);"></i> 
+                    <span>Kişiler</span>
                 </h3>
-                <div id="search-results-users" class="page-grid"></div>
+                <div id="search-results-users" class="search-grid-layout"></div>
             </div>
-            <div id="search-no-results" style="display:none; text-align:center; padding: 40px; color: var(--text-muted);">
-                <i class="fa-solid fa-magnifying-glass" style="font-size: 3rem; margin-bottom: 15px; opacity: 0.2;"></i>
-                <p>Eşleşen sonuç bulunamadı.</p>
+
+            <div id="search-no-results" style="display:none; text-align:center; padding: 60px 20px;">
+                <div class="no-results-icon" style="position: relative; display: inline-block;">
+                    <i class="fa-solid fa-magnifying-glass" style="font-size: 4rem; color: var(--border);"></i>
+                    <i class="fa-solid fa-xmark" style="position: absolute; bottom: 0; right: 0; color: #ff4d4d; font-size: 1.5rem;"></i>
+                </div>
+                <h3 style="margin-top: 20px; color: var(--text-main);">Eşleşen sonuç bulunamadı</h3>
+                <p style="color: var(--text-muted);">Lütfen farklı anahtar kelimelerle tekrar deneyin.</p>
             </div>
         </div>
-</div>
     </div>
+</div>
   </main>
 
   <aside class="right-panel">
