@@ -23,6 +23,7 @@ body {
     display: flex; 
     flex-direction: column; 
 }
+/* ************************************ */
 
 /* DARK MODE */
 body.dark-mode {
@@ -33,6 +34,14 @@ body.dark-mode {
   --border:#334155;
   --shadow:0 4px 6px -1px rgba(0,0,0,.5);
   --input-bg:#0f172a;
+}
+body.dark-mode .theme-btn{
+  background:linear-gradient(145deg, #1e293b, #020617);
+  border-color:#475569;
+}
+
+body.dark-mode .theme-btn i{
+  transform:rotate(180deg) scale(1.1);
 }
 
 .theme-btn{
@@ -68,21 +77,12 @@ body.dark-mode {
 
 .theme-btn:hover{
   transform:rotate(12deg) scale(1.08);
-  color:#fff;
+  
 }
 
 .theme-btn i{
   font-size:1.1rem;
   transition:transform .4s ease, opacity .25s ease;
-}
-
-body.dark-mode .theme-btn{
-  background:linear-gradient(145deg, #1e293b, #020617);
-  border-color:#475569;
-}
-
-body.dark-mode .theme-btn i{
-  transform:rotate(180deg) scale(1.1);
 }
 
 * { 
