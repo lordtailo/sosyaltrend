@@ -207,47 +207,6 @@
 
 <script type="module" src="assets/js/app.js"></script>
 <script type="module" src="assets/js/app2.js"></script>
-
-<script>
-let selectedImageBase64 = null;
-
-function previewPostImage(input) {
-    const file = input.files[0];
-    if (file) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            selectedImageBase64 = e.target.result;
-            document.getElementById('postImagePreview').src = e.target.result;
-            document.getElementById('imagePreviewContainer').style.display = 'block';
-        };
-        reader.readAsDataURL(file);
-    }
-}
-
-function removeSelectedImage() {
-    selectedImageBase64 = null;
-    document.getElementById('postImageInput').value = "";
-    document.getElementById('imagePreviewContainer').style.display = 'none';
-}
-
-function togglePollCreator() {
-    const el = document.getElementById('pollCreator');
-    el.style.display = (el.style.display === 'none') ? 'block' : 'none';
-}
-
-function addPollOption() {
-    const container = document.getElementById('pollOptionsList');
-    if (container.children.length < 4) {
-        const input = document.createElement('input');
-        input.type = 'text';
-        input.className = 'poll-option-input';
-        input.placeholder = `Seçenek ${container.children.length + 1}`;
-        input.style = "width:100%; margin-bottom:5px; background: transparent; border: 1px solid var(--border); color: var(--text-main); padding: 8px; border-radius: 8px;";
-        container.appendChild(input);
-    }
-}
-</script>
-
 <script type="module">
   // Firebase fonksiyonlarını app.js ile uyumlu şekilde import ediyoruz
   import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
