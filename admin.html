@@ -40,19 +40,15 @@
         .btn-delete { background: rgba(239, 68, 68, 0.1); color: var(--danger); }
         .btn-delete:hover { background: var(--danger); color: white; }
     </style>
-  <div class="top-bar">
-    <div class="top-bar-left">
-      <span id="welcomeMessage" style="opacity: 0.8;"><i class="fa-solid fa-circle-check" style="font-size: 0.6rem; animation: pulse 2s infinite;"></i> Yükleniyor...</span>
-    </div>
-    <div class="top-bar-right"><span id="topBarDateTime"><i class="fa-regular fa-clock"></i> Yükleniyor...</span></div>
-  </div><header>
+  
+  <header>
   <div class="header-left">
     <a href="index.html" onclick="navigateTo('feed')" style="color:var(--text-main); font-size: 1.3rem; text-decoration: none; display: flex; align-items: center; gap: 10px;">
     <span class="logo" style="font-weight: bold;">SosyalTrend</span>
     </a>
   </div>
   <form id="mainSearchBtn" action="search.html" method="GET" class="header-center">
-    <div class="search-wrapper">
+    <div class="search-wrapper"><i class="fa-solid fa-magnifying-glass"></i>
       <input type="text" name="q" id="globalSearch" data-i18n-placeholder="searchPlaceholder">
     </div>
   </form>
