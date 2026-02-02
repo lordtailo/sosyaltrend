@@ -477,29 +477,18 @@ window.performGlobalSearch = async (forcedQuery = null) => {
             }
         });
 
-        // --- C. FIREBASE KULLANICI ARAMASI ---
-        const postsSnap = await getDocs(collection(db, "posts"));
-        let processedUsers = new Set();
+        const usersRef = collection(db, "users"); // Eğer users tablonuz varsa
+const q = query(
+    usersRef, 
+    where("username", ">=", queryStr), 
+    where("username", "<=", queryStr + "\uf8ff"),
+    limit(10) // Sadece ilk 10 sonucu getir
+);
 
-        postsSnap.forEach(pDoc => {
-            const p = pDoc.data();
-            const usernameMatch = p.username && p.username.toLowerCase().includes(queryStr);
-            const nameMatch = p.name && p.name.toLowerCase().includes(queryStr);
-            
-            if (p.username && !p.username.startsWith('page_') && (usernameMatch || nameMatch) && !processedUsers.has(p.username)) {
-                processedUsers.add(p.username);
-                totalFound++;
-                secUsers.style.display = "block";
-                usersContainer.innerHTML += `
-                <div class="glass-card page-card" style="margin-top:10px;">
-                    <img src="${getAvatarUrl(p.avatarSeed, 'user')}" class="page-icon" style="border-radius:50%; width: 50px; height: 50px; margin: 10px auto; display: block; cursor:pointer;" onclick="window.location.href='profile.html?u=${p.username}'">
-                    <div style="font-weight:800; text-align:center;">${p.name || 'Kullanıcı'}</div>
-                    <div style="font-size:0.7rem; color:var(--text-muted); margin-bottom:10px; text-align:center;">@${p.username}</div>
-                    <button class="btn-subscribe" onclick="window.location.href='profile.html?u=${p.username}'">Profiline Git</button>
-                </div>`;
-            }
-        });
-
+const querySnapshot = await getDocs(q);
+querySnapshot.forEach((doc) => {
+    // Sadece eşleşen 10 kişiyi ekrana bas
+});
         // Sonuç Durumu Güncelleme
         if (totalFound === 0) {
             noResults.style.display = "block";
@@ -943,21 +932,39 @@ const shareGundem = async () => {
     } catch (err) { console.error("Hata:", err); }
 };
 
+// Fonksiyonun başına async eklemene gerek yok çünkü onSnapshot kullanıyorsun
 const fetchGundem = (filter = "all") => {
     currentGundemFilter = filter;
     const feed = $('gundemFeed');
     if(!feed) return;
 
-    const q = query(collection(db, "gundem"), orderBy("timestamp", "desc"), limit(gundemLimit));
+    // 1. ÖNEMLİ: Sorguyu filtreye göre oluşturursan veritabanı daha az yorulur
+    let q;
+    if (filter === "all") {
+        q = query(collection(db, "gundem"), orderBy("timestamp", "desc"), limit(gundemLimit));
+    } else {
+        // Eğer kategori seçiliyse sadece o kategoriyi çek (Hız kazandırır)
+        q = query(collection(db, "gundem"), where("category", "==", filter), orderBy("timestamp", "desc"), limit(gundemLimit));
+    }
 
+    // onSnapshot otomatik dinler, await gerektirmez
     onSnapshot(q, (snapshot) => {
         let html = "";
+        if (snapshot.empty) {
+            feed.innerHTML = "<div style='text-align:center; padding:20px;'>Henüz içerik yok.</div>";
+            return;}
         snapshot.forEach((docSnap) => {
             const data = docSnap.data();
-            if (filter !== "all" && data.category !== filter) return;
-
-            const isOwner = (auth.currentUser?.displayName === data.author) || user.isAdmin;
-            const time = data.timestamp ? new Date(data.timestamp.seconds * 1000).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : "...";
+            // 2. ÖNEMLİ: Eğer yukarıda 'where' kullandıysan burada tekrar if kontrolüne gerek kalmaz
+            // Bu da tarayıcının boşuna işlem yapmasını engeller.
+            const isOwner = (auth.currentUser?.displayName === data.author) || (typeof user !== 'undefined' && user.isAdmin);
+            
+            // Zaman formatı hatasını önlemek için kontrol
+            let time = "...";
+            if (data.timestamp) {
+                const dateObj = data.timestamp.toDate ? data.timestamp.toDate() : new Date(data.timestamp.seconds * 1000);
+                time = dateObj.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            }
 
             html += `
                 <div class="g-card cat-${data.category}">
