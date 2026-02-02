@@ -327,6 +327,11 @@ function getAvatarUrl(seed, type = 'user') {
 
   function updateUIWithUser() {
     const avatarUrl = getAvatarUrl(user.avatarSeed, 'user');
+
+    // Resimleri Güncelle
+    if(hAv) hAv.src = avatarUrl;
+    if(sAv) sAv.src = avatarUrl;
+    if(pAv) pAv.src = avatarUrl;
     
     // --- ELEMENT TANIMLAMALARI ---
     const welcomeEl = document.getElementById('welcomeMessage'); 
