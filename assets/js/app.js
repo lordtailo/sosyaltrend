@@ -895,86 +895,59 @@ onSnapshot(postsQuery, (snap) => {
     if(myLikes) myLikes.appendChild(fragments.myLikes);
     if(bookItems) bookItems.appendChild(fragments.bookItems);
 });
-// 1. Paylaşım Butonu (Çift basımı engelleme eklendi)
-const shareBtn = document.getElementById('shareBtn');
-if (shareBtn) {
-    // Önceki event'i temizlemek için (Eğer kod tekrar çalışırsa)
-    shareBtn.onclick = null; 
+
+  const shareBtn = document.getElementById('shareBtn');
+  if(shareBtn) {
     shareBtn.onclick = async () => {
-        const inputEl = document.getElementById('postInput');
-        const val = inputEl.value.trim();
-        if (val) {
-            shareBtn.disabled = true; // Gönderilirken butonu kilitle
-            try {
-                await addDoc(collection(db, "posts"), { 
-                    name: user.displayName, 
-                    username: user.username, 
-                    avatarSeed: user.avatarSeed, 
-                    content: val, 
-                    timestamp: serverTimestamp(), 
-                    likes: [], 
-                    savedBy: [], 
-                    comments: [] 
-                });
-                inputEl.value = "";
-            } catch (e) {
-                console.error("Hata:", e);
-            } finally {
-                shareBtn.disabled = false;
-            }
-        }
+      const val = document.getElementById('postInput').value.trim();
+      if(val) {
+        await addDoc(collection(db, "posts"), { 
+            name: user.displayName, 
+            username: user.username, 
+            avatarSeed: user.avatarSeed, 
+            content: val, 
+            timestamp: serverTimestamp(), 
+            likes: [], 
+            savedBy: [], 
+            comments: [] 
+        });
+        document.getElementById('postInput').value = "";
+      }
     };
-}
+  }
 
-// 2. Saat Fonksiyonu (Bellek dostu hale getirildi)
-// Eğer daha önce çalışan bir saat varsa durdur
-if (window.clockInterval) clearInterval(window.clockInterval);
-
-const updateAllClocks = () => {
+  setInterval(() => {
     const n = new Date();
-    const sH = document.getElementById('secHand'),
-          mH = document.getElementById('minHand'),
-          hH = document.getElementById('hourHand'),
-          dC = document.getElementById('digiClock'),
-          dD = document.getElementById('dateDisplay');
+    const sH = document.getElementById('secHand');
+    const mH = document.getElementById('minHand');
+    const hH = document.getElementById('hourHand');
+    const dC = document.getElementById('digiClock');
+    const dD = document.getElementById('dateDisplay');
 
     if(sH) sH.style.transform = `translateX(-50%) rotate(${n.getSeconds()*6}deg)`;
     if(mH) mH.style.transform = `translateX(-50%) rotate(${n.getMinutes()*6}deg)`;
     if(hH) hH.style.transform = `translateX(-50%) rotate(${(n.getHours()*30)+(n.getMinutes()/2)}deg)`;
-    
-    const timeStr = n.toLocaleTimeString(currentLang === 'tr' ? 'tr-TR' : 'en-US');
-    if(dC && dC.innerText !== timeStr) dC.innerText = timeStr;
+    if(dC) dC.innerText = n.toLocaleTimeString(currentLang === 'tr' ? 'tr-TR' : 'en-US');
     
     if(dD) {
-        const options = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' };
-        const dateStr = n.toLocaleDateString(currentLang === 'tr' ? 'tr-TR' : 'en-US', options);
-        if(dD.innerText !== dateStr) dD.innerText = dateStr;
+      const options = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' };
+      dD.innerText = n.toLocaleDateString(currentLang === 'tr' ? 'tr-TR' : 'en-US', options);
     }
-};
+  }, 1000);
 
-updateAllClocks(); // İlk açılışta çalıştır
-window.clockInterval = setInterval(updateAllClocks, 1000);
-
-// 3. Menü ve Tıklama Yönetimi (Event listener kullanımı)
-const profileTrigger = document.getElementById('profileTrigger');
-const dropdownMenu = document.getElementById('dropdownMenu');
-
-if (profileTrigger) {
+  const profileTrigger = document.getElementById('profileTrigger');
+  if(profileTrigger) {
     profileTrigger.onclick = (e) => { 
-        e.stopPropagation(); 
-        if(dropdownMenu) dropdownMenu.classList.toggle('active'); 
+      e.stopPropagation(); 
+      const menu = document.getElementById('dropdownMenu');
+      if(menu) menu.classList.toggle('active'); 
     };
-}
+  }
 
-// window.onclick yerine addEventListener kullanmak daha sağlıklıdır
-const handleGlobalClick = () => {
-    if(dropdownMenu && dropdownMenu.classList.contains('active')) {
-        dropdownMenu.classList.remove('active');
-    }
-};
-
-window.removeEventListener('click', handleGlobalClick);
-window.addEventListener('click', handleGlobalClick);
+  window.onclick = () => {
+    const menu = document.getElementById('dropdownMenu');
+    if(menu) menu.classList.remove('active');
+  };
 /* ============================ */
 
 /* GÜNDEM KODLARI */
