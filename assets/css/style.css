@@ -305,7 +305,15 @@ font-size: 0.9rem; font-weight: 800; color: var(--primary); margin: 20px 0 10px;
 aside, .right-panel { display: none; } }
 
 /* Gündem Sayfası Özel Tasarımı */
-/* Gündem styles removed (no matching HTML files in workspace); keep backup in style.css.bak */
+/* Minimal Gündem / card styles (kept lightweight) */
+.g-card{background:var(--card-bg);padding:12px;border-radius:12px;margin-bottom:12px;border-left:4px solid #e5e7eb}
+.g-card .g-author{font-size:0.85rem;color:var(--text-muted);margin-top:6px}
+.g-badge{font-size:0.7rem;font-weight:700;padding:3px 8px;border-radius:6px;background:#f1f5f9}
+
+/* comment helpers used by JS */
+.comment-meta{font-weight:700;margin-right:6px;color:var(--primary)}
+.comment-del-btn{background:none;border:none;color:#ef4444;cursor:pointer;opacity:0.8;transition:0.15s}
+.comment-del-btn:hover{opacity:1}
 .gundem-del-btn:hover {
     opacity: 0.7;}
 
