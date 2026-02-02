@@ -30,38 +30,20 @@ document.addEventListener('DOMContentLoaded', loadComponents);
 
 const ADMIN_EMAIL = "officialfthuzun@gmail.com";
 
-onAuthStateChanged(auth, (fbUser) => {
-    if (!fbUser) {
-        window.location.href = 'login.html';
-    } else {
-        // Kullanıcı bilgilerini güncelle
-        user.username = fbUser.email.split('@')[0];
-        user.displayName = localStorage.getItem('st_displayName') || fbUser.displayName || user.username;
-        
-        // Avatar kalıcılığı
-        const savedAvatar = localStorage.getItem('st_avatar');
-        user.avatarSeed = savedAvatar || "Felix"; 
-
-        // Admin Kontrolü
-        user.isAdmin = fbUser.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
-        
-        // UI Güncelleme (Profil resmi, isimler vb.)
-        updateUIWithUser(); 
-
-        // ADMIN ÖZEL İŞLEMLERİ
-        const adminBtn = document.getElementById('adminMenuBtn');
-        if (user.isAdmin) {
-            // İstatistikleri çek
-            updateAdminStats();
-            // HTML'deki butonu görünür yap
-            if (adminBtn) {
-                adminBtn.style.display = 'flex'; // Veya 'block', tasarımınıza göre
-            }
-        } else {
-            // Eğer admin değilse butonu gizle (Güvenlik için önlem)
-            if (adminBtn) {
-                adminBtn.style.display = 'none';
-            }
+onAuthStateChanged(auth, async (authUser) => {
+    if (authUser) {
+        // Firestore'dan kullanıcı bilgilerini getir
+        const userDoc = await getDoc(doc(db, "users", authUser.uid));
+        if (userDoc.exists()) {
+            const userData = userDoc.data();
+            
+            // Cihaz fark etmeksizin veritabanındaki fotoğrafı kullan
+            user.avatarSeed = userData.avatarSeed || "default_seed"; 
+            user.username = userData.username;
+            user.displayName = userData.displayName;
+            
+            // Arayüzü güncelle
+            updateUIWithUser();
         }
     }
 });
@@ -133,32 +115,33 @@ window.handleUrlInput = (input) => {
     }
 };
 
-window.saveProfileChanges = () => {
-    const name = document.getElementById('newNameInput').value.trim();
-    const urlInput = document.getElementById('newAvatarUrlInput').value.trim();
+window.saveProfileChanges = async () => {
+    const newDn = document.getElementById('editDisplayName').value;
+    const newBio = document.getElementById('editBio').value;
+    
+    // user.avatarSeed burada yeni yüklediğiniz fotoğrafın base64 kodudur
+    const updatedData = {
+        displayName: newDn,
+        bio: newBio,
+        avatarSeed: user.avatarSeed // Kritik nokta: Veritabanına kaydediyoruz
+    };
 
-    if(name) { 
-        user.displayName = name; 
-        localStorage.setItem('st_displayName', name); 
+    try {
+        // Firestore'daki kullanıcı dökümanını güncelle
+        const userDocRef = doc(db, "users", user.uid);
+        await updateDoc(userDocRef, updatedData);
+        
+        // Yerel objeyi ve localStorage'ı da güncelle
+        user.displayName = newDn;
+        user.bio = newBio;
+        localStorage.setItem('st_avatar', user.avatarSeed); 
+        
+        alert("Profil başarıyla güncellendi! Artık tüm cihazlarda aynı görünecek.");
+        closeModal('editProfileModal');
+        updateUIWithUser();
+    } catch (error) {
+        console.error("Güncelleme hatası:", error);
     }
-    
-    // Öncelik: Yüklenen Dosya/DiceBear > URL Input
-    if(tempAvatarBuffer) {
-        user.avatarSeed = tempAvatarBuffer;
-        localStorage.setItem('st_avatar', tempAvatarBuffer);
-    } else if(urlInput) {
-        user.avatarSeed = urlInput;
-        localStorage.setItem('st_avatar', urlInput);
-    }
-
-    // Arayüzü yeni bilgilerle tekrar çiz
-    updateUIWithUser();
-    
-    // Formu kapat
-    window.toggleEditProfile();
-    
-    alert("Profil başarıyla güncellendi!");
-    // location.reload(); // İstersen bunu kaldırabilirsin, updateUIWithUser işi çözer.
 };
 
   window.updateUserEmail = async () => {
@@ -325,67 +308,58 @@ function getAvatarUrl(seed, type = 'user') {
     return `https://api.dicebear.com/7.x/${collection}/svg?seed=${encodeURIComponent(seed)}`;
 }
 
-  function updateUIWithUser() {
+function updateUIWithUser() {
+    // 1. Güncel avatar URL'ini al
     const avatarUrl = getAvatarUrl(user.avatarSeed, 'user');
-
-    // Resimleri Güncelle
-    if(hAv) hAv.src = avatarUrl;
-    if(sAv) sAv.src = avatarUrl;
-    if(pAv) pAv.src = avatarUrl;
     
-    // --- ELEMENT TANIMLAMALARI ---
-    const welcomeEl = document.getElementById('welcomeMessage'); 
+    // 2. Elementleri Tanımla (Önce tanımlama, sonra kullanım)
+    const welcomeEl = document.getElementById('welcomeMessage');
     const hAv = document.getElementById('headerAvatar');
     const mDn = document.getElementById('menuDisplayName');
     const mUn = document.getElementById('menuUsername');
-
-    // Sol Menü
+    
     const sAv = document.getElementById('sidebarAvatar');
     const sDn = document.getElementById('sidebarDisplayName');
     const sUn = document.getElementById('sidebarUsername');
-
-    // Profil Sayfası
+    
     const pAv = document.getElementById('profilePageAvatar');
     const pPn = document.getElementById('profilePageName');
     const pPh = document.getElementById('profilePageHandle');
 
-    // Gizlilik Ayarları
     const pTg = document.getElementById('privacyToggle');
     const sPi = document.getElementById('selfPrivateIndicator');
 
-    /* ============================ */
-
-    // --- GÜNCELLEMELER ---
-    
-    // Üst Bar Karşılama Mesajı
+    // 3. Sabit UI Elemanlarını Güncelle
     if (welcomeEl) {
         const currentName = user.username || user.displayName || "misafir";
         welcomeEl.innerHTML = `<i class="fa-solid fa-circle-check" style="font-size: 0.6rem; animation: pulse 2s infinite;"></i> ${currentName.toLowerCase()}, Hoş geldin!`;
     }
 
-    // Header Güncelleme
+    // Resimleri ata
     if(hAv) hAv.src = avatarUrl;
+    if(sAv) sAv.src = avatarUrl;
+    if(pAv) pAv.src = avatarUrl;
+
+    // Metinleri ata
     if(mDn) mDn.innerText = user.displayName;
     if(mUn) mUn.innerText = `@${user.username}`;
-
-    // Sol Menü Güncelleme
-    if(sAv) sAv.src = avatarUrl;
     if(sDn) sDn.innerText = user.displayName;
     if(sUn) sUn.innerText = `@${user.username}`;
-
-    // Profil Sayfası Güncelleme
-    if(pAv) pAv.src = avatarUrl;
     if(pPn) pPn.innerText = user.displayName;
     if(pPh) pPh.innerText = `@${user.username}`;
 
-    // --- YORUMLAR VE POSTLARDAKİ AVATARLARI GÜNCELLE ---
-    // Sayfadaki tüm resimleri tara, 'data-uid' değeri senin UID'n olanları bul ve değiştir
-    const allInteractionAvatars = document.querySelectorAll(`img[data-uid="${user.uid}"]`);
-    allInteractionAvatars.forEach(img => {
+    // 4. KRİTİK: Dinamik Yorum ve Post Avatarlarını Güncelle
+    // Hem data-user hem de data-uid kullanan tüm img etiketlerini tek seferde güncelle
+    const selectors = [
+        `img[data-user="${user.username}"]`,
+        `img[data-uid="${user.uid}"]`
+    ];
+    
+    document.querySelectorAll(selectors.join(',')).forEach(img => {
         img.src = avatarUrl;
     });
 
-    // Gizlilik Durumu Güncelleme
+    // 5. Gizlilik Ayarları
     if(pTg) pTg.checked = isPrivate;
     if(sPi) sPi.style.display = isPrivate ? 'block' : 'none';
 }
