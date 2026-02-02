@@ -88,14 +88,24 @@ let tempAvatarBuffer = null;
 window.handleFileSelect = (input) => {
     const file = input.files[0];
     if (file) {
-        if (file.size > 2 * 1024 * 1024) { alert("Dosya boyutu çok büyük! Maksimum 2MB yükleyebilirsiniz.");return;}
-            const reader = new FileReader();
-                reader.onload = (e) => {
-                    tempAvatarBuffer = e.target.result;
-                        document.getElementById('profilePageAvatar').src = e.target.result;
-                        document.getElementById('newAvatarUrlInput').value = ""; // URL alanını temizle
-                };
-                reader.readAsDataURL(file);
+        if (file.size > 2 * 1024 * 1024) { 
+            alert("Dosya boyutu çok büyük! Maksimum 2MB yükleyebilirsiniz."); 
+            return;
+        }
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            tempAvatarBuffer = e.target.result;
+            
+            // Tüm avatar alanlarını anında güncelle (Önizleme)
+            const avatarElements = ['profilePageAvatar', 'headerAvatar', 'sidebarAvatar'];
+            avatarElements.forEach(id => {
+                const el = document.getElementById(id);
+                if(el) el.src = e.target.result;
+            });
+            
+            document.getElementById('newAvatarUrlInput').value = ""; 
+        };
+        reader.readAsDataURL(file);
     }
 };
 
@@ -112,10 +122,16 @@ window.handleUrlInput = (input) => {
     if(seed) {
         const newUrl = `https://api.dicebear.com/7.x/avataaars/svg?seed=${seed}`;
         document.getElementById('newAvatarUrlInput').value = "";
-        document.getElementById('profilePageAvatar').src = newUrl;
-        tempAvatarBuffer = newUrl; // Dicebear linkini buffer'a al
+        tempAvatarBuffer = newUrl;
+
+        // Tüm alanlarda önizleme yap
+        const avatarElements = ['profilePageAvatar', 'headerAvatar', 'sidebarAvatar'];
+        avatarElements.forEach(id => {
+            const el = document.getElementById(id);
+            if(el) el.src = newUrl;
+        });
     }
-  };
+};
 
   window.saveProfileChanges = () => {
     const name = document.getElementById('newNameInput').value.trim();
@@ -126,7 +142,7 @@ window.handleUrlInput = (input) => {
         localStorage.setItem('st_displayName', name); 
     }
     
-    // Oncelik: Yuklenen Dosya/DiceBear > URL Input
+    // Öncelik: Yüklenen Dosya/DiceBear > URL Input
     if(tempAvatarBuffer) {
         user.avatarSeed = tempAvatarBuffer;
         localStorage.setItem('st_avatar', tempAvatarBuffer);
@@ -135,14 +151,15 @@ window.handleUrlInput = (input) => {
         localStorage.setItem('st_avatar', urlInput);
     }
 
-    finishUpdate();
-  };
-
-  function finishUpdate() {
+    // Arayüzü yeni bilgilerle tekrar çiz
+    updateUIWithUser();
+    
+    // Formu kapat
+    window.toggleEditProfile();
+    
     alert("Profil başarıyla güncellendi!");
-    location.reload();
-  }
-
+    // location.reload(); // İstersen bunu kaldırabilirsin, updateUIWithUser işi çözer.
+};
 
   window.updateUserEmail = async () => {
     const mail = prompt("Yeni e-posta:");
@@ -312,7 +329,7 @@ function getAvatarUrl(seed, type = 'user') {
     const avatarUrl = getAvatarUrl(user.avatarSeed, 'user');
     
     // --- ELEMENT TANIMLAMALARI ---
-    const welcomeEl = document.getElementById('welcomeMessage'); // Karşılama metni
+    const welcomeEl = document.getElementById('welcomeMessage'); 
     const hAv = document.getElementById('headerAvatar');
     const mDn = document.getElementById('menuDisplayName');
     const mUn = document.getElementById('menuUsername');
@@ -330,12 +347,13 @@ function getAvatarUrl(seed, type = 'user') {
     // Gizlilik Ayarları
     const pTg = document.getElementById('privacyToggle');
     const sPi = document.getElementById('selfPrivateIndicator');
-/* ============================ */
+
+    /* ============================ */
 
     // --- GÜNCELLEMELER ---
-    // Üst Bar Karşılama Mesajı Güncelleme
+    
+    // Üst Bar Karşılama Mesajı
     if (welcomeEl) {
-        // user.displayName veya user.username kullanarak içeriği değiştiriyoruz
         const currentName = user.username || user.displayName || "misafir";
         welcomeEl.innerHTML = `<i class="fa-solid fa-circle-check" style="font-size: 0.6rem; animation: pulse 2s infinite;"></i> ${currentName.toLowerCase()}, Hoş geldin!`;
     }
@@ -355,37 +373,17 @@ function getAvatarUrl(seed, type = 'user') {
     if(pPn) pPn.innerText = user.displayName;
     if(pPh) pPh.innerText = `@${user.username}`;
 
+    // --- YORUMLAR VE POSTLARDAKİ AVATARLARI GÜNCELLE ---
+    // Sayfadaki tüm resimleri tara, 'data-uid' değeri senin UID'n olanları bul ve değiştir
+    const allInteractionAvatars = document.querySelectorAll(`img[data-uid="${user.uid}"]`);
+    allInteractionAvatars.forEach(img => {
+        img.src = avatarUrl;
+    });
+
     // Gizlilik Durumu Güncelleme
     if(pTg) pTg.checked = isPrivate;
     if(sPi) sPi.style.display = isPrivate ? 'block' : 'none';
 }
-
-window.togglePrivacy = () => {
-      isPrivate = document.getElementById('privacyToggle').checked;
-      localStorage.setItem('st_isPrivate', isPrivate);
-      updateUIWithUser();
-  };
-
-window.navigateTo = (pageId) => {
-      console.log(pageId + " sayfasına gidiliyor...");
-      
-      if(pageId === 'admin' && !user.isAdmin) {
-          alert("Bu bölüme sadece yönetici erişebilir!");
-          window.navigateTo('feed'); return;
-        }
-
-      // Sayfa içeriklerini gizle/göster
-      document.querySelectorAll('.page-content').forEach(p => p.classList.remove('active'));
-      const target = document.getElementById('page-' + pageId);
-      if(target) target.classList.add('active');
-
-      // Navigasyon butonlarını aktif yap
-      document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
-      const btn = document.getElementById('btn-' + pageId);
-      if(btn) btn.classList.add('active');
-      window.scrollTo(0,0);
-};
-
 
 //* SEARCH ARAMA FONKSIYONLARI *//
 const staticDatabase = {
