@@ -88,14 +88,24 @@ let tempAvatarBuffer = null;
 window.handleFileSelect = (input) => {
     const file = input.files[0];
     if (file) {
-        if (file.size > 2 * 1024 * 1024) { alert("Dosya boyutu çok büyük! Maksimum 2MB yükleyebilirsiniz.");return;}
-            const reader = new FileReader();
-                reader.onload = (e) => {
-                    tempAvatarBuffer = e.target.result;
-                        document.getElementById('profilePageAvatar').src = e.target.result;
-                        document.getElementById('newAvatarUrlInput').value = ""; // URL alanını temizle
-                };
-                reader.readAsDataURL(file);
+        if (file.size > 2 * 1024 * 1024) { 
+            alert("Dosya boyutu çok büyük! Maksimum 2MB yükleyebilirsiniz."); 
+            return;
+        }
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            tempAvatarBuffer = e.target.result;
+            
+            // Tüm avatar alanlarını anında güncelle (Önizleme)
+            const avatarElements = ['profilePageAvatar', 'headerAvatar', 'sidebarAvatar'];
+            avatarElements.forEach(id => {
+                const el = document.getElementById(id);
+                if(el) el.src = e.target.result;
+            });
+            
+            document.getElementById('newAvatarUrlInput').value = ""; 
+        };
+        reader.readAsDataURL(file);
     }
 };
 
@@ -112,10 +122,16 @@ window.handleUrlInput = (input) => {
     if(seed) {
         const newUrl = `https://api.dicebear.com/7.x/avataaars/svg?seed=${seed}`;
         document.getElementById('newAvatarUrlInput').value = "";
-        document.getElementById('profilePageAvatar').src = newUrl;
-        tempAvatarBuffer = newUrl; // Dicebear linkini buffer'a al
+        tempAvatarBuffer = newUrl;
+
+        // Tüm alanlarda önizleme yap
+        const avatarElements = ['profilePageAvatar', 'headerAvatar', 'sidebarAvatar'];
+        avatarElements.forEach(id => {
+            const el = document.getElementById(id);
+            if(el) el.src = newUrl;
+        });
     }
-  };
+};
 
   window.saveProfileChanges = () => {
     const name = document.getElementById('newNameInput').value.trim();
@@ -126,7 +142,7 @@ window.handleUrlInput = (input) => {
         localStorage.setItem('st_displayName', name); 
     }
     
-    // Oncelik: Yuklenen Dosya/DiceBear > URL Input
+    // Öncelik: Yüklenen Dosya/DiceBear > URL Input
     if(tempAvatarBuffer) {
         user.avatarSeed = tempAvatarBuffer;
         localStorage.setItem('st_avatar', tempAvatarBuffer);
@@ -135,14 +151,15 @@ window.handleUrlInput = (input) => {
         localStorage.setItem('st_avatar', urlInput);
     }
 
-    finishUpdate();
-  };
-
-  function finishUpdate() {
+    // Arayüzü yeni bilgilerle tekrar çiz
+    updateUIWithUser();
+    
+    // Formu kapat
+    window.toggleEditProfile();
+    
     alert("Profil başarıyla güncellendi!");
-    location.reload();
-  }
-
+    // location.reload(); // İstersen bunu kaldırabilirsin, updateUIWithUser işi çözer.
+};
 
   window.updateUserEmail = async () => {
     const mail = prompt("Yeni e-posta:");
