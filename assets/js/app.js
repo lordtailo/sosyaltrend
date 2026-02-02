@@ -88,24 +88,14 @@ let tempAvatarBuffer = null;
 window.handleFileSelect = (input) => {
     const file = input.files[0];
     if (file) {
-        if (file.size > 2 * 1024 * 1024) { 
-            alert("Dosya boyutu çok büyük! Maksimum 2MB yükleyebilirsiniz."); 
-            return;
-        }
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            tempAvatarBuffer = e.target.result;
-            
-            // Tüm avatar alanlarını anında güncelle (Önizleme)
-            const avatarElements = ['profilePageAvatar', 'headerAvatar', 'sidebarAvatar'];
-            avatarElements.forEach(id => {
-                const el = document.getElementById(id);
-                if(el) el.src = e.target.result;
-            });
-            
-            document.getElementById('newAvatarUrlInput').value = ""; 
-        };
-        reader.readAsDataURL(file);
+        if (file.size > 2 * 1024 * 1024) { alert("Dosya boyutu çok büyük! Maksimum 2MB yükleyebilirsiniz.");return;}
+            const reader = new FileReader();
+                reader.onload = (e) => {
+                    tempAvatarBuffer = e.target.result;
+                        document.getElementById('profilePageAvatar').src = e.target.result;
+                        document.getElementById('newAvatarUrlInput').value = ""; // URL alanını temizle
+                };
+                reader.readAsDataURL(file);
     }
 };
 
@@ -122,45 +112,37 @@ window.handleUrlInput = (input) => {
     if(seed) {
         const newUrl = `https://api.dicebear.com/7.x/avataaars/svg?seed=${seed}`;
         document.getElementById('newAvatarUrlInput').value = "";
-        tempAvatarBuffer = newUrl;
-
-        // Tüm alanlarda önizleme yap
-        const avatarElements = ['profilePageAvatar', 'headerAvatar', 'sidebarAvatar'];
-        avatarElements.forEach(id => {
-            const el = document.getElementById(id);
-            if(el) el.src = newUrl;
-        });
+        document.getElementById('profilePageAvatar').src = newUrl;
+        tempAvatarBuffer = newUrl; // Dicebear linkini buffer'a al
     }
-};
+  };
 
-window.saveProfileChanges = async () => {
-    const newDn = document.getElementById('editDisplayName').value;
-    const newBio = document.getElementById('editBio').value;
+  window.saveProfileChanges = () => {
+    const name = document.getElementById('newNameInput').value.trim();
+    const urlInput = document.getElementById('newAvatarUrlInput').value.trim();
+
+    if(name) { 
+        user.displayName = name; 
+        localStorage.setItem('st_displayName', name); 
+    }
     
-    // user.avatarSeed burada yeni yüklediğiniz fotoğrafın base64 kodudur
-    const updatedData = {
-        displayName: newDn,
-        bio: newBio,
-        avatarSeed: user.avatarSeed // Kritik nokta: Veritabanına kaydediyoruz
-    };
-
-    try {
-        // Firestore'daki kullanıcı dökümanını güncelle
-        const userDocRef = doc(db, "users", user.uid);
-        await updateDoc(userDocRef, updatedData);
-        
-        // Yerel objeyi ve localStorage'ı da güncelle
-        user.displayName = newDn;
-        user.bio = newBio;
-        localStorage.setItem('st_avatar', user.avatarSeed); 
-        
-        alert("Profil başarıyla güncellendi! Artık tüm cihazlarda aynı görünecek.");
-        closeModal('editProfileModal');
-        updateUIWithUser();
-    } catch (error) {
-        console.error("Güncelleme hatası:", error);
+    // Oncelik: Yuklenen Dosya/DiceBear > URL Input
+    if(tempAvatarBuffer) {
+        user.avatarSeed = tempAvatarBuffer;
+        localStorage.setItem('st_avatar', tempAvatarBuffer);
+    } else if(urlInput) {
+        user.avatarSeed = urlInput;
+        localStorage.setItem('st_avatar', urlInput);
     }
-};
+
+    finishUpdate();
+  };
+
+  function finishUpdate() {
+    alert("Profil başarıyla güncellendi!");
+    location.reload();
+  }
+
 
   window.updateUserEmail = async () => {
     const mail = prompt("Yeni e-posta:");
@@ -326,61 +308,84 @@ function getAvatarUrl(seed, type = 'user') {
     return `https://api.dicebear.com/7.x/${collection}/svg?seed=${encodeURIComponent(seed)}`;
 }
 
-function updateUIWithUser() {
-    // 1. Güncel avatar URL'ini al
+  function updateUIWithUser() {
     const avatarUrl = getAvatarUrl(user.avatarSeed, 'user');
     
-    // 2. Elementleri Tanımla (Önce tanımlama, sonra kullanım)
-    const welcomeEl = document.getElementById('welcomeMessage');
+    // --- ELEMENT TANIMLAMALARI ---
+    const welcomeEl = document.getElementById('welcomeMessage'); // Karşılama metni
     const hAv = document.getElementById('headerAvatar');
     const mDn = document.getElementById('menuDisplayName');
     const mUn = document.getElementById('menuUsername');
-    
+
+    // Sol Menü
     const sAv = document.getElementById('sidebarAvatar');
     const sDn = document.getElementById('sidebarDisplayName');
     const sUn = document.getElementById('sidebarUsername');
-    
+
+    // Profil Sayfası
     const pAv = document.getElementById('profilePageAvatar');
     const pPn = document.getElementById('profilePageName');
     const pPh = document.getElementById('profilePageHandle');
 
+    // Gizlilik Ayarları
     const pTg = document.getElementById('privacyToggle');
     const sPi = document.getElementById('selfPrivateIndicator');
+/* ============================ */
 
-    // 3. Sabit UI Elemanlarını Güncelle
+    // --- GÜNCELLEMELER ---
+    // Üst Bar Karşılama Mesajı Güncelleme
     if (welcomeEl) {
+        // user.displayName veya user.username kullanarak içeriği değiştiriyoruz
         const currentName = user.username || user.displayName || "misafir";
         welcomeEl.innerHTML = `<i class="fa-solid fa-circle-check" style="font-size: 0.6rem; animation: pulse 2s infinite;"></i> ${currentName.toLowerCase()}, Hoş geldin!`;
     }
 
-    // Resimleri ata
+    // Header Güncelleme
     if(hAv) hAv.src = avatarUrl;
-    if(sAv) sAv.src = avatarUrl;
-    if(pAv) pAv.src = avatarUrl;
-
-    // Metinleri ata
     if(mDn) mDn.innerText = user.displayName;
     if(mUn) mUn.innerText = `@${user.username}`;
+
+    // Sol Menü Güncelleme
+    if(sAv) sAv.src = avatarUrl;
     if(sDn) sDn.innerText = user.displayName;
     if(sUn) sUn.innerText = `@${user.username}`;
+
+    // Profil Sayfası Güncelleme
+    if(pAv) pAv.src = avatarUrl;
     if(pPn) pPn.innerText = user.displayName;
     if(pPh) pPh.innerText = `@${user.username}`;
 
-    // 4. KRİTİK: Dinamik Yorum ve Post Avatarlarını Güncelle
-    // Hem data-user hem de data-uid kullanan tüm img etiketlerini tek seferde güncelle
-    const selectors = [
-        `img[data-user="${user.username}"]`,
-        `img[data-uid="${user.uid}"]`
-    ];
-    
-    document.querySelectorAll(selectors.join(',')).forEach(img => {
-        img.src = avatarUrl;
-    });
-
-    // 5. Gizlilik Ayarları
+    // Gizlilik Durumu Güncelleme
     if(pTg) pTg.checked = isPrivate;
     if(sPi) sPi.style.display = isPrivate ? 'block' : 'none';
 }
+
+window.togglePrivacy = () => {
+      isPrivate = document.getElementById('privacyToggle').checked;
+      localStorage.setItem('st_isPrivate', isPrivate);
+      updateUIWithUser();
+  };
+
+window.navigateTo = (pageId) => {
+      console.log(pageId + " sayfasına gidiliyor...");
+      
+      if(pageId === 'admin' && !user.isAdmin) {
+          alert("Bu bölüme sadece yönetici erişebilir!");
+          window.navigateTo('feed'); return;
+        }
+
+      // Sayfa içeriklerini gizle/göster
+      document.querySelectorAll('.page-content').forEach(p => p.classList.remove('active'));
+      const target = document.getElementById('page-' + pageId);
+      if(target) target.classList.add('active');
+
+      // Navigasyon butonlarını aktif yap
+      document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+      const btn = document.getElementById('btn-' + pageId);
+      if(btn) btn.classList.add('active');
+      window.scrollTo(0,0);
+};
+
 
 //* SEARCH ARAMA FONKSIYONLARI *//
 const staticDatabase = {
@@ -547,23 +552,21 @@ function formatTime(timestamp) {
   window.toggleCommentSection = (id) => { const el = document.getElementById(`comments-${id}`); if(el) el.style.display = el.style.display === 'none' ? 'block' : 'none'; };
   
   window.addComment = async (id) => {
-    const input = document.getElementById(`input-${id}`);
-    const text = input.value.trim();
-    if(!text) return;
-    
-    await updateDoc(doc(db, "posts", id), {
-        comments: arrayUnion({ 
-            username: user.username, 
-            displayName: user.displayName, 
-            // user.avatarSeed kullanıcının son yüklediği resim verisidir
-            avatarSeed: user.avatarSeed, 
-            text: text, 
-            time: Date.now(),
-            replies: []
-        })
-    });
-    input.value = "";
-};
+      const input = document.getElementById(`input-${id}`);
+      const text = input.value.trim();
+      if(!text) return;
+      await updateDoc(doc(db, "posts", id), {
+          comments: arrayUnion({ 
+              username: user.username, 
+              displayName: user.displayName, 
+              avatarSeed: user.avatarSeed, 
+              text: text, 
+              time: Date.now(),
+              replies: []
+          })
+      });
+      input.value = "";
+  };
 
 window.addReply = async (postId, commentTime) => {
       const replyText = prompt("Yanıtınızı yazın:");
@@ -1131,144 +1134,3 @@ document.getElementById('saveEditBtn').onclick = async () => {
         alert("İşlem başarısız oldu.");
     }
 };
-
-// Karşılama mesajı için global fonksiyon (app.js'den çağrılacak)
-  window.updateWelcomeMessage = (username) => {
-    const welcomeEl = document.getElementById('welcomeMessage');
-    if (welcomeEl) {
-      const name = username ? username : "misafir";
-      welcomeEl.innerText = `${name.toLowerCase()}, Hoş geldin!`;
-    }
-  };
-/* ============================ */
-
-/* Header üst bar bilgi ekranı*/
-function updateClock() {
-    const now = new Date();
-
-    // Tarih Ayarları (Örn: 31 Ocak 2026 Cumartesi)
-    const dateOptions = {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-      weekday: 'long'
-    };
-
-    // Saat Ayarları (Örn: 10:32:05)
-    const timeOptions = {
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-    };
-
-    const dateStr = now.toLocaleDateString('tr-TR', dateOptions);
-    const timeStr = now.toLocaleTimeString('tr-TR', timeOptions);
-    const timeElement = document.getElementById('topBarDateTime');
-    if(timeElement) {
-        // Tarih ve Saati farklı opasitelerle ayırarak daha okunaklı kıldık
-        timeElement.innerHTML = `
-            <span style="opacity: 0.7;">
-                <i class="fa-regular fa-calendar-check"></i> ${dateStr}
-            </span>
-            <span style="margin: 0 8px; opacity: 0.3;">|</span>
-            <span style="color: #fff; font-weight: 700;">
-                <i class="fa-regular fa-clock"></i> ${timeStr}
-            </span>
-        `;
-    }
-  }
-
-  // Her saniye güncelleme başlat
-  setInterval(updateClock, 1000);
-  updateClock();
-/* ============================ */
-
-// --- DARK MODE -- //
-window.toggleDarkMode = () => {
-  const btn = document.getElementById('themeToggleBtn');
-  const isDark = document.body.classList.toggle('dark-mode');
-
-  btn.innerHTML = isDark
-    ? '<i class="fa-solid fa-sun"></i>'
-    : '<i class="fa-solid fa-moon"></i>';
-
-  localStorage.setItem('st_theme', isDark ? 'dark' : 'light');
-};
-
-document.addEventListener('DOMContentLoaded', () => {
-  if (localStorage.getItem('st_theme') === 'dark') {
-    document.body.classList.add('dark-mode');
-    document.getElementById('themeToggleBtn').innerHTML =
-      '<i class="fa-solid fa-sun"></i>';
-  }
-});
-/* ============================ */
-
-/* EMOJİ KODU */
-document.addEventListener('DOMContentLoaded', () => {
-    const emojiToggle = document.getElementById('emojiToggle');
-    const emojiPicker = document.getElementById('emojiPicker');
-    const postInput = document.getElementById('postInput');
-
-    if (!emojiToggle || !emojiPicker || !postInput) return;
-
-    emojiToggle.addEventListener('click', (e) => {
-        e.stopPropagation();
-        emojiPicker.style.display =
-            emojiPicker.style.display === 'grid' ? 'none' : 'grid';
-    });
-
-    emojiPicker.querySelectorAll('span').forEach(emoji => {
-        emoji.addEventListener('click', () => {
-            postInput.value += emoji.textContent;
-            emojiPicker.style.display = 'none';
-            postInput.focus();
-        });
-    });
-
-    document.addEventListener('click', () => {
-        emojiPicker.style.display = 'none';
-    });
-});
-/* ============================ */
-// --- RESİM VE ANKET YARDIMCI KODLARI ---
-let selectedImageBase64 = null;
-
-// Resim seçme ve önizleme
-window.previewPostImage = (input) => {
-    const file = input.files[0];
-    if (file) {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            selectedImageBase64 = e.target.result;
-            document.getElementById('postImagePreview').src = e.target.result;
-            document.getElementById('imagePreviewContainer').style.display = 'block';
-        };
-        reader.readAsDataURL(file);
-    }
-};
-
-window.removeSelectedImage = () => {
-    selectedImageBase64 = null;
-    document.getElementById('postImageInput').value = "";
-    document.getElementById('imagePreviewContainer').style.display = 'none';
-};
-
-// Anket paneli yönetimi
-window.togglePollCreator = () => {
-    const el = document.getElementById('pollCreator');
-    el.style.display = (el.style.display === 'none') ? 'block' : 'none';
-};
-
-window.addPollOption = () => {
-    const container = document.getElementById('pollOptionsList');
-    if (container.children.length < 4) {
-        const input = document.createElement('input');
-        input.type = 'text';
-        input.className = 'poll-option-input';
-        input.placeholder = `Seçenek ${container.children.length + 1}`;
-        input.style = "width:100%; margin-bottom:5px; padding:5px; border-radius:5px; border:1px solid var(--border); background:transparent; color:var(--text-main);";
-        container.appendChild(input);
-    }
-};
-// ---------------------------------------
