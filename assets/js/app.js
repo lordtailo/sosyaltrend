@@ -133,7 +133,7 @@ window.handleUrlInput = (input) => {
     }
 };
 
-  window.saveProfileChanges = () => {
+window.saveProfileChanges = () => {
     const name = document.getElementById('newNameInput').value.trim();
     const urlInput = document.getElementById('newAvatarUrlInput').value.trim();
 
@@ -329,7 +329,7 @@ function getAvatarUrl(seed, type = 'user') {
     const avatarUrl = getAvatarUrl(user.avatarSeed, 'user');
     
     // --- ELEMENT TANIMLAMALARI ---
-    const welcomeEl = document.getElementById('welcomeMessage'); // Karşılama metni
+    const welcomeEl = document.getElementById('welcomeMessage'); 
     const hAv = document.getElementById('headerAvatar');
     const mDn = document.getElementById('menuDisplayName');
     const mUn = document.getElementById('menuUsername');
@@ -347,12 +347,13 @@ function getAvatarUrl(seed, type = 'user') {
     // Gizlilik Ayarları
     const pTg = document.getElementById('privacyToggle');
     const sPi = document.getElementById('selfPrivateIndicator');
-/* ============================ */
+
+    /* ============================ */
 
     // --- GÜNCELLEMELER ---
-    // Üst Bar Karşılama Mesajı Güncelleme
+    
+    // Üst Bar Karşılama Mesajı
     if (welcomeEl) {
-        // user.displayName veya user.username kullanarak içeriği değiştiriyoruz
         const currentName = user.username || user.displayName || "misafir";
         welcomeEl.innerHTML = `<i class="fa-solid fa-circle-check" style="font-size: 0.6rem; animation: pulse 2s infinite;"></i> ${currentName.toLowerCase()}, Hoş geldin!`;
     }
@@ -372,37 +373,17 @@ function getAvatarUrl(seed, type = 'user') {
     if(pPn) pPn.innerText = user.displayName;
     if(pPh) pPh.innerText = `@${user.username}`;
 
+    // --- YORUMLAR VE POSTLARDAKİ AVATARLARI GÜNCELLE ---
+    // Sayfadaki tüm resimleri tara, 'data-uid' değeri senin UID'n olanları bul ve değiştir
+    const allInteractionAvatars = document.querySelectorAll(`img[data-uid="${user.uid}"]`);
+    allInteractionAvatars.forEach(img => {
+        img.src = avatarUrl;
+    });
+
     // Gizlilik Durumu Güncelleme
     if(pTg) pTg.checked = isPrivate;
     if(sPi) sPi.style.display = isPrivate ? 'block' : 'none';
 }
-
-window.togglePrivacy = () => {
-      isPrivate = document.getElementById('privacyToggle').checked;
-      localStorage.setItem('st_isPrivate', isPrivate);
-      updateUIWithUser();
-  };
-
-window.navigateTo = (pageId) => {
-      console.log(pageId + " sayfasına gidiliyor...");
-      
-      if(pageId === 'admin' && !user.isAdmin) {
-          alert("Bu bölüme sadece yönetici erişebilir!");
-          window.navigateTo('feed'); return;
-        }
-
-      // Sayfa içeriklerini gizle/göster
-      document.querySelectorAll('.page-content').forEach(p => p.classList.remove('active'));
-      const target = document.getElementById('page-' + pageId);
-      if(target) target.classList.add('active');
-
-      // Navigasyon butonlarını aktif yap
-      document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
-      const btn = document.getElementById('btn-' + pageId);
-      if(btn) btn.classList.add('active');
-      window.scrollTo(0,0);
-};
-
 
 //* SEARCH ARAMA FONKSIYONLARI *//
 const staticDatabase = {
@@ -569,21 +550,23 @@ function formatTime(timestamp) {
   window.toggleCommentSection = (id) => { const el = document.getElementById(`comments-${id}`); if(el) el.style.display = el.style.display === 'none' ? 'block' : 'none'; };
   
   window.addComment = async (id) => {
-      const input = document.getElementById(`input-${id}`);
-      const text = input.value.trim();
-      if(!text) return;
-      await updateDoc(doc(db, "posts", id), {
-          comments: arrayUnion({ 
-              username: user.username, 
-              displayName: user.displayName, 
-              avatarSeed: user.avatarSeed, 
-              text: text, 
-              time: Date.now(),
-              replies: []
-          })
-      });
-      input.value = "";
-  };
+    const input = document.getElementById(`input-${id}`);
+    const text = input.value.trim();
+    if(!text) return;
+    
+    await updateDoc(doc(db, "posts", id), {
+        comments: arrayUnion({ 
+            username: user.username, 
+            displayName: user.displayName, 
+            // user.avatarSeed kullanıcının son yüklediği resim verisidir
+            avatarSeed: user.avatarSeed, 
+            text: text, 
+            time: Date.now(),
+            replies: []
+        })
+    });
+    input.value = "";
+};
 
 window.addReply = async (postId, commentTime) => {
       const replyText = prompt("Yanıtınızı yazın:");
