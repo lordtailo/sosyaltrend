@@ -40,9 +40,18 @@ header{background:transparent;padding:8px 5%;display:grid;grid-template-columns:
 .top-bar-left,.top-bar-right{display:flex;align-items:center;gap:10px;flex-wrap:nowrap}
 .header-left,.header-center,.header-right{display:flex;align-items:center;justify-content:center;gap:12px}
 .header-center{flex:1;justify-content:center}
-.header-right{justify-content:flex-end}
+.header-right{justify-content:flex-end;position:relative}
+.logo-link{color:var(--text-main);text-decoration:none;display:flex;align-items:center;gap:10px;font-size:1.3rem}
+.logo-link:hover .logo{color:var(--primary)}
+.logo{font-weight:800;font-size:1.15rem;letter-spacing:0.2px}
 
-.logo{font-weight:800;font-size:1.15rem;color:#fff;letter-spacing:0.2px;margin:0;white-space:nowrap}
+.dropdown-header{padding:10px;border-bottom:1px solid var(--border);margin-bottom:5px}
+.dropdown-header p{margin:0;font-size:0.85rem}
+.dropdown-header p:first-child{font-weight:800}
+.dropdown-header p:last-child{font-size:0.75rem;color:var(--text-muted)}
+
+.admin-link{color:var(--primary)!important}
+.logout-btn{color:#ef4444;border-top:1px solid var(--border);margin-top:5px}
 
 @media(max-width:768px){
   .top-bar{padding:8px 10px;gap:8px}

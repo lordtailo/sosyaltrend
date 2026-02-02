@@ -10,43 +10,39 @@
 </head>
 <body>
   <div class="top-bar">
-  <div class="top-bar-left">
-  <span id="welcomeMessage" style="opacity: 0.8;"><i class="fa-solid fa-circle-check" style="font-size: 0.6rem; animation: pulse 2s infinite;"></i> Yükleniyor...
-</span>
-</div>
-  <div class="top-bar-right">
-    <span id="topBarDateTime"><i class="fa-regular fa-clock"></i> Yükleniyor...</span>
+    <div class="top-bar-left">
+      <span id="welcomeMessage"><i class="fa-solid fa-circle-check"></i> Yükleniyor...</span>
+    </div>
+    <div class="top-bar-right"><span id="topBarDateTime"><i class="fa-regular fa-clock"></i> Yükleniyor...</span></div>
   </div>
-</div>
 <header>
   <div class="header-left">
-  <a href="index.html" onclick="navigateTo('feed')" style="color:var(--text-main); font-size: 1.3rem; text-decoration: none; display: flex; align-items: center; gap: 10px;">
-    <span class="logo" style="font-weight: bold;">SosyalTrend</span>
-  </a>
-</div>
+    <a href="index.html" onclick="navigateTo('feed')" class="logo-link">
+      <span class="logo">SosyalTrend</span>
+    </a>
+  </div>
   <form id="mainSearchBtn" action="search.html" method="GET" class="header-center">
     <div class="search-wrapper">
       <i class="fa-solid fa-magnifying-glass"></i>
       <input type="text" name="q" id="globalSearch" data-i18n-placeholder="searchPlaceholder">
     </div>
   </form>
-
   <div class="header-right">
-<button id="themeToggleBtn" class="theme-btn" onclick="toggleDarkMode()" title="Tema Değiştir"><i class="fa-solid fa-moon"></i></button>
+    <button id="themeToggleBtn" class="theme-btn" onclick="toggleDarkMode()" title="Tema Değiştir"><i class="fa-solid fa-moon"></i></button>
     <div class="profile-trigger" id="profileTrigger">
-        <img id="headerAvatar" src="">
+      <img id="headerAvatar" src="" alt="Avatar">
     </div>
     <div class="dropdown-menu" id="dropdownMenu">
-        <div style="padding: 10px; border-bottom: 1px solid var(--border); margin-bottom: 5px;">
-            <p id="menuDisplayName" style="font-weight: 800; font-size: 0.85rem;">...</p>
-            <p id="menuUsername" style="font-size: 0.75rem; color: var(--text-muted);">@...</p>
-        </div>
-        <button class="menu-style-btn" id="adminMenuBtn" onclick="window.location.href='admin.html'" style="display:none; color: var(--primary);">
-    <i class="fa-solid fa-user-shield"></i> <span>Yönetici Paneli</span>
-</button>
-        <button class="menu-style-btn" onclick="window.location.href='profil.html'"><i class="fa-solid fa-user"></i> <span data-i18n="menuProfile">Profiliniz</span></button>
-<button class="menu-style-btn" onclick="window.location.href='settings.html'"><i class="fa-solid fa-gear"></i> <span data-i18n="menuSettings">Ayarlar</span></button>        
-<button class="menu-style-btn" onclick="logout()" style="color:#ef4444; border-top:1px solid var(--border); margin-top:5px;"><i class="fa-solid fa-right-from-bracket"></i> <span>Çıkış Yap</span></button>
+      <div class="dropdown-header">
+        <p id="menuDisplayName">...</p>
+        <p id="menuUsername">@...</p>
+      </div>
+      <button class="menu-style-btn admin-link" id="adminMenuBtn" onclick="window.location.href='admin.html'">
+        <i class="fa-solid fa-user-shield"></i> <span>Yönetici Paneli</span>
+      </button>
+      <button class="menu-style-btn" onclick="window.location.href='profil.html'"><i class="fa-solid fa-user"></i> <span data-i18n="menuProfile">Profiliniz</span></button>
+      <button class="menu-style-btn" onclick="window.location.href='settings.html'"><i class="fa-solid fa-gear"></i> <span data-i18n="menuSettings">Ayarlar</span></button>
+      <button class="menu-style-btn logout-btn" onclick="logout()"><i class="fa-solid fa-right-from-bracket"></i> <span>Çıkış Yap</span></button>
     </div>
   </div>
 </header>
