@@ -30,20 +30,38 @@ document.addEventListener('DOMContentLoaded', loadComponents);
 
 const ADMIN_EMAIL = "officialfthuzun@gmail.com";
 
-onAuthStateChanged(auth, async (authUser) => {
-    if (authUser) {
-        // Firestore'dan kullanıcı bilgilerini getir
-        const userDoc = await getDoc(doc(db, "users", authUser.uid));
-        if (userDoc.exists()) {
-            const userData = userDoc.data();
-            
-            // Cihaz fark etmeksizin veritabanındaki fotoğrafı kullan
-            user.avatarSeed = userData.avatarSeed || "default_seed"; 
-            user.username = userData.username;
-            user.displayName = userData.displayName;
-            
-            // Arayüzü güncelle
-            updateUIWithUser();
+onAuthStateChanged(auth, (fbUser) => {
+    if (!fbUser) {
+        window.location.href = 'login.html';
+    } else {
+        // Kullanıcı bilgilerini güncelle
+        user.username = fbUser.email.split('@')[0];
+        user.displayName = localStorage.getItem('st_displayName') || fbUser.displayName || user.username;
+        
+        // Avatar kalıcılığı
+        const savedAvatar = localStorage.getItem('st_avatar');
+        user.avatarSeed = savedAvatar || "Felix"; 
+
+        // Admin Kontrolü
+        user.isAdmin = fbUser.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+        
+        // UI Güncelleme (Profil resmi, isimler vb.)
+        updateUIWithUser(); 
+
+        // ADMIN ÖZEL İŞLEMLERİ
+        const adminBtn = document.getElementById('adminMenuBtn');
+        if (user.isAdmin) {
+            // İstatistikleri çek
+            updateAdminStats();
+            // HTML'deki butonu görünür yap
+            if (adminBtn) {
+                adminBtn.style.display = 'flex'; // Veya 'block', tasarımınıza göre
+            }
+        } else {
+            // Eğer admin değilse butonu gizle (Güvenlik için önlem)
+            if (adminBtn) {
+                adminBtn.style.display = 'none';
+            }
         }
     }
 });
