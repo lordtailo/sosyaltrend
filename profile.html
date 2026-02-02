@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>SosyalTrend ÔÇó Profiliniz</title>
+  <title>SosyalTrend â€¢ Profiliniz</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="stylesheet" href="assets/css/style.css">
   <link rel="icon" type="image/x-icon" href="assets/img/strendsaydamv2.ico">
@@ -11,11 +11,11 @@
 <body>
   <div class="top-bar">
   <div class="top-bar-left">
-  <span id="welcomeMessage"><i class="fa-solid fa-circle-check"></i> Y+-kleniyor...
+  <span id="welcomeMessage" style="opacity: 0.8;"><i class="fa-solid fa-circle-check" style="font-size: 0.6rem; animation: pulse 2s infinite;"></i> YÃ¼kleniyor...
 </span>
 </div>
   <div class="top-bar-right">
-    <span id="topBarDateTime"><i class="fa-regular fa-clock"></i> Y+-kleniyor...</span>
+    <span id="topBarDateTime"><i class="fa-regular fa-clock"></i> YÃ¼kleniyor...</span>
   </div>
 </div>
 <header>
@@ -32,7 +32,7 @@
   </form>
 
   <div class="header-right">
-<button id="themeToggleBtn" class="theme-btn" onclick="toggleDarkMode()" title="Tema De¦þi+þtir"><i class="fa-solid fa-moon"></i></button>
+<button id="themeToggleBtn" class="theme-btn" onclick="toggleDarkMode()" title="Tema DeÄŸiÅŸtir"><i class="fa-solid fa-moon"></i></button>
     <div class="profile-trigger" id="profileTrigger">
         <img id="headerAvatar" src="">
     </div>
@@ -42,11 +42,11 @@
             <p id="menuUsername" style="font-size: 0.75rem; color: var(--text-muted);">@...</p>
         </div>
         <button class="menu-style-btn" id="adminMenuBtn" onclick="window.location.href='admin.html'" style="display:none; color: var(--primary);">
-    <i class="fa-solid fa-user-shield"></i> <span>Y+Ânetici Paneli</span>
+    <i class="fa-solid fa-user-shield"></i> <span>YÃ¶netici Paneli</span>
 </button>
         <button class="menu-style-btn" onclick="window.location.href='profil.html'"><i class="fa-solid fa-user"></i> <span data-i18n="menuProfile">Profiliniz</span></button>
 <button class="menu-style-btn" onclick="window.location.href='settings.html'"><i class="fa-solid fa-gear"></i> <span data-i18n="menuSettings">Ayarlar</span></button>        
-<button class="menu-style-btn" onclick="logout()" style="color:#ef4444; border-top:1px solid var(--border); margin-top:5px;"><i class="fa-solid fa-right-from-bracket"></i> <span>+ç¦-k¦-+þ Yap</span></button>
+<button class="menu-style-btn" onclick="logout()" style="color:#ef4444; border-top:1px solid var(--border); margin-top:5px;"><i class="fa-solid fa-right-from-bracket"></i> <span>Ã‡Ä±kÄ±ÅŸ Yap</span></button>
     </div>
   </div>
 </header>
@@ -70,15 +70,15 @@
         </div>
     </div>
     <div class="glass-card sidebar-container">
-        <div class="sidebar-title" data-i18n="menuTitle">Sosyal Men+-</div>
+        <div class="sidebar-title" data-i18n="menuTitle">Sosyal MenÃ¼</div>
         <a href="index.html" onclick="navigateTo('feed')" class="menu-style-btn nav-item" id="btn-feed">
             <i class="fa-solid fa-house"></i> <span data-i18n="navFeed">Anasayfa</span>
         </a>
         <a href="pages.html" onclick="navigateTo('pages')" class="menu-style-btn nav-item" id="btn-pages">
-            <i class="fa-solid fa-flag"></i> <span data-i18n="navPages">Topluluk Sayfalar¦-</span>
+            <i class="fa-solid fa-flag"></i> <span data-i18n="navPages">Topluluk SayfalarÄ±</span>
         </a>
         <a href="gundem.html" onclick="navigateTo('gundem')" class="menu-style-btn nav-item" id="btn-gundem">
-            <i class="fa-solid fa-bolt-lightning"></i> <span data-i18n="navGundem">G+-ndem</span>
+            <i class="fa-solid fa-bolt-lightning"></i> <span data-i18n="navGundem">GÃ¼ndem</span>
         </a>
     </div>
   </aside>
@@ -86,7 +86,7 @@
   <main id="main-content">
     <div id="page-feed" class="page-content active">
         <div class="glass-card">
-<div style="text-align: center; font-size: 20px; padding: 30px;">Yap¦-m a+þamas¦-nda...</div>
+<div style="text-align: center; font-size: 20px; padding: 30px;">YapÄ±m aÅŸamasÄ±nda...</div>
  </div>
   </main>
 
@@ -101,7 +101,7 @@
       <div id="dateDisplay" class="date-display">...</div>
     </div>
     <div class="glass-card">
-        <div class="sidebar-title" style="border-bottom: 1px solid var(--border);" data-i18n="trendPagesTitle">­þöÑ Trend Sayfalar</div>
+        <div class="sidebar-title" style="border-bottom: 1px solid var(--border);" data-i18n="trendPagesTitle">ðŸ”¥ Trend Sayfalar</div>
         <div id="trend-pages-list"></div>
     </div>
   </aside>
@@ -115,18 +115,18 @@
       <div>
         <div class="logo" style="margin-bottom: 5px;">SosyalTrend</div>
         <p style="color:var(--text-muted); font-size:0.9rem; margin: 0;" data-i18n="footerTagline">
-          Toplulu¦þunuzla her zaman bir ad¦-m +Ânde olun.
+          TopluluÄŸunuzla her zaman bir adÄ±m Ã¶nde olun.
         </p>
       </div>
     </div>
 
     <div class="footer-section">
-      <h4 data-i18n="footerMenu">H¦-zl¦- Men+-</h4>
+      <h4 data-i18n="footerMenu">HÄ±zlÄ± MenÃ¼</h4>
       <ul class="footer-links">
         <li><a href="index.html" onclick="navigateTo('feed')" data-i18n="navFeed">Anasayfa</a></li>
         <li><a href="profil.html" onclick="navigateTo('profile')"data-i18n="navProfil">Profiliniz</a></li>
-        <li><a href="pages.html" onclick="navigateTo('pages')" data-i18n="navPages">Topluluk Sayfalar¦-</a></li>
-        <li><a href="likepost.html" onclick="navigateTo('navSubs')">Be¦þendikleriniz</a></li>
+        <li><a href="pages.html" onclick="navigateTo('pages')" data-i18n="navPages">Topluluk SayfalarÄ±</a></li>
+        <li><a href="likepost.html" onclick="navigateTo('navSubs')">BeÄŸendikleriniz</a></li>
         <li><a href="savepost.html" onclick="navigateTo('navBookmarks')" data-i18n="navBookmarks">Kaydettikleriniz</a></li>
       </ul>
     </div>
@@ -134,7 +134,7 @@
     <div class="footer-section">
       <h4 data-i18n="footerCorp">Kurumsal</h4>
       <ul class="footer-links">
-        <li><a href="#" data-i18n="footerAbout">Hakk¦-m¦-zda</a></li>
+        <li><a href="#" data-i18n="footerAbout">HakkÄ±mÄ±zda</a></li>
         <li><a href="#" data-i18n="footerCareer">Kariyer</a></li>
       </ul>
     </div>
@@ -142,14 +142,14 @@
     <div class="footer-section">
       <h4 data-i18n="footerSupport">Destek</h4>
       <ul class="footer-links">
-        <li><a href="contact.html" onclick="navigateTo('contact')" data-i18n="footerContact">¦-leti+þim</a></li>
-        <li><a href="yardim.html" onclick="navigateTo('help')" data-i18n="footerHelp">Yard¦-m Merkezi</a></li>
+        <li><a href="contact.html" onclick="navigateTo('contact')" data-i18n="footerContact">Ä°letiÅŸim</a></li>
+        <li><a href="yardim.html" onclick="navigateTo('help')" data-i18n="footerHelp">YardÄ±m Merkezi</a></li>
       </ul>
     </div>
   </div>
 
   <div class="footer-bottom">
-    <div style="color:var(--text-muted); font-size:0.85rem;">&copy; 2026 <strong>SosyalTrend</strong>. <span data-i18n="footerRights">T+-m Haklar¦- Sakl¦-d¦-r.</span></div>
+    <div style="color:var(--text-muted); font-size:0.85rem;">&copy; 2026 <strong>SosyalTrend</strong>. <span data-i18n="footerRights">TÃ¼m HaklarÄ± SaklÄ±dÄ±r.</span></div>
     <div style="display: flex;gap: 8px;align-items: center;padding: 0px 10px 0 23px;">
         <div class="lang-switcher" style="display:flex; gap:10px; font-size: 0.85rem; font-weight: 600;">
             <span id="lang-tr" onclick="changeLanguage('tr')">TR</span>
@@ -161,7 +161,7 @@
   </div>
 </footer>
 
+<script type="module" src="assets/js/app2.js"></script>
 <script type="module" src="assets/js/app.js"></script>
 </body>
 </html>
-

@@ -12,49 +12,57 @@
 
   <div class="top-bar">
     <div class="top-bar-left">
-      <span id="welcomeMessage"><i class="fa-solid fa-circle-check"></i> Yükleniyor...</span>
+      <span id="welcomeMessage" style="opacity: 0.8;"><i class="fa-solid fa-circle-check" style="font-size: 0.6rem; animation: pulse 2s infinite;"></i> Yükleniyor...</span>
     </div>
     <div class="top-bar-right"><span id="topBarDateTime"><i class="fa-regular fa-clock"></i> Yükleniyor...</span></div>
   </div>
 
 <header>
   <div class="header-left">
-    <a href="index.html" onclick="navigateTo('feed')" class="logo-link">
-      <span class="logo">SosyalTrend</span>
+    <a href="index.html" onclick="navigateTo('feed')" style="color:var(--text-main); font-size: 1.3rem; text-decoration: none; display: flex; align-items: center; gap: 10px;">
+    <span class="logo" style="font-weight: bold;">SosyalTrend</span>
     </a>
   </div>
   <form id="mainSearchBtn" action="search.html" method="GET" class="header-center">
     <div class="search-wrapper">
-      <i class="fa-solid fa-magnifying-glass"></i>
       <input type="text" name="q" id="globalSearch" data-i18n-placeholder="searchPlaceholder">
     </div>
   </form>
+
   <div class="header-right">
     <button id="themeToggleBtn" class="theme-btn" onclick="toggleDarkMode()" title="Tema Değiştir"><i class="fa-solid fa-moon"></i></button>
-    <div class="profile-trigger" id="profileTrigger">
-      <img id="headerAvatar" src="" alt="Avatar">
-    </div>
-    <div class="dropdown-menu" id="dropdownMenu">
-      <div class="dropdown-header">
-        <p id="menuDisplayName">...</p>
-        <p id="menuUsername">@...</p>
+      <div class="profile-trigger" id="profileTrigger">
+        <img id="headerAvatar" src="">
       </div>
-      <div style="padding:8px;">
-        <button class="menu-style-btn admin-link" id="adminMenuBtn" onclick="window.location.href='admin.html'" style="width:100%;justify-content:flex-start;border-radius:8px;padding:10px 12px;">
-          <i class="fa-solid fa-user-shield"></i> <span>Yönetici Paneli</span>
-        </button>
-        <button class="menu-style-btn" onclick="window.location.href='profil.html'" style="width:100%;justify-content:flex-start;border-radius:8px;padding:10px 12px;"><i class="fa-solid fa-user"></i> <span data-i18n="menuProfile">Profiliniz</span></button>
-        <button class="menu-style-btn" onclick="window.location.href='settings.html'" style="width:100%;justify-content:flex-start;border-radius:8px;padding:10px 12px;"><i class="fa-solid fa-gear"></i> <span data-i18n="menuSettings">Ayarlar</span></button>
-        <button class="menu-style-btn logout-btn" onclick="logout()" style="width:100%;justify-content:flex-start;border-radius:8px;padding:10px 12px;"><i class="fa-solid fa-right-from-bracket"></i> <span>Çıkış Yap</span></button>
-      </div>
+        <div class="dropdown-menu" id="dropdownMenu">
+        <div style="padding: 10px; border-bottom: 1px solid var(--border); margin-bottom: 5px;">
+            <p id="menuDisplayName" style="font-weight: 800; font-size: 0.85rem;">...</p>
+            <p id="menuUsername" style="font-size: 0.75rem; color: var(--text-muted);">@...</p>
+        </div>
+        <button class="menu-style-btn" id="adminMenuBtn" onclick="window.location.href='admin.html'" style="display:none; color: var(--primary);">
+    <i class="fa-solid fa-user-shield"></i> <span>Yönetici Paneli</span>
+</button>
+        <button class="menu-style-btn" onclick="window.location.href='profil.html'"><i class="fa-solid fa-user"></i> <span data-i18n="menuProfile">Profiliniz</span></button>
+<button class="menu-style-btn" onclick="window.location.href='settings.html'"><i class="fa-solid fa-gear"></i> <span data-i18n="menuSettings">Ayarlar</span></button>        
+<button class="menu-style-btn" onclick="logout()" style="color:#ef4444; border-top:1px solid var(--border); margin-top:5px;"><i class="fa-solid fa-right-from-bracket"></i> <span>Çıkış Yap</span></button>
     </div>
   </div>
 </header>
 
 <div class="app-container">
   <aside>
-    <div class="glass-card sidebar-profile-card" onclick="navigateTo('profile')" style="cursor: pointer; padding: 21px; text-align: center; align-items: center;">
-        <img id="sidebarAvatar" src="" style="width: 97px; height: 99px; border-radius: 50%; border: 2px solid var(--primary); object-fit: cover;">
+    
+    <div class="glass-card sidebar-profile-card" onclick="navigateTo('profile')" style="
+    cursor: pointer;
+    padding: 21px;
+    text-align: center;
+    align-items: center;">
+        <img id="sidebarAvatar" src="" style="
+    width: 97px;
+    height: 99px;
+    border-radius: 50%;
+    border: 2px solid var(--primary);
+    object-fit: cover;">
         <div style="overflow: hidden;">
             <div id="sidebarDisplayName" style="font-weight: 800; font-size: 0.95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">...</div>
             <div id="sidebarUsername" style="font-size: 0.8rem; color: var(--text-muted);">@...</div>
@@ -79,33 +87,24 @@
         <div class="glass-card">
             <div style="padding: 20px;">
                 <textarea id="postInput" style="width:100%; border:none; outline:none; resize:none; font-size:1.1rem; min-height:80px;" data-i18n-placeholder="postPlaceholder"></textarea>
-                
-                <div id="imagePreviewContainer" style="display:none; position:relative; margin-top:10px;">
-                    <img id="postImagePreview" style="width:100%; border-radius:12px; max-height:250px; object-fit:cover;">
-                    <button onclick="removeSelectedImage()" style="position:absolute; top:5px; right:5px; background:rgba(0,0,0,0.6); color:white; border:none; border-radius:50%; width:25px; height:25px; cursor:pointer;">&times;</button>
-                </div>
-
-                <div id="pollCreator" style="display:none; margin-top:15px; padding:10px; border:1px solid var(--border); border-radius:12px;">
-                    <div id="pollOptionsList">
-                        <input type="text" class="poll-option-input" placeholder="Seçenek 1" style="width:100%; margin-bottom:5px; background: transparent; border: 1px solid var(--border); color: var(--text-main); padding: 8px; border-radius: 8px;">
-                        <input type="text" class="poll-option-input" placeholder="Seçenek 2" style="width:100%; margin-bottom:5px; background: transparent; border: 1px solid var(--border); color: var(--text-main); padding: 8px; border-radius: 8px;">
-                    </div>
-                    <button type="button" onclick="addPollOption()" style="background:none; border:none; color:var(--primary); cursor:pointer; font-size:0.8rem; font-weight: bold;">+ Seçenek Ekle</button>
-                </div>
             </div>
             
             <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border); padding: 15px 20px;">
                 <div style="display:flex; gap:8px; position: relative;">
-                    <label for="postImageInput" class="tool-btn" style="cursor:pointer; display: flex; align-items: center; justify-content: center;">
-                        <i class="fa-regular fa-image"></i>
-                        <input type="file" id="postImageInput" accept="image/*" style="display:none" onchange="previewPostImage(this)">
-                    </label>
-
-                    <button class="tool-btn" onclick="togglePollCreator()"><i class="fa-solid fa-list-ul"></i></button>
+                    <button class="tool-btn"><i class="fa-regular fa-image"></i></button>
+                    <button class="tool-btn"><i class="fa-solid fa-list-ul"></i></button>
 
                     <button class="tool-btn" id="emojiToggle" type="button"><i class="fa-regular fa-face-smile"></i></button>
                     
-                    <div id="emojiPicker" class="glass-card" style="display: none; position: absolute; top: -143px; left: 126px; z-index: 100; padding: 4px; width: 200px; grid-template-columns: repeat(7, 1fr); gap: 6px;">
+                    <div id="emojiPicker" class="glass-card" style="
+                    display: none; 
+                    position: absolute;
+                    top: -143px; left: 126px;
+                    z-index: 100;
+                    padding: 4px;
+                    width: 200px;
+                    grid-template-columns: repeat(7, 1fr);
+                    gap: 6px;">
                         <span style="cursor:pointer">😊</span><span style="cursor:pointer">😁</span><span style="cursor:pointer">😂</span><span style="cursor:pointer">🤣</span><span style="cursor:pointer">😡</span><span style="cursor:pointer">😠</span><span style="cursor:pointer">😭</span>
                         <span style="cursor:pointer">❤️</span><span style="cursor:pointer">💚</span><span style="cursor:pointer">💙</span><span style="cursor:pointer">💔</span><span style="cursor:pointer">💘</span><span style="cursor:pointer">💗</span><span style="cursor:pointer">💝</span>
                         <span style="cursor:pointer">👍</span><span style="cursor:pointer">👎</span><span style="cursor:pointer">🙌</span><span style="cursor:pointer">🙏</span><span style="cursor:pointer">✨</span><span style="cursor:pointer">📺</span><span style="cursor:pointer">🎞️</span>
@@ -118,6 +117,7 @@
             </div>
         </div>
         <div id="feed-items"></div>
+        
     </div>
 </main>
 
@@ -138,10 +138,12 @@
   </aside>
 </div>
 
+
 <footer>
   <div class="footer-container">
     <div class="footer-brand" style="display: flex; align-items: center; gap: 15px;">
       <img src="assets/img/strendsaydamv2.png" alt="SosyalTrend Logo" style="width: 124px;height: 123px;object-fit: contain;">
+      
       <div>
         <div class="logo" style="margin-bottom: 5px;">SosyalTrend</div>
         <p style="color:var(--text-muted); font-size:0.9rem; margin: 0;" data-i18n="footerTagline">
@@ -192,6 +194,7 @@
 </footer>
 
 <div id="sideOverlay" class="side-overlay"></div>
+<script type="module" src="assets/js/app.js"></script>
 <div id="editModal" class="modal-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; align-items: center; justify-content: center;">
     <div class="glass-card" style="width: 90%; max-width: 500px; padding: 20px;">
         <div style="display: flex; justify-content: space-between; margin-bottom: 15px;">
@@ -206,6 +209,9 @@
     </div>
 </div>
 
+<div id="sideOverlay" class="side-overlay"></div>
+
 <script type="module" src="assets/js/app.js"></script>
+<script type="module" src="assets/js/app2.js"></script>
 </body>
 </html>
