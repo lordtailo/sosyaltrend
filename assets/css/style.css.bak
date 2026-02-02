@@ -1,0 +1,23 @@
+/* Backup of original style.css created on 2026-02-02 */
+
+/* Original file contents follow */
+
+/* Premium Tasarım Entegrasyonu */
+:root {
+   --primary: #6366f1;
+   --primary-dark: #4f46e5;
+   --bg: #f8fafc;
+   --card-bg: #ffffff;
+   --text-main: #0f172a;
+   --text-muted: #64748b;
+   --border: #e2e8f0;
+   --radius: 16px;
+   --shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+   --line-gradient: linear-gradient(90deg, #6366f1, #a855f7, #6366f1);
+   --input-bg: #f1f5f9; 
+   /* Yeni Eklenen Premium Değişkenler */
+   --premium-gradient: linear-gradient(135deg, #8b5cf6 0%, #d946ef 100%);
+   --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+}
+
+/* ...rest of original file omitted in backup for brevity... */
