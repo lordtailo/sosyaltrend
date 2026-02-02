@@ -61,12 +61,14 @@
         <p id="menuDisplayName">...</p>
         <p id="menuUsername">@...</p>
       </div>
-      <button class="menu-style-btn admin-link" id="adminMenuBtn" onclick="window.location.href='admin.html'">
-        <i class="fa-solid fa-user-shield"></i> <span>Yönetici Paneli</span>
-      </button>
-      <button class="menu-style-btn" onclick="window.location.href='profil.html'"><i class="fa-solid fa-user"></i> <span data-i18n="menuProfile">Profiliniz</span></button>
-      <button class="menu-style-btn" onclick="window.location.href='settings.html'"><i class="fa-solid fa-gear"></i> <span data-i18n="menuSettings">Ayarlar</span></button>
-      <button class="menu-style-btn logout-btn" onclick="logout()"><i class="fa-solid fa-right-from-bracket"></i> <span>Çıkış Yap</span></button>
+      <div style="padding:8px;">
+        <button class="menu-style-btn admin-link" id="adminMenuBtn" onclick="window.location.href='admin.html'" style="width:100%;justify-content:flex-start;border-radius:8px;padding:10px 12px;">
+          <i class="fa-solid fa-user-shield"></i> <span>Yönetici Paneli</span>
+        </button>
+        <button class="menu-style-btn" onclick="window.location.href='profil.html'" style="width:100%;justify-content:flex-start;border-radius:8px;padding:10px 12px;"><i class="fa-solid fa-user"></i> <span data-i18n="menuProfile">Profiliniz</span></button>
+        <button class="menu-style-btn" onclick="window.location.href='settings.html'" style="width:100%;justify-content:flex-start;border-radius:8px;padding:10px 12px;"><i class="fa-solid fa-gear"></i> <span data-i18n="menuSettings">Ayarlar</span></button>
+        <button class="menu-style-btn logout-btn" onclick="logout()" style="width:100%;justify-content:flex-start;border-radius:8px;padding:10px 12px;"><i class="fa-solid fa-right-from-bracket"></i> <span>Çıkış Yap</span></button>
+      </div>
     </div>
   </div>
 </header>

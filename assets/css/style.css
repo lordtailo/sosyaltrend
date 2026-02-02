@@ -36,7 +36,7 @@ body{background:var(--bg);color:var(--text-main);min-height:100vh;display:flex;f
 .top-bar::after{content:"";position:absolute;left:0;right:0;bottom:0;height:2px;background:var(--line-gradient);opacity:0.85}
 #topBarDateTime{min-width:160px;text-align:right;font-size:0.85rem;white-space:nowrap}
 
-header{background:transparent;padding:8px 5%;display:grid;grid-template-columns:1fr 1fr 1fr;align-items:center;border-bottom:none;gap:15px;transition:padding 0.2s}
+header{background:linear-gradient(135deg,var(--card-bg) 0%,var(--card-bg) 100%);backdrop-filter:blur(8px);padding:12px 5%;display:grid;grid-template-columns:1fr 1fr 1fr;align-items:center;border-bottom:1px solid var(--border);gap:15px;transition:padding 0.2s;box-shadow:0 2px 8px rgba(0,0,0,0.05)}
 .top-bar-left,.top-bar-right{display:flex;align-items:center;gap:10px;flex-wrap:nowrap}
 .header-left,.header-center,.header-right{display:flex;align-items:center;justify-content:center;gap:12px}
 .header-center{flex:1;justify-content:center}
@@ -45,13 +45,16 @@ header{background:transparent;padding:8px 5%;display:grid;grid-template-columns:
 .logo-link:hover .logo{color:var(--primary)}
 .logo{font-weight:800;font-size:1.15rem;letter-spacing:0.2px}
 
-.dropdown-header{padding:10px;border-bottom:1px solid var(--border);margin-bottom:5px}
-.dropdown-header p{margin:0;font-size:0.85rem}
-.dropdown-header p:first-child{font-weight:800}
-.dropdown-header p:last-child{font-size:0.75rem;color:var(--text-muted)}
+.dropdown-menu{position:absolute;right:0;top:56px;width:240px;background:var(--card-bg);border:1px solid var(--border);border-radius:12px;display:none;padding:0;box-shadow:var(--glass-shadow);overflow:hidden}
+.dropdown-menu.active{display:block}
 
-.admin-link{color:var(--primary)!important}
-.logout-btn{color:#ef4444;border-top:1px solid var(--border);margin-top:5px}
+.dropdown-header{padding:14px;border-bottom:1px solid var(--border);background:linear-gradient(135deg,var(--primary) 0%,var(--primary-dark) 100%);color:#fff}
+.dropdown-header p{margin:0;font-size:0.85rem}
+.dropdown-header p:first-child{font-weight:800;font-size:0.9rem}
+.dropdown-header p:last-child{font-size:0.75rem;opacity:0.9}
+
+.admin-link{color:var(--primary)!important;font-weight:600}
+.logout-btn{color:#ef4444;border-top:1px solid var(--border);margin-top:5px;font-weight:600}
 
 @media(max-width:768px){
   .top-bar{padding:8px 10px;gap:8px}
