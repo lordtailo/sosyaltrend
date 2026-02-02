@@ -346,7 +346,7 @@ function getAvatarUrl(seed, type = 'user') {
     if (welcomeEl) {
         // user.displayName veya user.username kullanarak içeriği değiştiriyoruz
         const currentName = user.username || user.displayName || "misafir";
-        welcomeEl.innerHTML = `<i class="fa-solid fa-circle-check" style="font-size: 0.6rem; animation: pulse 2s infinite;"></i> ${currentName.toLowerCase()}, Hoş geldin!`;
+        welcomeEl.innerHTML = `<i class="fa-solid fa-circle-check" style="font-size: 0.6rem; animation: pulse 2s infinite;"></i> ${currentName.toLowerCase()}`;
     }
 
     // Header Güncelleme
@@ -1149,7 +1149,7 @@ document.getElementById('saveEditBtn').onclick = async () => {
     const welcomeEl = document.getElementById('welcomeMessage');
     if (welcomeEl) {
       const name = username ? username : "misafir";
-      welcomeEl.innerText = `${name.toLowerCase()}, Hoş geldin!`;
+      welcomeEl.innerText = `${name.toLowerCase()}`;
     }
   };
 /* ============================ */
