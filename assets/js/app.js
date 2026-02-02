@@ -477,18 +477,29 @@ window.performGlobalSearch = async (forcedQuery = null) => {
             }
         });
 
-        const usersRef = collection(db, "users"); // Eğer users tablonuz varsa
-const q = query(
-    usersRef, 
-    where("username", ">=", queryStr), 
-    where("username", "<=", queryStr + "\uf8ff"),
-    limit(10) // Sadece ilk 10 sonucu getir
-);
+        // --- C. FIREBASE KULLANICI ARAMASI ---
+        const postsSnap = await getDocs(collection(db, "posts"));
+        let processedUsers = new Set();
 
-const querySnapshot = await getDocs(q);
-querySnapshot.forEach((doc) => {
-    // Sadece eşleşen 10 kişiyi ekrana bas
-});
+        postsSnap.forEach(pDoc => {
+            const p = pDoc.data();
+            const usernameMatch = p.username && p.username.toLowerCase().includes(queryStr);
+            const nameMatch = p.name && p.name.toLowerCase().includes(queryStr);
+            
+            if (p.username && !p.username.startsWith('page_') && (usernameMatch || nameMatch) && !processedUsers.has(p.username)) {
+                processedUsers.add(p.username);
+                totalFound++;
+                secUsers.style.display = "block";
+                usersContainer.innerHTML += `
+                <div class="glass-card page-card" style="margin-top:10px;">
+                    <img src="${getAvatarUrl(p.avatarSeed, 'user')}" class="page-icon" style="border-radius:50%; width: 50px; height: 50px; margin: 10px auto; display: block; cursor:pointer;" onclick="window.location.href='profile.html?u=${p.username}'">
+                    <div style="font-weight:800; text-align:center;">${p.name || 'Kullanıcı'}</div>
+                    <div style="font-size:0.7rem; color:var(--text-muted); margin-bottom:10px; text-align:center;">@${p.username}</div>
+                    <button class="btn-subscribe" onclick="window.location.href='profile.html?u=${p.username}'">Profiline Git</button>
+                </div>`;
+            }
+        });
+
         // Sonuç Durumu Güncelleme
         if (totalFound === 0) {
             noResults.style.display = "block";
@@ -932,39 +943,25 @@ const shareGundem = async () => {
     } catch (err) { console.error("Hata:", err); }
 };
 
-// Fonksiyonun başına async eklemene gerek yok çünkü onSnapshot kullanıyorsun
 const fetchGundem = (filter = "all") => {
     currentGundemFilter = filter;
     const feed = $('gundemFeed');
     if(!feed) return;
 
-    // 1. ÖNEMLİ: Sorguyu filtreye göre oluşturursan veritabanı daha az yorulur
-    let q;
-    if (filter === "all") {
-        q = query(collection(db, "gundem"), orderBy("timestamp", "desc"), limit(gundemLimit));
-    } else {
-        // Eğer kategori seçiliyse sadece o kategoriyi çek (Hız kazandırır)
-        q = query(collection(db, "gundem"), where("category", "==", filter), orderBy("timestamp", "desc"), limit(gundemLimit));
-    }
+    const q = query(
+    collection(db, "gundem"), 
+    orderBy("timestamp", "desc"), 
+    limit(gundemLimit) // Burada limit belirlemek şart!
+);
 
-    // onSnapshot otomatik dinler, await gerektirmez
     onSnapshot(q, (snapshot) => {
         let html = "";
-        if (snapshot.empty) {
-            feed.innerHTML = "<div style='text-align:center; padding:20px;'>Henüz içerik yok.</div>";
-            return;}
         snapshot.forEach((docSnap) => {
             const data = docSnap.data();
-            // 2. ÖNEMLİ: Eğer yukarıda 'where' kullandıysan burada tekrar if kontrolüne gerek kalmaz
-            // Bu da tarayıcının boşuna işlem yapmasını engeller.
-            const isOwner = (auth.currentUser?.displayName === data.author) || (typeof user !== 'undefined' && user.isAdmin);
-            
-            // Zaman formatı hatasını önlemek için kontrol
-            let time = "...";
-            if (data.timestamp) {
-                const dateObj = data.timestamp.toDate ? data.timestamp.toDate() : new Date(data.timestamp.seconds * 1000);
-                time = dateObj.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-            }
+            if (filter !== "all" && data.category !== filter) return;
+
+            const isOwner = (auth.currentUser?.displayName === data.author) || user.isAdmin;
+            const time = data.timestamp ? new Date(data.timestamp.seconds * 1000).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : "...";
 
             html += `
                 <div class="g-card cat-${data.category}">
@@ -1141,3 +1138,144 @@ document.getElementById('saveEditBtn').onclick = async () => {
         alert("İşlem başarısız oldu.");
     }
 };
+
+// Karşılama mesajı için global fonksiyon (app.js'den çağrılacak)
+  window.updateWelcomeMessage = (username) => {
+    const welcomeEl = document.getElementById('welcomeMessage');
+    if (welcomeEl) {
+      const name = username ? username : "misafir";
+      welcomeEl.innerText = `${name.toLowerCase()}, Hoş geldin!`;
+    }
+  };
+/* ============================ */
+
+/* Header üst bar bilgi ekranı*/
+function updateClock() {
+    const now = new Date();
+
+    // Tarih Ayarları (Örn: 31 Ocak 2026 Cumartesi)
+    const dateOptions = {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+      weekday: 'long'
+    };
+
+    // Saat Ayarları (Örn: 10:32:05)
+    const timeOptions = {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    };
+
+    const dateStr = now.toLocaleDateString('tr-TR', dateOptions);
+    const timeStr = now.toLocaleTimeString('tr-TR', timeOptions);
+    const timeElement = document.getElementById('topBarDateTime');
+    if(timeElement) {
+        // Tarih ve Saati farklı opasitelerle ayırarak daha okunaklı kıldık
+        timeElement.innerHTML = `
+            <span style="opacity: 0.7;">
+                <i class="fa-regular fa-calendar-check"></i> ${dateStr}
+            </span>
+            <span style="margin: 0 8px; opacity: 0.3;">|</span>
+            <span style="color: #fff; font-weight: 700;">
+                <i class="fa-regular fa-clock"></i> ${timeStr}
+            </span>
+        `;
+    }
+  }
+
+  // Her saniye güncelleme başlat
+  setInterval(updateClock, 1000);
+  updateClock();
+/* ============================ */
+
+// --- DARK MODE -- //
+window.toggleDarkMode = () => {
+  const btn = document.getElementById('themeToggleBtn');
+  const isDark = document.body.classList.toggle('dark-mode');
+
+  btn.innerHTML = isDark
+    ? '<i class="fa-solid fa-sun"></i>'
+    : '<i class="fa-solid fa-moon"></i>';
+
+  localStorage.setItem('st_theme', isDark ? 'dark' : 'light');
+};
+
+document.addEventListener('DOMContentLoaded', () => {
+  if (localStorage.getItem('st_theme') === 'dark') {
+    document.body.classList.add('dark-mode');
+    document.getElementById('themeToggleBtn').innerHTML =
+      '<i class="fa-solid fa-sun"></i>';
+  }
+});
+/* ============================ */
+
+/* EMOJİ KODU */
+document.addEventListener('DOMContentLoaded', () => {
+    const emojiToggle = document.getElementById('emojiToggle');
+    const emojiPicker = document.getElementById('emojiPicker');
+    const postInput = document.getElementById('postInput');
+
+    if (!emojiToggle || !emojiPicker || !postInput) return;
+
+    emojiToggle.addEventListener('click', (e) => {
+        e.stopPropagation();
+        emojiPicker.style.display =
+            emojiPicker.style.display === 'grid' ? 'none' : 'grid';
+    });
+
+    emojiPicker.querySelectorAll('span').forEach(emoji => {
+        emoji.addEventListener('click', () => {
+            postInput.value += emoji.textContent;
+            emojiPicker.style.display = 'none';
+            postInput.focus();
+        });
+    });
+
+    document.addEventListener('click', () => {
+        emojiPicker.style.display = 'none';
+    });
+});
+/* ============================ */
+// --- RESİM VE ANKET YARDIMCI KODLARI ---
+let selectedImageBase64 = null;
+
+// Resim seçme ve önizleme
+window.previewPostImage = (input) => {
+    const file = input.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            selectedImageBase64 = e.target.result;
+            document.getElementById('postImagePreview').src = e.target.result;
+            document.getElementById('imagePreviewContainer').style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+    }
+};
+
+window.removeSelectedImage = () => {
+    selectedImageBase64 = null;
+    document.getElementById('postImageInput').value = "";
+    document.getElementById('imagePreviewContainer').style.display = 'none';
+};
+
+// Anket paneli yönetimi
+window.togglePollCreator = () => {
+    const el = document.getElementById('pollCreator');
+    el.style.display = (el.style.display === 'none') ? 'block' : 'none';
+};
+
+window.addPollOption = () => {
+    const container = document.getElementById('pollOptionsList');
+    if (container.children.length < 4) {
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'poll-option-input';
+        input.placeholder = `Seçenek ${container.children.length + 1}`;
+        input.style = "width:100%; margin-bottom:5px; padding:5px; border-radius:5px; border:1px solid var(--border); background:transparent; color:var(--text-main);";
+        container.appendChild(input);
+    }
+};
+// ---------------------------------------
