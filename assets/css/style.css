@@ -31,17 +31,33 @@ body{background:var(--bg);color:var(--text-main);min-height:100vh;display:flex;f
     display:flex;align-items:center;justify-content:space-between;gap:12px;
     padding:10px 14px;backdrop-filter:blur(6px);background:linear-gradient(90deg,var(--primary),var(--primary-dark));color:#fff;
     border-bottom:1px solid rgba(255,255,255,0.06);
+    transition:padding 0.2s,gap 0.2s;
 }
 .top-bar::after{content:"";position:absolute;left:0;right:0;bottom:0;height:2px;background:var(--line-gradient);opacity:0.85}
-#topBarDateTime{min-width:160px;text-align:right;font-size:0.85rem}
+#topBarDateTime{min-width:160px;text-align:right;font-size:0.85rem;white-space:nowrap}
 
-header{background:transparent;padding:8px 5%;display:grid;grid-template-columns:1fr 1fr 1fr;align-items:center;border-bottom:none;gap:15px}
-.top-bar-left,.top-bar-right{display:flex;align-items:center;gap:10px}
+header{background:transparent;padding:8px 5%;display:grid;grid-template-columns:1fr 1fr 1fr;align-items:center;border-bottom:none;gap:15px;transition:padding 0.2s}
+.top-bar-left,.top-bar-right{display:flex;align-items:center;gap:10px;flex-wrap:nowrap}
 .header-left,.header-center,.header-right{display:flex;align-items:center;justify-content:center;gap:12px}
-.header-center{flex:1}
+.header-center{flex:1;justify-content:center}
 .header-right{justify-content:flex-end}
 
-.logo{font-weight:800;font-size:1.15rem;color:#fff;letter-spacing:0.2px}
+.logo{font-weight:800;font-size:1.15rem;color:#fff;letter-spacing:0.2px;margin:0;white-space:nowrap}
+
+@media(max-width:768px){
+  .top-bar{padding:8px 10px;gap:8px}
+  .logo{font-size:1rem}
+  #topBarDateTime{min-width:auto;font-size:0.75rem}
+  header{padding:6px 4%;grid-template-columns:auto 1fr auto}
+  .header-center{gap:8px}
+}
+
+@media(max-width:480px){
+  .top-bar{padding:6px 8px}
+  #topBarDateTime{display:none}
+  .logo{font-size:0.95rem}
+  header{grid-template-columns:auto 1fr auto;padding:4px 3%;gap:8px}
+}
 
 /* Sidebar & Profile Card */
 .sidebar-profile-card{text-align:center;padding:20px;cursor:pointer;transition:0.3s}
