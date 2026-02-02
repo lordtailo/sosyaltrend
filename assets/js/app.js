@@ -304,8 +304,8 @@ function getAvatarUrl(seed, type = 'user') {
     // Admin ikon kontrolü
     if (seed === 'admin-shield') return "https://api.dicebear.com/7.x/bottts/svg?seed=Admin";
     // Değilse DiceBear API'sini kullan
-    const collection = (type === 'user') ? 'avataaars' : 'identicon';
-    return `https://api.dicebear.com/7.x/${collection}/svg?seed=${encodeURIComponent(seed)}`;
+    const collection = 'avataaars';
+return `https://api.dicebear.com/7.x/${collection}/svg?seed=${encodeURIComponent(seed)}`;
 }
 
   function updateUIWithUser() {
