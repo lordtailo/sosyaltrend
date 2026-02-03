@@ -7,6 +7,95 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="stylesheet" href="assets/css/style.css">
   <link rel="icon" type="image/x-icon" href="assets/img/strendsaydamv2.ico">
+  <style>
+    /* Galeri Özel Stilleri */
+    .gallery-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+    }
+    .gallery-title {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-size: 1.15rem;
+        font-weight: 800;
+        margin: 0;
+        color: var(--text-main);
+    }
+    .gallery-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+        gap: 12px;
+    }
+    .gallery-item {
+        position: relative;
+        aspect-ratio: 1 / 1;
+        border-radius: 15px;
+        overflow: hidden;
+        background: var(--input-bg);
+        border: 1px solid var(--border);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        cursor: pointer;
+    }
+    .gallery-item:hover {
+        transform: translateY(-5px) scale(1.02);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.15);
+        border-color: var(--primary);
+    }
+    .gallery-item img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    .gallery-item .delete-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.4);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        transition: opacity 0.2s ease;
+    }
+    .gallery-item:hover .delete-overlay {
+        opacity: 1;
+    }
+    .gallery-item .delete-btn {
+        background: #ef4444;
+        color: white;
+        border: none;
+        padding: 8px;
+        border-radius: 50%;
+        cursor: pointer;
+        transform: scale(0.8);
+        transition: transform 0.2s ease;
+    }
+    .gallery-item:hover .delete-btn {
+        transform: scale(1);
+    }
+    .add-photo-action {
+        background: var(--primary);
+        color: white;
+        border: none;
+        padding: 10px 18px;
+        border-radius: 12px;
+        font-weight: 700;
+        font-size: 0.85rem;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+        transition: filter 0.2s;
+    }
+    .add-photo-action:hover {
+        filter: brightness(1.1);
+    }
+  </style>
 </head>
 <body>
 
@@ -28,7 +117,6 @@
       <input type="text" name="q" id="globalSearch" data-i18n-placeholder="searchPlaceholder">
     </div>
   </form>
-
 
   <div class="header-right">
     <button id="themeToggleBtn" class="theme-btn" onclick="toggleDarkMode()" title="Tema Değiştir"><i class="fa-solid fa-moon"></i></button>
@@ -52,18 +140,8 @@
 
 <div class="app-container">
   <aside>
-    
-    <div class="glass-card sidebar-profile-card" onclick="navigateTo('profile')" style="
-    cursor: pointer;
-    padding: 21px;
-    text-align: center;
-    align-items: center;">
-        <img id="sidebarAvatar" src="" style="
-    width: 97px;
-    height: 99px;
-    border-radius: 50%;
-    border: 2px solid var(--primary);
-    object-fit: cover;">
+    <div class="glass-card sidebar-profile-card" onclick="navigateTo('profile')" style="cursor: pointer; padding: 21px; text-align: center; align-items: center;">
+        <img id="sidebarAvatar" src="" style="width: 97px; height: 99px; border-radius: 50%; border: 2px solid var(--primary); object-fit: cover;">
         <div style="overflow: hidden;">
             <div id="sidebarDisplayName" style="font-weight: 800; font-size: 0.95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">...</div>
             <div id="sidebarUsername" style="font-size: 0.8rem; color: var(--text-muted);">@...</div>
@@ -84,7 +162,7 @@
   </aside>
 
   <main id="main-content">
-<div id="page-profile" class="page-content active">
+    <div id="page-profile" class="page-content active">
         <div class="glass-card" style="padding: 40px; text-align: center; position: relative;">
             <div id="selfPrivateIndicator" style="display:none; position:absolute; top:10px; right:10px; background:#fef2f2; color:#ef4444; padding:4px 12px; border-radius:20px; font-size:0.7rem; font-weight:700; border:1px solid #fecaca;">
                 <i class="fa-solid fa-eye-slash"></i> Profiliniz Gizli
@@ -98,20 +176,18 @@
                     <i class="fa-solid fa-heart" style="color:#ef4444"></i> <span data-i18n="navSubs">Beğendiklerim</span>
                 </button>
                 <button onclick="window.location.href='savepost.html'" class="admin-btn" style="flex:none; padding: 8px 15px; border-radius: 10px;">
-<i class="fa-solid fa-bookmark" style="color:#f59e0b"></i> <span data-i18n="navBookmarks">Kaydedilenler</span></button>
+                    <i class="fa-solid fa-bookmark" style="color:#f59e0b"></i> <span data-i18n="navBookmarks">Kaydedilenler</span>
+                </button>
             </div>
 
             <div id="editProfileSection" class="edit-profile-form">
                 <div class="section-subtitle">Profil Bilgileri</div>
-                
                 <div style="margin-bottom: 20px;">
                     <label class="form-label">Görünen Ad</label>
                     <input type="text" id="newNameInput" class="form-input" placeholder="Adınızı girin">
                 </div>
-
                 <div style="background: var(--bg); padding: 15px; border-radius: 12px; border: 1px solid var(--border);">
                     <label class="form-label" style="color: var(--primary);"><i class="fa-solid fa-camera"></i> Profil Resmini Güncelle</label>
-                    
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px;">
                         <button onclick="document.getElementById('fileAvatarInput').click()" class="admin-btn" style="padding: 10px; height: auto; display: block;">
                             <i class="fa-solid fa-upload"></i><br>Cihazdan Seç
@@ -121,78 +197,38 @@
                         </button>
                     </div>
                     <input type="file" id="fileAvatarInput" accept="image/*" style="display: none;" onchange="handleFileSelect(this)">
-                    
                     <div style="margin-top: 15px;">
                         <label class="form-label">Veya Görsel URL Yapıştır</label>
                         <input type="text" id="newAvatarUrlInput" class="form-input" style="margin-bottom: 0;" placeholder="https://..." oninput="handleUrlInput(this)">
                     </div>
                 </div>
-
                 <div style="margin-top: 25px; display: flex; gap: 10px;">
                     <button onclick="saveProfileChanges()" class="form-btn" style="flex: 2;">
                         <i class="fa-solid fa-floppy-disk"></i> Değişiklikleri Kaydet
                     </button>
-                    <button onclick="toggleEditProfile()" class="form-btn" style="flex: 1; background: var(--text-muted);">
-                        İptal
-                    </button>
+                    <button onclick="toggleEditProfile()" class="form-btn" style="flex: 1; background: var(--text-muted);">İptal</button>
                 </div>
             </div>
-            </div>
-            <div class="glass-card" style="margin-top: 20px; padding: 20px;">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-        <h3 style="margin: 0;"><i class="fa-solid fa-images" style="color: var(--accent);"></i> Fotoğraflarım</h3><br>
-        <button onclick="document.getElementById('userGalleryInput').click()" class="admin-btn" style="padding: 8px 15px; border-radius: 10px; font-size: 0.9rem;">
-            <i class="fa-solid fa-plus"></i> Ekle
-        </button>
-    </div>
-    
-    <input type="file" id="userGalleryInput" accept="image/*" style="display: none;" onchange="handleGalleryUpload(this)">
-    
-    <div id="userGalleryGrid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
         </div>
-</div>
+
+        <div class="glass-card gallery-container" style="margin-top: 20px; padding: 25px; border-radius: 20px;">
+            <div class="gallery-header">
+                <h3 class="gallery-title">
+                    <i class="fa-solid fa-images" style="color: var(--accent); font-size: 1.3rem;"></i> 
+                    <span data-i18n="myPhotosTitle">Fotoğraflarım</span>
+                </h3>
+                <button onclick="document.getElementById('userGalleryInput').click()" class="add-photo-action">
+                    <i class="fa-solid fa-plus"></i> <span data-i18n="addPhoto">Ekle</span>
+                </button>
+            </div>
+            <input type="file" id="userGalleryInput" accept="image/*" style="display: none;" onchange="handleGalleryUpload(this)">
+            <div id="userGalleryGrid" class="gallery-grid">
+                </div>
+        </div>
+
         <div id="profile-content-area">
             <h3 class="profile-section-title" data-i18n="myPostsTitle">Paylaşımlarım</h3>
             <div id="my-posts-list"></div>
-        </div>
-    </div>
-
-    <div id="page-settings" class="page-content">
-        <div class="glass-card" style="padding:30px;">
-            <h2 data-i18n="menuSettings" style="margin-bottom:20px;">Ayarlar</h2>
-            <div class="section-subtitle">Görünüm & Gizlilik</div>
-            <div class="settings-row">
-                <div>
-                    <div style="font-weight:700;" data-i18n="settingPrivate">Gizli Profil</div>
-                    <div style="font-size:0.8rem; color:var(--text-muted);" data-i18n="settingPrivateDesc">Profilinizi ve paylaşımlarınızı diğer kullanıcılardan gizleyin.</div>
-                </div>
-                <label class="toggle-switch">
-                    <input type="checkbox" id="privacyToggle" onchange="togglePrivacy()">
-                    <span class="slider"></span>
-                </label>
-            </div>
-            <div class="settings-row">
-                <div style="font-weight:700;" data-i18n="settingTheme">Koyu Tema</div>
-                <label class="toggle-switch">
-                    <input type="checkbox" id="themeToggle" onchange="toggleDarkMode()">
-                    <span class="slider"></span>
-                </label>
-            </div>
-            <div class="section-subtitle" style="margin-top: 30px;">Hesap Güvenliği</div>
-            <div class="settings-row">
-                <div>
-                    <div style="font-weight:700;">E-posta Adresi</div>
-                    <div id="currentEmailDisplay" style="font-size:0.8rem; color:var(--text-muted);">yükleniyor...</div>
-                </div>
-                <button onclick="updateUserEmail()" class="admin-btn" style="flex:none; padding:8px 15px;">Değiştir</button>
-            </div>
-            <div class="settings-row">
-                <div>
-                    <div style="font-weight:700;">Şifre İşlemleri</div>
-                    <div style="font-size:0.8rem; color:var(--text-muted);">Güvenliğiniz için şifre sıfırlama maili gönderin.</div>
-                </div>
-                <button onclick="sendResetMail()" class="admin-btn" style="flex:none; padding:8px 15px; border-color:var(--primary); color:var(--primary);">Şifre Sıfırla</button>
-            </div>
         </div>
     </div>
   </main>
@@ -214,20 +250,15 @@
   </aside>
 </div>
 
-
 <footer>
   <div class="footer-container">
     <div class="footer-brand" style="display: flex; align-items: center; gap: 15px;">
       <img src="assets/img/strendsaydamv2.png" alt="SosyalTrend Logo" style="width: 124px;height: 123px;object-fit: contain;">
-      
       <div>
         <div class="logo" style="margin-bottom: 5px;">SosyalTrend</div>
-        <p style="color:var(--text-muted); font-size:0.9rem; margin: 0;" data-i18n="footerTagline">
-          Topluluğunuzla her zaman bir adım önde olun.
-        </p>
+        <p style="color:var(--text-muted); font-size:0.9rem; margin: 0;" data-i18n="footerTagline">Topluluğunuzla her zaman bir adım önde olun.</p>
       </div>
     </div>
-
     <div class="footer-section">
       <h4 data-i18n="footerMenu">Hızlı Menü</h4>
       <ul class="footer-links">
@@ -238,7 +269,6 @@
         <li><a href="savepost.html" onclick="navigateTo('navBookmarks')" data-i18n="navBookmarks">Kaydettikleriniz</a></li>
       </ul>
     </div>
-
     <div class="footer-section">
       <h4 data-i18n="footerCorp">Kurumsal</h4>
       <ul class="footer-links">
@@ -246,7 +276,6 @@
         <li><a href="#" data-i18n="footerCareer">Kariyer</a></li>
       </ul>
     </div>
-
     <div class="footer-section">
       <h4 data-i18n="footerSupport">Destek</h4>
       <ul class="footer-links">
@@ -255,7 +284,6 @@
       </ul>
     </div>
   </div>
-
   <div class="footer-bottom">
     <div style="color:var(--text-muted); font-size:0.85rem;">&copy; 2026 <strong>SosyalTrend</strong>. <span data-i18n="footerRights">Tüm Hakları Saklıdır.</span></div>
     <div style="display: flex;gap: 8px;align-items: center;padding: 0px 10px 0 23px;">
