@@ -88,24 +88,27 @@
         <div class="glass-card">
             <div style="padding: 20px;">
                 <textarea id="postInput" style="width:100%; border:none; outline:none; resize:none; font-size:1.1rem; min-height:80px;" data-i18n-placeholder="postPlaceholder"></textarea>
+                
+                <div id="imagePreviewContainer" style="display: none; position: relative; margin-top: 10px; width: fit-content;">
+                    <img id="imagePreview" src="" style="max-width: 200px; max-height: 200px; border-radius: 12px; border: 1px solid var(--border);">
+                    <button type="button" onclick="clearImagePreview()" style="position: absolute; top: -10px; right: -10px; background: #ff4d4d; color: white; border: none; border-radius: 50%; width: 25px; height: 25px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
             </div>
             
             <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border); padding: 15px 20px;">
                 <div style="display:flex; gap:8px; position: relative;">
-                    <button class="tool-btn"><i class="fa-regular fa-image"></i></button>
+                    <input type="file" id="imageInput" accept="image/*" style="display: none;">
+                    
+                    <button class="tool-btn" type="button" onclick="document.getElementById('imageInput').click()">
+                        <i class="fa-regular fa-image"></i>
+                    </button>
+                    
                     <button class="tool-btn"><i class="fa-solid fa-list-ul"></i></button>
-
                     <button class="tool-btn" id="emojiToggle" type="button"><i class="fa-regular fa-face-smile"></i></button>
                     
-                    <div id="emojiPicker" class="glass-card" style="
-                    display: none; 
-                    position: absolute;
-                    top: -143px; left: 126px;
-                    z-index: 100;
-                    padding: 4px;
-                    width: 200px;
-                    grid-template-columns: repeat(7, 1fr);
-                    gap: 6px;">
+                    <div id="emojiPicker" class="glass-card" style="display: none; position: absolute; top: -143px; left: 126px; z-index: 100; padding: 4px; width: 200px; grid-template-columns: repeat(7, 1fr); gap: 6px;">
                         <span style="cursor:pointer">😊</span><span style="cursor:pointer">😁</span><span style="cursor:pointer">😂</span><span style="cursor:pointer">🤣</span><span style="cursor:pointer">😡</span><span style="cursor:pointer">😠</span><span style="cursor:pointer">😭</span>
                         <span style="cursor:pointer">❤️</span><span style="cursor:pointer">💚</span><span style="cursor:pointer">💙</span><span style="cursor:pointer">💔</span><span style="cursor:pointer">💘</span><span style="cursor:pointer">💗</span><span style="cursor:pointer">💝</span>
                         <span style="cursor:pointer">👍</span><span style="cursor:pointer">👎</span><span style="cursor:pointer">🙌</span><span style="cursor:pointer">🙏</span><span style="cursor:pointer">✨</span><span style="cursor:pointer">📺</span><span style="cursor:pointer">🎞️</span>
@@ -118,7 +121,6 @@
             </div>
         </div>
         <div id="feed-items"></div>
-        
     </div>
 </main>
 
