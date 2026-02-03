@@ -1254,3 +1254,71 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 /* ============================ */
+
+/* HATIRLATICI SİSTEMİ */
+const reminderBtn = document.getElementById('reminderBtn');
+const reminderModal = document.getElementById('reminderModal');
+const saveReminderBtn = document.getElementById('saveReminder');
+
+// Modalı aç/kapat
+if(reminderBtn) {
+    reminderBtn.onclick = () => reminderModal.style.display = 'flex';
+}
+
+// Hatırlatıcıyı Kaydet
+if(saveReminderBtn) {
+    saveReminderBtn.onclick = () => {
+        const text = document.getElementById('remindText').value;
+        const time = document.getElementById('remindTime').value;
+
+        if(!text || !time) return alert("Lütfen tüm alanları doldurun!");
+
+        const reminders = JSON.parse(localStorage.getItem('st_reminders') || '[]');
+        reminders.push({ id: Date.now(), text, time, done: false });
+        localStorage.setItem('st_reminders', JSON.stringify(reminders));
+
+        alert("Hatırlatıcı kuruldu!");
+        reminderModal.style.display = 'none';
+        document.getElementById('remindText').value = '';
+    };
+}
+
+// Hatırlatıcı Kontrol Döngüsü (Her 30 saniyede bir)
+setInterval(() => {
+    const reminders = JSON.parse(localStorage.getItem('st_reminders') || '[]');
+    const now = new Date();
+    let hasAlert = false;
+
+    reminders.forEach(rem => {
+        const remDate = new Date(rem.time);
+        if (!rem.done && remDate <= now) {
+            // Bildirim Göster
+            showNotification(rem.text);
+            rem.done = true;
+            hasAlert = true;
+        }
+    });
+
+    if(hasAlert) {
+        localStorage.setItem('st_reminders', JSON.stringify(reminders));
+    }
+}, 30000);
+
+// Bildirim UI Fonksiyonu
+function showNotification(msg) {
+    // Tarayıcı bildirimi (Opsiyonel)
+    if (Notification.permission === "granted") {
+        new Notification("SosyalTrend Hatırlatıcı", { body: msg });
+    }
+    
+    // Uygulama içi görsel uyarı
+    const badge = document.getElementById('notifBadge');
+    if(badge) badge.style.display = 'block';
+    
+    alert("🔔 HATIRLATICI: " + msg);
+}
+
+// Sayfa yüklendiğinde bildirim izni iste
+if (typeof Notification !== "undefined" && Notification.permission !== "granted") {
+    Notification.requestPermission();
+}

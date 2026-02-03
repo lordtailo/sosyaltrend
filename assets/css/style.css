@@ -780,3 +780,19 @@ aside, .right-panel { display: none; } }
     cursor: pointer; 
     font-weight: bold; 
 }
+
+/* HATIRLATICI */
+.action-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-main);
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 50%;
+    transition: background 0.2s;
+}
+
+.action-btn:hover {
+    background: var(--input-bg);
+}
