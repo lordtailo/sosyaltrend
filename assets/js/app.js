@@ -318,11 +318,31 @@ function getAvatarUrl(seed, type = 'user') {
     return `https://api.dicebear.com/7.x/${collection}/svg?seed=${encodeURIComponent(seed)}`;
 }
 
+// --- YENİ: Avatarı Veritabanına Kaydetme ---
+window.saveUserAvatar = async (selectedAvatarName) => {
+    if (auth.currentUser) {
+        try {
+            const userRef = doc(db, "users", auth.currentUser.uid);
+            await updateDoc(userRef, {
+                avatarSeed: selectedAvatarName // Firebase'e yazar
+            });
+            // Yerel kullanıcı nesnesini de güncelle ki sayfa yenilenmeden değişsin
+            user.avatarSeed = selectedAvatarName; 
+            updateUIWithUser();
+            console.log("Avatar tüm cihazlar için güncellendi.");
+        } catch (error) {
+            console.error("Avatar kaydedilirken hata oluştu:", error);
+        }
+    }
+};
+
 function updateUIWithUser() {
-    const avatarUrl = getAvatarUrl(user.avatarSeed, 'user');
+    // 1. Avatarı LocalStorage yerine Firebase'den gelen user.avatarSeed ile al
+    // Eğer veritabanında henüz yoksa varsayılan olarak 'Felix' kullan
+    const currentSeed = user.avatarSeed || 'Felix';
+    const avatarUrl = getAvatarUrl(currentSeed, 'user');
     
-    // --- PREMİUM KONTROLÜ ---
-    // Sadece mevcut giriş yapmış kullanıcının isPremium verisi true ise ikon oluşturulur
+    // 2. Premium (Mavi Tık) Kontrolü
     const isPremium = user && user.isPremium === true;
     const verifyIcon = isPremium ? ' <i class="fa-solid fa-circle-check" style="color:var(--primary); font-size:0.7rem; margin-left:4px;"></i>' : '';
 
@@ -330,75 +350,34 @@ function updateUIWithUser() {
     const welcomeEl = document.getElementById('welcomeMessage'); 
     const hAv = document.getElementById('headerAvatar');
     const mDn = document.getElementById('menuDisplayName');
-    const mUn = document.getElementById('menuUsername');
-
-    // Sol Menü
     const sAv = document.getElementById('sidebarAvatar');
     const sDn = document.getElementById('sidebarDisplayName');
-    const sUn = document.getElementById('sidebarUsername');
-
-    // Profil Sayfası
     const pAv = document.getElementById('profilePageAvatar');
     const pPn = document.getElementById('profilePageName');
-    const pPh = document.getElementById('profilePageHandle');
     const payBtn = document.getElementById('payButton');
 
-    // Gizlilik Ayarları
-    const pTg = document.getElementById('privacyToggle');
-    const sPi = document.getElementById('selfPrivateIndicator');
-
     // --- GÜNCELLEMELER ---
-    // Karşılama Mesajı (Sadece ödeme yapan kullanıcıda ikon çıkar)
+    // Avatarları Güncelle (Artık her cihazda Firebase'deki aynı seed'i okur)
+    if(hAv) hAv.src = avatarUrl;
+    if(sAv) sAv.src = avatarUrl;
+    if(pAv) pAv.src = avatarUrl;
+
+    // İsimleri ve Mavi Tıkı Güncelle
+    if(mDn) mDn.innerHTML = (user.displayName || "İsimsiz") + verifyIcon;
+    if(sDn) sDn.innerHTML = (user.displayName || "İsimsiz") + verifyIcon;
+    if(pPn) pPn.innerHTML = (user.displayName || "İsimsiz") + verifyIcon;
+
+    // Karşılama Mesajı
     if (welcomeEl) {
         const currentName = user.username || user.displayName || "misafir";
         welcomeEl.innerHTML = `<i class="fa-solid fa-circle-check" style="font-size: 0.6rem; animation: pulse 2s infinite;"></i> ${currentName.toLowerCase()}${verifyIcon}`;
     }
 
-    // Header (Üst Menü) - Mavi tık kontrolü
-    if(hAv) hAv.src = avatarUrl;
-    if(mDn) mDn.innerHTML = (user.displayName || "İsimsiz") + verifyIcon;
-    if(mUn) mUn.innerText = `@${user.username || "kullanici"}`;
-
-    // Sol Sidebar - Mavi tık kontrolü
-    if(sAv) sAv.src = avatarUrl;
-    if(sDn) sDn.innerHTML = (user.displayName || "İsimsiz") + verifyIcon;
-    if(sUn) sUn.innerText = `@${user.username || "kullanici"}`;
-
-    // Profil Sayfası - Mavi tık kontrolü
-    if(pAv) pAv.src = avatarUrl;
-    if(pPn) pPn.innerHTML = (user.displayName || "İsimsiz") + verifyIcon;
-    if(pPh) pPh.innerText = `@${user.username || "kullanici"}`;
-
-    // Ödeme Butonu: Eğer kullanıcı zaten aktif etmişse butonu tamamen gizle
+    // Ödeme Butonu Görünürlüğü
     if(payBtn) {
         payBtn.style.display = isPremium ? 'none' : 'flex';
     }
-
-    // Gizlilik Durumu
-    if(pTg) pTg.checked = isPrivate;
-    if(sPi) sPi.style.display = isPrivate ? 'block' : 'none';
 }
-
-// --- TEK SEFERLİK AKTİVASYON (ÖDEME) FONKSİYONU ---
-window.handlePayment = async () => {
-    if(confirm("Premium özellikleri ve Onay Rozetini aktif etmek istiyor musunuz?")) {
-        try {
-            // Firebase veritabanında bu kullanıcının isPremium değerini true yapıyoruz
-            const userRef = doc(db, "users", auth.currentUser.uid);
-            await updateDoc(userRef, {
-                isPremium: true
-            });
-            
-            // Yerel nesneyi güncelle ve UI'ı yenile
-            user.isPremium = true;
-            alert("Tebrikler! Mavi tık hesabınıza tanımlandı.");
-            updateUIWithUser(); 
-        } catch (error) {
-            console.error("Hata:", error);
-            alert("Bir hata oluştu, lütfen tekrar deneyin.");
-        }
-    }
-};
 
 window.togglePrivacy = () => {
       isPrivate = document.getElementById('privacyToggle').checked;
