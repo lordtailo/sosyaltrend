@@ -2,6 +2,20 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
 import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, doc, updateDoc, arrayUnion, arrayRemove, deleteDoc, getDoc, getDocs, limit } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { getAuth, onAuthStateChanged, signOut, updateEmail, sendPasswordResetEmail, updateProfile } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
+/* Özel Günler ve Tarihte Bugün Veri Seti */
+const ozelGunler = [
+    { ay: 0, gun: 1, baslik: "Yılbaşı", mesaj: "Yeni yılın tüm SosyalTrend ailesine huzur ve mutluluk getirmesini dileriz! 🎄✨" },
+    { ay: 3, gun: 23, baslik: "23 Nisan", mesaj: "23 Nisan Ulusal Egemenlik ve Çocuk Bayramı kutlu olsun! 🇹🇷" },
+    // Mübarek günler (Diyanet takvimine göre manuel güncellenebilir veya API bağlanabilir)
+    { ay: 2, gun: 29, baslik: "Ramazan Başlangıcı", mesaj: "Yarın Ramazan başlıyor. Tüm İslam aleminin mübarek Ramazan ayını şimdiden tebrik ederiz. 🌙" },
+    { ay: 9, gun: 28, baslik: "Cumhuriyet Bayramı", mesaj: "Yarın 29 Ekim! Cumhuriyetimizin yeni yaşını gururla kutlamaya hazır mısın? 🇹🇷" }
+];
+
+const tarihteBugun = [
+    { ay: 1, gun: 3, baslik: "Tarihte Bugün", mesaj: "1934: Türkiye'de kadınlara seçme ve seçilme hakkı tanındı. 🗳️" },
+    // Buraya istediğiniz kadar tarihi olay ekleyebilirsiniz
+];
+
 // Bileşenleri dinamik olarak yükleme fonksiyonu    
 async function loadComponents() {
 }
@@ -31,9 +45,8 @@ document.addEventListener('DOMContentLoaded', loadComponents);
 const ADMIN_EMAIL = "officialfthuzun@gmail.com";
 
 onAuthStateChanged(auth, (fbUser) => {
-    if (!fbUser) {
-        window.location.href = 'login.html';
-    } else {
+    if (!fbUser) 
+        { window.location.href = 'login.html'; kontrolEtVeOtomatikPostAt(); } else {
         // Kullanıcı bilgilerini güncelle
         user.username = fbUser.email.split('@')[0];
         user.displayName = localStorage.getItem('st_displayName') || fbUser.displayName || user.username;
@@ -1255,70 +1268,54 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 /* ============================ */
 
-/* HATIRLATICI SİSTEMİ */
-const reminderBtn = document.getElementById('reminderBtn');
-const reminderModal = document.getElementById('reminderModal');
-const saveReminderBtn = document.getElementById('saveReminder');
+async function kontrolEtVeOtomatikPostAt() {
+    const simdi = new Date();
+    const bugunGun = simdi.getDate();
+    const bugunAy = simdi.getMonth();
+    
+    // Yarını kontrol et (Mübarek günler için 1 gün önceden)
+    const yarin = new Date(simdi);
+    yarin.setDate(simdi.getDate() + 1);
+    const yarinGun = yarin.getDate();
+    const yarinAy = yarin.getMonth();
 
-// Modalı aç/kapat
-if(reminderBtn) {
-    reminderBtn.onclick = () => reminderModal.style.display = 'flex';
-}
+    const sonKontrol = localStorage.getItem('last_auto_post_check');
+    const bugunStr = simdi.toDateString();
 
-// Hatırlatıcıyı Kaydet
-if(saveReminderBtn) {
-    saveReminderBtn.onclick = () => {
-        const text = document.getElementById('remindText').value;
-        const time = document.getElementById('remindTime').value;
+    // Günde sadece 1 kez kontrol etmesini sağlayalım
+    if (sonKontrol === bugunStr) return;
 
-        if(!text || !time) return alert("Lütfen tüm alanları doldurun!");
-
-        const reminders = JSON.parse(localStorage.getItem('st_reminders') || '[]');
-        reminders.push({ id: Date.now(), text, time, done: false });
-        localStorage.setItem('st_reminders', JSON.stringify(reminders));
-
-        alert("Hatırlatıcı kuruldu!");
-        reminderModal.style.display = 'none';
-        document.getElementById('remindText').value = '';
-    };
-}
-
-// Hatırlatıcı Kontrol Döngüsü (Her 30 saniyede bir)
-setInterval(() => {
-    const reminders = JSON.parse(localStorage.getItem('st_reminders') || '[]');
-    const now = new Date();
-    let hasAlert = false;
-
-    reminders.forEach(rem => {
-        const remDate = new Date(rem.time);
-        if (!rem.done && remDate <= now) {
-            // Bildirim Göster
-            showNotification(rem.text);
-            rem.done = true;
-            hasAlert = true;
+    // 1. Mübarek Gün Kontrolü (1 Gün Önceden)
+    ozelGunler.forEach(async (gun) => {
+        if (gun.gun === yarinGun && gun.ay === yarinAy) {
+            await otomatikPostPaylas(`📢 HATIRLATMA: ${gun.baslik}`, gun.mesaj);
         }
     });
 
-    if(hasAlert) {
-        localStorage.setItem('st_reminders', JSON.stringify(reminders));
-    }
-}, 30000);
+    // 2. Tarihte Bugün Kontrolü (O gün içinde)
+    tarihteBugun.forEach(async (olay) => {
+        if (olay.gun === bugunGun && olay.ay === bugunAy) {
+            await otomatikPostPaylas(`⏳ Tarihte Bugün: ${olay.baslik}`, olay.mesaj);
+        }
+    });
 
-// Bildirim UI Fonksiyonu
-function showNotification(msg) {
-    // Tarayıcı bildirimi (Opsiyonel)
-    if (Notification.permission === "granted") {
-        new Notification("SosyalTrend Hatırlatıcı", { body: msg });
-    }
-    
-    // Uygulama içi görsel uyarı
-    const badge = document.getElementById('notifBadge');
-    if(badge) badge.style.display = 'block';
-    
-    alert("🔔 HATIRLATICI: " + msg);
+    localStorage.setItem('last_auto_post_check', bugunStr);
 }
 
-// Sayfa yüklendiğinde bildirim izni iste
-if (typeof Notification !== "undefined" && Notification.permission !== "granted") {
-    Notification.requestPermission();
+// Firebase'e gönderi gönderen yardımcı fonksiyon
+async function otomatikPostPaylas(baslik, icerik) {
+    try {
+        await addDoc(collection(db, "posts"), {
+            author: "SosyalTrend Bot",
+            authorEmail: "bot@sosyaltrend.com",
+            authorImage: "assets/img/strendsaydamv2.ico", // Bot ikonu
+            content: `${baslik}\n\n${icerik}`,
+            timestamp: serverTimestamp(),
+            likes: [],
+            comments: []
+        });
+        console.log("Otomatik post paylaşıldı: " + baslik);
+    } catch (e) {
+        console.error("Post paylaşılırken hata oluştu: ", e);
+    }
 }
