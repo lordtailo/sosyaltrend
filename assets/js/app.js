@@ -321,8 +321,9 @@ function getAvatarUrl(seed, type = 'user') {
 function updateUIWithUser() {
     const avatarUrl = getAvatarUrl(user.avatarSeed, 'user');
     
-    // ARTIK VERİYİ LOCALSTORAGE YERİNE FIREBASE'DEN GELEN USER NESNESİNDEN ALIYORUZ
-    const isPremium = user.isPremium === true; 
+    // --- PREMİUM KONTROLÜ ---
+    // Sadece mevcut giriş yapmış kullanıcının isPremium verisi true ise ikon oluşturulur
+    const isPremium = user && user.isPremium === true;
     const verifyIcon = isPremium ? ' <i class="fa-solid fa-circle-check" style="color:var(--primary); font-size:0.7rem; margin-left:4px;"></i>' : '';
 
     // --- ELEMENT TANIMLAMALARI ---
@@ -330,56 +331,71 @@ function updateUIWithUser() {
     const hAv = document.getElementById('headerAvatar');
     const mDn = document.getElementById('menuDisplayName');
     const mUn = document.getElementById('menuUsername');
+
+    // Sol Menü
     const sAv = document.getElementById('sidebarAvatar');
     const sDn = document.getElementById('sidebarDisplayName');
     const sUn = document.getElementById('sidebarUsername');
+
+    // Profil Sayfası
     const pAv = document.getElementById('profilePageAvatar');
     const pPn = document.getElementById('profilePageName');
     const pPh = document.getElementById('profilePageHandle');
     const payBtn = document.getElementById('payButton');
+
+    // Gizlilik Ayarları
     const pTg = document.getElementById('privacyToggle');
     const sPi = document.getElementById('selfPrivateIndicator');
 
     // --- GÜNCELLEMELER ---
+    // Karşılama Mesajı (Sadece ödeme yapan kullanıcıda ikon çıkar)
     if (welcomeEl) {
         const currentName = user.username || user.displayName || "misafir";
         welcomeEl.innerHTML = `<i class="fa-solid fa-circle-check" style="font-size: 0.6rem; animation: pulse 2s infinite;"></i> ${currentName.toLowerCase()}${verifyIcon}`;
     }
 
+    // Header (Üst Menü) - Mavi tık kontrolü
     if(hAv) hAv.src = avatarUrl;
     if(mDn) mDn.innerHTML = (user.displayName || "İsimsiz") + verifyIcon;
-    if(mUn) mUn.innerText = `@${user.username || 'kullanici'}`;
+    if(mUn) mUn.innerText = `@${user.username || "kullanici"}`;
 
+    // Sol Sidebar - Mavi tık kontrolü
     if(sAv) sAv.src = avatarUrl;
     if(sDn) sDn.innerHTML = (user.displayName || "İsimsiz") + verifyIcon;
-    if(sUn) sUn.innerText = `@${user.username || 'kullanici'}`;
+    if(sUn) sUn.innerText = `@${user.username || "kullanici"}`;
 
+    // Profil Sayfası - Mavi tık kontrolü
     if(pAv) pAv.src = avatarUrl;
     if(pPn) pPn.innerHTML = (user.displayName || "İsimsiz") + verifyIcon;
-    if(pPh) pPh.innerText = `@${user.username || 'kullanici'}`;
+    if(pPh) pPh.innerText = `@${user.username || "kullanici"}`;
 
+    // Ödeme Butonu: Eğer kullanıcı zaten aktif etmişse butonu tamamen gizle
     if(payBtn) {
         payBtn.style.display = isPremium ? 'none' : 'flex';
     }
 
+    // Gizlilik Durumu
     if(pTg) pTg.checked = isPrivate;
     if(sPi) sPi.style.display = isPrivate ? 'block' : 'none';
 }
 
-// --- ÖDEME YAPMA FONKSİYONU ---
+// --- TEK SEFERLİK AKTİVASYON (ÖDEME) FONKSİYONU ---
 window.handlePayment = async () => {
-    if(confirm("Premium üyelik satın alarak onay rozeti (mavi tık) almak istiyor musunuz?")) {
+    if(confirm("Premium özellikleri ve Onay Rozetini aktif etmek istiyor musunuz?")) {
         try {
+            // Firebase veritabanında bu kullanıcının isPremium değerini true yapıyoruz
             const userRef = doc(db, "users", auth.currentUser.uid);
             await updateDoc(userRef, {
                 isPremium: true
             });
-            alert("Ödemeniz başarıyla alındı! Mavi tık tüm cihazlarınızda tanımlandı.");
-            // UI zaten onSnapshot veya sayfa yenilemesiyle güncellenecektir
-            location.reload(); 
+            
+            // Yerel nesneyi güncelle ve UI'ı yenile
+            user.isPremium = true;
+            alert("Tebrikler! Mavi tık hesabınıza tanımlandı.");
+            updateUIWithUser(); 
         } catch (error) {
-            console.error("Ödeme kaydedilemedi:", error);
-            alert("Bir hata oluştu.");
+            console.error("Hata:", error);
+            alert("Bir hata oluştu, lütfen tekrar deneyin.");
         }
     }
 };
