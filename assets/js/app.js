@@ -379,6 +379,23 @@ function updateUIWithUser() {
     }
 }
 
+window.handlePayment = async () => {
+    if(confirm("Premium üyelik satın alarak onay rozeti (mavi tık) almak istiyor musunuz?")) {
+        try {
+            const userRef = doc(db, "users", auth.currentUser.uid);
+            await updateDoc(userRef, {
+                isPremium: true
+            });
+            alert("Ödemeniz başarıyla alındı! Mavi tık tüm cihazlarınızda tanımlandı.");
+            // UI zaten onSnapshot veya sayfa yenilemesiyle güncellenecektir
+            location.reload(); 
+        } catch (error) {
+            console.error("Ödeme kaydedilemedi:", error);
+            alert("Bir hata oluştu.");
+        }
+    }
+};
+
 window.togglePrivacy = () => {
       isPrivate = document.getElementById('privacyToggle').checked;
       localStorage.setItem('st_isPrivate', isPrivate);
