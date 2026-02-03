@@ -3,10 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SosyalTrend • Sosyal Ağ - Giriş Yap & Kayıt Ol!</title>
-    <link rel="icon" type="image/x-icon" href="assets/img/strendsaydamv2.ico">
+  <title>SosyalTrend • Sosyal Ağ - Giriş Yap & Kayıt Ol!</title>
+  <link rel="icon" type="image/x-icon" href="assets/img/strendsaydamv2.ico">
 
-  <title>SosyalTrend | Giriş ve Kayıt</title>
   <style>
     :root {
       --bg: #f4f6fb;
@@ -98,12 +97,14 @@
   <div id="loginCard" class="card active">
     <h1>🔑 Giriş Yap</h1>
     <p class="subtitle">Bilgilerinizi girerek devam edin</p>
-    <input id="loginEmail" type="email" placeholder="E‑posta Adresi" />
-    <input id="loginPassword" type="password" placeholder="Şifre" />
-    <div class="forgot-container">
-      <span class="forgot-link" onclick="toggleAuth('forgot')">Şifremi Unuttum?</span>
-    </div>
-    <button id="loginBtn">Giriş Yap</button>
+    <form id="loginForm">
+        <input id="loginEmail" type="email" placeholder="E‑posta Adresi" required autocomplete="username" />
+        <input id="loginPassword" type="password" placeholder="Şifre" required autocomplete="current-password" />
+        <div class="forgot-container">
+          <span class="forgot-link" onclick="toggleAuth('forgot')">Şifremi Unuttum?</span>
+        </div>
+        <button type="submit">Giriş Yap</button>
+    </form>
     <p id="loginMsg" class="authMsg"></p>
     <span class="toggle-link" onclick="toggleAuth('register')">Hesabınız yok mu? Kayıt Olun</span>
   </div>
@@ -111,11 +112,13 @@
   <div id="registerCard" class="card">
     <h1>💾 Kayıt Ol</h1>
     <p class="subtitle">Ücretsiz hesabınızı hemen oluşturun</p>
-    <input id="regName" type="text" placeholder="Ad Soyad" />
-    <input id="regUsername" type="text" placeholder="Kullanıcı Adı" />
-    <input id="regEmail" type="email" placeholder="E‑posta Adresi" />
-    <input id="regPassword" type="password" placeholder="Şifre (en az 6 karakter)" />
-    <button id="registerBtn">Hesabımı Oluştur</button>
+    <form id="registerForm">
+        <input id="regName" type="text" placeholder="Ad Soyad" required />
+        <input id="regUsername" type="text" placeholder="Kullanıcı Adı" required />
+        <input id="regEmail" type="email" placeholder="E‑posta Adresi" required autocomplete="email" />
+        <input id="regPassword" type="password" placeholder="Şifre (en az 6 karakter)" required autocomplete="new-password" />
+        <button type="submit">Hesabımı Oluştur</button>
+    </form>
     <p id="regMsg" class="authMsg"></p>
     <span class="toggle-link" onclick="toggleAuth('login')">Zaten hesabınız var mı? Giriş Yap</span>
   </div>
@@ -124,8 +127,10 @@
     <div style="text-align:center; font-size: 2rem; margin-bottom: 10px;">✉️</div>
     <h1>Şifre Yenileme</h1>
     <p class="subtitle">E-posta adresinizi girin, size bir sıfırlama bağlantısı gönderelim.</p>
-    <input id="resetEmail" type="email" placeholder="E‑posta Adresi" />
-    <button id="resetBtn">Sıfırlama Bağlantısı Gönder</button>
+    <form id="forgotForm">
+        <input id="resetEmail" type="email" placeholder="E‑posta Adresi" required />
+        <button type="submit">Sıfırlama Bağlantısı Gönder</button>
+    </form>
     <p id="resetMsg" class="authMsg"></p>
     <span class="toggle-link" onclick="toggleAuth('login')">Anasayfaya dönmek istermisin? Girişe Dön</span>
   </div>
@@ -163,8 +168,8 @@
     const cards = document.querySelectorAll('.card');
     const msgs = document.querySelectorAll('.authMsg');
     
-    msgs.forEach(m => m.innerText = ""); // Mesajları temizle
-    cards.forEach(c => c.classList.remove('active')); // Hepsini gizle
+    msgs.forEach(m => m.innerText = ""); 
+    cards.forEach(c => c.classList.remove('active')); 
 
     if(target === 'register') document.getElementById('registerCard').classList.add('active');
     else if(target === 'forgot') document.getElementById('forgotCard').classList.add('active');
@@ -172,12 +177,11 @@
   };
 
   // --- GİRİŞ ---
-  document.getElementById('loginBtn').addEventListener('click', async () => {
+  document.getElementById('loginForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
     const email = document.getElementById('loginEmail').value.trim();
     const pass = document.getElementById('loginPassword').value;
     const msg = document.getElementById('loginMsg');
-
-    if(!email || !pass) return showStatus(msg, "Lütfen tüm alanları doldurun.", "#ef4444");
 
     try {
       showStatus(msg, "Giriş yapılıyor...", "#4f46e5");
@@ -188,12 +192,13 @@
   });
 
   // --- KAYIT ---
-  document.getElementById('registerBtn').addEventListener('click', async () => {
+  document.getElementById('registerForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
     const email = document.getElementById('regEmail').value.trim();
     const pass = document.getElementById('regPassword').value;
     const msg = document.getElementById('regMsg');
 
-    if(!email || pass.length < 6) return showStatus(msg, "Geçerli bir e-posta ve en az 6 karakterli şifre girin.", "#ef4444");
+    if(pass.length < 6) return showStatus(msg, "Şifre en az 6 karakter olmalıdır.", "#ef4444");
 
     try {
       showStatus(msg, "Hesap oluşturuluyor...", "#4f46e5");
@@ -204,11 +209,10 @@
   });
 
   // --- ŞİFRE SIFIRLAMA ---
-  document.getElementById('resetBtn').addEventListener('click', async () => {
+  document.getElementById('forgotForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
     const email = document.getElementById('resetEmail').value.trim();
     const msg = document.getElementById('resetMsg');
-
-    if(!email) return showStatus(msg, "Lütfen e-posta adresinizi yazın.", "#ef4444");
 
     try {
       showStatus(msg, "Gönderiliyor...", "#4f46e5");
