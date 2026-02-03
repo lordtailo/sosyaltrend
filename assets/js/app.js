@@ -13,6 +13,7 @@ const ozelGunler = [
 
 const tarihteBugun = [
     { ay: 1, gun: 3, baslik: "Tarihte Bugün", mesaj: "1934: Türkiye'de kadınlara seçme ve seçilme hakkı tanındı. 🗳️" },
+    { ay: 2, gun: 3, baslik: "Tarihte Bugün", mesaj: "deneme 🗳️" },
     // Buraya istediğiniz kadar tarihi olay ekleyebilirsiniz
 ];
 
