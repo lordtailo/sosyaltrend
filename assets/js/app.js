@@ -4,17 +4,42 @@ import { getAuth, onAuthStateChanged, signOut, updateEmail, sendPasswordResetEma
 
 /* Özel Günler ve Tarihte Bugün Veri Seti */
 const ozelGunler = [
+    // Resmi ve Özel Günler
     { ay: 0, gun: 1, baslik: "Yılbaşı", mesaj: "Yeni yılın tüm SosyalTrend ailesine huzur ve mutluluk getirmesini dileriz! 🎄✨" },
-    { ay: 3, gun: 23, baslik: "23 Nisan", mesaj: "23 Nisan Ulusal Egemenlik ve Çocuk Bayramı kutlu olsun! 🇹🇷" },
-    // Mübarek günler (Diyanet takvimine göre manuel güncellenebilir veya API bağlanabilir)
-    { ay: 2, gun: 29, baslik: "Ramazan Başlangıcı", mesaj: "Yarın Ramazan başlıyor. Tüm İslam aleminin mübarek Ramazan ayını şimdiden tebrik ederiz. 🌙" },
-    { ay: 9, gun: 28, baslik: "Cumhuriyet Bayramı", mesaj: "Yarın 29 Ekim! Cumhuriyetimizin yeni yaşını gururla kutlamaya hazır mısın? 🇹🇷" }
+    { ay: 1, gun: 14, baslik: "Sevgililer Günü", mesaj: "Sevginin paylaştıkça çoğaldığı bir gün dileriz! ❤️" },
+    { ay: 2, gun: 8, baslik: "Dünya Kadınlar Günü", mesaj: "Emeğiyle dünyayı güzelleştiren tüm kadınların günü kutlu olsun! 💐" },
+    { ay: 2, gun: 18, baslik: "Çanakkale Zaferi", mesaj: "18 Mart Çanakkale Zaferi’nin yıl dönümünde şehitlerimizi minnetle anıyoruz. 🇹🇷" },
+    { ay: 3, gun: 23, baslik: "Ulusal Egemenlik ve Çocuk Bayramı", mesaj: "23 Nisan kutlu olsun! Geleceğimiz çocuklara emanet. 🇹🇷" },
+    { ay: 4, gun: 1, baslik: "Emek ve Dayanışma Günü", mesaj: "Tüm çalışanların 1 Mayıs işçi bayramı kutlu olsun! 🛠️" },
+    { ay: 4, gun: 19, baslik: "Atatürk'ü Anma, Gençlik ve Spor Bayramı", mesaj: "19 Mayıs Atatürk'ü Anma, Gençlik ve Spor Bayramımız kutlu olsun! 🇹🇷" },
+    { ay: 6, gun: 15, baslik: "Demokrasi ve Milli Birlik Günü", mesaj: "15 Temmuz Demokrasi ve Milli Birlik Günü'nde şehitlerimizi anıyoruz." },
+    { ay: 7, gun: 30, baslik: "Zafer Bayramı", mesaj: "30 Ağustos Zafer Bayramımız kutlu olsun! Başkomutan Atatürk ve silah arkadaşlarını saygıyla anıyoruz. 🇹🇷" },
+    { ay: 9, gun: 29, baslik: "Cumhuriyet Bayramı", mesaj: "Cumhuriyetimizin yeni yaşını gururla kutluyoruz! 29 Ekim kutlu olsun! 🇹🇷" },
+    { ay: 10, gun: 10, baslik: "Atatürk'ü Anma Günü", mesaj: "Cumhuriyetimizin kurucusu Gazi Mustafa Kemal Atatürk'ü saygı ve özlemle anıyoruz. 🖤" },
+    { ay: 11, gun: 24, baslik: "Öğretmenler Günü", mesaj: "Gelecek nesilleri yetiştiren tüm öğretmenlerimizin günü kutlu olsun! 🎓" },
+
+    // 2026 Dini Günler (Yaklaşık Tarihler - Diyanet Takvimine Göre)
+    { ay: 1, gun: 18, baslik: "Ramazan Başlangıcı", mesaj: "Hoş geldin Ya Şehr-i Ramazan! İlk teravih bu akşam. 🌙" },
+    { ay: 2, gun: 20, baslik: "Ramazan Bayramı", mesaj: "Ramazan Bayramınız mübarek olsun! Sevdiklerinizle nice mutlu bayramlara. 🍬" },
+    { ay: 4, gun: 27, baslik: "Kurban Bayramı", mesaj: "Kurban Bayramınız kutlu olsun. Paylaşmanın ve dayanışmanın günü! 🐑" },
+    { ay: 5, gun: 26, baslik: "Hicri Yılbaşı", mesaj: "Yeni Hicri yılın tüm İslam alemine hayırlar getirmesini dileriz." },
+    { ay: 8, gun: 4, baslik: "Mevlid Kandili", mesaj: "Mevlid Kandiliniz mübarek, dualarınız kabul olsun. ✨" },
+    { ay: 0, gun: 14, baslik: "Regaip Kandili", mesaj: "Mübarek Regaip Kandilinizi tebrik ederiz. ✨" },
+    { ay: 1, gun: 12, baslik: "Miraç Kandili", mesaj: "Miraç Kandiliniz mübarek olsun. 🤲" },
+    { ay: 2, gun: 2, baslik: "Berat Kandili", mesaj: "Berat Kandilimiz mübarek olsun. 🌙" },
+    { ay: 2, gun: 16, baslik: "Kadir Gecesi", mesaj: "Kadir Geceniz mübarek olsun. 🙏" },
+    { ay: 6, gun: 5, baslik: "Aşure Günü", mesaj: "Aşure Gününüz mübarek, birliğimiz daim olsun. 🥣" },
 ];
 
 const tarihteBugun = [
-    { ay: 1, gun: 3, baslik: "Tarihte Bugün", mesaj: "1934: Türkiye'de kadınlara seçme ve seçilme hakkı tanındı. 🗳️" },
-    { ay: 2, gun: 3, baslik: "Tarihte Bugün", mesaj: "deneme 🗳️" },
-    // Buraya istediğiniz kadar tarihi olay ekleyebilirsiniz
+    { ay: 0, gun: 29, baslik: "Tarihte Bugün", mesaj: "1923: Mustafa Kemal Atatürk, ilk Türkiye Cumhurbaşkanı seçildi. 🗳️" },
+    { ay: 1, gun: 5, baslik: "Tarihte Bugün", mesaj: "1924: Türkiye'de ilk kadın avukat Süreyya Ağaoğlu görevine başladı. ⚖️" },
+    { ay: 2, gun: 12, baslik: "Tarihte Bugün", mesaj: "1930: Türk parasının değerini koruma kanunu kabul edildi. ₺" },
+    { ay: 3, gun: 25, baslik: "Tarihte Bugün", mesaj: "1915: Çanakkale Kara Savaşları başladı. 🛡️" },
+    { ay: 4, gun: 29, baslik: "Tarihte Bugün", mesaj: "1953: Türkiye'nin ilk yerli uçağı 'Nu.D.38' Ankara'dan İstanbul'a uçtu. ✈️" },
+    { ay: 8, gun: 9, baslik: "Tarihte Bugün", mesaj: "1928: Harf Devrimi'nin ilk adımı atıldı; yeni Türk alfabesi tanıtıldı. ✍️" },
+    { ay: 11, gun: 5, baslik: "Tarihte Bugün", mesaj: "1934: Türk kadınına seçme ve seçilme hakkı tanındı! 🗳️" }
+    { ay: 1, gun: 3, baslik: "Tarihte Bugün", mesaj: "deneme 🗳️" }
 ];
 
 // Bileşenleri dinamik olarak yükleme fonksiyonu    
