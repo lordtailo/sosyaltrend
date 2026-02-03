@@ -1021,24 +1021,29 @@ document.addEventListener('DOMContentLoaded', () => {
     const overlay = document.getElementById('sideOverlay');
 
     const toggleLeft = () => {
-        leftAside.classList.toggle('active');
-        overlay.classList.toggle('active');
+        if (leftAside && overlay) { // Güvenlik kontrolü
+            leftAside.classList.toggle('active');
+            overlay.classList.toggle('active');
+        }
     };
 
     const toggleRight = () => {
-        rightAside.classList.toggle('active');
-        overlay.classList.toggle('active');
+        if (rightAside && overlay) { // Güvenlik kontrolü
+            rightAside.classList.toggle('active');
+            overlay.classList.toggle('active');
+        }
     };
 
     const closeAll = () => {
-        leftAside.classList.remove('active');
-        rightAside.classList.remove('active');
-        overlay.classList.remove('active');
+        leftAside?.classList.remove('active');
+        rightAside?.classList.remove('active');
+        overlay?.classList.remove('active');
     };
 
-    leftBtn.onclick = toggleLeft;
-    rightBtn.onclick = toggleRight;
-    overlay.onclick = closeAll;
+    // BURASI ÖNEMLİ: Sadece eleman varsa olay ataması yap
+    if (leftBtn) leftBtn.onclick = toggleLeft;
+    if (rightBtn) rightBtn.onclick = toggleRight;
+    if (overlay) overlay.onclick = closeAll;
 });
 /* ============================   */
 
@@ -1208,11 +1213,17 @@ window.toggleDarkMode = () => {
 };
 
 document.addEventListener('DOMContentLoaded', () => {
-  if (localStorage.getItem('st_theme') === 'dark') {
-    document.body.classList.add('dark-mode');
-    document.getElementById('themeToggleBtn').innerHTML =
-      '<i class="fa-solid fa-sun"></i>';
-  }
+    // 1. Önce butonu bir değişkene atayalım
+    const themeBtn = document.getElementById('themeToggleBtn');
+
+    if (localStorage.getItem('st_theme') === 'dark') {
+        document.body.classList.add('dark-mode');
+        
+        // 2. Sadece buton varsa innerHTML değiştirmeye çalış
+        if (themeBtn) {
+            themeBtn.innerHTML = '<i class="fa-solid fa-sun"></i>';
+        }
+    }
 });
 /* ============================ */
 
