@@ -399,7 +399,6 @@ window.handlePayment = async () => {
         }
     }
 };
-
 window.togglePrivacy = () => {
       isPrivate = document.getElementById('privacyToggle').checked;
       localStorage.setItem('st_isPrivate', isPrivate);
@@ -729,9 +728,8 @@ window.toggleSubscription = async (id, isSub) => {
 /* ============================ */
 
 /* SAYFA AYARLARI */
-/* GÖNDERİ AYARLARI BÖLÜMÜNDEKİ İLGİLİ KISIM */
-onSnapshot(query(collection(db, "posts"), orderBy("timestamp", "desc")), (snap) => {
-    const allList = document.getElementById('all-pages-list');
+onSnapshot(collection(db, "pages"), (snap) => {
+      const allList = document.getElementById('all-pages-list');
       const trendList = document.getElementById('trend-pages-list');
       const t = translations[currentLang];
       
@@ -808,15 +806,12 @@ onSnapshot(query(collection(db, "posts"), orderBy("timestamp", "desc")), (snap) 
                 isMine = p.username === user.username || p.adminUser === user.username, 
                 isLiked = p.likes?.includes(user.username), 
                 isSaved = p.savedBy?.includes(user.username);
-
-            const postVerifyIcon = (!isPage && p.userIsPremium) 
-              ? ' <i class="fa-solid fa-circle-check" style="color:var(--primary); font-size:0.7rem; margin-left:2px;"></i>' 
-              : '';
+            
           
           const avatarUrl = getAvatarUrl(p.avatarSeed, isPage ? 'page' : 'user');
           const contentWithLinks = (p.content || "").replace(/(#[\wığüşöçİĞÜŞÖÇ]+)/g, '<span class="hashtag-link" onclick="searchTrend(\'$1\')">$1</span>');
           const targetNav = isMine ? 'profile' : (isPage ? 'pages' : 'feed');
-
+          
           const postHtml = `
           <div class="glass-card post" style="${p.username === 'official_system' ? 'border: 2px solid var(--primary); background: rgba(99, 102, 241, 0.05);' : ''}; position: relative;">
               <div style="position: absolute; top: 15px; right: 15px; display: flex; gap: 8px;">
@@ -912,25 +907,23 @@ onSnapshot(query(collection(db, "posts"), orderBy("timestamp", "desc")), (snap) 
 
   const shareBtn = document.getElementById('shareBtn');
   if(shareBtn) {
-  shareBtn.onclick = async () => {
-    const val = document.getElementById('postInput').value.trim();
-    if(val) {
-      await addDoc(collection(db, "posts"), { 
-          name: user.displayName, 
-          username: user.username, 
-          avatarSeed: user.avatarSeed, 
-          content: val, 
-          timestamp: serverTimestamp(), 
-          likes: [], 
-          savedBy: [], 
-          comments: [],
-          // YENİ: Postu paylaşan kişinin premium durumunu ekliyoruz
-          userIsPremium: user.isPremium === true 
-      });
-      document.getElementById('postInput').value = "";
-    }
-  };
-}
+    shareBtn.onclick = async () => {
+      const val = document.getElementById('postInput').value.trim();
+      if(val) {
+        await addDoc(collection(db, "posts"), { 
+            name: user.displayName, 
+            username: user.username, 
+            avatarSeed: user.avatarSeed, 
+            content: val, 
+            timestamp: serverTimestamp(), 
+            likes: [], 
+            savedBy: [], 
+            comments: [] 
+        });
+        document.getElementById('postInput').value = "";
+      }
+    };
+  }
 
   setInterval(() => {
     const n = new Date();
