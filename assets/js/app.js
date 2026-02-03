@@ -807,6 +807,10 @@ onSnapshot(query(collection(db, "posts"), orderBy("timestamp", "desc")), (snap) 
                 isLiked = p.likes?.includes(user.username), 
                 isSaved = p.savedBy?.includes(user.username);
             
+          // YENİ: Post içindeki Mavi Tık Kontrolü
+          const postVerifyIcon = (p.userIsPremium === true) 
+              ? ' <i class="fa-solid fa-circle-check" style="color:var(--primary); font-size:0.7rem; margin-left:3px;"></i>' 
+              : '';
           
           const avatarUrl = getAvatarUrl(p.avatarSeed, isPage ? 'page' : 'user');
           const contentWithLinks = (p.content || "").replace(/(#[\wığüşöçİĞÜŞÖÇ]+)/g, '<span class="hashtag-link" onclick="searchTrend(\'$1\')">$1</span>');
@@ -828,7 +832,8 @@ onSnapshot(query(collection(db, "posts"), orderBy("timestamp", "desc")), (snap) 
                   <img src="${avatarUrl}" class="${isPage ? 'page-avatar' : 'user-avatar'}" style="cursor:pointer;" onclick="navigateTo('${targetNav}')">
                   <div>
                       <div style="font-weight:700; display:flex; align-items:center; gap:5px; cursor:pointer;" onclick="navigateTo('${targetNav}')">
-                          ${p.name} ${isPage ? '<i class="fa-solid fa-circle-check" style="color:var(--primary); font-size:0.7rem;"></i>' : ''}
+                          ${p.name} 
+                          ${isPage ? '<i class="fa-solid fa-circle-check" style="color:var(--primary); font-size:0.7rem;"></i>' : postVerifyIcon}
                           <span class="post-time">• ${formatTime(p.timestamp)}</span>
                           ${p.isEdited ? `<span style="font-size: 0.6rem; color: var(--text-muted); font-weight: normal;">(düzenlendi)</span>` : ''}
                       </div>
@@ -918,45 +923,14 @@ onSnapshot(query(collection(db, "posts"), orderBy("timestamp", "desc")), (snap) 
             timestamp: serverTimestamp(), 
             likes: [], 
             savedBy: [], 
-            comments: [] 
+            comments: [],
+            // YENİ: Postu paylaşan kullanıcının o anki premium durumunu kaydet
+            userIsPremium: user.isPremium === true 
         });
         document.getElementById('postInput').value = "";
       }
     };
   }
-
-  setInterval(() => {
-    const n = new Date();
-    const sH = document.getElementById('secHand');
-    const mH = document.getElementById('minHand');
-    const hH = document.getElementById('hourHand');
-    const dC = document.getElementById('digiClock');
-    const dD = document.getElementById('dateDisplay');
-
-    if(sH) sH.style.transform = `translateX(-50%) rotate(${n.getSeconds()*6}deg)`;
-    if(mH) mH.style.transform = `translateX(-50%) rotate(${n.getMinutes()*6}deg)`;
-    if(hH) hH.style.transform = `translateX(-50%) rotate(${(n.getHours()*30)+(n.getMinutes()/2)}deg)`;
-    if(dC) dC.innerText = n.toLocaleTimeString(currentLang === 'tr' ? 'tr-TR' : 'en-US');
-    
-    if(dD) {
-      const options = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' };
-      dD.innerText = n.toLocaleDateString(currentLang === 'tr' ? 'tr-TR' : 'en-US', options);
-    }
-  }, 1000);
-
-  const profileTrigger = document.getElementById('profileTrigger');
-  if(profileTrigger) {
-    profileTrigger.onclick = (e) => { 
-      e.stopPropagation(); 
-      const menu = document.getElementById('dropdownMenu');
-      if(menu) menu.classList.toggle('active'); 
-    };
-  }
-
-  window.onclick = () => {
-    const menu = document.getElementById('dropdownMenu');
-    if(menu) menu.classList.remove('active');
-  };
 /* ============================ */
 
 /* GÜNDEM KODLARI */
