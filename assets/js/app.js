@@ -1424,28 +1424,31 @@ async function otomatikPostPaylas(baslik, icerik) {
 
 /* RESİM BOYUTLANDIRMA */
 window.toggleImageExpand = (img) => {
+    // Görsel henüz yüklenmemişse işlem yapma
+    if (!img.complete || img.naturalWidth === 0) {
+        console.warn("Görsel henüz tam yüklenmedi.");
+        return;
+    }
+
     const wrapper = img.parentElement;
     
+    // Mevcut ortalama ve genişletme mantığınız
     if (img.style.objectFit !== 'contain') {
-        // TAM BOY MODU
         img.style.objectFit = 'contain';
         img.style.cursor = 'zoom-out';
-        
         wrapper.style.height = 'auto';
-        wrapper.style.maxHeight = '80vh'; // Ekran boyunu aşmasın
+        wrapper.style.maxHeight = '80vh';
         wrapper.style.width = '100%';
-        wrapper.style.maxWidth = '100%';    // Genişliği serbest bırak
+        wrapper.style.maxWidth = '100%';
         wrapper.style.backgroundColor = '#000';
-        wrapper.style.margin = '12px auto'; // Dıştan ortala
+        wrapper.style.margin = '12px auto';
     } else {
-        // KARE (NORMAL) MOD
         img.style.objectFit = 'cover';
         img.style.cursor = 'zoom-in';
-        
-        wrapper.style.height = '399px';      // Senin istediğin yükseklik
-        wrapper.style.width = '225px';       // Senin istediğin genişlik
+        wrapper.style.height = '399px';
+        wrapper.style.width = '225px';
         wrapper.style.maxWidth = '225px';
         wrapper.style.backgroundColor = '#0f172a';
-        wrapper.style.margin = '12px auto';  // Akış içinde ortalı kalsın
+        wrapper.style.margin = '12px auto';
     }
 };
