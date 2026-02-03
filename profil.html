@@ -138,6 +138,19 @@
                 </div>
             </div>
             </div>
+            <div class="glass-card" style="margin-top: 20px; padding: 20px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+        <h3 style="margin: 0;"><i class="fa-solid fa-images" style="color: var(--accent);"></i> Fotoğraflarım</h3>
+        <button onclick="document.getElementById('userGalleryInput').click()" class="admin-btn" style="padding: 8px 15px; border-radius: 10px; font-size: 0.9rem;">
+            <i class="fa-solid fa-plus"></i> Ekle
+        </button>
+    </div>
+    
+    <input type="file" id="userGalleryInput" accept="image/*" style="display: none;" onchange="handleGalleryUpload(this)">
+    
+    <div id="userGalleryGrid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
+        </div>
+</div>
         <div id="profile-content-area">
             <h3 class="profile-section-title" data-i18n="myPostsTitle">Paylaşımlarım</h3>
             <div id="my-posts-list"></div>

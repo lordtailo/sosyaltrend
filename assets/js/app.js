@@ -878,9 +878,16 @@ onSnapshot(query(collection(db, "posts"), orderBy("timestamp", "desc")), (snap) 
     width: 100%;
     ">
         <img src="${p.image}" 
-     loading="eager"  style="width: 100%; height: 100%; object-fit: cover; cursor: zoom-in;" 
-     onclick="toggleImageExpand(this)"
-     alt="Post görseli">
+             loading="lazy"
+             style="
+                width: 100%; 
+                height: 100%; 
+                object-fit: cover; 
+                cursor: zoom-in;
+                transition: all 0.3s ease;
+             " 
+             onclick="toggleImageExpand(this)"
+             alt="Post görseli">
     </div>
 ` : "";
 
@@ -1424,31 +1431,86 @@ async function otomatikPostPaylas(baslik, icerik) {
 
 /* RESİM BOYUTLANDIRMA */
 window.toggleImageExpand = (img) => {
-    // Görsel henüz yüklenmemişse işlem yapma
-    if (!img.complete || img.naturalWidth === 0) {
-        console.warn("Görsel henüz tam yüklenmedi.");
-        return;
-    }
-
     const wrapper = img.parentElement;
     
-    // Mevcut ortalama ve genişletme mantığınız
     if (img.style.objectFit !== 'contain') {
+        // TAM BOY MODU
         img.style.objectFit = 'contain';
         img.style.cursor = 'zoom-out';
+        
         wrapper.style.height = 'auto';
-        wrapper.style.maxHeight = '80vh';
+        wrapper.style.maxHeight = '80vh'; // Ekran boyunu aşmasın
         wrapper.style.width = '100%';
-        wrapper.style.maxWidth = '100%';
+        wrapper.style.maxWidth = '100%';    // Genişliği serbest bırak
         wrapper.style.backgroundColor = '#000';
-        wrapper.style.margin = '12px auto';
+        wrapper.style.margin = '12px auto'; // Dıştan ortala
     } else {
+        // KARE (NORMAL) MOD
         img.style.objectFit = 'cover';
         img.style.cursor = 'zoom-in';
-        wrapper.style.height = '399px';
-        wrapper.style.width = '225px';
+        
+        wrapper.style.height = '399px';      // Senin istediğin yükseklik
+        wrapper.style.width = '225px';       // Senin istediğin genişlik
         wrapper.style.maxWidth = '225px';
         wrapper.style.backgroundColor = '#0f172a';
-        wrapper.style.margin = '12px auto';
+        wrapper.style.margin = '12px auto';  // Akış içinde ortalı kalsın
     }
 };
+
+// Fotoğraf Yükleme Fonksiyonu
+window.handleGalleryUpload = async (input) => {
+    const file = input.files[0];
+    if (file) {
+        if (file.size > 1024 * 1024) { // 1MB Sınırı
+            alert("Lütfen 1MB'dan küçük bir fotoğraf seçin.");
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            const base64Data = e.target.result;
+            try {
+                // Firebase 'user_gallery' koleksiyonuna ekle
+                await addDoc(collection(db, "user_gallery"), {
+                    username: user.username,
+                    imageUrl: base64Data,
+                    timestamp: serverTimestamp()
+                });
+                alert("Fotoğraf galeriye eklendi!");
+                loadUserGallery(); // Galeriyi yenile
+            } catch (error) {
+                console.error("Yükleme hatası:", error);
+            }
+        };
+        reader.readAsDataURL(file);
+    }
+};
+
+// Fotoğrafları Çekme ve Görüntüleme Fonksiyonu
+window.loadUserGallery = async () => {
+    const galleryGrid = document.getElementById('userGalleryGrid');
+    if (!galleryGrid) return;
+
+    // Sadece aktif kullanıcıya ait fotoğrafları getir
+    const q = query(collection(db, "user_gallery"), orderBy("timestamp", "desc"));
+    
+    onSnapshot(q, (snapshot) => {
+        galleryGrid.innerHTML = "";
+        snapshot.forEach((doc) => {
+            const data = doc.data();
+            if (data.username === user.username) {
+                galleryGrid.innerHTML += `
+                    <div class="gallery-item" style="position: relative; aspect-ratio: 1/1;">
+                        <img src="${data.imageUrl}" onclick="toggleImageExpand(this)" style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px; cursor: zoom-in;">
+                    </div>`;
+            }
+        });
+    });
+};
+
+// Sayfa yüklendiğinde galeriyi başlat
+document.addEventListener('DOMContentLoaded', () => {
+    if (window.location.pathname.includes('profil.html')) {
+        loadUserGallery();
+    }
+});
