@@ -25,8 +25,7 @@ document.addEventListener('DOMContentLoaded', loadComponents);
   let user = {
   displayName: "Misafir",
   avatar: "Felix",
-  isAdmin: false,
-  isPremium: localStorage.getItem('st_isPremium') === 'true' // LocalStorage'dan kontrol et
+  isAdmin: false
 };
 
 const ADMIN_EMAIL = "officialfthuzun@gmail.com";
@@ -318,16 +317,11 @@ function getAvatarUrl(seed, type = 'user') {
     return `https://api.dicebear.com/7.x/${collection}/svg?seed=${encodeURIComponent(seed)}`;
 }
 
-function updateUIWithUser() {
+  function updateUIWithUser() {
     const avatarUrl = getAvatarUrl(user.avatarSeed, 'user');
     
-    // --- PREMİUM KONTROLÜ ---
-    // Sadece mevcut giriş yapmış kullanıcının isPremium verisi true ise ikon oluşturulur
-    const isPremium = user && user.isPremium === true;
-    const verifyIcon = isPremium ? ' <i class="fa-solid fa-circle-check" style="color:var(--primary); font-size:0.7rem; margin-left:4px;"></i>' : '';
-
     // --- ELEMENT TANIMLAMALARI ---
-    const welcomeEl = document.getElementById('welcomeMessage'); 
+    const welcomeEl = document.getElementById('welcomeMessage'); // Karşılama metni
     const hAv = document.getElementById('headerAvatar');
     const mDn = document.getElementById('menuDisplayName');
     const mUn = document.getElementById('menuUsername');
@@ -341,64 +335,40 @@ function updateUIWithUser() {
     const pAv = document.getElementById('profilePageAvatar');
     const pPn = document.getElementById('profilePageName');
     const pPh = document.getElementById('profilePageHandle');
-    const payBtn = document.getElementById('payButton');
 
     // Gizlilik Ayarları
     const pTg = document.getElementById('privacyToggle');
     const sPi = document.getElementById('selfPrivateIndicator');
+/* ============================ */
 
     // --- GÜNCELLEMELER ---
-    // Karşılama Mesajı (Sadece ödeme yapan kullanıcıda ikon çıkar)
+    // Üst Bar Karşılama Mesajı Güncelleme
     if (welcomeEl) {
+        // user.displayName veya user.username kullanarak içeriği değiştiriyoruz
         const currentName = user.username || user.displayName || "misafir";
-        welcomeEl.innerHTML = `<i class="fa-solid fa-circle-check" style="font-size: 0.6rem; animation: pulse 2s infinite;"></i> ${currentName.toLowerCase()}${verifyIcon}`;
+        welcomeEl.innerHTML = `<i class="fa-solid fa-circle-check" style="font-size: 0.6rem; animation: pulse 2s infinite;"></i> ${currentName.toLowerCase()}`;
     }
 
-    // Header (Üst Menü) - Mavi tık kontrolü
+    // Header Güncelleme
     if(hAv) hAv.src = avatarUrl;
-    if(mDn) mDn.innerHTML = (user.displayName || "İsimsiz") + verifyIcon;
-    if(mUn) mUn.innerText = `@${user.username || "kullanici"}`;
+    if(mDn) mDn.innerText = user.displayName;
+    if(mUn) mUn.innerText = `@${user.username}`;
 
-    // Sol Sidebar - Mavi tık kontrolü
+    // Sol Menü Güncelleme
     if(sAv) sAv.src = avatarUrl;
-    if(sDn) sDn.innerHTML = (user.displayName || "İsimsiz") + verifyIcon;
-    if(sUn) sUn.innerText = `@${user.username || "kullanici"}`;
+    if(sDn) sDn.innerText = user.displayName;
+    if(sUn) sUn.innerText = `@${user.username}`;
 
-    // Profil Sayfası - Mavi tık kontrolü
+    // Profil Sayfası Güncelleme
     if(pAv) pAv.src = avatarUrl;
-    if(pPn) pPn.innerHTML = (user.displayName || "İsimsiz") + verifyIcon;
-    if(pPh) pPh.innerText = `@${user.username || "kullanici"}`;
+    if(pPn) pPn.innerText = user.displayName;
+    if(pPh) pPh.innerText = `@${user.username}`;
 
-    // Ödeme Butonu: Eğer kullanıcı zaten aktif etmişse butonu tamamen gizle
-    if(payBtn) {
-        payBtn.style.display = isPremium ? 'none' : 'flex';
-    }
-
-    // Gizlilik Durumu
+    // Gizlilik Durumu Güncelleme
     if(pTg) pTg.checked = isPrivate;
     if(sPi) sPi.style.display = isPrivate ? 'block' : 'none';
 }
 
-// --- TEK SEFERLİK AKTİVASYON (ÖDEME) FONKSİYONU ---
-window.handlePayment = async () => {
-    if(confirm("Premium özellikleri ve Onay Rozetini aktif etmek istiyor musunuz?")) {
-        try {
-            // Firebase veritabanında bu kullanıcının isPremium değerini true yapıyoruz
-            const userRef = doc(db, "users", auth.currentUser.uid);
-            await updateDoc(userRef, {
-                isPremium: true
-            });
-            
-            // Yerel nesneyi güncelle ve UI'ı yenile
-            user.isPremium = true;
-            alert("Tebrikler! Mavi tık hesabınıza tanımlandı.");
-            updateUIWithUser(); 
-        } catch (error) {
-            console.error("Hata:", error);
-            alert("Bir hata oluştu, lütfen tekrar deneyin.");
-        }
-    }
-};
 window.togglePrivacy = () => {
       isPrivate = document.getElementById('privacyToggle').checked;
       localStorage.setItem('st_isPrivate', isPrivate);
@@ -413,15 +383,18 @@ window.navigateTo = (pageId) => {
           window.navigateTo('feed'); return;
         }
 
+      // Sayfa içeriklerini gizle/göster
       document.querySelectorAll('.page-content').forEach(p => p.classList.remove('active'));
       const target = document.getElementById('page-' + pageId);
       if(target) target.classList.add('active');
 
+      // Navigasyon butonlarını aktif yap
       document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
       const btn = document.getElementById('btn-' + pageId);
       if(btn) btn.classList.add('active');
       window.scrollTo(0,0);
 };
+
 
 //* SEARCH ARAMA FONKSIYONLARI *//
 const staticDatabase = {
@@ -807,10 +780,6 @@ onSnapshot(query(collection(db, "posts"), orderBy("timestamp", "desc")), (snap) 
                 isLiked = p.likes?.includes(user.username), 
                 isSaved = p.savedBy?.includes(user.username);
             
-          // YENİ: Post içindeki Mavi Tık Kontrolü
-          const postVerifyIcon = (p.userIsPremium === true) 
-              ? ' <i class="fa-solid fa-circle-check" style="color:var(--primary); font-size:0.7rem; margin-left:3px;"></i>' 
-              : '';
           
           const avatarUrl = getAvatarUrl(p.avatarSeed, isPage ? 'page' : 'user');
           const contentWithLinks = (p.content || "").replace(/(#[\wığüşöçİĞÜŞÖÇ]+)/g, '<span class="hashtag-link" onclick="searchTrend(\'$1\')">$1</span>');
@@ -832,8 +801,7 @@ onSnapshot(query(collection(db, "posts"), orderBy("timestamp", "desc")), (snap) 
                   <img src="${avatarUrl}" class="${isPage ? 'page-avatar' : 'user-avatar'}" style="cursor:pointer;" onclick="navigateTo('${targetNav}')">
                   <div>
                       <div style="font-weight:700; display:flex; align-items:center; gap:5px; cursor:pointer;" onclick="navigateTo('${targetNav}')">
-                          ${p.name} 
-                          ${isPage ? '<i class="fa-solid fa-circle-check" style="color:var(--primary); font-size:0.7rem;"></i>' : postVerifyIcon}
+                          ${p.name} ${isPage ? '<i class="fa-solid fa-circle-check" style="color:var(--primary); font-size:0.7rem;"></i>' : ''}
                           <span class="post-time">• ${formatTime(p.timestamp)}</span>
                           ${p.isEdited ? `<span style="font-size: 0.6rem; color: var(--text-muted); font-weight: normal;">(düzenlendi)</span>` : ''}
                       </div>
@@ -923,14 +891,45 @@ onSnapshot(query(collection(db, "posts"), orderBy("timestamp", "desc")), (snap) 
             timestamp: serverTimestamp(), 
             likes: [], 
             savedBy: [], 
-            comments: [],
-            // YENİ: Postu paylaşan kullanıcının o anki premium durumunu kaydet
-            userIsPremium: user.isPremium === true 
+            comments: [] 
         });
         document.getElementById('postInput').value = "";
       }
     };
   }
+
+  setInterval(() => {
+    const n = new Date();
+    const sH = document.getElementById('secHand');
+    const mH = document.getElementById('minHand');
+    const hH = document.getElementById('hourHand');
+    const dC = document.getElementById('digiClock');
+    const dD = document.getElementById('dateDisplay');
+
+    if(sH) sH.style.transform = `translateX(-50%) rotate(${n.getSeconds()*6}deg)`;
+    if(mH) mH.style.transform = `translateX(-50%) rotate(${n.getMinutes()*6}deg)`;
+    if(hH) hH.style.transform = `translateX(-50%) rotate(${(n.getHours()*30)+(n.getMinutes()/2)}deg)`;
+    if(dC) dC.innerText = n.toLocaleTimeString(currentLang === 'tr' ? 'tr-TR' : 'en-US');
+    
+    if(dD) {
+      const options = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' };
+      dD.innerText = n.toLocaleDateString(currentLang === 'tr' ? 'tr-TR' : 'en-US', options);
+    }
+  }, 1000);
+
+  const profileTrigger = document.getElementById('profileTrigger');
+  if(profileTrigger) {
+    profileTrigger.onclick = (e) => { 
+      e.stopPropagation(); 
+      const menu = document.getElementById('dropdownMenu');
+      if(menu) menu.classList.toggle('active'); 
+    };
+  }
+
+  window.onclick = () => {
+    const menu = document.getElementById('dropdownMenu');
+    if(menu) menu.classList.remove('active');
+  };
 /* ============================ */
 
 /* GÜNDEM KODLARI */
