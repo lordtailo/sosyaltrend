@@ -25,7 +25,8 @@ document.addEventListener('DOMContentLoaded', loadComponents);
   let user = {
   displayName: "Misafir",
   avatar: "Felix",
-  isAdmin: false
+  isAdmin: false,
+  isPremium: localStorage.getItem('st_isPremium') === 'true' // LocalStorage'dan kontrol et
 };
 
 const ADMIN_EMAIL = "officialfthuzun@gmail.com";
@@ -317,11 +318,15 @@ function getAvatarUrl(seed, type = 'user') {
     return `https://api.dicebear.com/7.x/${collection}/svg?seed=${encodeURIComponent(seed)}`;
 }
 
-  function updateUIWithUser() {
+function updateUIWithUser() {
     const avatarUrl = getAvatarUrl(user.avatarSeed, 'user');
     
+    // --- PREMİUM (MAVİ TIK) KONTROLÜ ---
+    const isPremium = localStorage.getItem('st_isPremium') === 'true';
+    const verifyIcon = isPremium ? ' <i class="fa-solid fa-circle-check" style="color:var(--primary); font-size:0.7rem; margin-left:4px;"></i>' : '';
+
     // --- ELEMENT TANIMLAMALARI ---
-    const welcomeEl = document.getElementById('welcomeMessage'); // Karşılama metni
+    const welcomeEl = document.getElementById('welcomeMessage'); 
     const hAv = document.getElementById('headerAvatar');
     const mDn = document.getElementById('menuDisplayName');
     const mUn = document.getElementById('menuUsername');
@@ -335,39 +340,52 @@ function getAvatarUrl(seed, type = 'user') {
     const pAv = document.getElementById('profilePageAvatar');
     const pPn = document.getElementById('profilePageName');
     const pPh = document.getElementById('profilePageHandle');
+    const payBtn = document.getElementById('payButton'); // Profildeki ödeme butonu
 
     // Gizlilik Ayarları
     const pTg = document.getElementById('privacyToggle');
     const sPi = document.getElementById('selfPrivateIndicator');
-/* ============================ */
 
     // --- GÜNCELLEMELER ---
     // Üst Bar Karşılama Mesajı Güncelleme
     if (welcomeEl) {
-        // user.displayName veya user.username kullanarak içeriği değiştiriyoruz
         const currentName = user.username || user.displayName || "misafir";
-        welcomeEl.innerHTML = `<i class="fa-solid fa-circle-check" style="font-size: 0.6rem; animation: pulse 2s infinite;"></i> ${currentName.toLowerCase()}`;
+        welcomeEl.innerHTML = `<i class="fa-solid fa-circle-check" style="font-size: 0.6rem; animation: pulse 2s infinite;"></i> ${currentName.toLowerCase()}${verifyIcon}`;
     }
 
     // Header Güncelleme
     if(hAv) hAv.src = avatarUrl;
-    if(mDn) mDn.innerText = user.displayName;
+    if(mDn) mDn.innerHTML = user.displayName + verifyIcon;
     if(mUn) mUn.innerText = `@${user.username}`;
 
     // Sol Menü Güncelleme
     if(sAv) sAv.src = avatarUrl;
-    if(sDn) sDn.innerText = user.displayName;
+    if(sDn) sDn.innerHTML = user.displayName + verifyIcon;
     if(sUn) sUn.innerText = `@${user.username}`;
 
     // Profil Sayfası Güncelleme
     if(pAv) pAv.src = avatarUrl;
-    if(pPn) pPn.innerText = user.displayName;
+    if(pPn) pPn.innerHTML = user.displayName + verifyIcon;
     if(pPh) pPh.innerText = `@${user.username}`;
+
+    // Ödeme Butonu Görünürlüğü
+    if(payBtn) {
+        payBtn.style.display = isPremium ? 'none' : 'flex';
+    }
 
     // Gizlilik Durumu Güncelleme
     if(pTg) pTg.checked = isPrivate;
     if(sPi) sPi.style.display = isPrivate ? 'block' : 'none';
 }
+
+// --- ÖDEME YAPMA FONKSİYONU ---
+window.handlePayment = () => {
+    if(confirm("Mavi tik'i aktif et")) {
+        localStorage.setItem('st_isPremium', 'true');
+        alert("Başarılı bir şekilde -Mavi tik- profilinize tanımlandı.");
+        updateUIWithUser(); // Arayüzü hemen güncelle
+    }
+};
 
 window.togglePrivacy = () => {
       isPrivate = document.getElementById('privacyToggle').checked;
@@ -383,18 +401,15 @@ window.navigateTo = (pageId) => {
           window.navigateTo('feed'); return;
         }
 
-      // Sayfa içeriklerini gizle/göster
       document.querySelectorAll('.page-content').forEach(p => p.classList.remove('active'));
       const target = document.getElementById('page-' + pageId);
       if(target) target.classList.add('active');
 
-      // Navigasyon butonlarını aktif yap
       document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
       const btn = document.getElementById('btn-' + pageId);
       if(btn) btn.classList.add('active');
       window.scrollTo(0,0);
 };
-
 
 //* SEARCH ARAMA FONKSIYONLARI *//
 const staticDatabase = {
