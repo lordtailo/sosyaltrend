@@ -96,6 +96,73 @@
         filter: brightness(1.1);
     }
   </style>
+  <style>
+    /* Profil Sekme Stilleri */
+    .profile-tabs {
+        display: flex;
+        gap: 10px;
+        margin: 20px 0;
+        border-bottom: 1px solid var(--border);
+        padding-bottom: 10px;
+    }
+    .tab-btn {
+        background: #fff;
+        border: none;
+        padding: 10px 20px;
+        color: var(--text-muted);
+        font-weight: 600;
+        cursor: pointer;
+        border-radius: 10px;
+        transition: all 0.3s;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .tab-btn:hover {
+        background: var(--input-bg);
+        color: var(--text-main);
+    }
+    .tab-btn.active {
+        background: var(--primary);
+        color: white;
+    }
+    .tab-content {
+        display: none;
+        animation: fadeIn 0.4s ease;
+    }
+    .tab-content.active {
+        display: block;
+    }
+
+    /* Galeri Stilleri */
+    .gallery-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+        gap: 12px;
+    }
+    .gallery-item {
+        position: relative;
+        aspect-ratio: 1 / 1;
+        border-radius: 15px;
+        overflow: hidden;
+        background: var(--input-bg);
+        border: 1px solid var(--border);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        cursor: pointer;
+    }
+    .gallery-item:hover {
+        transform: translateY(-5px);
+        border-color: var(--primary);
+    }
+    .gallery-item img {
+        width: 100%; height: 100%; object-fit: cover;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
 </head>
 <body>
 
@@ -152,12 +219,6 @@
         <a href="index.html" onclick="navigateTo('feed')" class="menu-style-btn nav-item active" id="btn-feed">
             <i class="fa-solid fa-house"></i> <span data-i18n="navFeed">Anasayfa</span>
         </a>
-        <a href="pages.html" onclick="navigateTo('pages')" class="menu-style-btn nav-item" id="btn-pages">
-            <i class="fa-solid fa-flag"></i> <span data-i18n="navPages">Topluluk Sayfaları</span>
-        </a>
-        <a href="gundem.html" onclick="navigateTo('gundem')" class="menu-style-btn nav-item" id="btn-gundem">
-            <i class="fa-solid fa-bolt-lightning"></i> <span data-i18n="navGundem">Gündem</span>
-        </a>
     </div>
   </aside>
 
@@ -172,12 +233,6 @@
             <p id="profilePageHandle" style="color: var(--text-muted); margin-bottom: 15px;">@...</p>
             <div style="display: flex; justify-content: center; gap: 10px; flex-wrap: wrap;">
                 <button onclick="toggleEditProfile()" style="background: var(--input-bg); border: 1px solid var(--border); padding: 8px 20px; border-radius: 10px; font-size: 0.8rem; font-weight: 600; cursor: pointer; color: var(--text-main);" data-i18n="editProfileBtn">Profili Düzenle</button>
-                <button onclick="window.location.href='likepost.html'" class="admin-btn" style="flex:none; padding: 8px 15px; border-radius: 10px;">
-                    <i class="fa-solid fa-heart" style="color:#ef4444"></i> <span data-i18n="navSubs">Beğendiklerim</span>
-                </button>
-                <button onclick="window.location.href='savepost.html'" class="admin-btn" style="flex:none; padding: 8px 15px; border-radius: 10px;">
-                    <i class="fa-solid fa-bookmark" style="color:#f59e0b"></i> <span data-i18n="navBookmarks">Kaydedilenler</span>
-                </button>
             </div>
 
             <div id="editProfileSection" class="edit-profile-form">
@@ -211,24 +266,48 @@
             </div>
         </div>
 
-        <div class="glass-card gallery-container" style="margin-top: 20px; padding: 25px; border-radius: 20px;">
-            <div class="gallery-header">
-                <h3 class="gallery-title">
-                    <i class="fa-solid fa-images" style="color: var(--accent); font-size: 1.3rem;"></i> 
-                    <span data-i18n="myPhotosTitle">Fotoğraflarım</span>
-                </h3>
-                <button onclick="document.getElementById('userGalleryInput').click()" class="add-photo-action">
-                    <i class="fa-solid fa-plus"></i> <span data-i18n="addPhoto">Ekle</span>
-                </button>
-            </div>
-            <input type="file" id="userGalleryInput" accept="image/*" style="display: none;" onchange="handleGalleryUpload(this)">
-            <div id="userGalleryGrid" class="gallery-grid">
-                </div>
+        <div class="profile-tabs">
+            <button class="tab-btn active" onclick="openTab(event, 'my-posts-tab')">
+                <i class="fa-solid fa-clone"></i> Paylaşımlarım
+            </button>
+            <button class="tab-btn" onclick="openTab(event, 'my-likes-tab')">
+                <i class="fa-solid fa-heart"></i> Beğendiklerim
+            </button>
+            <button class="tab-btn" onclick="openTab(event, 'my-saves-tab')">
+                <i class="fa-solid fa-bookmark"></i> Kaydedilenler
+            </button>
+            <button class="tab-btn" onclick="openTab(event, 'my-photos-tab')">
+                <i class="fa-solid fa-images"></i> Galeri
+            </button>
         </div>
 
-        <div id="profile-content-area">
-            <h3 class="profile-section-title" data-i18n="myPostsTitle">Paylaşımlarım</h3>
+        <div id="my-posts-tab" class="tab-content active">
             <div id="my-posts-list"></div>
+        </div>
+
+        <div id="my-likes-tab" class="tab-content">
+            <div class="glass-card" style="padding:20px; margin-bottom: 15px;">
+                <h2 data-i18n="navSubs">Beğendiklerim</h2>
+                <p style="color:var(--text-muted); font-size: 0.9rem;" data-i18n="navSubss">Beğendiğiniz içerikleri bu sayfa altına topladık, buradan takip edebilir veya beğenileri kaldırabilirsiniz.</p>
+            </div>
+            <div id="my-liked-list"></div> </div>
+
+        <div id="my-saves-tab" class="tab-content">
+            <div class="glass-card" style="padding:20px; margin-bottom: 15px;">
+                <h2 data-i18n="navBookmarks">Kaydedilenler</h2>
+                <p style="color:var(--text-muted); font-size: 0.9rem;" data-i18n="navBookmarkss">Kaydettiklerinizi bu sayfa altına topladık, buradan takip edebilir veya kaydettiklerinizi kaldırabilirsiniz.</p>
+            </div>
+            <div id="bookmark-items"></div> </div>
+
+        <div id="my-photos-tab" class="tab-content">
+            <div class="glass-card" style="padding:20px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                    <h3 style="margin:0;">Fotoğraflarım</h3>
+                    <button onclick="document.getElementById('userGalleryInput').click()" class="add-photo-action" style="background:var(--primary); color:white; border:none; padding:8px 15px; border-radius:8px; cursor:pointer;">+ Ekle</button>
+                </div>
+                <input type="file" id="userGalleryInput" accept="image/*" style="display: none;" onchange="handleGalleryUpload(this)">
+                <div id="userGalleryGrid" class="gallery-grid"></div>
+            </div>
         </div>
     </div>
   </main>
@@ -264,10 +343,7 @@
       <ul class="footer-links">
         <li><a href="index.html" onclick="navigateTo('feed')" data-i18n="navFeed">Anasayfa</a></li>
         <li><a href="profil.html" onclick="navigateTo('profile')"data-i18n="navProfil">Profiliniz</a></li>
-        <li><a href="pages.html" onclick="navigateTo('pages')" data-i18n="navPages">Topluluk Sayfaları</a></li>
-        <li><a href="likepost.html" onclick="navigateTo('navSubs')">Beğendikleriniz</a></li>
-        <li><a href="savepost.html" onclick="navigateTo('navBookmarks')" data-i18n="navBookmarks">Kaydettikleriniz</a></li>
-      </ul>
+       </ul>
     </div>
     <div class="footer-section">
       <h4 data-i18n="footerCorp">Kurumsal</h4>
@@ -310,6 +386,24 @@
         </div>
     </div>
 </div>
+<script>
+    // Sekme Kontrol Fonksiyonu
+    function openTab(evt, tabName) {
+        var i, tabcontent, tablinks;
+        tabcontent = document.getElementsByClassName("tab-content");
+        for (i = 0; i < tabcontent.length; i++) {
+            tabcontent[i].style.display = "none";
+            tabcontent[i].classList.remove("active");
+        }
+        tablinks = document.getElementsByClassName("tab-btn");
+        for (i = 0; i < tablinks.length; i++) {
+            tablinks[i].classList.remove("active");
+        }
+        document.getElementById(tabName).style.display = "block";
+        document.getElementById(tabName).classList.add("active");
+        evt.currentTarget.classList.add("active");
+    }
+</script>
 
 <script type="module" src="assets/js/app.js"></script>
 </body>
