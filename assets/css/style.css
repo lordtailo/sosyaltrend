@@ -795,3 +795,35 @@ aside, .right-panel { display: none; } }
 .post-image-wrapper img {
     background-color: #0f172a;
 }
+
+.trend-grid-top {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin: 20px 0;
+        }
+        .trend-list-scroll {
+            max-height: 550px;
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: var(--primary) transparent;
+        }
+        .trend-rank-item {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            border-bottom: 1px solid var(--border);
+            text-decoration: none;
+            color: var(--text-main);
+            transition: 0.2s;
+        }
+        .trend-rank-item:hover { background: rgba(255, 255, 255, 0.05); }
+        .rank-number {
+            font-weight: 800;
+            font-size: 1.1rem;
+            color: var(--primary);
+            min-width: 35px;
+        }
+        .trend-info b { display: block; margin-bottom: 2px; }
+        .trend-info small { color: var(--text-muted); }
+        @media (max-width: 768px) { .trend-grid-top { grid-template-columns: 1fr; } }
