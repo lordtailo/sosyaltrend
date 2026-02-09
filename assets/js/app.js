@@ -109,14 +109,9 @@ async function updateAdminStats() {
     if(!user.isAdmin) return;
     try {
         const postsSnap = await getDocs(collection(db, "posts"));
-        const pagesSnap = await getDocs(collection(db, "pages"));
-        
         // Elementler sayfada varsa güncelle
         const postStat = document.getElementById('stat-total-posts');
-        const pageStat = document.getElementById('stat-total-pages');
-        
         if (postStat) postStat.innerText = postsSnap.size;
-        if (pageStat) pageStat.innerText = pagesSnap.size;
     } catch (error) {
         console.error("Admin istatistikleri yüklenirken hata:", error);
     }
@@ -704,137 +699,7 @@ window.deleteReply = async (postId, commentTime, replyTime) => {
   };
 
 window.deletePost = async (id) => { if(confirm(translations[currentLang].confirmDelete)) await deleteDoc(doc(db, "posts", id)); }
-window.deletePage = async (id) => { if(confirm(translations[currentLang].confirmDeletePage)) await deleteDoc(doc(db, "pages", id)); }
-  
-  window.createNewPage = async () => {
-      const name = document.getElementById('newPageName').value.trim();
-      if(!name) return;
-      await addDoc(collection(db, "pages"), { 
-          name, 
-          creator: user.username, 
-          avatarSeed: name, 
-          subscribers: [], 
-          createdAt: serverTimestamp() 
-      });
-      document.getElementById('newPageName').value = "";
-  };
-/* ============================ */
-
-/* AVATAR AYARLARI */
-  window.changePageAvatar = async (id) => {
-    const choice = prompt("Sayfa avatarı değiştir:\n1: URL/GIF Gir\n2: Cihazdan Yükle\n3: Kelime Gir (Icon)");
-    if(choice === "1") {
-        const url = prompt("URL:");
-        if(url) await updateDoc(doc(db, "pages", id), { avatarSeed: url });
-    } else if(choice === "2") {
-        const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*';
-        input.onchange = e => {
-            const reader = new FileReader();
-            reader.onload = async () => { await updateDoc(doc(db, "pages", id), { avatarSeed: reader.result }); };
-            reader.readAsDataURL(e.target.files[0]);
-        };
-        input.click();
-    } else if(choice === "3") {
-        const seed = prompt("İkon için bir kelime girin:");
-        if(seed) await updateDoc(doc(db, "pages", id), { avatarSeed: seed });
-    }};
-/* ============================ */
-
-/* GÖNDERİ PAYLAŞMA AYARLARI */
-  window.postAsPage = async (id, pageName, pageSeed) => {
-    let content;
-    if(id === 'system_notice') {
-        content = document.getElementById('adminNoticeInput').value.trim();
-        if(!content) return;
-    } else {
-        content = prompt(`${pageName} adına ne paylaşmak istersin?`);
-    }
-
-    if(content) {
-        await addDoc(collection(db, "posts"), { 
-            name: pageName, 
-            username: id === 'system_notice' ? 'official_system' : `page_${id}`, 
-            adminUser: user.username, 
-            avatarSeed: pageSeed, 
-            content: content, 
-            timestamp: serverTimestamp(), 
-            likes: [], 
-            savedBy: [], 
-            comments: [] 
-        });
-        if(id === 'system_notice') {
-            document.getElementById('adminNoticeInput').value = "";
-            alert("Sistem duyurusu yayınlandı!");
-        }
-    }
-  };
-
-window.toggleSubscription = async (id, isSub) => { 
-      await updateDoc(doc(db, "pages", id), { 
-          subscribers: isSub ? arrayRemove(user.username) : arrayUnion(user.username) 
-      }); 
-  };
-/* ============================ */
-
-/* SAYFA AYARLARI */
-onSnapshot(collection(db, "pages"), (snap) => {
-      const allList = document.getElementById('all-pages-list');
-      const trendList = document.getElementById('trend-pages-list');
-      const t = translations[currentLang];
-      
-      if(allList) allList.innerHTML = ""; 
-      if(trendList) trendList.innerHTML = "";
-      
-      let pArr = [];
-
-      snap.forEach(d => {
-          const data = d.data();
-          const subs = data.subscribers || [];
-          const isSub = subs.includes(user.username);
-          const isAdmin = data.creator === user.username;
-          const pAvatar = getAvatarUrl(data.avatarSeed, 'page');
-          pArr.push({id: d.id, ...data});
-
-          if(allList) {
-            const adminPanel = isAdmin ? `
-              <div class="admin-actions" style="border-top: 1px solid var(--border); margin-top: 10px; padding-top: 10px;">
-                  <button class="admin-btn" title="Avatar Değiştir" onclick="changePageAvatar('${d.id}')"><i class="fa-solid fa-image"></i></button>
-                  <button class="admin-btn" style="background:var(--primary); color:white; border:none;" onclick="postAsPage('${d.id}', '${data.name}', '${data.avatarSeed}')">${t.shareBtn}</button>
-                  <button class="admin-btn" style="color:#ef4444;" title="Sayfayı Sil" onclick="deletePage('${d.id}')"><i class="fa-solid fa-trash"></i></button>
-              </div>` : '';
-
-            allList.innerHTML += `
-              <div class="advanced-page-card">
-                  <div class="card-cover"></div>
-                  <div class="card-body">
-                      <img src="${pAvatar}" class="card-avatar" style="cursor:pointer" onclick="navigateTo('pages')">
-                      <div style="font-weight:800; font-size: 0.95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor:pointer" onclick="navigateTo('pages')">
-                          ${data.name} ${isAdmin ? '👑' : ''}
-                      </div>
-                      <div style="font-size:0.75rem; color:var(--text-muted); margin-bottom: 12px;">
-                          <i class="fa-solid fa-users"></i> ${subs.length} takipçi
-                      </div>
-                      <button class="btn-subscribe ${isSub ? 'subscribed' : ''}" onclick="toggleSubscription('${d.id}', ${isSub})">
-                          ${isSub ? '<i class="fa-solid fa-check"></i> ' + t.unsubBtn : '<i class="fa-solid fa-plus"></i> ' + t.subBtn}
-                      </button>
-                      ${adminPanel}
-                  </div>
-              </div>`;
-          }
-      });
-
-      pArr.sort((a,b) => (b.subscribers?.length || 0) - (a.subscribers?.length || 0)).slice(0, 5).forEach(p => {
-          if(trendList) trendList.innerHTML += `
-              <div class="trend-item" onclick="navigateTo('pages')" style="cursor:pointer">
-                  <img src="${getAvatarUrl(p.avatarSeed, 'page')}" style="width:30px; height:30px; border-radius:8px; margin-right:10px; object-fit:cover;">
-                  <div class="trend-info">
-                      <div class="trend-name">${p.name}</div>
-                      <div class="trend-meta">${(p.subscribers || []).length} takipçi</div>
-                  </div>
-              </div>`;
-      });
-  });
-/* ============================ */
+/* Pages feature removed */
 
 /* GÖNDERİ AYARLARI */
 onSnapshot(query(collection(db, "posts"), orderBy("timestamp", "desc")), (snap) => {
@@ -1054,85 +919,7 @@ const postHtml = `
   };
 /* ============================ */
 
-/* GÜNDEM KODLARI */
-const $ = (id) => document.getElementById(id);
-
-const shareGundem = async () => {
-    const text = $('gundemInput').value.trim();
-    const category = document.querySelector('input[name="cat"]:checked')?.value;
-    
-    if (!text || !auth.currentUser) return alert(text ? "Giriş yapmalısınız." : "Bir şeyler yazın.");
-
-    try {
-        await addDoc(collection(db, "gundem"), {
-            content: text, category,
-            author: auth.currentUser.displayName || "Kullanıcı",
-            authorAvatar: auth.currentUser.photoURL || "",
-            timestamp: serverTimestamp()
-        });
-        $('gundemInput').value = "";
-    } catch (err) { console.error("Hata:", err); }
-};
-
-const fetchGundem = (filter = "all") => {
-    currentGundemFilter = filter;
-    const feed = $('gundemFeed');
-    if(!feed) return;
-
-    const q = query(collection(db, "gundem"), orderBy("timestamp", "desc"), limit(gundemLimit));
-
-onSnapshot(q, (snapshot) => {
-        let html = "";
-        snapshot.forEach((docSnap) => {
-            const data = docSnap.data();
-            if (filter !== "all" && data.category !== filter) return;
-
-            const isOwner = (auth.currentUser?.displayName === data.author) || user.isAdmin;
-            const time = data.timestamp ? new Date(data.timestamp.seconds * 1000).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : "...";
-
-            html += `
-                <div class="g-card cat-${data.category}">
-                    <div style="display: flex; justify-content: space-between;">
-                        <span class="g-badge bg-${data.category}">${data.category}</span>
-                        ${isOwner ? `<button class="gundem-del-btn" onclick="deleteGundem('${docSnap.id}')"><i class="fa-solid fa-trash-can"></i></button>` : ''}
-                    </div>
-                    <div style="margin: 10px 0; font-size: 1.05rem;">${data.content}</div>
-                    <div style="display: flex; justify-content: space-between; opacity: 0.7; font-size: 0.8rem;">
-                        <span><strong>@${data.author}</strong></span>
-                        <span><i class="fa-regular fa-clock"></i> ${time}</span>
-                    </div>
-                </div>`;
-        });
-
-        if (snapshot.docs.length >= gundemLimit) {
-            html += `<button onclick="loadMoreGundem()" class="load-more-btn">Daha Fazla Yükle</button>`;
-        }
-        feed.innerHTML = html;
-    });
-};
-
-window.loadMoreGundem = () => { gundemLimit += 7; fetchGundem(currentGundemFilter); };
-window.deleteGundem = async (id) => {
-    if (confirm("Silmek istiyor musunuz?")) {
-        try { await deleteDoc(doc(db, "gundem", id)); } 
-        catch (err) { alert("Hata oluştu."); }
-    }
-};
-window.shareGundem = shareGundem;
-
-document.addEventListener('click', (e) => {
-    if (e.target.classList.contains('gundem-tab')) {
-        document.querySelectorAll('.gundem-tab').forEach(t => t.classList.remove('active'));
-        e.target.classList.add('active');
-        fetchGundem(e.target.dataset.filter);
-    }
-});
-
-  let gundemLimit = 7; 
-  let currentGundemFilter = "all";
-
-window.addEventListener('load', () => fetchGundem());
-/* ============================   */
+/* Gündem özelliği kaldırıldı */
 
 /* MOBİLE VERSİYONDA İÇERİK AYARLAMA */
 document.addEventListener('DOMContentLoaded', () => {
