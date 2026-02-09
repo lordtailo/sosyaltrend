@@ -1,6 +1,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, doc, updateDoc, arrayUnion, arrayRemove, deleteDoc, getDoc, getDocs, limit } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, doc, updateDoc, setDoc, arrayUnion, arrayRemove, deleteDoc, getDoc, getDocs, limit } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { getAuth, onAuthStateChanged, signOut, updateEmail, sendPasswordResetEmail, updateProfile } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
 
 /* Özel Günler ve Tarihte Bugün Veri Seti */
 const ozelGunler = [
@@ -116,10 +117,11 @@ document.addEventListener('DOMContentLoaded', loadComponents);
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
   const auth = getAuth(app);
+  const storage = getStorage(app);
 
   let user = {
   displayName: "Misafir",
-  avatar: "strendsaydamv2",
+  avatarUrl: "assets/img/strendsaydamv2.png",
   isAdmin: false
 };
 
@@ -128,21 +130,64 @@ const ADMIN_EMAIL = "officialfthuzun@gmail.com";
 // Avatar sistemini otomatik olarak strendsaydamv2'ye initialize et
 localStorage.setItem('st_avatar', 'strendsaydamv2');
 
-onAuthStateChanged(auth, (fbUser) => {
+onAuthStateChanged(auth, async (fbUser) => {
     if (!fbUser) 
         { window.location.href = 'login.html'; kontrolEtVeOtomatikPostAt(); } else {
         // Kullanıcı bilgilerini güncelle
         user.username = fbUser.email.split('@')[0];
         user.displayName = localStorage.getItem('st_displayName') || fbUser.displayName || user.username;
         
-        // Avatar: Tüm kullanıcılar strendsaydamv2 kullan
-        user.avatarSeed = "strendsaydamv2";
+        // Avatar URL'i Firestore'dan çek ve eğer yoksa başlangıç verisi oluştur
+        try {
+            const userRef = doc(db, "users", fbUser.uid);
+            const userDoc = await getDoc(userRef);
+            if (userDoc.exists() && userDoc.data().avatarUrl) {
+                user.avatarUrl = userDoc.data().avatarUrl;
+            } else {
+                // İlk kez giriş yapıyorsa kullanıcı document'i oluştur
+                user.avatarUrl = "assets/img/strendsaydamv2.png";
+                try {
+                    await setDoc(userRef, {
+                        displayName: user.displayName,
+                        avatarUrl: user.avatarUrl,
+                        email: fbUser.email,
+                        username: user.username,
+                        createdAt: serverTimestamp()
+                    }, { merge: true });
+                } catch (e) {
+                    console.log("Kullanıcı belgesi başlangıç oluşturma:", e.message);
+                }
+            }
+        } catch (err) {
+            console.error("Avatar URL çekilirken hata:", err);
+            user.avatarUrl = "assets/img/strendsaydamv2.png";
+        }
 
         // Admin Kontrolü
         user.isAdmin = fbUser.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
         
         // UI Güncelleme (Profil resmi, isimler vb.)
         updateUIWithUser();
+        
+        // Real-time kullanıcı profili listener - Avatar değişikliklerini senkronize et
+        onSnapshot(doc(db, "users", fbUser.uid), (docSnapshot) => {
+            if (docSnapshot.exists()) {
+                const userData = docSnapshot.data();
+                // Avatar değişmişse güncelle
+                if (userData.avatarUrl && userData.avatarUrl !== user.avatarUrl) {
+                    user.avatarUrl = userData.avatarUrl;
+                    localStorage.setItem('st_avatarUrl', userData.avatarUrl);
+                    updateUIWithUser();
+                    console.log("Avatar real-time güncellendi:", userData.avatarUrl);
+                }
+                // Display name değişmişse güncelle
+                if (userData.displayName && userData.displayName !== user.displayName) {
+                    user.displayName = userData.displayName;
+                    localStorage.setItem('st_displayName', userData.displayName);
+                    updateUIWithUser();
+                }
+            }
+        });
         
         // Eski postların avatarlarını güncelle
         migrateOldAvatars();
@@ -178,14 +223,16 @@ async function migrateOldAvatars() {
         
         postsSnap.forEach(async (postDoc) => {
             const post = postDoc.data();
-            // Eğer avatarSeed "strendsaydamv2" değilse güncelle
-            if (post.avatarSeed && post.avatarSeed !== "strendsaydamv2") {
-                await updateDoc(postDoc.ref, { avatarSeed: "strendsaydamv2" });
+            // Eğer avatarUrl yoksa, varsayılan URL'i ekle
+            if (!post.avatarUrl) {
+                await updateDoc(postDoc.ref, { 
+                    avatarUrl: "assets/img/strendsaydamv2.png"
+                });
             }
         });
         
         localStorage.setItem('avatarsMigrated', 'true');
-        console.log("Avatar migration tamamlandı");
+        console.log("Avatar migration tamamlandı - Eski postlara avatarUrl eklendi");
     } catch (err) {
         console.error("Avatar migration hatası:", err);
     }
@@ -213,32 +260,126 @@ let tempAvatarBuffer = null;
                     tempAvatarBuffer = null;
     };
 
-/* Profil Resmini(avatarı) Değiştir - DISABLED: Avatar her zaman strendsaydamv2.png */
-window.handleFileSelect = (input) => {
-    // Avatar değişimi devre dışı
+/* Profil Resmini(avatarı) Değiştir */
+window.handleFileSelect = async (input) => {
+    const file = input.files[0];
+    if (!file) return;
+
+    // Dosya boyutu kontrolü (5MB)
+    if (file.size > 5 * 1024 * 1024) {
+        alert("Dosya boyutu 5MB'dan küçük olmalıdır.");
+        input.value = "";
+        return;
+    }
+
+    try {
+        // Firebase Storage'a yükle
+        const filename = `avatars/${auth.currentUser.uid}_${Date.now()}`;
+        const storageRef = ref(storage, filename);
+        
+        // Yükleme yapılıyor mesajı göster
+        const btn = input.previousElementSibling;
+        if (btn) btn.innerText = "Yükleniyor...";
+        
+        await uploadBytes(storageRef, file);
+        const downloadUrl = await getDownloadURL(storageRef);
+        
+        // Firestore'da kullanıcı profilini güncelle
+        await updateDoc(doc(db, "users", auth.currentUser.uid), {
+            avatarUrl: downloadUrl
+        });
+        
+        // Local user object'ini güncelle
+        user.avatarUrl = downloadUrl;
+        localStorage.setItem('st_avatarUrl', downloadUrl);
+        
+        // UI'ı güncelle
+        updateUIWithUser();
+        
+        // Uyarı
+        alert("Avatar başarıyla güncellendi!");
+        input.value = "";
+        if (btn) btn.innerText = "Cihazdan Seç";
+        
+    } catch (error) {
+        console.error("Avatar yükleme hatası:", error);
+        alert("Avatar yüklenirken hata oluştu: " + error.message);
+        input.value = "";
+    }
 };
 
-window.handleUrlInput = (input) => {
-    // Avatar değişimi devre dışı
+window.handleUrlInput = async (input) => {
+    const url = input.value.trim();
+    if (!url) return;
+    
+    // URL kontrolü
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+        alert("Geçerli bir URL girin (http:// veya https:// ile başlamalı)");
+        return;
+    }
+
+    try {
+        // Firestore'da kullanıcı profilini güuncelle
+        await updateDoc(doc(db, "users", auth.currentUser.uid), {
+            avatarUrl: url
+        });
+        
+        // Local user object'ini güncelle
+        user.avatarUrl = url;
+        localStorage.setItem('st_avatarUrl', url);
+        
+        // UI'ı güncelle
+        updateUIWithUser();
+        
+        alert("Avatar başarıyla güncellendi!");
+        input.value = "";
+        
+    } catch (error) {
+        console.error("Avatar URL ekleme hatası:", error);
+        alert("Hata: " + error.message);
+    }
 };
 
-  window.promptDiceBear = () => {
-    // Avatar değişimi devre dışı
+  window.promptDiceBear = async () => {
+    const name = user.displayName || user.username;
+    const dicebearUrl = `https://api.dicebear.com/7.x/avataaars/png?seed=${encodeURIComponent(name)}&size=256`;
+    
+    try {
+        await updateDoc(doc(db, "users", auth.currentUser.uid), {
+            avatarUrl: dicebearUrl
+        });
+        
+        user.avatarUrl = dicebearUrl;
+        localStorage.setItem('st_avatarUrl', dicebearUrl);
+        
+        updateUIWithUser();
+        
+        alert("Avatar başarıyla oluşturuldu!");
+        
+    } catch (error) {
+        console.error("DiceBear avatar oluşturma hatası:", error);
+        alert("Hata: " + error.message);
+    }
   };
 
   window.saveProfileChanges = async () => {
     const name = document.getElementById('newNameInput').value.trim();
-    const urlInput = document.getElementById('newAvatarUrlInput').value.trim();
 
     if(name) { 
         user.displayName = name; 
-        localStorage.setItem('st_displayName', name); 
+        localStorage.setItem('st_displayName', name);
+        
+        // Firestore'da güncelle
+        try {
+            await updateDoc(doc(db, "users", auth.currentUser.uid), {
+                displayName: name
+            });
+        } catch (err) {
+            console.error("Display name güncelleme hatası:", err);
+        }
+        
         await updateProfile(auth.currentUser, { displayName: name }).catch(e => console.error(e));
     }
-    
-    // Avatar her zaman strendsaydamv2 olacak
-    user.avatarSeed = "strendsaydamv2";
-    localStorage.setItem('st_avatar', "strendsaydamv2");
 
     finishUpdate();
   };
@@ -438,15 +579,19 @@ window.clearImagePreview = () => {
   }
   applyTranslations();
 
-function getAvatarUrl(seed, type = 'user') {
+function getAvatarUrl(avatarUrlOrSeed, type = 'user') {
+    // Eğer HTTPS URL ise direkt döndür (avatarUrl)
+    if (avatarUrlOrSeed && typeof avatarUrlOrSeed === 'string' && avatarUrlOrSeed.startsWith('http')) {
+        return avatarUrlOrSeed;
+    }
     // Admin ikon kontrolü - SADECE admin-shield için özel işlem
-    if (seed === 'admin-shield') return "https://api.dicebear.com/7.x/bottts/svg?seed=Admin";
-    // Tüm diğer kullanıcılar: assets/img/strendsaydamv2.png
+    if (avatarUrlOrSeed === 'admin-shield') return "https://api.dicebear.com/7.x/bottts/svg?seed=Admin";
+    // Default avatar
     return "assets/img/strendsaydamv2.png";
 }
 
   function updateUIWithUser() {
-    const avatarUrl = getAvatarUrl("strendsaydamv2", 'user');
+    const avatarUrl = getAvatarUrl(user.avatarUrl, 'user');
     
     // --- ELEMENT TANIMLAMALARI ---
     const welcomeEl = document.getElementById('welcomeMessage'); // Karşılama metni
@@ -696,7 +841,7 @@ function formatTime(timestamp) {
           comments: arrayUnion({ 
               username: user.username, 
               displayName: user.displayName, 
-              avatarSeed: user.avatarSeed, 
+              avatarUrl: user.avatarUrl, 
               text: text, 
               time: Date.now(),
               replies: []
@@ -719,7 +864,7 @@ window.addReply = async (postId, commentTime) => {
               comments[index].replies.push({
                   username: user.username,
                   displayName: user.displayName,
-                  avatarSeed: user.avatarSeed,
+                  avatarUrl: user.avatarUrl,
                   text: replyText,
                   time: Date.now()
               });
@@ -779,7 +924,7 @@ onSnapshot(query(collection(db, "posts"), orderBy("timestamp", "desc")), (snap) 
                 isSaved = p.savedBy?.includes(user.username);
             
           
-          const avatarUrl = getAvatarUrl(p.avatarSeed, isPage ? 'page' : 'user');
+          const avatarUrl = getAvatarUrl(p.avatarUrl || p.avatarSeed || "assets/img/strendsaydamv2.png", isPage ? 'page' : 'user');
           const contentWithLinks = (p.content || "").replace(/(#[\wığüşöçİĞÜŞÖÇ]+)/g, '<span class="hashtag-link" onclick="searchTrend(\'$1\')">$1</span>');
           // Profil linki: Kendi profili ise 'profil', başkasıysa 'profil.html?id=username'
           const profileLink = isMine ? "javascript:navigateTo('profil')" : `profil.html?id=${encodeURIComponent(p.username)}`;
@@ -854,7 +999,7 @@ const postHtml = `
                   ${(p.comments || []).map(c => `
                       <div class="comment-item" style="flex-direction: column; align-items: flex-start; gap: 5px;">
                           <div style="display: flex; align-items: center; width: 100%; gap: 10px;">
-                              <img src="${getAvatarUrl(c.avatarSeed, 'user')}" style="width: 24px; height: 24px; border-radius: 50%; cursor:pointer;" onclick="${c.username === user.username ? "navigateTo('profil')" : `location.href='profil.html?id=${encodeURIComponent(c.username)}'`}">
+                              <img src="${getAvatarUrl(c.avatarUrl || c.avatarSeed || 'assets/img/strendsaydamv2.png', 'user')}" style="width: 24px; height: 24px; border-radius: 50%; cursor:pointer;" onclick="${c.username === user.username ? "navigateTo('profil')" : `location.href='profil.html?id=${encodeURIComponent(c.username)}'`}">
                               <div style="flex: 1;">
                                   <span class="comment-meta" style="cursor:pointer;" onclick="${c.username === user.username ? "navigateTo('profil')" : `location.href='profil.html?id=${encodeURIComponent(c.username)}'`}">${c.displayName}</span> 
                                   <span style="font-size: 0.8rem;">${c.text}</span>
@@ -876,7 +1021,7 @@ const postHtml = `
                           <div style="margin-left: 34px; width: calc(100% - 34px);">
                               ${(c.replies || []).map(r => `
                                   <div style="display: flex; align-items: center; gap: 8px; margin-top: 5px; background: rgba(0,0,0,0.03); padding: 5px; border-radius: 8px;">
-                                      <img src="${getAvatarUrl(r.avatarSeed, 'user')}" style="width: 18px; height: 18px; border-radius: 50%; cursor:pointer;" onclick="${r.username === user.username ? "navigateTo('profil')" : `location.href='profil.html?id=${encodeURIComponent(r.username)}'`}">
+                                      <img src="${getAvatarUrl(r.avatarUrl || r.avatarSeed || 'assets/img/strendsaydamv2.png', 'user')}" style="width: 18px; height: 18px; border-radius: 50%; cursor:pointer;" onclick="${r.username === user.username ? "navigateTo('profil')" : `location.href='profil.html?id=${encodeURIComponent(r.username)}'`}">
                                       <div style="font-size: 0.75rem; flex: 1;">
                                           <b style="color:var(--primary); cursor:pointer;" onclick="${r.username === user.username ? "navigateTo('profil')" : `location.href='profil.html?id=${encodeURIComponent(r.username)}'`}">${r.displayName}</b> ${r.text}
                                           ${r.isEdited ? `<small style="font-size: 0.6rem; color: var(--text-muted); margin-left: 4px;">(düzenlendi)</small>` : ''}
@@ -924,7 +1069,7 @@ const postHtml = `
       await addDoc(collection(db, "posts"), { 
           name: user.displayName, 
           username: user.username, 
-          avatarSeed: "strendsaydamv2", 
+          avatarUrl: user.avatarUrl,
           content: val, 
           // RESİM VERİSİNİ BURAYA EKLEDİK:
           image: selectedImageBase64 || null, 
