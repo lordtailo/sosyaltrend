@@ -64,7 +64,7 @@ document.addEventListener('DOMContentLoaded', loadComponents);
 
   let user = {
   displayName: "Misafir",
-  avatar: "Felix",
+  avatar: "strendsaydamv2",
   isAdmin: false
 };
 
@@ -77,9 +77,9 @@ onAuthStateChanged(auth, (fbUser) => {
         user.username = fbUser.email.split('@')[0];
         user.displayName = localStorage.getItem('st_displayName') || fbUser.displayName || user.username;
         
-        // Avatar kalıcılığı
+        // Avatar kalıcılığı - default strendsaydamv2.png
         const savedAvatar = localStorage.getItem('st_avatar');
-        user.avatarSeed = savedAvatar || "Felix"; 
+        user.avatarSeed = savedAvatar || "strendsaydamv2"; 
 
         // Admin Kontrolü
         user.isAdmin = fbUser.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
@@ -160,22 +160,26 @@ window.handleUrlInput = (input) => {
     }
   };
 
-  window.saveProfileChanges = () => {
+  window.saveProfileChanges = async () => {
     const name = document.getElementById('newNameInput').value.trim();
     const urlInput = document.getElementById('newAvatarUrlInput').value.trim();
 
     if(name) { 
         user.displayName = name; 
         localStorage.setItem('st_displayName', name); 
+        await updateProfile(auth.currentUser, { displayName: name }).catch(e => console.error(e));
     }
     
-    // Oncelik: Yuklenen Dosya/DiceBear > URL Input
+    // Oncelik: Yuklenen Dosya/DiceBear > URL Input > Default
     if(tempAvatarBuffer) {
         user.avatarSeed = tempAvatarBuffer;
         localStorage.setItem('st_avatar', tempAvatarBuffer);
     } else if(urlInput) {
         user.avatarSeed = urlInput;
         localStorage.setItem('st_avatar', urlInput);
+    } else {
+        user.avatarSeed = "strendsaydamv2";
+        localStorage.setItem('st_avatar', "strendsaydamv2");
     }
 
     finishUpdate();
@@ -377,15 +381,12 @@ window.clearImagePreview = () => {
   applyTranslations();
 
 function getAvatarUrl(seed, type = 'user') {
-    // Eğer seed boşsa veya undefined ise varsayılan dön
-    if (!seed) return "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix";
-    // Eğer zaten bir resim verisi (http veya base64) ise direkt onu dön
-    if (seed.startsWith('http') || seed.startsWith('data:image')) return seed;
     // Admin ikon kontrolü
     if (seed === 'admin-shield') return "https://api.dicebear.com/7.x/bottts/svg?seed=Admin";
-    // Değilse DiceBear API'sini kullan
-    const collection = (type === 'user') ? 'avataaars' : 'identicon';
-    return `https://api.dicebear.com/7.x/${collection}/svg?seed=${encodeURIComponent(seed)}`;
+    // Eğer zaten bir resim verisi (http veya base64) ise direkt onu dön
+    if (seed && (seed.startsWith('http') || seed.startsWith('data:image'))) return seed;
+    // Tüm kullanıcılar için: assets/img/strendsaydamv2.png kullan
+    return "assets/img/strendsaydamv2.png";
 }
 
   function updateUIWithUser() {
