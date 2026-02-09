@@ -160,6 +160,7 @@ header {
     z-index: 9999;
     border-bottom: 1px solid var(--border);
     box-sizing: border-box;
+    gap: 5px;
 }
 
 header::after { 
