@@ -827,3 +827,49 @@ aside, .right-panel { display: none; } }
         .trend-info b { display: block; margin-bottom: 2px; }
         .trend-info small { color: var(--text-muted); }
         @media (max-width: 768px) { .trend-grid-top { grid-template-columns: 1fr; } }
+
+/* ====== BİLDİRİM ANİMASYONLARI ====== */
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes slideOut {
+    from {
+        opacity: 1;
+        transform: translateX(0);
+    }
+    to {
+        opacity: 0;
+        transform: translateX(100%);
+    }
+}
+
+@keyframes badgePulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+}
+
+/* Bildirim Badge Animasyonu */
+#notificationBadge {
+    animation: badgePulse 2s infinite;
+}
+
+/* Bildirim Dropdown Stilleri */
+#notificationsDropdown {
+    animation: slideIn 0.3s ease;
+}
+
+#friendRequestsList {
+    scroll-behavior: smooth;
+}
+
+#friendRequestsList > div {
+    animation: slideIn 0.3s ease;
+}

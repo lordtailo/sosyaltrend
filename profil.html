@@ -92,6 +92,18 @@
     .tab-content { display: none; animation: fadeIn 0.4s ease; }
     .tab-content.active { display: block; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    
+    /* Profil Düzenleme Formu */
+    .edit-profile-form { display: none; margin-top: 20px; animation: slideDown 0.3s ease; }
+    .edit-profile-form.active { display: block; }
+    @keyframes slideDown { from { opacity: 0; max-height: 0; } to { opacity: 1; max-height: 1000px; } }
+    .section-subtitle { font-size: 1rem; font-weight: 700; color: var(--text-main); margin-bottom: 15px; }
+    .form-label { display: block; font-size: 0.85rem; font-weight: 600; color: var(--text-main); margin-bottom: 8px; }
+    .form-input { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--input-bg); color: var(--text-main); outline: none; font-size: 0.9rem; }
+    .form-btn { background: var(--primary); color: white; border: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.3s; }
+    .form-btn:hover { opacity: 0.9; }
+    .admin-btn { background: var(--primary); color: white; border: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.3s; }
+    .admin-btn:hover { opacity: 0.9; }
   </style>
 </head>
 <body>
@@ -132,7 +144,10 @@
             <h2 id="profilePageName" style="margin-top: 15px;">...</h2>
             <p id="profilePageHandle" style="color: var(--text-muted); margin-bottom: 15px;">@...</p>
             <div style="display: flex; justify-content: center; gap: 10px; flex-wrap: wrap;">
-                <button onclick="toggleEditProfile()" style="background: var(--input-bg); border: 1px solid var(--border); padding: 8px 20px; border-radius: 10px; font-size: 0.8rem; font-weight: 600; cursor: pointer; color: var(--text-main);" data-i18n="editProfileBtn">Profili Düzenle</button>
+                <button id="editProfileBtn" onclick="toggleEditProfile()" style="background: var(--input-bg); border: 1px solid var(--border); padding: 8px 20px; border-radius: 10px; font-size: 0.8rem; font-weight: 600; cursor: pointer; color: var(--text-main);" data-i18n="editProfileBtn">Profili Düzenle</button>
+                <button id="addFriendBtn" onclick="sendFriendRequest()" style="background: var(--primary); color: white; border: none; padding: 8px 20px; border-radius: 10px; font-size: 0.8rem; font-weight: 600; cursor: pointer;">
+                    <i class="fa-solid fa-user-plus"></i> Arkadaş Olarak Ekle
+                </button>
             </div>
 
             <div id="editProfileSection" class="edit-profile-form">
@@ -171,11 +186,23 @@
             <button class="tab-btn" onclick="openTab(event, 'my-likes-tab')"><i class="fa-solid fa-heart"></i> Beğendiklerim</button>
             <button class="tab-btn" onclick="openTab(event, 'my-saves-tab')"><i class="fa-solid fa-bookmark"></i> Kaydedilenler</button>
             <button class="tab-btn" onclick="openTab(event, 'my-photos-tab')"><i class="fa-solid fa-images"></i> Galeri</button>
+            <button class="tab-btn" onclick="openTab(event, 'my-friends-tab')"><i class="fa-solid fa-users"></i> Arkadaşlarım</button>
         </div>
 
         <div id="my-posts-tab" class="tab-content active"><div id="my-posts-list"></div></div>
         <div id="my-likes-tab" class="tab-content"><div id="my-liked-list"></div></div>
         <div id="my-saves-tab" class="tab-content"><div id="bookmark-items"></div></div>
+
+        <div id="my-friends-tab" class="tab-content">
+            <div class="glass-card" style="padding:20px;">
+                <h3 style="margin-top:0; margin-bottom:20px;">Arkadaşlarım</h3>
+                <div id="friends-list" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(200px, 1fr)); gap:15px;"></div>
+                <div id="no-friends-msg" style="text-align:center; color:var(--text-muted); padding:40px 20px;">
+                    <i class="fa-solid fa-user-group" style="font-size:3rem; margin-bottom:10px; display:block;"></i>
+                    Henüz arkadaş yok
+                </div>
+            </div>
+        </div>
 
         <div id="my-photos-tab" class="tab-content">
             <div class="glass-card" style="padding:20px;">
@@ -287,6 +314,23 @@
         document.getElementById(tabName).style.display = "block";
         document.getElementById(tabName).classList.add("active");
         evt.currentTarget.classList.add("active");
+        
+        // Arkadaşlar sekmesi açılırsa
+        if (tabName === 'my-friends-tab') {
+            setTimeout(() => {
+                if (window.loadFriendsList && typeof window.user !== 'undefined') {
+                    const params = new URLSearchParams(location.search);
+                    const visitedUsername = params.get('id');
+                    
+                    if (!visitedUsername || visitedUsername === window.user.username) {
+                        // Kendi arkadaşlarını yükle
+                        if (typeof window.auth !== 'undefined' && window.auth.currentUser) {
+                            window.loadFriendsList();
+                        }
+                    }
+                }
+            }, 100);
+        }
     }
 
     function openGalleryUpload(gridId) {

@@ -1,5 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, doc, updateDoc, setDoc, arrayUnion, arrayRemove, deleteDoc, getDoc, getDocs, limit } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, doc, updateDoc, setDoc, arrayUnion, arrayRemove, deleteDoc, getDoc, getDocs, limit, where } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { getAuth, onAuthStateChanged, signOut, updateEmail, sendPasswordResetEmail, updateProfile } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
 
@@ -46,7 +46,15 @@ const tarihteBugun = [
 // Bileşenleri dinamik olarak yükleme fonksiyonu    
 async function loadComponents() {
     // Diğer header/footer yükleme kodların...
-    await loadSuggestions(); 
+    await loadSuggestions();
+    
+    // Avatar input listener'ı
+    const fileInput = document.getElementById('fileAvatarInput');
+    if (fileInput) {
+        fileInput.addEventListener('change', function() {
+            handleFileSelect(this);
+        });
+    }
 }
 async function loadSuggestions() {
     const suggestionsContainer = document.getElementById('dynamic-suggestions-list');
@@ -137,15 +145,19 @@ onAuthStateChanged(auth, async (fbUser) => {
         user.username = fbUser.email.split('@')[0];
         user.displayName = localStorage.getItem('st_displayName') || fbUser.displayName || user.username;
         
-        // Avatar URL'i Firestore'dan çek ve eğer yoksa başlangıç verisi oluştur
+        // Avatar URL'i Firestore'dan çek
         try {
             const userRef = doc(db, "users", fbUser.uid);
             const userDoc = await getDoc(userRef);
+            
             if (userDoc.exists() && userDoc.data().avatarUrl) {
+                // Firestore'dan gelen avatar var
                 user.avatarUrl = userDoc.data().avatarUrl;
             } else {
-                // İlk kez giriş yapıyorsa kullanıcı document'i oluştur
+                // Varsayılan avatar
                 user.avatarUrl = "assets/img/strendsaydamv2.png";
+                
+                // İlk kez giriş - document oluştur
                 try {
                     await setDoc(userRef, {
                         displayName: user.displayName,
@@ -155,11 +167,11 @@ onAuthStateChanged(auth, async (fbUser) => {
                         createdAt: serverTimestamp()
                     }, { merge: true });
                 } catch (e) {
-                    console.log("Kullanıcı belgesi başlangıç oluşturma:", e.message);
+                    console.log("Önceden var olan user:", e.code);
                 }
             }
         } catch (err) {
-            console.error("Avatar URL çekilirken hata:", err);
+            console.error("Avatar yükleme hatası:", err);
             user.avatarUrl = "assets/img/strendsaydamv2.png";
         }
 
@@ -186,6 +198,13 @@ onAuthStateChanged(auth, async (fbUser) => {
                     localStorage.setItem('st_displayName', userData.displayName);
                     updateUIWithUser();
                 }
+                // Arkadaş isteklerini güncelle
+                if (userData.friendRequests && userData.friendRequests.length > 0) {
+                    loadFriendRequests(userData.friendRequests);
+                    updateNotificationBadge(userData.friendRequests.length);
+                } else {
+                    updateNotificationBadge(0);
+                }
             }
         });
         
@@ -211,6 +230,33 @@ onAuthStateChanged(auth, async (fbUser) => {
     
     // Profil sayfasında ziyaretçi profilini kontrol et
     loadVisitorProfile();
+    
+    // Kendi profili açılıyorsa
+    const params = new URLSearchParams(location.search);
+    const visitedUsername = params.get('id');
+    if (!visitedUsername || visitedUsername === user.username) {
+        // localStorage'ı temizle
+        localStorage.removeItem('visiting_username');
+        
+        // Arkadaş butonu gizle
+        const addFriendBtn = document.getElementById('addFriendBtn');
+        if (addFriendBtn) {
+            addFriendBtn.style.display = 'none';
+            console.log("Kendi profili - Arkadaş butonu gizlendi");
+        }
+        
+        // Profili Düzenle butonunu göster
+        const editBtn = document.getElementById('editProfileBtn');
+        if (editBtn) {
+            editBtn.style.display = 'inline-block';
+            console.log("Kendi profili - Profili Düzenle butonu gösterildi");
+        }
+        
+        if (auth.currentUser) {
+            // Arkadaşlar listesini yükle
+            loadFriendsList();
+        }
+    }
 });
 
 // Eski postların avatarlarını strendsaydamv2 ile güncellemek
@@ -254,57 +300,240 @@ async function updateAdminStats() {
 let tempAvatarBuffer = null;
     window.toggleEditProfile = () => {
         const form = document.getElementById('editProfileSection');
+        if (form) {
             form.classList.toggle('active');
-                document.getElementById('newNameInput').value = user.displayName;
-                document.getElementById('newAvatarUrlInput').value = (user.avatarSeed.startsWith('http') ? user.avatarSeed : "");
-                    tempAvatarBuffer = null;
+            console.log("Form toggle'landı, class:", form.className);
+            
+            // Mevcut değerleri doldur
+            const nameInput = document.getElementById('newNameInput');
+            if (nameInput) nameInput.value = user.displayName || "";
+            
+            const urlInput = document.getElementById('newAvatarUrlInput');
+            if (urlInput && user.avatarUrl && user.avatarUrl.startsWith('http')) {
+                urlInput.value = user.avatarUrl;
+            }
+            
+            tempAvatarBuffer = null;
+        } else {
+            console.warn("editProfileSection element bulunamadı!");
+        }
     };
+
+// Kullanıcının tüm eski postlarının avatarını güncelle
+async function updateUserPostsAvatar(username, newAvatarUrl) {
+    try {
+        const postsSnap = await getDocs(
+            query(collection(db, "posts"), where("username", "==", username))
+        );
+        
+        console.log("Güncellenmesi gereken post sayısı:", postsSnap.size);
+        
+        postsSnap.forEach(async (postDoc) => {
+            try {
+                await updateDoc(postDoc.ref, {
+                    avatarUrl: newAvatarUrl
+                });
+                console.log("Post güncellendi:", postDoc.id);
+            } catch (err) {
+                console.error("Post güncelleme hatası:", err);
+            }
+        });
+        
+        // Comment'leri de güncelle
+        await updateUserCommentsAvatar(username, newAvatarUrl);
+        
+    } catch (error) {
+        console.error("Post güncelleme sorgusi hatası:", error);
+    }
+}
+
+// Kullanıcının tüm comment ve reply'larının avatarını güncelle
+async function updateUserCommentsAvatar(username, newAvatarUrl) {
+    try {
+        const postsSnap = await getDocs(collection(db, "posts"));
+        
+        postsSnap.forEach(async (postDoc) => {
+            const post = postDoc.data();
+            if (!post.comments || post.comments.length === 0) return;
+            
+            let updated = false;
+            const updatedComments = post.comments.map(comment => {
+                let updatedComment = { ...comment };
+                
+                // Comment'in avatarını güncelle
+                if (comment.username === username) {
+                    updatedComment.avatarUrl = newAvatarUrl;
+                    updated = true;
+                }
+                
+                // Reply'ların avatarını güncelle
+                if (comment.replies && comment.replies.length > 0) {
+                    updatedComment.replies = comment.replies.map(reply => {
+                        if (reply.username === username) {
+                            updated = true;
+                            return { ...reply, avatarUrl: newAvatarUrl };
+                        }
+                        return reply;
+                    });
+                }
+                
+                return updatedComment;
+            });
+            
+            // Eğer bir değişiklik varsa Firestore'da update et
+            if (updated) {
+                try {
+                    await updateDoc(postDoc.ref, {
+                        comments: updatedComments
+                    });
+                    console.log("Post'un comment'leri güncellendi:", postDoc.id);
+                } catch (err) {
+                    console.error("Comment güncelleme hatası:", err);
+                }
+            }
+        });
+        
+    } catch (error) {
+        console.error("Comment güncelleme hatası:", error);
+    }
+}
+
+// Debug Test
+window.testAvatarUpload = async () => {
+    console.log("=== Avatar Upload Test Başladı ===");
+    console.log("1. Auth Current User:", auth.currentUser ? auth.currentUser.email : "NULL");
+    console.log("2. User object:", user);
+    console.log("3. Firestore instance:", db ? "OK" : "NULL");
+    
+    if (!auth.currentUser) {
+        console.error("ERROR: Auth current user null");
+        return;
+    }
+    
+    try {
+        const dataUrl = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A9QBAADvgGFPchI7wAAAABJRU5ErkJggg==";
+        
+        console.log("4. Test data URL created:", dataUrl.substring(0, 50) + "...");
+        
+        const userRef = doc(db, "users", auth.currentUser.uid);
+        console.log("5. User ref path:", userRef.path);
+        
+        await updateDoc(userRef, {
+            avatarUrl: dataUrl,
+            testUpdate: serverTimestamp()
+        }).catch(async (err) => {
+            if (err.code === 'not-found') {
+                console.log("6. Document not found, creating...");
+                await setDoc(userRef, {
+                    avatarUrl: dataUrl,
+                    email: auth.currentUser.email,
+                    testUpdate: serverTimestamp()
+                });
+            } else {
+                throw err;
+            }
+        });
+        
+        console.log("7. Firestore updated successfully");
+        alert("Test başarılı! Firestore yazma çalışıyor.");
+        
+    } catch (error) {
+        console.error("ERROR:", error.code, error.message);
+        alert("Test hatası: " + error.message);
+    }
+};
 
 /* Profil Resmini(avatarı) Değiştir */
 window.handleFileSelect = async (input) => {
     const file = input.files[0];
-    if (!file) return;
+    if (!file) {
+        console.log("Dosya seçilmedi");
+        return;
+    }
 
-    // Dosya boyutu kontrolü (5MB)
-    if (file.size > 5 * 1024 * 1024) {
-        alert("Dosya boyutu 5MB'dan küçük olmalıdır.");
+    console.log("Dosya seçildi:", file.name);
+
+    // Auth kontrolü
+    if (!auth.currentUser) {
+        alert("Lütfen giriş yapınız!");
+        return;
+    }
+
+    // Dosya boyutu kontrolü (1MB)
+    if (file.size > 1024 * 1024) {
+        alert("Dosya 1MB'dan küçük olmalıdır!");
         input.value = "";
         return;
     }
 
     try {
-        // Firebase Storage'a yükle
-        const filename = `avatars/${auth.currentUser.uid}_${Date.now()}`;
-        const storageRef = ref(storage, filename);
+        // Base64'e dönüştür
+        const reader = new FileReader();
+        reader.onload = async () => {
+            try {
+                const base64Data = reader.result;
+                console.log("Base64 dönüştürme tamamlandı, uzunluk:", base64Data.length);
+                
+                const userRef = doc(db, "users", auth.currentUser.uid);
+                
+                // Önce try updateDoc
+                try {
+                    await updateDoc(userRef, {
+                        avatarUrl: base64Data,
+                        avatarType: "local",
+                        avatarUpdatedAt: serverTimestamp()
+                    });
+                    console.log("UpdateDoc başarılı");
+                } catch (err) {
+                    // Document yoksa oluştur
+                    if (err.code === 'not-found') {
+                        console.log("Document yok, setDoc ile oluşturuluyor...");
+                        await setDoc(userRef, {
+                            avatarUrl: base64Data,
+                            avatarType: "local",
+                            avatarUpdatedAt: serverTimestamp(),
+                            displayName: user.displayName || "",
+                            email: auth.currentUser.email,
+                            username: user.username || ""
+                        });
+                        console.log("SetDoc başarılı");
+                    } else {
+                        throw err;
+                    }
+                }
+                
+                // Firestore başarılı, local state güncelle
+                user.avatarUrl = base64Data;
+                console.log("Local state güncellendi");
+                
+                // UI yenile
+                updateUIWithUser();
+                console.log("UI güncellendi");
+                
+                // Eski postları güncelle (background'da)
+                updateUserPostsAvatar(user.username, base64Data);
+                
+                alert("✅ Avatar başarıyla yüklendi!");
+                input.value = "";
+                
+            } catch (error) {
+                console.error("HATA:", error.code, error.message);
+                alert("❌ Hata: " + error.message);
+                input.value = "";
+            }
+        };
         
-        // Yükleme yapılıyor mesajı göster
-        const btn = input.previousElementSibling;
-        if (btn) btn.innerText = "Yükleniyor...";
+        reader.onerror = (err) => {
+            console.error("FileReader hatası:", err);
+            alert("Dosya okunamadı!");
+            input.value = "";
+        };
         
-        await uploadBytes(storageRef, file);
-        const downloadUrl = await getDownloadURL(storageRef);
-        
-        // Firestore'da kullanıcı profilini güncelle
-        await updateDoc(doc(db, "users", auth.currentUser.uid), {
-            avatarUrl: downloadUrl
-        });
-        
-        // Local user object'ini güncelle
-        user.avatarUrl = downloadUrl;
-        localStorage.setItem('st_avatarUrl', downloadUrl);
-        
-        // UI'ı güncelle
-        updateUIWithUser();
-        
-        // Uyarı
-        alert("Avatar başarıyla güncellendi!");
-        input.value = "";
-        if (btn) btn.innerText = "Cihazdan Seç";
+        reader.readAsDataURL(file);
         
     } catch (error) {
-        console.error("Avatar yükleme hatası:", error);
-        alert("Avatar yüklenirken hata oluştu: " + error.message);
-        input.value = "";
+        console.error("HATA:", error.message);
+        alert("Hata: " + error.message);
     }
 };
 
@@ -312,52 +541,88 @@ window.handleUrlInput = async (input) => {
     const url = input.value.trim();
     if (!url) return;
     
+    // Auth kontrolü
+    if (!auth.currentUser) {
+        alert("Lütfen giriş yapın!");
+        return;
+    }
+    
     // URL kontrolü
     if (!url.startsWith('http://') && !url.startsWith('https://')) {
-        alert("Geçerli bir URL girin (http:// veya https:// ile başlamalı)");
+        alert("Geçerli URL girin (http:// ile başlamalı)");
         return;
     }
 
     try {
-        // Firestore'da kullanıcı profilini güuncelle
+        // Firestore'da kaydet
         await updateDoc(doc(db, "users", auth.currentUser.uid), {
-            avatarUrl: url
+            avatarUrl: url,
+            avatarType: "url"
+        }).catch(async (err) => {
+            if (err.code === 'not-found') {
+                await setDoc(doc(db, "users", auth.currentUser.uid), {
+                    avatarUrl: url,
+                    avatarType: "url",
+                    displayName: user.displayName,
+                    email: auth.currentUser.email
+                });
+            } else {
+                throw err;
+            }
         });
         
-        // Local user object'ini güncelle
         user.avatarUrl = url;
-        localStorage.setItem('st_avatarUrl', url);
-        
-        // UI'ı güncelle
         updateUIWithUser();
         
-        alert("Avatar başarıyla güncellendi!");
+        // Eski postları güncelle (background'da)
+        updateUserPostsAvatar(user.username, url);
+        
+        alert("Avatar güncellendi!");
         input.value = "";
         
     } catch (error) {
-        console.error("Avatar URL ekleme hatası:", error);
+        console.error("Hata:", error);
         alert("Hata: " + error.message);
     }
 };
 
   window.promptDiceBear = async () => {
+    // Auth kontrolü
+    if (!auth.currentUser) {
+        alert("Lütfen giriş yapın!");
+        return;
+    }
+    
     const name = user.displayName || user.username;
     const dicebearUrl = `https://api.dicebear.com/7.x/avataaars/png?seed=${encodeURIComponent(name)}&size=256`;
     
     try {
         await updateDoc(doc(db, "users", auth.currentUser.uid), {
-            avatarUrl: dicebearUrl
+            avatarUrl: dicebearUrl,
+            avatarType: "dicebear"
+        }).catch(async (err) => {
+            if (err.code === 'not-found') {
+                await setDoc(doc(db, "users", auth.currentUser.uid), {
+                    avatarUrl: dicebearUrl,
+                    avatarType: "dicebear",
+                    displayName: user.displayName,
+                    email: auth.currentUser.email
+                });
+            } else {
+                throw err;
+            }
         });
         
         user.avatarUrl = dicebearUrl;
-        localStorage.setItem('st_avatarUrl', dicebearUrl);
-        
         updateUIWithUser();
         
-        alert("Avatar başarıyla oluşturuldu!");
+        // Eski postları güncelle (background'da)
+        updateUserPostsAvatar(user.username, dicebearUrl);
+        
+        alert("Avatar oluşturuldu!");
         
     } catch (error) {
-        console.error("DiceBear avatar oluşturma hatası:", error);
+        console.error("Hata:", error);
         alert("Hata: " + error.message);
     }
   };
@@ -580,9 +845,12 @@ window.clearImagePreview = () => {
   applyTranslations();
 
 function getAvatarUrl(avatarUrlOrSeed, type = 'user') {
-    // Eğer HTTPS URL ise direkt döndür (avatarUrl)
-    if (avatarUrlOrSeed && typeof avatarUrlOrSeed === 'string' && avatarUrlOrSeed.startsWith('http')) {
-        return avatarUrlOrSeed;
+    // Eğer string ise kontrol et
+    if (avatarUrlOrSeed && typeof avatarUrlOrSeed === 'string') {
+        // HTTP/HTTPS URL'si veya Data URL (Base64)
+        if (avatarUrlOrSeed.startsWith('http') || avatarUrlOrSeed.startsWith('data:')) {
+            return avatarUrlOrSeed;
+        }
     }
     // Admin ikon kontrolü - SADECE admin-shield için özel işlem
     if (avatarUrlOrSeed === 'admin-shield') return "https://api.dicebear.com/7.x/bottts/svg?seed=Admin";
@@ -1166,14 +1434,38 @@ async function loadVisitorProfile() {
     const visitedUsername = params.get('id');
     
     // Ziyaretçi modu değilse çık (kendi profili)
-    if (!visitedUsername || visitedUsername === user.username) return;
+    if (!visitedUsername || visitedUsername === user.username) {
+        // Kendi profili - button'ları düzenle
+        const editBtn = document.getElementById('editProfileBtn');
+        const addFriendBtn = document.getElementById('addFriendBtn');
+        if (editBtn) editBtn.style.display = 'inline-block';
+        if (addFriendBtn) addFriendBtn.style.display = 'none';
+        console.log("Kendi profili - butonlar düzenlendi");
+        return;
+    }
     
     // Ziyaretçi modu etkinleştir
     console.log(`${visitedUsername} profilini ziyaret ediyorsunuz...`);
     
+    // localStorage'a ziyaretçinin username'ini kaydet
+    localStorage.setItem('visiting_username', visitedUsername);
+    
     // Profil düzenle butonunu gizle
-    const editBtn = document.querySelector('[onclick*="toggleEditProfile"]');
-    if (editBtn) editBtn.style.display = 'none';
+    const editBtn = document.getElementById('editProfileBtn');
+    if (editBtn) {
+        editBtn.style.display = 'none';
+        console.log("Profili Düzenle butonu gizlendi");
+    }
+    
+    // Arkadaş Olarak Ekle butonunu HEMEN göster
+    const addFriendBtn = document.getElementById('addFriendBtn');
+    if (addFriendBtn) {
+        addFriendBtn.style.display = 'inline-block';
+        addFriendBtn.style.visibility = 'visible';
+        console.log("Arkadaş Olarak Ekle butonu gösterildi");
+    } else {
+        console.log("Arkadaş Olarak Ekle butonu HTML'de bulunamadı!");
+    }
     
     // Profil düzenle formunu gizle
     const editSection = document.getElementById('editProfileSection');
@@ -1201,6 +1493,7 @@ async function loadVisitorProfile() {
         let visitorDisplayName = visitedUsername;
         let visitorAvatar = null;
         let visitorPosts = [];
+        let visitorUid = null;
         
         snap.forEach(doc => {
             const p = doc.data();
@@ -1212,6 +1505,16 @@ async function loadVisitorProfile() {
                 }
             }
         });
+
+        // Ziyaretçi kullanıcının UID'ini bul
+        const userQuery = query(collection(db, "users"), where("username", "==", visitedUsername));
+        const userSnap = await getDocs(userQuery);
+        if (!userSnap.empty) {
+            visitorUid = userSnap.docs[0].id;
+            console.log("Ziyaretçi UID bulundu:", visitorUid);
+        } else {
+            console.log("Ziyaretçi UID bulunamadı, username:", visitedUsername);
+        }
         
         // Profil başlığını güncelle
         const profileName = document.getElementById('profilePageName');
@@ -1223,6 +1526,18 @@ async function loadVisitorProfile() {
         const profileAvatar = document.getElementById('profilePageAvatar');
         if (profileAvatar) {
             profileAvatar.src = visitorAvatar || getAvatarUrl("strendsaydamv2", 'user');
+        }
+
+        // "Arkadaş Olarak Ekle" butonunu göster/güncelle
+        if (visitorUid && auth.currentUser) {
+            const addFriendBtn = document.getElementById('addFriendBtn');
+            if (addFriendBtn) {
+                console.log("Arkadaş butonu güncelleniyor...");
+                addFriendBtn.style.display = 'inline-block';
+                await updateAddFriendButton(visitorUid);
+            }
+        } else {
+            console.log("Arkadaş butonu güncellenemedi - visitorUid:", visitorUid, "currentUser:", auth.currentUser?.uid);
         }
         
         // Ziyaretçinin postlarını göster
@@ -1280,6 +1595,12 @@ async function loadVisitorProfile() {
         console.log(`${visitorDisplayName} (${visitedUsername}) profilinin ${visitorPosts.length} gönderi gösteriliyor`);
     } catch (err) {
         console.error("Ziyaretçi profili yüklenirken hata:", err);
+    } finally {
+        // Hata olsa bile, eğer ziyaretçi profiliyse arkadaş butonu görüntülensin
+        const addFriendBtn = document.getElementById('addFriendBtn');
+        if (addFriendBtn && addFriendBtn.style.display === 'none') {
+            addFriendBtn.style.display = 'inline-block';
+        }
     }
 }
 
@@ -1680,4 +2001,501 @@ document.addEventListener('click', (e) => {
             dropdownMenu.classList.remove('active');
         }
     }
+    
+    // Bildirim dropdown'u
+    const notificationsBtn = document.getElementById('notificationsBtn');
+    const notificationsDropdown = document.getElementById('notificationsDropdown');
+    
+    if (notificationsBtn?.contains(e.target)) {
+        e.stopPropagation();
+    } else if (notificationsDropdown && notificationsDropdown.style.display !== 'none') {
+        if (!notificationsDropdown.contains(e.target)) {
+            notificationsDropdown.style.display = 'none';
+        }
+    }
 });
+
+// ====== ARKADAŞ SİSTEMİ ======
+
+// Arkadaş isteği gönder
+async function sendFriendRequest() {
+    if (!auth.currentUser) {
+        alert('Lütfen giriş yapın');
+        return;
+    }
+
+    const params = new URLSearchParams(location.search);
+    const targetUsername = params.get('id') || localStorage.getItem('visiting_username');
+    
+    if (!targetUsername || targetUsername === user.username) {
+        alert('Kendine arkadaş isteği gönderemezsin');
+        return;
+    }
+
+    try {
+        // Hedef kullanıcıyı email'den bul
+        const targetQuery = await getDocs(query(collection(db, "users"), where("username", "==", targetUsername)));
+        
+        if (targetQuery.empty) {
+            alert('Kullanıcı bulunamadı');
+            return;
+        }
+
+        const targetUid = targetQuery.docs[0].id;
+        const targetUserData = targetQuery.docs[0].data();
+        const currentUserRef = doc(db, "users", auth.currentUser.uid);
+        const targetUserRef = doc(db, "users", targetUid);
+
+        // Arkadaş isteği nesnesini oluştur
+        const friendRequest = {
+            fromUid: auth.currentUser.uid,
+            fromUsername: user.username,
+            fromName: user.displayName,
+            fromAvatar: user.avatarUrl,
+            timestamp: serverTimestamp(),
+            status: 'pending'
+        };
+
+        // Hedef kullanıcının friendRequests'ine ekle
+        await updateDoc(targetUserRef, {
+            friendRequests: arrayUnion(friendRequest)
+        }).catch(async (err) => {
+            if (err.code === 'not-found') {
+                await setDoc(targetUserRef, {
+                    friendRequests: [friendRequest]
+                }, { merge: true });
+            }
+        });
+
+        // Göndereni de izlemek için sentRequests'e ekle
+        await updateDoc(currentUserRef, {
+            sentRequests: arrayUnion({
+                toUid: targetUid,
+                toUsername: targetUsername,
+                toName: targetUserData.displayName || targetUsername,
+                toAvatar: targetUserData.avatarUrl || "assets/img/strendsaydamv2.png",
+                timestamp: serverTimestamp()
+            })
+        }).catch(async (err) => {
+            if (err.code === 'not-found') {
+                await setDoc(currentUserRef, {
+                    sentRequests: [{
+                        toUid: targetUid,
+                        toUsername: targetUsername,
+                        toName: targetUserData.displayName || targetUsername,
+                        toAvatar: targetUserData.avatarUrl || "assets/img/strendsaydamv2.png",
+                        timestamp: serverTimestamp()
+                    }]
+                }, { merge: true });
+            }
+        });
+
+        // Buton durumunu HEMEN güncelle - UX çok önemliydi
+        const addFriendBtn = document.getElementById('addFriendBtn');
+        if (addFriendBtn) {
+            addFriendBtn.innerHTML = '<i class="fa-solid fa-hourglass-end"></i> İstek Gönderildi';
+            addFriendBtn.disabled = true;
+            addFriendBtn.style.opacity = '0.6';
+            addFriendBtn.style.cursor = 'default';
+            addFriendBtn.onclick = (e) => e.preventDefault();
+            console.log("✅ Buton 'İstek Gönderildi' olarak değiştirildi");
+        } else {
+            console.log("❌ Arkadaş butonu HTML'de bulunamadı!");
+        }
+
+    } catch (error) {
+        console.error("Arkadaş isteği gönderme hatası:", error);
+        alert('❌ Arkadaş isteği gönderilemedi: ' + error.message);
+    }
+}
+
+// Arkadaş isteğini onayla
+async function acceptFriendRequest(requesterUid, requesterUsername) {
+    if (!auth.currentUser) return;
+
+    try {
+        const currentUserRef = doc(db, "users", auth.currentUser.uid);
+        const requesterRef = doc(db, "users", requesterUid);
+        const currentUserDoc = await getDoc(currentUserRef);
+        const requesterDoc = await getDoc(requesterRef);
+
+        // Arkadaş isteğini kaldır
+        const updatedRequests = (currentUserDoc.data().friendRequests || [])
+            .filter(req => req.fromUid !== requesterUid);
+
+        await updateDoc(currentUserRef, {
+            friendRequests: updatedRequests,
+            friends: arrayUnion(requesterUid)
+        });
+
+        // Karşıya da ekle
+        await updateDoc(requesterRef, {
+            friends: arrayUnion(auth.currentUser.uid),
+            sentRequests: ((requesterDoc.data().sentRequests || [])
+                .filter(req => req.toUid !== auth.currentUser.uid))
+        });
+
+        // Onay bildirimini gönder
+        await sendNotification(requesterUid, 'accepted', user.displayName);
+        
+        // UI'da istek kartını kaldır
+        const requestCard = document.getElementById(`friend-request-${requesterUid}`);
+        if (requestCard) {
+            requestCard.style.animation = 'slideOut 0.3s ease';
+            setTimeout(() => requestCard.remove(), 300);
+        }
+        
+        loadFriendsList();
+        console.log('✅ Arkadaş isteği kabul edildi:', requesterUsername);
+        checkIfNoRequests();
+    } catch (error) {
+        console.error("Onaylama hatası:", error);
+        alert('Onaylama başarısız: ' + error.message);
+    }
+}
+
+// Arkadaş isteğini reddet
+async function rejectFriendRequest(requesterUid, requesterUsername) {
+    if (!auth.currentUser) return;
+
+    try {
+        const currentUserRef = doc(db, "users", auth.currentUser.uid);
+        const requesterRef = doc(db, "users", requesterUid);
+        const currentUserDoc = await getDoc(currentUserRef);
+        const requesterDoc = await getDoc(requesterRef);
+
+        // Arkadaş isteğini kaldır
+        const updatedRequests = (currentUserDoc.data().friendRequests || [])
+            .filter(req => req.fromUid !== requesterUid);
+
+        await updateDoc(currentUserRef, {
+            friendRequests: updatedRequests
+        });
+
+        // Gönderenden sentRequest'i de kaldır
+        if (requesterDoc.exists()) {
+            await updateDoc(requesterRef, {
+                sentRequests: ((requesterDoc.data().sentRequests || [])
+                    .filter(req => req.toUid !== auth.currentUser.uid))
+            });
+        }
+
+        // Reddetme bildirimini gönder
+        await sendNotification(requesterUid, 'rejected', user.displayName);
+        
+        // UI'da istek kartını kaldır
+        const requestCard = document.getElementById(`friend-request-${requesterUid}`);
+        if (requestCard) {
+            requestCard.style.animation = 'slideOut 0.3s ease';
+            setTimeout(() => requestCard.remove(), 300);
+        }
+        
+        console.log('❌ Arkadaş isteği reddedildi:', requesterUsername);
+        checkIfNoRequests();
+    } catch (error) {
+        console.error("Reddetme hatası:", error);
+        alert('Reddetme başarısız: ' + error.message);
+    }
+}
+
+// Bildirim gönder
+async function sendNotification(recipientUid, action, fromName) {
+    try {
+        const recipientRef = doc(db, "users", recipientUid);
+        const notification = {
+            type: 'friend_' + action,
+            fromName: fromName,
+            fromUid: auth.currentUser.uid,
+            timestamp: serverTimestamp()
+        };
+
+        await updateDoc(recipientRef, {
+            notifications: arrayUnion(notification)
+        }).catch(async (err) => {
+            if (err.code === 'not-found') {
+                await setDoc(recipientRef, {
+                    notifications: [notification]
+                }, { merge: true });
+            }
+        });
+    } catch (error) {
+        console.error("Bildirim gönderme hatası:", error);
+    }
+}
+
+// Arkadaşlar listesini yükle
+async function loadFriendsList(userRef) {
+    const friendsTab = document.getElementById('friends-list');
+    const noFriendsMsg = document.getElementById('no-friends-msg');
+    
+    if (!friendsTab) return;
+
+    try {
+        // userRef verilmemişse kendi UID'imizi kullan
+        if (!userRef && auth && auth.currentUser) {
+            userRef = doc(db, "users", auth.currentUser.uid);
+        }
+        
+        if (!userRef) return;
+        
+        const userDoc = await getDoc(userRef);
+        const friends = userDoc.data()?.friends || [];
+
+        if (friends.length === 0) {
+            friendsTab.innerHTML = '';
+            noFriendsMsg.style.display = 'block';
+            return;
+        }
+
+        noFriendsMsg.style.display = 'none';
+        friendsTab.innerHTML = '';
+
+        // Her arkadaşın bilgisini çek
+        for (const friendUid of friends) {
+            const friendRef = doc(db, "users", friendUid);
+            const friendDoc = await getDoc(friendRef);
+            
+            if (friendDoc.exists()) {
+                const friendData = friendDoc.data();
+                const friendCard = document.createElement('div');
+                friendCard.style.cssText = `
+                    background: var(--input-bg);
+                    padding: 15px;
+                    border-radius: 10px;
+                    text-align: center;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                `;
+                
+                friendCard.innerHTML = `
+                    <img src="${friendData.avatarUrl || 'assets/img/strendsaydamv2.png'}" 
+                         style="width: 80px; height: 80px; border-radius: 50%; border: 2px solid var(--primary); object-fit: cover; margin-bottom: 10px;">
+                    <h4 style="margin: 8px 0; font-size: 0.9rem; word-break: break-word;">${friendData.displayName || friendData.username}</h4>
+                    <p style="margin: 5px 0; color: var(--text-muted); font-size: 0.8rem;">@${friendData.username}</p>
+                    <button onclick="removeFriend('${friendUid}')" style="background: #ef4444; color: white; border: none; padding: 6px 12px; border-radius: 8px; cursor: pointer; font-size: 0.75rem; margin-top: 10px;">
+                        <i class="fa-solid fa-trash"></i> Arkadaşlığı Sonlandır
+                    </button>
+                `;
+                
+                friendCard.addEventListener('mouseenter', () => {
+                    friendCard.style.transform = 'translateY(-5px)';
+                    friendCard.style.boxShadow = 'var(--shadow)';
+                });
+                
+                friendCard.addEventListener('mouseleave', () => {
+                    friendCard.style.transform = 'translateY(0)';
+                    friendCard.style.boxShadow = 'none';
+                });
+                
+                friendsTab.appendChild(friendCard);
+            }
+        }
+    } catch (error) {
+        console.error("Arkadaşlar listesi yükleme hatası:", error);
+    }
+}
+
+// Arkadaşlığı sonlandır
+async function removeFriend(friendUid) {
+    if (!confirm('Bu arkadaşlığı sonlandırmak istediğine emin misin?')) return;
+
+    try {
+        const currentUserRef = doc(db, "users", auth.currentUser.uid);
+        const friendRef = doc(db, "users", friendUid);
+
+        // Her ikisinden de kaldır
+        const currentUserDoc = await getDoc(currentUserRef);
+        const friendDoc = await getDoc(friendRef);
+
+        const userFriends = (currentUserDoc.data().friends || []).filter(f => f !== friendUid);
+        const friendFriends = (friendDoc.data().friends || []).filter(f => f !== auth.currentUser.uid);
+
+        await updateDoc(currentUserRef, { friends: userFriends });
+        await updateDoc(friendRef, { friends: friendFriends });
+
+        loadFriendsList(currentUserRef);
+        alert('Arkadaşlık sonlandırıldı');
+    } catch (error) {
+        console.error("Arkadaşlık sonlandırma hatası:", error);
+        alert('İşlem başarısız: ' + error.message);
+    }
+}
+
+// Arkadaş isteklerini yükle ve bildirim dropdown'unda göster
+async function loadFriendRequests(requests) {
+    const requestsList = document.getElementById('friendRequestsList');
+    const noNotificationsMsg = document.getElementById('noNotificationsMsg');
+    
+    if (!requestsList) return;
+
+    if (!requests || requests.length === 0) {
+        requestsList.innerHTML = '';
+        noNotificationsMsg.style.display = 'block';
+        return;
+    }
+
+    noNotificationsMsg.style.display = 'none';
+    requestsList.innerHTML = '';
+
+    for (const request of requests) {
+        const requestDiv = document.createElement('div');
+        requestDiv.id = `friend-request-${request.fromUid}`;
+        requestDiv.style.cssText = `
+            padding: 12px;
+            margin: 8px 12px;
+            border-radius: 8px;
+            background: var(--input-bg);
+            border: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: all 0.3s ease;
+            animation: slideIn 0.3s ease;
+        `;
+
+        requestDiv.innerHTML = `
+            <img src="${request.fromAvatar || 'assets/img/strendsaydamv2.png'}" 
+                 style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 2px solid var(--primary);">
+            <div style="flex: 1; min-width: 0;">
+                <p style="margin: 0; font-size: 0.85rem; font-weight: 600; word-break: break-word;">${request.fromName}</p>
+                <p style="margin: 3px 0 0 0; font-size: 0.75rem; color: var(--text-muted);">@${request.fromUsername}</p>
+                <p style="margin: 3px 0 0 0; font-size: 0.7rem; color: var(--text-muted); font-style: italic;">Arkadaş isteği gönderdi</p>
+            </div>
+            <div style="display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end;">
+                <button onclick="acceptFriendRequest('${request.fromUid}', '${request.fromUsername}')" 
+                        style="background: linear-gradient(135deg, var(--primary), #4f46e5); color: white; border: none; padding: 7px 12px; border-radius: 6px; cursor: pointer; font-size: 0.75rem; font-weight: 600; transition: all 0.2s ease;">
+                    <i class="fa-solid fa-check"></i> Onayla
+                </button>
+                <button onclick="rejectFriendRequest('${request.fromUid}', '${request.fromUsername}')" 
+                        style="background: linear-gradient(135deg, #ef4444, #dc2626); color: white; border: none; padding: 7px 12px; border-radius: 6px; cursor: pointer; font-size: 0.75rem; font-weight: 600; transition: all 0.2s ease;">
+                    <i class="fa-solid fa-x"></i> Reddet
+                </button>
+            </div>
+        `;
+
+        // Hover efekti
+        requestDiv.addEventListener('mouseenter', () => {
+            requestDiv.style.boxShadow = 'var(--shadow)';
+            requestDiv.style.transform = 'translateY(-2px)';
+        });
+        
+        requestDiv.addEventListener('mouseleave', () => {
+            requestDiv.style.boxShadow = 'none';
+            requestDiv.style.transform = 'translateY(0)';
+        });
+
+        requestsList.appendChild(requestDiv);
+    }
+    
+    // Eğer hiç istek kalmamışsa boş mesaj göster
+    checkIfNoRequests();
+}
+
+// Hiç arkadaş isteği kalmamışsa mesaj göster
+function checkIfNoRequests() {
+    const requestsList = document.getElementById('friendRequestsList');
+    const noNotificationsMsg = document.getElementById('noNotificationsMsg');
+    
+    if (requestsList && noNotificationsMsg) {
+        const hasRequests = requestsList.children.length > 0;
+        noNotificationsMsg.style.display = hasRequests ? 'none' : 'flex';
+    }
+}
+
+// Bildirim dropdown'unu aç/kapat
+function toggleNotifications() {
+    const dropdown = document.getElementById('notificationsDropdown');
+    if (dropdown) {
+        dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
+    }
+}
+
+// Bildirim badge'ini güncelle
+function updateNotificationBadge(count) {
+    const badge = document.getElementById('notificationBadge');
+    const countBadge = document.getElementById('requestCountBadge');
+    
+    if (badge) {
+        if (count > 0) {
+            badge.textContent = count > 99 ? '99+' : count;
+            badge.style.display = 'flex';
+        } else {
+            badge.style.display = 'none';
+        }
+    }
+    
+    if (countBadge) {
+        countBadge.textContent = count > 99 ? '99+' : count;
+    }
+    
+    // Page title'a bildirim sayısı ekle
+    if (count > 0) {
+        document.title = `(${count}) SosyalTrend • Sosyal Ağ`;
+    } else {
+        document.title = 'SosyalTrend • Sosyal Ağ';
+    }
+}
+
+// Profil sayfasında "Arkadaş Olarak Ekle" butonunu göster/gizle
+async function updateAddFriendButton(targetUid) {
+    const addFriendBtn = document.getElementById('addFriendBtn');
+    if (!addFriendBtn || !auth.currentUser) return;
+
+    try {
+        const currentUserRef = doc(db, "users", auth.currentUser.uid);
+        const targetUserRef = doc(db, "users", targetUid);
+
+        const currentUserDoc = await getDoc(currentUserRef);
+        const targetUserDoc = await getDoc(targetUserRef);
+
+        const currentUserData = currentUserDoc.data() || {};
+        const targetUserData = targetUserDoc.data() || {};
+
+        const friends = currentUserData.friends || [];
+        const friendRequests = currentUserData.friendRequests || [];
+        const sentRequests = currentUserData.sentRequests || [];
+
+        // Zaten arkadaş mı?
+        if (friends.includes(targetUid)) {
+            addFriendBtn.innerHTML = '<i class="fa-solid fa-user-check"></i> Zaten Arkadaş';
+            addFriendBtn.disabled = true;
+            addFriendBtn.style.opacity = '0.6';
+            addFriendBtn.style.cursor = 'default';
+            addFriendBtn.style.display = 'inline-block';
+            addFriendBtn.onclick = (e) => e.preventDefault();
+        }
+        // İstek gönderdik mi?
+        else if (sentRequests.some(req => req.toUid === targetUid)) {
+            addFriendBtn.innerHTML = '<i class="fa-solid fa-hourglass-end"></i> İstek Gönderildi';
+            addFriendBtn.disabled = true;
+            addFriendBtn.style.opacity = '0.6';
+            addFriendBtn.style.cursor = 'default';
+            addFriendBtn.style.display = 'inline-block';
+            addFriendBtn.onclick = (e) => e.preventDefault();
+        }
+        // İstek aldık mı?
+        else if (friendRequests.some(req => req.fromUid === targetUid)) {
+            addFriendBtn.innerHTML = '<i class="fa-solid fa-hourglass-end"></i> İstek Bekleniyor';
+            addFriendBtn.disabled = true;
+            addFriendBtn.style.opacity = '0.6';
+            addFriendBtn.style.cursor = 'default';
+            addFriendBtn.style.display = 'inline-block';
+            addFriendBtn.onclick = (e) => e.preventDefault();
+        }
+        // Normal "Arkadaş Olarak Ekle"
+        else {
+            addFriendBtn.innerHTML = '<i class="fa-solid fa-user-plus"></i> Arkadaş Olarak Ekle';
+            addFriendBtn.disabled = false;
+            addFriendBtn.style.opacity = '1';
+            addFriendBtn.style.cursor = 'pointer';
+            addFriendBtn.style.display = 'inline-block';
+            addFriendBtn.onclick = () => sendFriendRequest();
+        }
+    } catch (error) {
+        console.error("Buton güncelleme hatası:", error);
+    }
+}
+
+// Profil sayfasını ziyaret ettiğiniz arkadaşın profilinizi açarsanız
+// loadVisitorProfile fonksiyonunun içinde updateAddFriendButton'ı çağır
+
