@@ -1428,3 +1428,56 @@ document.addEventListener('DOMContentLoaded', () => {
         loadUserGallery();
     }
 });
+
+/**
+ * SosyalTrend - Dinamik Bileşen Yükleyici ve Menü Yönetimi
+ */
+
+// 1. Bileşenleri (Header/Footer) Yükleyen Fonksiyon
+async function loadComponent(elementId, filePath) {
+    try {
+        const response = await fetch(filePath);
+        if (!response.ok) throw new Error(`Dosya bulunamadı: ${filePath}`);
+        
+        const html = await response.text();
+        const element = document.getElementById(elementId);
+        
+        if (element) {
+            element.innerHTML = html;
+            console.log(`${elementId} başarıyla yüklendi.`);
+            
+            // Bileşen yüklendikten sonra i18n (dil) fonksiyonun varsa tetikleyebilirsin
+            // if (typeof updateContent === 'function') updateContent();
+        }
+    } catch (error) {
+        console.error("Bileşen yükleme hatası:", error);
+    }
+}
+
+// 2. Sayfa Yüklendiğinde Başlat
+document.addEventListener("DOMContentLoaded", () => {
+    // Parçaları yükle
+    loadComponent("header-placeholder", "partials/header.html");
+    loadComponent("footer-placeholder", "partials/footer.html");
+});
+
+// 3. Global Tıklama Dinleyicisi (Event Delegation)
+// Bu yöntem, elemanlar fetch ile sonradan gelse bile tıklamayı yakalar.
+document.addEventListener('click', (e) => {
+    const dropdownMenu = document.getElementById('dropdownMenu');
+    const profileTrigger = e.target.closest('#profileTrigger');
+
+    // Profil tetikleyiciye tıklandıysa
+    if (profileTrigger) {
+        if (dropdownMenu) {
+            dropdownMenu.classList.toggle('active');
+            e.stopPropagation(); // Tıklamanın dışarı sızmasını engelle
+        }
+    } 
+    // Menü açıkken dışarıya tıklandıysa kapat
+    else if (dropdownMenu && dropdownMenu.classList.contains('active')) {
+        if (!dropdownMenu.contains(e.target)) {
+            dropdownMenu.classList.remove('active');
+        }
+    }
+});
