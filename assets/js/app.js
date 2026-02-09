@@ -443,97 +443,115 @@ window.testAvatarUpload = async () => {
     }
 };
 
-/* Profil Resmini(avatarı) Değiştir */
+/* ==========================================
+   1. PROFİL RESMİ (AVATAR) DEĞİŞTİRME
+   ========================================== */
 window.handleFileSelect = async (input) => {
     const file = input.files[0];
-    if (!file) {
-        console.log("Dosya seçilmedi");
-        return;
-    }
+    if (!file) return;
 
-    console.log("Dosya seçildi:", file.name);
-
-    // Auth kontrolü
     if (!auth.currentUser) {
         alert("Lütfen giriş yapınız!");
         return;
     }
 
-    // Dosya boyutu kontrolü (1MB)
+    // 1MB Sınırı
     if (file.size > 1024 * 1024) {
         alert("Dosya 1MB'dan küçük olmalıdır!");
         input.value = "";
         return;
     }
 
-    try {
-        // Base64'e dönüştür
-        const reader = new FileReader();
-        reader.onload = async () => {
+    const reader = new FileReader();
+    reader.onload = async () => {
+        try {
+            const base64Data = reader.result;
+            const userRef = doc(db, "users", auth.currentUser.uid);
+            
+            // AVATAR GÜNCELLEME (Dizi operasyonu değildir, serverTimestamp kullanılabilir)
             try {
-                const base64Data = reader.result;
-                console.log("Base64 dönüştürme tamamlandı, uzunluk:", base64Data.length);
-                
-                const userRef = doc(db, "users", auth.currentUser.uid);
-                
-                // Önce try updateDoc
-                try {
-                    await updateDoc(userRef, {
+                await updateDoc(userRef, {
+                    avatarUrl: base64Data,
+                    avatarType: "local",
+                    avatarUpdatedAt: serverTimestamp() 
+                });
+            } catch (err) {
+                if (err.code === 'not-found') {
+                    await setDoc(userRef, {
                         avatarUrl: base64Data,
                         avatarType: "local",
-                        avatarUpdatedAt: serverTimestamp()
+                        avatarUpdatedAt: serverTimestamp(),
+                        displayName: auth.currentUser.displayName || "",
+                        email: auth.currentUser.email,
+                        username: user.username || "",
+                        friendRequests: [] // Boş dizi ile başlat
                     });
-                    console.log("UpdateDoc başarılı");
-                } catch (err) {
-                    // Document yoksa oluştur
-                    if (err.code === 'not-found') {
-                        console.log("Document yok, setDoc ile oluşturuluyor...");
-                        await setDoc(userRef, {
-                            avatarUrl: base64Data,
-                            avatarType: "local",
-                            avatarUpdatedAt: serverTimestamp(),
-                            displayName: user.displayName || "",
-                            email: auth.currentUser.email,
-                            username: user.username || ""
-                        });
-                        console.log("SetDoc başarılı");
-                    } else {
-                        throw err;
-                    }
+                } else {
+                    throw err;
                 }
-                
-                // Firestore başarılı, local state güncelle
-                user.avatarUrl = base64Data;
-                console.log("Local state güncellendi");
-                
-                // UI yenile
-                updateUIWithUser();
-                console.log("UI güncellendi");
-                
-                // Eski postları güncelle (background'da)
-                updateUserPostsAvatar(user.username, base64Data);
-                
-                alert("✅ Avatar başarıyla yüklendi!");
-                input.value = "";
-                
-            } catch (error) {
-                console.error("HATA:", error.code, error.message);
-                alert("❌ Hata: " + error.message);
-                input.value = "";
             }
-        };
-        
-        reader.onerror = (err) => {
-            console.error("FileReader hatası:", err);
-            alert("Dosya okunamadı!");
+            
+            // Yerel veriyi ve arayüzü güncelle
+            user.avatarUrl = base64Data;
+            updateUIWithUser();
+            
+            if (typeof updateUserPostsAvatar === "function") {
+                updateUserPostsAvatar(user.username, base64Data);
+            }
+            
+            alert("✅ Profil resminiz başarıyla güncellendi!");
             input.value = "";
-        };
+            
+        } catch (error) {
+            console.error("Avatar Hatası:", error);
+            alert("❌ Avatar güncellenemedi: " + error.message);
+        }
+    };
+    reader.readAsDataURL(file);
+};
+
+/* ==========================================
+   2. ARKADAŞ İSTEĞİ GÖNDERME
+   ========================================== */
+window.sendFriendRequest = async () => {
+    // URL'den hedef kullanıcıyı al
+    const params = new URLSearchParams(window.location.search);
+    const targetUid = params.get('id');
+
+    if (!targetUid || !auth.currentUser) return;
+    if (targetUid === auth.currentUser.uid) {
+        alert("Kendinize arkadaş isteği gönderemezsiniz!");
+        return;
+    }
+
+    try {
+        const targetUserRef = doc(db, "users", targetUid);
         
-        reader.readAsDataURL(file);
+        // DİZİ İÇİNDE ASLA serverTimestamp() KULLANILMAZ!
+        // Bu yüzden Date.now() kullanıyoruz.
+        await updateDoc(targetUserRef, {
+            friendRequests: arrayUnion({
+                fromUid: auth.currentUser.uid,
+                fromName: user.displayName || "SosyalTrend Kullanıcısı",
+                fromAvatar: user.avatarUrl || "",
+                timestamp: Date.now(), // Hatanın çözümü burası
+                status: "pending"
+            })
+        });
+
+        alert("✅ Arkadaşlık isteği gönderildi!");
         
+        // Butonu anında güncelle (UI tarafı)
+        const addFriendBtn = document.getElementById('addFriendBtn');
+        if (addFriendBtn) {
+            addFriendBtn.innerHTML = '<i class="fa-solid fa-hourglass-end"></i> İstek Gönderildi';
+            addFriendBtn.disabled = true;
+            addFriendBtn.style.opacity = '0.6';
+        }
+
     } catch (error) {
-        console.error("HATA:", error.message);
-        alert("Hata: " + error.message);
+        console.error("Arkadaş İsteği Hatası:", error);
+        alert("❌ Arkadaş isteği gönderilemedi: " + error.message);
     }
 };
 
@@ -2402,13 +2420,20 @@ function checkIfNoRequests() {
     }
 }
 
-// Bildirim dropdown'unu aç/kapat
-function toggleNotifications() {
+// Fonksiyonu window nesnesine bağlayarak HTML'den erişilebilir yapıyoruz
+window.toggleNotifications = function() {
     const dropdown = document.getElementById('notificationsDropdown');
     if (dropdown) {
-        dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
+        // Mevcut durumu kontrol et ve tersine çevir
+        if (dropdown.style.display === 'none' || dropdown.style.display === '') {
+            dropdown.style.display = 'block';
+        } else {
+            dropdown.style.display = 'none';
+        }
+    } else {
+        console.warn("notificationsDropdown öğesi bulunamadı!");
     }
-}
+};
 
 // Bildirim badge'ini güncelle
 function updateNotificationBadge(count) {
