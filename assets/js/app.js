@@ -44,6 +44,61 @@ const tarihteBugun = [
 
 // Bileşenleri dinamik olarak yükleme fonksiyonu    
 async function loadComponents() {
+    // Diğer header/footer yükleme kodların...
+    await loadSuggestions(); 
+}
+async function loadSuggestions() {
+    const suggestionsContainer = document.getElementById('dynamic-suggestions-list');
+    if (!suggestionsContainer) return;
+
+    try {
+        // Mevcut kullanıcının ID'sini al
+        const currentUid = auth.currentUser ? auth.currentUser.uid : null;
+
+        // Daha fazla kullanıcı çekip içinden eleme yapacağız (Daha iyi bir havuz için 20 kişi çektik)
+        const q = query(collection(db, "users"), limit(20));
+        const querySnapshot = await getDocs(q);
+        
+        let usersArray = [];
+        querySnapshot.forEach((doc) => {
+            // Sadece "ben olmayan" kullanıcıları diziye ekle
+            if (doc.id !== currentUid) {
+                usersArray.push({ id: doc.id, ...doc.data() });
+            }
+        });
+
+        // Diziyi rastgele karıştır (Her yenilemede farklı kişiler gelsin)
+        usersArray.sort(() => Math.random() - 0.5);
+
+        // Sadece ilk 5 kişiyi seç
+        const selectedUsers = usersArray.slice(0, 5);
+
+        suggestionsContainer.innerHTML = ''; // Temizle
+
+        if (selectedUsers.length === 0) {
+            suggestionsContainer.innerHTML = '<div style="font-size:0.7rem; color:var(--text-muted);">Önerilecek kullanıcı bulunamadı.</div>';
+            return;
+        }
+
+        selectedUsers.forEach((user) => {
+            const userHtml = `
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                    <div style="display: flex; align-items: center; gap: 10px; cursor: pointer;" onclick="window.location.href='.html?uid=${user.id}'">
+                        <img src="${user.avatar || 'assets/img/default-avatar.png'}" style="width: 38px; height: 38px; border-radius: 50%; border: 1.5px solid var(--primary); object-fit: cover;">
+                        <div style="max-width: 90px; overflow: hidden;">
+                            <div style="font-size: 0.8rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${user.displayName || 'İsimsiz'}</div>
+                            <div style="font-size: 0.7rem; color: var(--text-muted);">@${user.username || 'user'}</div>
+                        </div>
+                    </div>
+                    <button onclick="followUser('${user.id}')" style="background: var(--primary); color: white; border: none; padding: 6px 12px; border-radius: 15px; font-size: 0.7rem; font-weight: 700; cursor: pointer;">Takip Et</button>
+                </div>
+            `;
+            suggestionsContainer.insertAdjacentHTML('beforeend', userHtml);
+        });
+    } catch (error) {
+        console.error("Öneriler yüklenirken hata:", error);
+        suggestionsContainer.innerHTML = '<div style="font-size:0.7rem; color:red;">Kullanıcılar yüklenemedi.</div>';
+    }
 }
 
 // Sayfa yüklendiğinde çalıştır
@@ -574,10 +629,10 @@ window.performGlobalSearch = async (forcedQuery = null) => {
                 secUsers.style.display = "block";
                 usersContainer.innerHTML += `
                 <div class="glass-card page-card" style="margin-top:10px;">
-                    <img src="${getAvatarUrl(p.avatarSeed, 'user')}" class="page-icon" style="border-radius:50%; width: 50px; height: 50px; margin: 10px auto; display: block; cursor:pointer;" onclick="window.location.href='profile.html?u=${p.username}'">
+                    <img src="${getAvatarUrl(p.avatarSeed, 'user')}" class="page-icon" style="border-radius:50%; width: 50px; height: 50px; margin: 10px auto; display: block; cursor:pointer;" onclick="window.location.href='profil.html?u=${p.username}'">
                     <div style="font-weight:800; text-align:center;">${p.name || 'Kullanıcı'}</div>
                     <div style="font-size:0.7rem; color:var(--text-muted); margin-bottom:10px; text-align:center;">@${p.username}</div>
-                    <button class="btn-subscribe" onclick="window.location.href='profile.html?u=${p.username}'">Profiline Git</button>
+                    <button class="btn-subscribe" onclick="window.location.href='profil.html?u=${p.username}'">Profiline Git</button>
                 </div>`;
             }
         });
@@ -726,9 +781,9 @@ onSnapshot(query(collection(db, "posts"), orderBy("timestamp", "desc")), (snap) 
           
           const avatarUrl = getAvatarUrl(p.avatarSeed, isPage ? 'page' : 'user');
           const contentWithLinks = (p.content || "").replace(/(#[\wığüşöçİĞÜŞÖÇ]+)/g, '<span class="hashtag-link" onclick="searchTrend(\'$1\')">$1</span>');
-          // Profil linki: Kendi profili ise 'profile', başkasıysa 'profil.html?id=username'
-          const profileLink = isMine ? "javascript:navigateTo('profile')" : `profil.html?id=${encodeURIComponent(p.username)}`;
-          const targetNav = isMine ? 'profile' : (isPage ? 'pages' : 'feed');
+          // Profil linki: Kendi profili ise 'profil', başkasıysa 'profil.html?id=username'
+          const profileLink = isMine ? "javascript:navigateTo('profil')" : `profil.html?id=${encodeURIComponent(p.username)}`;
+          const targetNav = isMine ? 'profil' : (isPage ? 'pages' : 'feed');
           
          const postImageHtml = p.image ? `
     <div class="post-image-wrapper" style="
@@ -773,14 +828,14 @@ const postHtml = `
               ` : ''}
         </div>
         <div style="display:flex; gap:10px; margin-bottom:10px;">
-              <img src="${avatarUrl}" class="${isPage ? 'page-avatar' : 'user-avatar'}" style="cursor:pointer;" onclick="${isMine ? "navigateTo('profile')" : `location.href='profil.html?id=${encodeURIComponent(p.username)}'`}">
+              <img src="${avatarUrl}" class="${isPage ? 'page-avatar' : 'user-avatar'}" style="cursor:pointer;" onclick="${isMine ? "navigateTo('profil')" : `location.href='profil.html?id=${encodeURIComponent(p.username)}'`}">
               <div>
-                  <div style="font-weight:700; display:flex; align-items:center; gap:5px; cursor:pointer;" onclick="${isMine ? "navigateTo('profile')" : `location.href='profil.html?id=${encodeURIComponent(p.username)}'`}">
+                  <div style="font-weight:700; display:flex; align-items:center; gap:5px; cursor:pointer;" onclick="${isMine ? "navigateTo('profil')" : `location.href='profil.html?id=${encodeURIComponent(p.username)}'`}">
                       ${p.name} ${isPage ? '<i class="fa-solid fa-circle-check" style="color:var(--primary); font-size:0.7rem;"></i>' : ''}
                       <span class="post-time">• ${formatTime(p.timestamp)}</span>
                       ${p.isEdited ? `<span style="font-size: 0.6rem; color: var(--text-muted); font-weight: normal;">(düzenlendi)</span>` : ''}
                   </div>
-                  <div style="font-size:0.75rem; color:var(--text-muted); cursor:pointer;" onclick="${isMine ? "navigateTo('profile')" : `location.href='profil.html?id=${encodeURIComponent(p.username)}'`}">@${p.username}</div>
+                  <div style="font-size:0.75rem; color:var(--text-muted); cursor:pointer;" onclick="${isMine ? "navigateTo('profil')" : `location.href='profil.html?id=${encodeURIComponent(p.username)}'`}">@${p.username}</div>
               </div>
         </div>
         
@@ -799,9 +854,9 @@ const postHtml = `
                   ${(p.comments || []).map(c => `
                       <div class="comment-item" style="flex-direction: column; align-items: flex-start; gap: 5px;">
                           <div style="display: flex; align-items: center; width: 100%; gap: 10px;">
-                              <img src="${getAvatarUrl(c.avatarSeed, 'user')}" style="width: 24px; height: 24px; border-radius: 50%; cursor:pointer;" onclick="${c.username === user.username ? "navigateTo('profile')" : `location.href='profil.html?id=${encodeURIComponent(c.username)}'`}">
+                              <img src="${getAvatarUrl(c.avatarSeed, 'user')}" style="width: 24px; height: 24px; border-radius: 50%; cursor:pointer;" onclick="${c.username === user.username ? "navigateTo('profil')" : `location.href='profil.html?id=${encodeURIComponent(c.username)}'`}">
                               <div style="flex: 1;">
-                                  <span class="comment-meta" style="cursor:pointer;" onclick="${c.username === user.username ? "navigateTo('profile')" : `location.href='profil.html?id=${encodeURIComponent(c.username)}'`}">${c.displayName}</span> 
+                                  <span class="comment-meta" style="cursor:pointer;" onclick="${c.username === user.username ? "navigateTo('profil')" : `location.href='profil.html?id=${encodeURIComponent(c.username)}'`}">${c.displayName}</span> 
                                   <span style="font-size: 0.8rem;">${c.text}</span>
                                   ${c.isEdited ? `<small style="font-size: 0.65rem; color: var(--text-muted); margin-left: 4px;">(düzenlendi)</small>` : ''}
                               </div>
@@ -821,9 +876,9 @@ const postHtml = `
                           <div style="margin-left: 34px; width: calc(100% - 34px);">
                               ${(c.replies || []).map(r => `
                                   <div style="display: flex; align-items: center; gap: 8px; margin-top: 5px; background: rgba(0,0,0,0.03); padding: 5px; border-radius: 8px;">
-                                      <img src="${getAvatarUrl(r.avatarSeed, 'user')}" style="width: 18px; height: 18px; border-radius: 50%; cursor:pointer;" onclick="${r.username === user.username ? "navigateTo('profile')" : `location.href='profil.html?id=${encodeURIComponent(r.username)}'`}">
+                                      <img src="${getAvatarUrl(r.avatarSeed, 'user')}" style="width: 18px; height: 18px; border-radius: 50%; cursor:pointer;" onclick="${r.username === user.username ? "navigateTo('profil')" : `location.href='profil.html?id=${encodeURIComponent(r.username)}'`}">
                                       <div style="font-size: 0.75rem; flex: 1;">
-                                          <b style="color:var(--primary); cursor:pointer;" onclick="${r.username === user.username ? "navigateTo('profile')" : `location.href='profil.html?id=${encodeURIComponent(r.username)}'`}">${r.displayName}</b> ${r.text}
+                                          <b style="color:var(--primary); cursor:pointer;" onclick="${r.username === user.username ? "navigateTo('profil')" : `location.href='profil.html?id=${encodeURIComponent(r.username)}'`}">${r.displayName}</b> ${r.text}
                                           ${r.isEdited ? `<small style="font-size: 0.6rem; color: var(--text-muted); margin-left: 4px;">(düzenlendi)</small>` : ''}
                                       </div>
                                       <div style="display: flex; gap: 5px; align-items: center;">
@@ -1089,7 +1144,7 @@ window.navigateTo = function (page, userId = null) {
 
     page = page.toLowerCase();
 
-    if (page === 'profile' || page === 'profil') {
+    if (page === 'profil' || page === 'profil') {
         if (userId) {
             location.href = `profil.html?id=${encodeURIComponent(userId)}`;
         } else {

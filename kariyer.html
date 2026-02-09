@@ -8,6 +8,81 @@
   <link rel="stylesheet" href="assets/css/style.css">
   <link rel="icon" type="image/x-icon" href="assets/img/strendsaydamv2.ico">
 </head>
+<style>
+    /* Kariyer Sayfasına Özel Ek Stiller */
+    .job-card {
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      border: 1px solid transparent;
+    }
+    
+    .job-card:hover {
+      transform: translateY(-5px);
+      border-color: var(--primary);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+      background: rgba(255, 255, 255, 0.05); /* Cam etkisini artırır */
+    }
+
+    .job-icon {
+      width: 50px;
+      height: 50px;
+      background: rgba(var(--primary-rgb, 99, 102, 241), 0.1);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--primary);
+      font-size: 1.5rem;
+    }
+
+    .badge {
+      font-size: 0.7rem;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-weight: 600;
+      text-transform: uppercase;
+      background: rgba(var(--primary-rgb, 99, 102, 241), 0.15);
+      color: var(--primary);
+    }
+
+    .job-meta {
+      display: flex;
+      gap: 15px;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-top: 8px;
+    }
+
+    .job-meta span {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .apply-btn {
+      padding: 10px 24px;
+      border-radius: 12px;
+      background: var(--primary);
+      color: white;
+      border: none;
+      font-weight: bold;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+
+    .apply-btn:hover {
+      filter: brightness(1.1);
+      transform: scale(1.05);
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .animate-in {
+      animation: fadeIn 0.5s ease forwards;
+    }
+  </style>
 <body>
 
   <div class="top-bar">
@@ -22,7 +97,7 @@
 <div class="app-container">
   <aside>
     
-    <div class="glass-card sidebar-profile-card" onclick="navigateTo('profile')" style="
+    <div class="glass-card sidebar-profile-card" onclick="navigateTo('profil')" style="
     cursor: pointer;
     padding: 21px;
     text-align: center;
@@ -47,26 +122,76 @@
   </aside>
 
   <main id="main-content">
-  <div style="text-align: center; margin: 40px 0;">
-      <h2 style="font-size: 2rem; color: var(--text-main);">Ekibimize Katılın</h2>
-      <p style="color: var(--text-muted);">Sosyal medyanın geleceğini birlikte şekillendirelim.</p>
+    <div class="animate-in" style="
+    text-align: center;
+    display: flex;
+    background: var(--card-bg);
+    border-radius: 2rem;
+    margin: 32px 0;
+    justify-content: space-between;
+    padding: 17px 0px 17px 25px;">
+      <h2 style="font-size: 2.1rem; color: var(--text-main); margin-bottom: 10px; font-weight: 500;">Ekibimize Katılın</h2>
+      <p style="color: var(--text-muted); font-size: 1.1rem; max-width: 500px; margin: 0 auto;">SosyalTrend'in geleceğini seninle inşa edelim. <br>Tutkulu yetenekleri arıyoruz.</p>
     </div>
 
     <div class="job-listings" style="display: grid; gap: 20px;">
-      <div class="glass-card" style="padding: 25px; display: flex; justify-content: space-between; align-items: center;">
-        <div>
-          <h3 style="color: var(--primary); margin-bottom: 5px;">Senior React Developer</h3>
-          <span style="font-size: 0.85rem; color: var(--text-muted);"><i class="fa-solid fa-location-dot"></i> Uzaktan / Full-time</span>
+      
+      <div class="glass-card job-card animate-in" style="padding: 25px; display: flex; justify-content: space-between; align-items: center; animation-delay: 0.1s;">
+        <div style="display: flex; align-items: center; gap: 20px;">
+          <div class="job-icon">
+            <i class="fa-brands fa-react"></i>
+          </div>
+          <div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <h3 style="color: var(--text-main); margin: 0; font-size: 1.2rem;">Senior React Developer</h3>
+              <span class="badge">Yeni</span>
+            </div>
+            <div class="job-meta">
+              <span><i class="fa-solid fa-location-dot"></i> Uzaktan</span>
+              <span><i class="fa-solid fa-clock"></i> Tam Zamanlı</span>
+              <span><i class="fa-solid fa-layer-group"></i> Mühendislik</span>
+            </div>
+          </div>
         </div>
-        <button class="search-btn">Başvur</button> </div>
-
-      <div class="glass-card" style="padding: 25px; display: flex; justify-content: space-between; align-items: center;">
-        <div>
-          <h3 style="color: var(--primary); margin-bottom: 5px;">UI/UX Designer</h3>
-          <span style="font-size: 0.85rem; color: var(--text-muted);"><i class="fa-solid fa-location-dot"></i> İstanbul / Hibrit</span>
-        </div>
-        <button class="search-btn">Başvur</button>
+        <button class="apply-btn">Başvur</button>
       </div>
+
+      <div class="glass-card job-card animate-in" style="padding: 25px; display: flex; justify-content: space-between; align-items: center; animation-delay: 0.2s;">
+        <div style="display: flex; align-items: center; gap: 20px;">
+          <div class="job-icon" style="color: #ec4899; background: rgba(236, 72, 153, 0.1);">
+            <i class="fa-solid fa-palette"></i>
+          </div>
+          <div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <h3 style="color: var(--text-main); margin: 0; font-size: 1.2rem;">UI/UX Designer</h3>
+            </div>
+            <div class="job-meta">
+              <span><i class="fa-solid fa-location-dot"></i> İstanbul / Hibrit</span>
+              <span><i class="fa-solid fa-clock"></i> Tam Zamanlı</span>
+              <span><i class="fa-solid fa-wand-magic-sparkles"></i> Tasarım</span>
+            </div>
+          </div>
+        </div>
+        <button class="apply-btn">Başvur</button>
+      </div>
+
+      <div class="glass-card job-card animate-in" style="padding: 25px; display: flex; justify-content: space-between; align-items: center; animation-delay: 0.3s;">
+        <div style="display: flex; align-items: center; gap: 20px;">
+          <div class="job-icon" style="color: #10b981; background: rgba(16, 185, 129, 0.1);">
+            <i class="fa-solid fa-bullhorn"></i>
+          </div>
+          <div>
+            <h3 style="color: var(--text-main); margin: 0; font-size: 1.2rem;">Growth Manager</h3>
+            <div class="job-meta">
+              <span><i class="fa-solid fa-location-dot"></i> Uzaktan</span>
+              <span><i class="fa-solid fa-clock"></i> Kontratlı</span>
+              <span><i class="fa-solid fa-chart-line"></i> Pazarlama</span>
+            </div>
+          </div>
+        </div>
+        <button class="apply-btn">Başvur</button>
+      </div>
+
     </div>
   </main>
 

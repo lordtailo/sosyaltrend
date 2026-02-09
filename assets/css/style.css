@@ -103,7 +103,7 @@ body.dark-mode .theme-btn i{
     transition: background-color 0.2s, border-color 0.2s, color 0.1s; 
 }
 
-/* TOP BAR HEADER ÜSTÜ */
+/* TOP BAR - Sayfanın en üstünde çakılı */
 .top-bar {
     background: linear-gradient(90deg, #6366f1, #a855f7, #6366f1);
     backdrop-filter: blur(15px);
@@ -111,14 +111,18 @@ body.dark-mode .theme-btn i{
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 8px 10px;
+    padding: 0 5%;
     font-size: 0.7rem;
     font-weight: 600;
     color: #fff;
-    position: sticky;
+    position: fixed; /* Sticky yerine fixed */
     top: 0;
-    z-index: 2001;
-    }
+    left: 0;
+    right: 0;
+    height: 32px; /* Yükseklik sabitlendi */
+    z-index: 10000;
+    box-sizing: border-box;
+}
 
 .top-bar::after {
     content: ""; 
@@ -127,39 +131,35 @@ body.dark-mode .theme-btn i{
     left: 0; 
     right: 0; 
     height: 1px; 
-    color: #fff;
     background: var(--line-gradient);
 }
 
-    #topBarDateTime {
-        min-width: 220px; 
-        text-align: right;
-        display: flex;
-        justify-content: flex-end;
-        color: #fff;
-        align-items: center;
-        gap: 0px;
-    }
+#topBarDateTime {
+    min-width: 220px; 
+    text-align: right;
+    display: flex;
+    justify-content: flex-end;
+    color: #fff;
+    align-items: center;
+    gap: 5px;
+}
 
-    @media (max-width: 480px) {
-        #topBarDateTime { min-width: auto; color:#fff;}
-        #topBarDateTime span:first-child { display: none; color:#fff;} 
-    }
-
-/* BAŞLIK */
+/* BAŞLIK (HEADER) - Top Bar'ın hemen altında çakılı */
 header {
     background: var(--card-bg);
     backdrop-filter: blur(12px); 
-    gap:15px;
     height: 72px; 
+    width: 100%;
     display: grid; 
     grid-template-columns: 1.2fr 2fr 1.2fr;
     align-items: center; 
-    padding: 8px 5%; 
-    position: sticky; 
-    top: 25px; 
-    z-index: 9998;
+    padding: 0 5%; 
+    position: fixed; /* Sticky yerine fixed */
+    top: 32px; /* Top Bar yüksekliği kadar aşağıda */
+    left: 0;
+    z-index: 9999;
     border-bottom: 1px solid var(--border);
+    box-sizing: border-box;
 }
 
 header::after { 
@@ -172,15 +172,23 @@ header::after {
     background: var(--line-gradient); 
 }
 
-.header-left { 
-   display: flex; 
-   align-items: center; 
-   gap: 20px; 
+/* ANA İÇERİK - Header'ın altında kalmaması için boşluk verildi */
+.app-container { 
+    display: grid; 
+    grid-template-columns: 280px 1fr 320px; 
+    gap: 32px; 
+    /* Top Bar (32px) + Header (72px) + 32px ekstra boşluk = 136px */
+    padding: 136px 5% 32px 5%; 
+    max-width: 1600px; 
+    margin: auto; 
+    width: 100%; 
+    box-sizing: border-box;
+    min-height: 100vh;
 }
 
-.header-right { 
-display: flex; justify-content: flex-end; position: relative; align-items: center; gap: 14px;}
-
+/* --- DİĞER HEADER ÖĞELERİ --- */
+.header-left { display: flex; align-items: center; gap: 20px; }
+.header-right { display: flex; justify-content: flex-end; position: relative; align-items: center; gap: 14px;}
 .logo { 
     font-size: 1.5rem;
     background: linear-gradient(135deg, var(--primary), var(--primary-dark));
@@ -189,61 +197,53 @@ display: flex; justify-content: flex-end; position: relative; align-items: cente
     cursor: pointer;
     font-weight: 800;
 }
+.header-center { display: flex; justify-content: center; align-items: center; gap: 10px; }
 
-.header-center { 
-display: flex; justify-content: center; align-items: center; gap: 10px; }
-
-/* style.css içindeki mevcut .search-wrapper kısmını bununla değiştirin */
-.search-wrapper {
-    position: relative;
-    width: 100%;
-    max-width: 450px;
-    transition: all 0.3s ease;
-}
-
+.search-wrapper { position: relative; width: 100%; max-width: 450px; }
 .search-wrapper input {
     width: 100%;
     padding: 12px 15px 12px 45px;
-    border-radius: 25px; /* Daha oval bir görünüm */
-    border: 2px solid var(--border); /* Kenarlığı biraz kalınlaştırdık */
+    border-radius: 25px;
+    border: 2px solid var(--border);
     background: var(--input-bg);
     color: var(--text-main);
     outline: none;
-    transition: border-color 0.3s, box-shadow 0.3s;
 }
-
-.search-wrapper input:focus {
-    border-color: var(--primary);
-    box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1); /* Hafif parlama efekti */
-}
-
 .search-wrapper i {
     position: absolute;
     left: 18px;
     top: 50%;
     transform: translateY(-50%);
     color: var(--text-muted);
-    font-size: 1rem;
-    pointer-events: none; /* İkonun tıklamayı engellememesi için */
+    pointer-events: none;
 }
-/* ************************* */
 
-.profile-trigger { 
-width: 42px; height: 42px; cursor: pointer; border-radius: 50%; border: 2px solid var(--primary); overflow: hidden; }
-.profile-trigger img { 
-width: 100%; height: 100%; object-fit: cover; }
+.profile-trigger { width: 42px; height: 42px; cursor: pointer; border-radius: 50%; border: 2px solid var(--primary); overflow: hidden; }
+.profile-trigger img { width: 100%; height: 100%; object-fit: cover; }
 
 .dropdown-menu {
-position: absolute; top: 55px; right: 0; width: 220px; background: var(--card-bg);border-radius: var(--radius); border: 1px solid var(--border); box-shadow: var(--shadow);display: none; flex-direction: column; padding: 8px; z-index: 1001;}
+    position: absolute; top: 55px; right: 0; width: 220px; background: var(--card-bg);
+    border-radius: var(--radius); border: 1px solid var(--border); box-shadow: var(--shadow);
+    display: none; flex-direction: column; padding: 8px; z-index: 1001;
+}
 .dropdown-menu.active { display: flex; }
 
 .menu-style-btn { 
-display: flex; align-items: center; gap: 12px; padding: 12px; text-decoration: none; color: var(--text-main); font-size: 0.9rem;font-weight: 600; border-radius: 10px; border:none; background:none; cursor:pointer; width:100%; text-align:left; transition: 0.2s; }
+    display: flex; align-items: center; gap: 12px; padding: 12px; text-decoration: none; 
+    color: var(--text-main); font-size: 0.9rem; font-weight: 600; border-radius: 10px; 
+    border:none; background:none; cursor:pointer; width:100%; transition: 0.2s; 
+}
+.menu-style-btn:hover { background: var(--input-bg); color: var(--primary); }
 
-.menu-style-btn:hover { 
-background: var(--input-bg); color: var(--primary); }
-.menu-style-btn i { 
-width: 20px; font-size: 1.1rem; text-align: center; }
+/* MOBİL UYUMLULUK */
+@media (max-width: 480px) {
+    #topBarDateTime { min-width: auto; }
+    #topBarDateTime span:first-child { display: none; } 
+    .app-container { 
+        grid-template-columns: 1fr; 
+        padding-top: 120px; /* Mobilde biraz daha az boşluk */
+    }
+}
 
 .slider { 
     position: absolute; 
@@ -331,9 +331,6 @@ display: none; animation: fadeIn 0.3s ease; }
 
 @keyframes fadeIn { 
 from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-
-.app-container { 
-display: grid; grid-template-columns: 280px 1fr 320px; gap: 32px; padding: 32px 5%; max-width: 1600px; margin: auto; flex: 1; width: 100%; }
 
 /* GLASS CARD PREMIUM ENTEGRASYON */
 .glass-card { 
