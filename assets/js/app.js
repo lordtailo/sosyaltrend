@@ -90,20 +90,36 @@ async function loadSuggestions() {
         }
 
         selectedUsers.forEach((user) => {
-            const userHtml = `
-                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
-                    <div style="display: flex; align-items: center; gap: 10px; cursor: pointer;" onclick="window.location.href='.html?uid=${user.id}'">
-                        <img src="${user.avatar || 'assets/img/default-avatar.png'}" style="width: 38px; height: 38px; border-radius: 50%; border: 1.5px solid var(--primary); object-fit: cover;">
-                        <div style="max-width: 90px; overflow: hidden;">
-                            <div style="font-size: 0.8rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${user.displayName || 'İsimsiz'}</div>
-                            <div style="font-size: 0.7rem; color: var(--text-muted);">@${user.username || 'user'}</div>
-                        </div>
+    // 404 hatasını önlemek için: Resim yoksa isim baş harflerinden otomatik avatar oluşturur
+    const fallbackAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(user.displayName || 'User')}&background=random&color=fff`;
+    const userAvatar = user.avatar || fallbackAvatar;
+
+    const userHtml = `
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+            <div style="display: flex; align-items: center; gap: 10px; cursor: pointer;" 
+                 onclick="window.location.href='profil.html?uid=${user.id}'">
+                
+                <img src="${userAvatar}" 
+                     alt="${user.displayName || 'User'}"
+                     style="width: 38px; height: 38px; border-radius: 50%; border: 1.5px solid var(--primary); object-fit: cover;">
+                
+                <div style="max-width: 90px; overflow: hidden;">
+                    <div style="font-size: 0.8rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                        ${user.displayName || 'İsimsiz'}
                     </div>
-                    <button onclick="followUser('${user.id}')" style="background: var(--primary); color: white; border: none; padding: 6px 12px; border-radius: 15px; font-size: 0.7rem; font-weight: 700; cursor: pointer;">Takip Et</button>
+                    <div style="font-size: 0.7rem; color: var(--text-muted);">
+                        @${user.username || 'user'}
+                    </div>
                 </div>
-            `;
-            suggestionsContainer.insertAdjacentHTML('beforeend', userHtml);
-        });
+            </div>
+            <button onclick="followUser('${user.id}')" 
+                    style="background: var(--primary); color: white; border: none; padding: 6px 12px; border-radius: 15px; font-size: 0.7rem; font-weight: 700; cursor: pointer;">
+                Takip Et
+            </button>
+        </div>
+    `;
+    suggestionsContainer.insertAdjacentHTML('beforeend', userHtml);
+});
     } catch (error) {
         console.error("Öneriler yüklenirken hata:", error);
         suggestionsContainer.innerHTML = '<div style="font-size:0.7rem; color:red;">Kullanıcılar yüklenemedi.</div>';
@@ -1994,8 +2010,7 @@ document.addEventListener('click', (e) => {
 });
 
 // ====== ARKADAŞ SİSTEMİ ======
-
-// Arkadaş isteği gönder
+// Arkadaş isteği gönder - DÜZELTİLDİ
 async function sendFriendRequest() {
     if (!auth.currentUser) {
         alert('Lütfen giriş yapın');
@@ -2005,13 +2020,14 @@ async function sendFriendRequest() {
     const params = new URLSearchParams(location.search);
     const targetUsername = params.get('id') || localStorage.getItem('visiting_username');
     
-    if (!targetUsername || targetUsername === user.username) {
+    // user nesnesinin (giriş yapan kişi) mevcut olduğunu kontrol edelim
+    if (!targetUsername || (typeof user !== 'undefined' && targetUsername === user.username)) {
         alert('Kendine arkadaş isteği gönderemezsin');
         return;
     }
 
     try {
-        // Hedef kullanıcıyı email'den bul
+        // Hedef kullanıcıyı kullanıcı adına göre bul
         const targetQuery = await getDocs(query(collection(db, "users"), where("username", "==", targetUsername)));
         
         if (targetQuery.empty) {
@@ -2024,51 +2040,50 @@ async function sendFriendRequest() {
         const currentUserRef = doc(db, "users", auth.currentUser.uid);
         const targetUserRef = doc(db, "users", targetUid);
 
-        // Arkadaş isteği nesnesini oluştur
-        const friendRequest = {
+        // KRİTİK DÜZELTME: serverTimestamp() arrayUnion içinde çalışmaz. Date.now() kullanıyoruz.
+        const timestampNow = Date.now();
+
+        // 404 hatasını önlemek için güvenli avatar yolları
+        const myAvatar = user.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.displayName || 'U')}&background=random`;
+        const targetAvatar = targetUserData.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(targetUsername)}&background=random`;
+
+        // 1. Karşı tarafın "friendRequests" dizisine eklenecek veri
+        const friendRequestObj = {
             fromUid: auth.currentUser.uid,
-            fromUsername: user.username,
-            fromName: user.displayName,
-            fromAvatar: user.avatarUrl,
-            timestamp: serverTimestamp(),
+            fromUsername: user.username || 'user',
+            fromName: user.displayName || 'SosyalTrend Kullanıcısı',
+            fromAvatar: myAvatar,
+            timestamp: timestampNow,
             status: 'pending'
         };
 
-        // Hedef kullanıcının friendRequests'ine ekle
+        // Hedef kullanıcının friendRequests dizisine ekle
         await updateDoc(targetUserRef, {
-            friendRequests: arrayUnion(friendRequest)
+            friendRequests: arrayUnion(friendRequestObj)
         }).catch(async (err) => {
             if (err.code === 'not-found') {
-                await setDoc(targetUserRef, {
-                    friendRequests: [friendRequest]
-                }, { merge: true });
+                await setDoc(targetUserRef, { friendRequests: [friendRequestObj] }, { merge: true });
             }
         });
 
-        // Göndereni de izlemek için sentRequests'e ekle
+        // 2. Kendi "sentRequests" dizimize eklenecek veri
+        const sentRequestObj = {
+            toUid: targetUid,
+            toUsername: targetUsername,
+            toName: targetUserData.displayName || targetUsername,
+            toAvatar: targetAvatar,
+            timestamp: timestampNow
+        };
+
         await updateDoc(currentUserRef, {
-            sentRequests: arrayUnion({
-                toUid: targetUid,
-                toUsername: targetUsername,
-                toName: targetUserData.displayName || targetUsername,
-                toAvatar: targetUserData.avatarUrl || "assets/img/strendsaydamv2.png",
-                timestamp: serverTimestamp()
-            })
+            sentRequests: arrayUnion(sentRequestObj)
         }).catch(async (err) => {
             if (err.code === 'not-found') {
-                await setDoc(currentUserRef, {
-                    sentRequests: [{
-                        toUid: targetUid,
-                        toUsername: targetUsername,
-                        toName: targetUserData.displayName || targetUsername,
-                        toAvatar: targetUserData.avatarUrl || "assets/img/strendsaydamv2.png",
-                        timestamp: serverTimestamp()
-                    }]
-                }, { merge: true });
+                await setDoc(currentUserRef, { sentRequests: [sentRequestObj] }, { merge: true });
             }
         });
 
-        // Buton durumunu HEMEN güncelle - UX çok önemliydi
+        // UI Güncelleme - Kullanıcı Deneyimi (UX)
         const addFriendBtn = document.getElementById('addFriendBtn');
         if (addFriendBtn) {
             addFriendBtn.innerHTML = '<i class="fa-solid fa-hourglass-end"></i> İstek Gönderildi';
@@ -2076,9 +2091,7 @@ async function sendFriendRequest() {
             addFriendBtn.style.opacity = '0.6';
             addFriendBtn.style.cursor = 'default';
             addFriendBtn.onclick = (e) => e.preventDefault();
-            console.log("✅ Buton 'İstek Gönderildi' olarak değiştirildi");
-        } else {
-            console.log("❌ Arkadaş butonu HTML'de bulunamadı!");
+            console.log("✅ Buton durumu güncellendi");
         }
 
     } catch (error) {
@@ -2131,6 +2144,11 @@ async function acceptFriendRequest(requesterUid, requesterUsername) {
         alert('Onaylama başarısız: ' + error.message);
     }
 }
+
+
+// Fonksiyonun dışarıdan (HTML'den) erişilebilir olmasını sağlar
+window.acceptFriendRequest = acceptFriendRequest;
+window.rejectFriendRequest = rejectFriendRequest;
 
 // Arkadaş isteğini reddet
 async function rejectFriendRequest(requesterUid, requesterUsername) {
@@ -2298,6 +2316,9 @@ async function removeFriend(friendUid) {
         alert('İşlem başarısız: ' + error.message);
     }
 }
+
+// Fonksiyonu HTML'den (onclick) erişilebilir hale getirir
+window.removeFriend = removeFriend;
 
 // Arkadaş isteklerini yükle ve bildirim dropdown'unda göster
 async function loadFriendRequests(requests) {
@@ -2480,7 +2501,5 @@ async function updateAddFriendButton(targetUid) {
         console.error("Buton güncelleme hatası:", error);
     }
 }
-
 // Profil sayfasını ziyaret ettiğiniz arkadaşın profilinizi açarsanız
-// loadVisitorProfile fonksiyonunun içinde updateAddFriendButton'ı çağır
 

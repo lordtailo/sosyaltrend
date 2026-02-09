@@ -15,13 +15,15 @@
     <button id="themeToggleBtn" class="theme-btn" onclick="toggleDarkMode()" title="Tema Değiştir"><i class="fa-solid fa-moon"></i></button>
     
     <div style="position:relative;">
-      <button id="notificationsBtn" class="theme-btn" onclick="toggleNotifications()" title="Bildirimler" style="position:relative;">
-        <i class="fa-solid fa-bell"></i>
-        <span id="notificationBadge" style="display:none; position:absolute; top:-5px; right:-5px; background:#ef4444; color:white; border-radius:50%; width:20px; height:20px; font-size:0.7rem; font-weight:700; display:flex; align-items:center; justify-content:center;">0</span>
-      </button>
+      <button id="notificationsBtn" class="theme-btn" onclick="toggleNotifications()" title="Bildirimler" style="position:relative; display: flex; align-items: center; gap: 5px;">
+  <i class="fa-solid fa-bell"></i>
+  
+  <span id="requestCountBadge" style="font-size: 0.8rem; font-weight: 700; color: var(--text-main);">0</span>
+
+  <span id="notificationBadge" style="display:none; position:absolute; top:2px; right:2px; background:#ef4444; width:8px; height:8px; border-radius:50%; border: 2px solid var(--header-bg);"></span>
+</button>
       
-      <div id="notificationsDropdown" style="display:none; position:absolute; top:45px; right:0; background:var(--card-bg); border:1px solid var(--border); border-radius:12px; width:340px; max-height:450px; overflow:hidden; z-index:1000; box-shadow:0 10px 30px rgba(0,0,0,0.2); display:flex; flex-direction:column;">
-        <div style="padding:15px; border-bottom:1px solid var(--border); background:linear-gradient(135deg, var(--primary), #8b5cf6); color:white; border-radius:12px 12px 0 0; flex-shrink:0;">
+<div id="notificationsDropdown" style="display:none; position:absolute; top:45px; right:0; background:var(--card-bg); border:1px solid var(--border); border-radius:12px; width:340px; max-height:450px; overflow:hidden; z-index:1000; box-shadow:0 10px 30px rgba(0,0,0,0.2); flex-direction:column;">        <div style="padding:15px; border-bottom:1px solid var(--border); background:linear-gradient(135deg, var(--primary), #8b5cf6); color:white; border-radius:12px 12px 0 0; flex-shrink:0;">
           <h4 style="margin:0; font-size:0.95rem; font-weight:700; display:flex; align-items:center; gap:8px;">
             <i class="fa-solid fa-bell"></i>
             Arkadaş İstekleri
