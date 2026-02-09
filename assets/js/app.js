@@ -39,7 +39,7 @@ const tarihteBugun = [
     { ay: 4, gun: 29, baslik: "Tarihte Bugün", mesaj: "1953: Türkiye'nin ilk yerli uçağı 'Nu.D.38' Ankara'dan İstanbul'a uçtu. ✈️" },
     { ay: 8, gun: 9, baslik: "Tarihte Bugün", mesaj: "1928: Harf Devrimi'nin ilk adımı atıldı; yeni Türk alfabesi tanıtıldı. ✍️" },
     { ay: 11, gun: 5, baslik: "Tarihte Bugün", mesaj: "1934: Türk kadınına seçme ve seçilme hakkı tanındı! 🗳️" },
-    { ay: 1, gun: 3, baslik: "Tarihte Bugün", mesaj: "deneme 🗳️" }
+    { ay: 1, gun: 11, baslik: "Tarihte Bugün", mesaj: "deneme 🗳️" }
 ];
 
 // Bileşenleri dinamik olarak yükleme fonksiyonu    
@@ -1384,7 +1384,7 @@ async function kontrolEtVeOtomatikPostAt() {
 async function otomatikPostPaylas(baslik, icerik) {
     try {
         await addDoc(collection(db, "posts"), {
-            author: "SosyalTrend Bot",
+            author: "Sistem Mesajı",
             authorEmail: "officialfthuzun@gmail.com",
             authorImage: "assets/img/strendsaydamv2.ico", // Bot ikonu
             content: `${baslik}\n\n${icerik}`,
