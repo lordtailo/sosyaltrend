@@ -70,6 +70,9 @@ document.addEventListener('DOMContentLoaded', loadComponents);
 
 const ADMIN_EMAIL = "officialfthuzun@gmail.com";
 
+// Avatar sistemini otomatik olarak strendsaydamv2'ye initialize et
+localStorage.setItem('st_avatar', 'strendsaydamv2');
+
 onAuthStateChanged(auth, (fbUser) => {
     if (!fbUser) 
         { window.location.href = 'login.html'; kontrolEtVeOtomatikPostAt(); } else {
@@ -77,15 +80,17 @@ onAuthStateChanged(auth, (fbUser) => {
         user.username = fbUser.email.split('@')[0];
         user.displayName = localStorage.getItem('st_displayName') || fbUser.displayName || user.username;
         
-        // Avatar kalıcılığı - default strendsaydamv2.png
-        const savedAvatar = localStorage.getItem('st_avatar');
-        user.avatarSeed = savedAvatar || "strendsaydamv2"; 
+        // Avatar: Tüm kullanıcılar strendsaydamv2 kullan
+        user.avatarSeed = "strendsaydamv2";
 
         // Admin Kontrolü
         user.isAdmin = fbUser.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
         
         // UI Güncelleme (Profil resmi, isimler vb.)
-        updateUIWithUser(); 
+        updateUIWithUser();
+        
+        // Eski postların avatarlarını güncelle
+        migrateOldAvatars();
 
         // ADMIN ÖZEL İŞLEMLERİ
         const adminBtn = document.getElementById('adminMenuBtn');
@@ -103,7 +108,33 @@ onAuthStateChanged(auth, (fbUser) => {
             }
         }
     }
+    
+    // Profil sayfasında ziyaretçi profilini kontrol et
+    loadVisitorProfile();
 });
+
+// Eski postların avatarlarını strendsaydamv2 ile güncellemek
+async function migrateOldAvatars() {
+    // Bir defa çalış
+    if (localStorage.getItem('avatarsMigrated')) return;
+    
+    try {
+        const postsSnap = await getDocs(collection(db, "posts"));
+        
+        postsSnap.forEach(async (postDoc) => {
+            const post = postDoc.data();
+            // Eğer avatarSeed "strendsaydamv2" değilse güncelle
+            if (post.avatarSeed && post.avatarSeed !== "strendsaydamv2") {
+                await updateDoc(postDoc.ref, { avatarSeed: "strendsaydamv2" });
+            }
+        });
+        
+        localStorage.setItem('avatarsMigrated', 'true');
+        console.log("Avatar migration tamamlandı");
+    } catch (err) {
+        console.error("Avatar migration hatası:", err);
+    }
+}
 
 async function updateAdminStats() {
     if(!user.isAdmin) return;
@@ -127,37 +158,17 @@ let tempAvatarBuffer = null;
                     tempAvatarBuffer = null;
     };
 
-/* Profil Resmini(avatarı) Değiştir */
+/* Profil Resmini(avatarı) Değiştir - DISABLED: Avatar her zaman strendsaydamv2.png */
 window.handleFileSelect = (input) => {
-    const file = input.files[0];
-    if (file) {
-        if (file.size > 2 * 1024 * 1024) { alert("Dosya boyutu çok büyük! Maksimum 2MB yükleyebilirsiniz.");return;}
-            const reader = new FileReader();
-                reader.onload = (e) => {
-                    tempAvatarBuffer = e.target.result;
-                        document.getElementById('profilePageAvatar').src = e.target.result;
-                        document.getElementById('newAvatarUrlInput').value = ""; // URL alanını temizle
-                };
-                reader.readAsDataURL(file);
-    }
+    // Avatar değişimi devre dışı
 };
 
 window.handleUrlInput = (input) => {
-    const url = input.value.trim();
-        if(url.startsWith('http')) {
-            document.getElementById('profilePageAvatar').src = url;
-                tempAvatarBuffer = null; // Dosya secilmisse iptal et
-        }
+    // Avatar değişimi devre dışı
 };
 
   window.promptDiceBear = () => {
-    const seed = prompt("Avatarınız için bir anahtar kelime yazın (Örn: Felix, Oscar, Gizem):");
-    if(seed) {
-        const newUrl = `https://api.dicebear.com/7.x/avataaars/svg?seed=${seed}`;
-        document.getElementById('newAvatarUrlInput').value = "";
-        document.getElementById('profilePageAvatar').src = newUrl;
-        tempAvatarBuffer = newUrl; // Dicebear linkini buffer'a al
-    }
+    // Avatar değişimi devre dışı
   };
 
   window.saveProfileChanges = async () => {
@@ -170,17 +181,9 @@ window.handleUrlInput = (input) => {
         await updateProfile(auth.currentUser, { displayName: name }).catch(e => console.error(e));
     }
     
-    // Oncelik: Yuklenen Dosya/DiceBear > URL Input > Default
-    if(tempAvatarBuffer) {
-        user.avatarSeed = tempAvatarBuffer;
-        localStorage.setItem('st_avatar', tempAvatarBuffer);
-    } else if(urlInput) {
-        user.avatarSeed = urlInput;
-        localStorage.setItem('st_avatar', urlInput);
-    } else {
-        user.avatarSeed = "strendsaydamv2";
-        localStorage.setItem('st_avatar', "strendsaydamv2");
-    }
+    // Avatar her zaman strendsaydamv2 olacak
+    user.avatarSeed = "strendsaydamv2";
+    localStorage.setItem('st_avatar', "strendsaydamv2");
 
     finishUpdate();
   };
@@ -381,16 +384,14 @@ window.clearImagePreview = () => {
   applyTranslations();
 
 function getAvatarUrl(seed, type = 'user') {
-    // Admin ikon kontrolü
+    // Admin ikon kontrolü - SADECE admin-shield için özel işlem
     if (seed === 'admin-shield') return "https://api.dicebear.com/7.x/bottts/svg?seed=Admin";
-    // Eğer zaten bir resim verisi (http veya base64) ise direkt onu dön
-    if (seed && (seed.startsWith('http') || seed.startsWith('data:image'))) return seed;
-    // Tüm kullanıcılar için: assets/img/strendsaydamv2.png kullan
+    // Tüm diğer kullanıcılar: assets/img/strendsaydamv2.png
     return "assets/img/strendsaydamv2.png";
 }
 
   function updateUIWithUser() {
-    const avatarUrl = getAvatarUrl(user.avatarSeed, 'user');
+    const avatarUrl = getAvatarUrl("strendsaydamv2", 'user');
     
     // --- ELEMENT TANIMLAMALARI ---
     const welcomeEl = document.getElementById('welcomeMessage'); // Karşılama metni
@@ -725,6 +726,8 @@ onSnapshot(query(collection(db, "posts"), orderBy("timestamp", "desc")), (snap) 
           
           const avatarUrl = getAvatarUrl(p.avatarSeed, isPage ? 'page' : 'user');
           const contentWithLinks = (p.content || "").replace(/(#[\wığüşöçİĞÜŞÖÇ]+)/g, '<span class="hashtag-link" onclick="searchTrend(\'$1\')">$1</span>');
+          // Profil linki: Kendi profili ise 'profile', başkasıysa 'profil.html?id=username'
+          const profileLink = isMine ? "javascript:navigateTo('profile')" : `profil.html?id=${encodeURIComponent(p.username)}`;
           const targetNav = isMine ? 'profile' : (isPage ? 'pages' : 'feed');
           
          const postImageHtml = p.image ? `
@@ -770,14 +773,14 @@ const postHtml = `
               ` : ''}
         </div>
         <div style="display:flex; gap:10px; margin-bottom:10px;">
-              <img src="${avatarUrl}" class="${isPage ? 'page-avatar' : 'user-avatar'}" style="cursor:pointer;" onclick="navigateTo('${targetNav}')">
+              <img src="${avatarUrl}" class="${isPage ? 'page-avatar' : 'user-avatar'}" style="cursor:pointer;" onclick="${isMine ? "navigateTo('profile')" : `location.href='profil.html?id=${encodeURIComponent(p.username)}'`}">
               <div>
-                  <div style="font-weight:700; display:flex; align-items:center; gap:5px; cursor:pointer;" onclick="navigateTo('${targetNav}')">
+                  <div style="font-weight:700; display:flex; align-items:center; gap:5px; cursor:pointer;" onclick="${isMine ? "navigateTo('profile')" : `location.href='profil.html?id=${encodeURIComponent(p.username)}'`}">
                       ${p.name} ${isPage ? '<i class="fa-solid fa-circle-check" style="color:var(--primary); font-size:0.7rem;"></i>' : ''}
                       <span class="post-time">• ${formatTime(p.timestamp)}</span>
                       ${p.isEdited ? `<span style="font-size: 0.6rem; color: var(--text-muted); font-weight: normal;">(düzenlendi)</span>` : ''}
                   </div>
-                  <div style="font-size:0.75rem; color:var(--text-muted); cursor:pointer;" onclick="navigateTo('${targetNav}')">@${p.username}</div>
+                  <div style="font-size:0.75rem; color:var(--text-muted); cursor:pointer;" onclick="${isMine ? "navigateTo('profile')" : `location.href='profil.html?id=${encodeURIComponent(p.username)}'`}">@${p.username}</div>
               </div>
         </div>
         
@@ -796,9 +799,9 @@ const postHtml = `
                   ${(p.comments || []).map(c => `
                       <div class="comment-item" style="flex-direction: column; align-items: flex-start; gap: 5px;">
                           <div style="display: flex; align-items: center; width: 100%; gap: 10px;">
-                              <img src="${getAvatarUrl(c.avatarSeed, 'user')}" style="width: 24px; height: 24px; border-radius: 50%; cursor:pointer;" onclick="navigateTo('${c.username === user.username ? 'profile' : 'feed'}')">
+                              <img src="${getAvatarUrl(c.avatarSeed, 'user')}" style="width: 24px; height: 24px; border-radius: 50%; cursor:pointer;" onclick="${c.username === user.username ? "navigateTo('profile')" : `location.href='profil.html?id=${encodeURIComponent(c.username)}'`}">
                               <div style="flex: 1;">
-                                  <span class="comment-meta" style="cursor:pointer;" onclick="navigateTo('${c.username === user.username ? 'profile' : 'feed'}')">${c.displayName}</span> 
+                                  <span class="comment-meta" style="cursor:pointer;" onclick="${c.username === user.username ? "navigateTo('profile')" : `location.href='profil.html?id=${encodeURIComponent(c.username)}'`}">${c.displayName}</span> 
                                   <span style="font-size: 0.8rem;">${c.text}</span>
                                   ${c.isEdited ? `<small style="font-size: 0.65rem; color: var(--text-muted); margin-left: 4px;">(düzenlendi)</small>` : ''}
                               </div>
@@ -818,9 +821,9 @@ const postHtml = `
                           <div style="margin-left: 34px; width: calc(100% - 34px);">
                               ${(c.replies || []).map(r => `
                                   <div style="display: flex; align-items: center; gap: 8px; margin-top: 5px; background: rgba(0,0,0,0.03); padding: 5px; border-radius: 8px;">
-                                      <img src="${getAvatarUrl(r.avatarSeed, 'user')}" style="width: 18px; height: 18px; border-radius: 50%; cursor:pointer;" onclick="navigateTo('${r.username === user.username ? 'profile' : 'feed'}')">
+                                      <img src="${getAvatarUrl(r.avatarSeed, 'user')}" style="width: 18px; height: 18px; border-radius: 50%; cursor:pointer;" onclick="${r.username === user.username ? "navigateTo('profile')" : `location.href='profil.html?id=${encodeURIComponent(r.username)}'`}">
                                       <div style="font-size: 0.75rem; flex: 1;">
-                                          <b style="color:var(--primary); cursor:pointer;" onclick="navigateTo('${r.username === user.username ? 'profile' : 'feed'}')">${r.displayName}</b> ${r.text}
+                                          <b style="color:var(--primary); cursor:pointer;" onclick="${r.username === user.username ? "navigateTo('profile')" : `location.href='profil.html?id=${encodeURIComponent(r.username)}'`}">${r.displayName}</b> ${r.text}
                                           ${r.isEdited ? `<small style="font-size: 0.6rem; color: var(--text-muted); margin-left: 4px;">(düzenlendi)</small>` : ''}
                                       </div>
                                       <div style="display: flex; gap: 5px; align-items: center;">
@@ -866,7 +869,7 @@ const postHtml = `
       await addDoc(collection(db, "posts"), { 
           name: user.displayName, 
           username: user.username, 
-          avatarSeed: user.avatarSeed, 
+          avatarSeed: "strendsaydamv2", 
           content: val, 
           // RESİM VERİSİNİ BURAYA EKLEDİK:
           image: selectedImageBase64 || null, 
@@ -956,6 +959,129 @@ document.addEventListener('DOMContentLoaded', () => {
     if (overlay) overlay.onclick = closeAll;
 });
 /* ============================   */
+
+// Ziyaretçi Profili Göster
+async function loadVisitorProfile() {
+    const params = new URLSearchParams(location.search);
+    const visitedUsername = params.get('id');
+    
+    // Ziyaretçi modu değilse çık (kendi profili)
+    if (!visitedUsername || visitedUsername === user.username) return;
+    
+    // Ziyaretçi modu etkinleştir
+    console.log(`${visitedUsername} profilini ziyaret ediyorsunuz...`);
+    
+    // Profil düzenle butonunu gizle
+    const editBtn = document.querySelector('[onclick*="toggleEditProfile"]');
+    if (editBtn) editBtn.style.display = 'none';
+    
+    // Profil düzenle formunu gizle
+    const editSection = document.getElementById('editProfileSection');
+    if (editSection) editSection.style.display = 'none';
+    
+    // Beğendiklerim ve Kaydedilenler sekmelerini gizle
+    const tabButtons = document.querySelectorAll('.tab-btn');
+    tabButtons.forEach((btn, idx) => {
+        if (idx === 1 || idx === 2) { // 1 = Beğendiklerim, 2 = Kaydedilenler
+            btn.style.display = 'none';
+        }
+    });
+    
+    // Ilgili tab içeriklerini gizle
+    const likedTab = document.getElementById('my-likes-tab');
+    const savesTab = document.getElementById('my-saves-tab');
+    if (likedTab) likedTab.style.display = 'none';
+    if (savesTab) savesTab.style.display = 'none';
+    
+    try {
+        // Firestore'dan başka kullanıcının postlarını çek
+        const q = query(collection(db, "posts"), orderBy("timestamp", "desc"));
+        const snap = await getDocs(q);
+        
+        let visitorDisplayName = visitedUsername;
+        let visitorAvatar = null;
+        let visitorPosts = [];
+        
+        snap.forEach(doc => {
+            const p = doc.data();
+            if (p.username === visitedUsername) {
+                visitorPosts.push({ id: doc.id, ...p });
+                if (visitorDisplayName === visitedUsername) {
+                    visitorDisplayName = p.name || visitedUsername;
+                    visitorAvatar = getAvatarUrl(p.avatarSeed, 'user');
+                }
+            }
+        });
+        
+        // Profil başlığını güncelle
+        const profileName = document.getElementById('profilePageName');
+        if (profileName) profileName.innerText = visitorDisplayName;
+        
+        const profileHandle = document.getElementById('profilePageHandle');
+        if (profileHandle) profileHandle.innerText = `@${visitedUsername}`;
+        
+        const profileAvatar = document.getElementById('profilePageAvatar');
+        if (profileAvatar) {
+            profileAvatar.src = visitorAvatar || getAvatarUrl("strendsaydamv2", 'user');
+        }
+        
+        // Ziyaretçinin postlarını göster
+        const myPostsList = document.getElementById('my-posts-list');
+        if (myPostsList) {
+            myPostsList.innerHTML = "";
+            if (visitorPosts.length === 0) {
+                myPostsList.innerHTML = `<div style="text-align:center; padding:40px; color:var(--text-muted);">
+                    <i class="fa-regular fa-newspaper" style="font-size:3rem; margin-bottom:15px;"></i>
+                    <p>${visitorDisplayName} henüz gönderi paylaşmamış.</p>
+                </div>`;
+            } else {
+                visitorPosts.forEach(post => {
+                    const avatarUrl = getAvatarUrl(post.avatarSeed, 'user');
+                    const contentWithLinks = (post.content || "").replace(/(#[\wığüşöçİĞÜŞÖÇ]+)/g, '<span class="hashtag-link" onclick="searchTrend(\'$1\')">$1</span>');
+                    
+                    const postImageHtml = post.image ? `
+                        <div class="post-image-wrapper" style="margin: 12px auto; border-radius: 12px; overflow: hidden; background: rgb(0, 0, 0); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; max-height: 103%; max-width: 50%; height: auto; width: 100%;">
+                            <img src="${post.image}" loading="lazy" style="width: 100%; height: 100%; object-fit: cover; cursor: zoom-in;" onclick="toggleImageExpand(this)" alt="Post görseli">
+                        </div>
+                    ` : "";
+                    
+                    const isLiked = post.likes?.includes(user.username);
+                    
+                    const postHtml = `
+                        <div class="glass-card post" style="position: relative;">
+                            <div style="display:flex; gap:10px; margin-bottom:10px;">
+                                <img src="${avatarUrl}" class="user-avatar" style="cursor:pointer;" onclick="location.href='profil.html?id=${encodeURIComponent(post.username)}'">
+                                <div>
+                                    <div style="font-weight:700; display:flex; align-items:center; gap:5px; cursor:pointer;" onclick="location.href='profil.html?id=${encodeURIComponent(post.username)}'">
+                                        ${post.name}
+                                        <span class="post-time">• ${formatTime(post.timestamp)}</span>
+                                    </div>
+                                    <div style="font-size:0.75rem; color:var(--text-muted); cursor:pointer;" onclick="location.href='profil.html?id=${encodeURIComponent(post.username)}'">@${post.username}</div>
+                                </div>
+                            </div>
+                            
+                            <p style="white-space: pre-wrap; margin-bottom:10px;">${contentWithLinks}</p>
+                            ${postImageHtml}
+                            
+                            <div style="display:flex; gap:12px;">
+                                <button class="tool-btn" onclick="likePost('${post.id}', ${isLiked})" style="gap:5px; color:${isLiked ? '#ef4444' : ''}">
+                                    <i class="${isLiked ? 'fa-solid' : 'fa-regular'} fa-heart"></i><span>${post.likes?.length || 0}</span>
+                                </button>
+                                <button class="tool-btn" style="gap:5px;"><i class="fa-regular fa-comment"></i><span>${post.comments?.length || 0}</span></button>
+                            </div>
+                        </div>
+                    `;
+                    
+                    myPostsList.innerHTML += postHtml;
+                });
+            }
+        }
+        
+        console.log(`${visitorDisplayName} (${visitedUsername}) profilinin ${visitorPosts.length} gönderi gösteriliyor`);
+    } catch (err) {
+        console.error("Ziyaretçi profili yüklenirken hata:", err);
+    }
+}
 
 // PROFİL YÖNLENDİRME
 window.navigateTo = function (page, userId = null) {
