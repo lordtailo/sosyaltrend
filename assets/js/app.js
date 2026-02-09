@@ -443,19 +443,11 @@ window.testAvatarUpload = async () => {
     }
 };
 
-/* ==========================================
-   1. PROFİL RESMİ (AVATAR) DEĞİŞTİRME
-   ========================================== */
+/* Profil Resmini Değiştir */
 window.handleFileSelect = async (input) => {
     const file = input.files[0];
-    if (!file) return;
+    if (!file || !auth.currentUser) return;
 
-    if (!auth.currentUser) {
-        alert("Lütfen giriş yapınız!");
-        return;
-    }
-
-    // 1MB Sınırı
     if (file.size > 1024 * 1024) {
         alert("Dosya 1MB'dan küçük olmalıdır!");
         input.value = "";
@@ -468,80 +460,48 @@ window.handleFileSelect = async (input) => {
             const base64Data = reader.result;
             const userRef = doc(db, "users", auth.currentUser.uid);
             
-            // AVATAR GÜNCELLEME (Dizi operasyonu değildir, serverTimestamp kullanılabilir)
-            try {
-                await updateDoc(userRef, {
-                    avatarUrl: base64Data,
-                    avatarType: "local",
-                    avatarUpdatedAt: serverTimestamp() 
-                });
-            } catch (err) {
-                if (err.code === 'not-found') {
-                    await setDoc(userRef, {
-                        avatarUrl: base64Data,
-                        avatarType: "local",
-                        avatarUpdatedAt: serverTimestamp(),
-                        displayName: auth.currentUser.displayName || "",
-                        email: auth.currentUser.email,
-                        username: user.username || "",
-                        friendRequests: [] // Boş dizi ile başlat
-                    });
-                } else {
-                    throw err;
-                }
-            }
+            // Dizi olmadığı için burada serverTimestamp() kullanmak güvenlidir.
+            await updateDoc(userRef, {
+                avatarUrl: base64Data,
+                avatarType: "local",
+                avatarUpdatedAt: serverTimestamp() 
+            });
             
-            // Yerel veriyi ve arayüzü güncelle
             user.avatarUrl = base64Data;
             updateUIWithUser();
-            
-            if (typeof updateUserPostsAvatar === "function") {
-                updateUserPostsAvatar(user.username, base64Data);
-            }
-            
-            alert("✅ Profil resminiz başarıyla güncellendi!");
+            alert("✅ Profil resminiz güncellendi!");
             input.value = "";
-            
         } catch (error) {
-            console.error("Avatar Hatası:", error);
-            alert("❌ Avatar güncellenemedi: " + error.message);
+            console.error("Avatar hatası:", error);
+            alert("❌ Hata: " + error.message);
         }
     };
     reader.readAsDataURL(file);
 };
 
-/* ==========================================
-   2. ARKADAŞ İSTEĞİ GÖNDERME
-   ========================================== */
 window.sendFriendRequest = async () => {
-    // URL'den hedef kullanıcıyı al
     const params = new URLSearchParams(window.location.search);
     const targetUid = params.get('id');
 
     if (!targetUid || !auth.currentUser) return;
-    if (targetUid === auth.currentUser.uid) {
-        alert("Kendinize arkadaş isteği gönderemezsiniz!");
-        return;
-    }
 
     try {
         const targetUserRef = doc(db, "users", targetUid);
         
-        // DİZİ İÇİNDE ASLA serverTimestamp() KULLANILMAZ!
-        // Bu yüzden Date.now() kullanıyoruz.
+        // ÖNEMLİ: serverTimestamp() burada hata verir, Date.now() kullanmalıyız.
         await updateDoc(targetUserRef, {
             friendRequests: arrayUnion({
                 fromUid: auth.currentUser.uid,
                 fromName: user.displayName || "SosyalTrend Kullanıcısı",
                 fromAvatar: user.avatarUrl || "",
-                timestamp: Date.now(), // Hatanın çözümü burası
+                timestamp: Date.now(), // Hatanın çözümü burasıdır
                 status: "pending"
             })
         });
 
-        alert("✅ Arkadaşlık isteği gönderildi!");
+        alert("✅ Arkadaşlık isteği başarıyla gönderildi!");
         
-        // Butonu anında güncelle (UI tarafı)
+        // Butonun durumunu hemen güncelle
         const addFriendBtn = document.getElementById('addFriendBtn');
         if (addFriendBtn) {
             addFriendBtn.innerHTML = '<i class="fa-solid fa-hourglass-end"></i> İstek Gönderildi';
@@ -551,7 +511,7 @@ window.sendFriendRequest = async () => {
 
     } catch (error) {
         console.error("Arkadaş İsteği Hatası:", error);
-        alert("❌ Arkadaş isteği gönderilemedi: " + error.message);
+        alert("❌ İstek gönderilemedi: " + error.message);
     }
 };
 
