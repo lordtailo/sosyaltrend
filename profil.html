@@ -8,6 +8,82 @@
   <link rel="stylesheet" href="assets/css/style.css">
   <link rel="icon" type="image/x-icon" href="assets/img/strendsaydamv2.ico">
   <style>
+    /* Galeri ve Albüm Entegre Stilleri - Responsive Güncelleme */
+    .album-container {
+        margin-bottom: 25px;
+        padding: 15px;
+        background: rgba(var(--primary-rgb, 99, 102, 241), 0.05);
+        border-radius: 18px;
+        border: 1px solid var(--border);
+    }
+    .album-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+        padding: 0 5px;
+    }
+    .album-title {
+        font-weight: 800;
+        font-size: 1rem;
+        color: var(--primary);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .gallery-grid {
+        display: grid;
+        /* Mobil öncelikli: varsayılan 3 sütun, masaüstünde otomatik sığdırma */
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+        min-height: 50px;
+    }
+    
+    @media (min-width: 768px) {
+        .gallery-grid {
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 15px;
+        }
+    }
+
+    .gallery-item {
+        position: relative;
+        aspect-ratio: 1 / 1;
+        border-radius: 12px;
+        overflow: hidden;
+        background: var(--input-bg);
+        border: 1px solid var(--border);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        cursor: pointer;
+    }
+    .gallery-item:hover {
+        transform: translateY(-5px) scale(1.02);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.15);
+        border-color: var(--primary);
+    }
+    .gallery-item img { width: 100%; height: 100%; object-fit: cover; }
+    
+    .delete-overlay {
+        position: absolute;
+        top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0, 0, 0, 0.4);
+        display: flex; align-items: center; justify-content: center;
+        opacity: 0; transition: opacity 0.2s ease;
+        z-index: 10;
+    }
+    /* Mobilde silme butonunun görünürlüğü için dokunma desteği */
+    @media (hover: none) {
+        .delete-overlay { opacity: 1; background: transparent; pointer-events: none; }
+        .delete-btn { pointer-events: auto; transform: scale(0.8); position: absolute; top: 5px; right: 5px; }
+    }
+    .gallery-item:hover .delete-overlay { opacity: 1; }
+    .delete-btn {
+        background: #ef4444; color: white; border: none;
+        width: 32px; height: 32px; border-radius: 50%;
+        cursor: pointer; display: flex; align-items: center; justify-content: center;
+    }
+  </style>
+  <style>
     /* Profil Sekme Stilleri */
     .profile-tabs { display: flex; gap: 10px; margin: 20px 0; border-bottom: 1px solid var(--border); padding-bottom: 10px; overflow-x: auto; white-space: nowrap; -ms-overflow-style: none; scrollbar-width: none; }
     .profile-tabs::-webkit-scrollbar { display: none; }
@@ -109,6 +185,7 @@
             <button class="tab-btn active" onclick="openTab(event, 'my-posts-tab')"><i class="fa-solid fa-clone"></i> Paylaşımlarım</button>
             <button class="tab-btn" onclick="openTab(event, 'my-likes-tab')"><i class="fa-solid fa-heart"></i> Beğendiklerim</button>
             <button class="tab-btn" onclick="openTab(event, 'my-saves-tab')"><i class="fa-solid fa-bookmark"></i> Kaydedilenler</button>
+            <button class="tab-btn" onclick="openTab(event, 'my-photos-tab')"><i class="fa-solid fa-images"></i> Galeri</button>
             <button class="tab-btn" onclick="openTab(event, 'my-friends-tab')"><i class="fa-solid fa-users"></i> Arkadaşlarım</button>
         </div>
 
@@ -127,9 +204,22 @@
             </div>
         </div>
 
+        <div id="my-photos-tab" class="tab-content">
+            <div class="glass-card" style="padding:20px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                    <h3 style="margin:0;">Fotoğraflarım</h3>
+                    <button onclick="createNewAlbum()" class="add-photo-action" style="background:var(--primary); color:white; border:none; padding:8px 15px; border-radius:8px; cursor:pointer; font-weight:bold;">
+                        <i class="fa-solid fa-folder-plus"></i> Yeni Albüm
+                    </button>
+                </div>
+                
+                <input type="file" id="masterGalleryInput" hidden accept="image/*" onchange="handleImageProcessing(this)">
+                
+                <div id="albumsWrapper">
+                    </div>
             </div>
-      </div>
-  </div>
+        </div>
+    </div>
   </main>
 
   <aside class="right-panel">
@@ -163,6 +253,137 @@
     </div>
 <div data-include="partials/footer.html"></div>
 <script src="assets/js/include.js"></script>
+<script>
+    let currentTargetGrid = null;
+    // Kalıcı depolama verisini çek
+    let galleryData = JSON.parse(localStorage.getItem('userGalleryData')) || {
+        albums: [{ id: 'grid-default', name: 'Genel Galeri', photos: [] }]
+    };
+
+    // Sayfa açıldığında galeriyi oluştur
+    window.addEventListener('DOMContentLoaded', renderGallery);
+
+    function renderGallery() {
+        const wrapper = document.getElementById('albumsWrapper');
+        if (!wrapper) return;
+        wrapper.innerHTML = '';
+        
+        galleryData.albums.forEach(album => {
+            const albumHtml = `
+                <div class="album-container" id="container-${album.id}">
+                    <div class="album-header">
+                        <span class="album-title"><i class="fa-solid fa-images"></i> ${album.name}</span>
+                        <div style="display:flex; gap:10px;">
+                            <button onclick="openGalleryUpload('${album.id}')" style="background:var(--primary); color:white; border:none; padding:5px 12px; border-radius:6px; cursor:pointer; font-size:0.75rem;">
+                                <i class="fa-solid fa-plus"></i> Ekle
+                            </button>
+                            ${album.id !== 'grid-default' ? `
+                            <button onclick="deleteAlbum('${album.id}')" style="background:none; border:none; color:#ef4444; cursor:pointer;">
+                                <i class="fa-solid fa-xmark"></i>
+                            </button>` : ''}
+                        </div>
+                    </div>
+                    <div id="${album.id}" class="gallery-grid">
+                        ${album.photos.map((img, index) => `
+                            <div class="gallery-item" id="photo-${album.id}-${index}">
+                                <div class="delete-overlay">
+                                    <button class="delete-btn" onclick="deletePhoto('${album.id}', ${index})">
+                                        <i class="fa-solid fa-trash"></i>
+                                    </button>
+                                </div>
+                                <img src="${img}">
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>`;
+            wrapper.insertAdjacentHTML('beforeend', albumHtml);
+        });
+    }
+
+    function openTab(evt, tabName) {
+        var i, tabcontent, tablinks;
+        tabcontent = document.getElementsByClassName("tab-content");
+        for (i = 0; i < tabcontent.length; i++) {
+            tabcontent[i].style.display = "none";
+            tabcontent[i].classList.remove("active");
+        }
+        tablinks = document.getElementsByClassName("tab-btn");
+        for (i = 0; i < tablinks.length; i++) {
+            tablinks[i].classList.remove("active");
+        }
+        document.getElementById(tabName).style.display = "block";
+        document.getElementById(tabName).classList.add("active");
+        evt.currentTarget.classList.add("active");
+        
+        // Arkadaşlar sekmesi açılırsa
+        if (tabName === 'my-friends-tab') {
+            setTimeout(() => {
+                if (window.loadFriendsList && typeof window.user !== 'undefined') {
+                    const params = new URLSearchParams(location.search);
+                    const visitedUsername = params.get('id');
+                    
+                    if (!visitedUsername || visitedUsername === window.user.username) {
+                        // Kendi arkadaşlarını yükle
+                        if (typeof window.auth !== 'undefined' && window.auth.currentUser) {
+                            window.loadFriendsList();
+                        }
+                    }
+                }
+            }, 100);
+        }
+    }
+
+    function openGalleryUpload(gridId) {
+        currentTargetGrid = gridId;
+        document.getElementById('masterGalleryInput').click();
+    }
+
+    function handleImageProcessing(input) {
+        if (input.files && input.files[0] && currentTargetGrid) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const album = galleryData.albums.find(a => a.id === currentTargetGrid);
+                if(album) {
+                    album.photos.push(e.target.result);
+                    saveAndRender();
+                }
+            };
+            reader.readAsDataURL(input.files[0]);
+            input.value = ""; 
+        }
+    }
+
+    function deletePhoto(albumId, photoIndex) {
+        if(confirm("Bu fotoğrafı silmek istiyor musunuz?")) {
+            const album = galleryData.albums.find(a => a.id === albumId);
+            if(album) {
+                album.photos.splice(photoIndex, 1);
+                saveAndRender();
+            }
+        }
+    }
+
+    function createNewAlbum() {
+        const name = prompt("Albüm adı girin:");
+        if (name && name.trim() !== "") {
+            galleryData.albums.push({ id: 'grid-' + Date.now(), name: name, photos: [] });
+            saveAndRender();
+        }
+    }
+
+    function deleteAlbum(albumId) {
+        if(confirm("Albümü ve içindeki tüm fotoğrafları silmek istiyor musunuz?")) {
+            galleryData.albums = galleryData.albums.filter(a => a.id !== albumId);
+            saveAndRender();
+        }
+    }
+
+    function saveAndRender() {
+        localStorage.setItem('userGalleryData', JSON.stringify(galleryData));
+        renderGallery();
+    }
+</script>
+
 <script type="module" src="assets/js/app.js"></script>
 </body>
 </html>
