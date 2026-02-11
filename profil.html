@@ -263,43 +263,6 @@
     // Sayfa açıldığında galeriyi oluştur
     window.addEventListener('DOMContentLoaded', renderGallery);
 
-    function renderGallery() {
-        const wrapper = document.getElementById('albumsWrapper');
-        if (!wrapper) return;
-        wrapper.innerHTML = '';
-        
-        galleryData.albums.forEach(album => {
-            const albumHtml = `
-                <div class="album-container" id="container-${album.id}">
-                    <div class="album-header">
-                        <span class="album-title"><i class="fa-solid fa-images"></i> ${album.name}</span>
-                        <div style="display:flex; gap:10px;">
-                            <button onclick="openGalleryUpload('${album.id}')" style="background:var(--primary); color:white; border:none; padding:5px 12px; border-radius:6px; cursor:pointer; font-size:0.75rem;">
-                                <i class="fa-solid fa-plus"></i> Ekle
-                            </button>
-                            ${album.id !== 'grid-default' ? `
-                            <button onclick="deleteAlbum('${album.id}')" style="background:none; border:none; color:#ef4444; cursor:pointer;">
-                                <i class="fa-solid fa-xmark"></i>
-                            </button>` : ''}
-                        </div>
-                    </div>
-                    <div id="${album.id}" class="gallery-grid">
-                        ${album.photos.map((img, index) => `
-                            <div class="gallery-item" id="photo-${album.id}-${index}">
-                                <div class="delete-overlay">
-                                    <button class="delete-btn" onclick="deletePhoto('${album.id}', ${index})">
-                                        <i class="fa-solid fa-trash"></i>
-                                    </button>
-                                </div>
-                                <img src="${img}">
-                            </div>
-                        `).join('')}
-                    </div>
-                </div>`;
-            wrapper.insertAdjacentHTML('beforeend', albumHtml);
-        });
-    }
-
     function openTab(evt, tabName) {
         var i, tabcontent, tablinks;
         tabcontent = document.getElementsByClassName("tab-content");
@@ -351,36 +314,6 @@
             reader.readAsDataURL(input.files[0]);
             input.value = ""; 
         }
-    }
-
-    function deletePhoto(albumId, photoIndex) {
-        if(confirm("Bu fotoğrafı silmek istiyor musunuz?")) {
-            const album = galleryData.albums.find(a => a.id === albumId);
-            if(album) {
-                album.photos.splice(photoIndex, 1);
-                saveAndRender();
-            }
-        }
-    }
-
-    function createNewAlbum() {
-        const name = prompt("Albüm adı girin:");
-        if (name && name.trim() !== "") {
-            galleryData.albums.push({ id: 'grid-' + Date.now(), name: name, photos: [] });
-            saveAndRender();
-        }
-    }
-
-    function deleteAlbum(albumId) {
-        if(confirm("Albümü ve içindeki tüm fotoğrafları silmek istiyor musunuz?")) {
-            galleryData.albums = galleryData.albums.filter(a => a.id !== albumId);
-            saveAndRender();
-        }
-    }
-
-    function saveAndRender() {
-        localStorage.setItem('userGalleryData', JSON.stringify(galleryData));
-        renderGallery();
     }
 </script>
 
