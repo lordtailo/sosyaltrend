@@ -40,7 +40,8 @@ const tarihteBugun = [
     { ay: 3, gun: 25, baslik: "Tarihte Bugün", mesaj: "1915: Çanakkale Kara Savaşları başladı. 🛡️" },
     { ay: 4, gun: 29, baslik: "Tarihte Bugün", mesaj: "1953: Türkiye'nin ilk yerli uçağı 'Nu.D.38' Ankara'dan İstanbul'a uçtu. ✈️" },
     { ay: 8, gun: 9, baslik: "Tarihte Bugün", mesaj: "1928: Harf Devrimi'nin ilk adımı atıldı; yeni Türk alfabesi tanıtıldı. ✍️" },
-    { ay: 11, gun: 5, baslik: "Tarihte Bugün", mesaj: "1934: Türk kadınına seçme ve seçilme hakkı tanındı! 🗳️" }
+    { ay: 11, gun: 5, baslik: "Tarihte Bugün", mesaj: "1934: Türk kadınına seçme ve seçilme hakkı tanındı! 🗳️" ,
+    { ay: 1, gun: 12, baslik: "Deneme oto bilgilendirme", mesaj: "Denemedir aldırış etmeyin." }
 ];
 
 // Bileşenleri dinamik olarak yükleme fonksiyonu    
@@ -1844,7 +1845,7 @@ async function kontrolEtVeOtomatikPostAt() {
 async function otomatikPostPaylas(baslik, icerik) {
     try {
         await addDoc(collection(db, "posts"), {
-            author: "Sistem Mesajı",
+            author: "official_system",
             authorEmail: "officialfthuzun@gmail.com",
             authorImage: "assets/img/strendsaydamv2.ico", // Bot ikonu
             content: `${baslik}\n\n${icerik}`,
