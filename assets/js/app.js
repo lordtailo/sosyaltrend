@@ -1886,63 +1886,6 @@ window.toggleImageExpand = (img) => {
     }
 };
 
-// Fotoğraf Yükleme Fonksiyonu
-window.handleGalleryUpload = async (input) => {
-    const file = input.files[0];
-    if (file) {
-        if (file.size > 1024 * 1024) { // 1MB Sınırı
-            alert("Lütfen 1MB'dan küçük bir fotoğraf seçin.");
-            return;
-        }
-
-        const reader = new FileReader();
-        reader.onload = async (e) => {
-            const base64Data = e.target.result;
-            try {
-                // Firebase 'user_gallery' koleksiyonuna ekle
-                await addDoc(collection(db, "user_gallery"), {
-                    username: user.username,
-                    imageUrl: base64Data,
-                    timestamp: serverTimestamp()
-                });
-                alert("Fotoğraf galeriye eklendi!");
-                loadUserGallery(); // Galeriyi yenile
-            } catch (error) {
-                console.error("Yükleme hatası:", error);
-            }
-        };
-        reader.readAsDataURL(file);
-    }
-};
-
-// Fotoğrafları Çekme ve Görüntüleme Fonksiyonu
-window.loadUserGallery = async () => {
-    const galleryGrid = document.getElementById('userGalleryGrid');
-    if (!galleryGrid) return;
-
-    // Sadece aktif kullanıcıya ait fotoğrafları getir
-    const q = query(collection(db, "user_gallery"), orderBy("timestamp", "desc"));
-    
-    onSnapshot(q, (snapshot) => {
-        galleryGrid.innerHTML = "";
-        snapshot.forEach((doc) => {
-            const data = doc.data();
-            if (data.username === user.username) {
-                galleryGrid.innerHTML += `
-                    <div class="gallery-item" style="position: relative; aspect-ratio: 1/1;">
-                        <img src="${data.imageUrl}" onclick="toggleImageExpand(this)" style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px; cursor: zoom-in;">
-                    </div>`;
-            }
-        });
-    });
-};
-
-// Sayfa yüklendiğinde galeriyi başlat
-document.addEventListener('DOMContentLoaded', () => {
-    if (window.location.pathname.includes('profil.html')) {
-        loadUserGallery();
-    }
-});
 
 /**
  * SosyalTrend - Dinamik Bileşen Yükleyici ve Menü Yönetimi
