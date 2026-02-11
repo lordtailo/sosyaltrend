@@ -30,7 +30,7 @@ const ozelGunler = [
 { ay: 5, gun: 25, baslik: "Aşure Günü", mesaj: "Aşure Gününüz mübarek, birliğimiz daim olsun. 🥣" },
 { ay: 7, gun: 24, baslik: "Mevlid Kandili", mesaj: "Mevlid Kandiliniz mübarek olsun. ✨" },
 { ay: 11, gun: 10, baslik: "Üç Ayların Başlangıcı", mesaj: "Üç ayların başlangıcı hayırlara vesile olsun. 🌙" },
-{ ay: 11, gun: 14, baslik: "Regaip Kandili", mesaj: "Regaip Kandiliniz mübarek olsun. ✨"},
+{ ay: 11, gun: 14, baslik: "Regaip Kandili", mesaj: "Regaip Kandiliniz mübarek olsun. ✨"}
 ];
 
 const tarihteBugun = [
