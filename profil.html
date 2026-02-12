@@ -135,75 +135,85 @@
   </aside>
 
   <main id="main-content">
-    <div id="page-profile" class="page-content active">
-        <div class="glass-card" style="padding: 40px; text-align: center; position: relative;">
-            <div id="selfPrivateIndicator" style="display:none; position:absolute; top:10px; right:10px; background:#fef2f2; color:#ef4444; padding:4px 12px; border-radius:20px; font-size:0.7rem; font-weight:700; border:1px solid #fecaca;">
-                <i class="fa-solid fa-eye-slash"></i> Profiliniz Gizli
-            </div>
-            <img id="profilePageAvatar" src="" style="width: 100px; height: 100px; border-radius: 50%; border: 4px solid var(--primary); object-fit: cover;">
-            <h2 id="profilePageName" style="margin-top: 15px;">...</h2>
-            <p id="profilePageHandle" style="color: var(--text-muted); margin-bottom: 15px;">@...</p>
-            <div style="display: flex; justify-content: center; gap: 10px; flex-wrap: wrap;">
-                <button id="editProfileBtn" onclick="toggleEditProfile()" style="background: var(--input-bg); border: 1px solid var(--border); padding: 8px 20px; border-radius: 10px; font-size: 0.8rem; font-weight: 600; cursor: pointer; color: var(--text-main);" data-i18n="editProfileBtn">Profili Düzenle</button>
-                <button id="addFriendBtn" onclick="sendFriendRequest()" style="background: var(--primary); color: white; border: none; padding: 8px 20px; border-radius: 10px; font-size: 0.8rem; font-weight: 600; cursor: pointer;">
-                    <i class="fa-solid fa-user-plus"></i> Arkadaş Olarak Ekle
-                </button>
-            </div>
+  <div id="page-profile" class="page-content active">
+    <div class="glass-card" style="padding: 40px; text-align: center; position: relative;">
+      <div id="selfPrivateIndicator" style="display:none; position:absolute; top:10px; right:10px; background:#fef2f2; color:#ef4444; padding:4px 12px; border-radius:20px; font-size:0.7rem; font-weight:700; border:1px solid #fecaca;">
+        <i class="fa-solid fa-eye-slash"></i> Profiliniz Gizli
+      </div>
+      
+      <img id="profilePageAvatar" src="" alt="Profil Resmi" style="width: 100px; height: 100px; border-radius: 50%; border: 4px solid var(--primary); object-fit: cover;">
+      <h2 id="profilePageName" style="margin-top: 15px;">...</h2>
+      <p id="profilePageHandle" style="color: var(--text-muted); margin-bottom: 15px;">@...</p>
+      
+      <div style="display: flex; justify-content: center; gap: 10px; flex-wrap: wrap;">
+        <button id="editProfileBtn" onclick="toggleEditProfile()" style="background: var(--input-bg); border: 1px solid var(--border); padding: 8px 20px; border-radius: 10px; font-size: 0.8rem; font-weight: 600; cursor: pointer; color: var(--text-main);" data-i18n="editProfileBtn">Profili Düzenle</button>
+        <button id="addFriendBtn" onclick="sendFriendRequest()" style="background: var(--primary); color: white; border: none; padding: 8px 20px; border-radius: 10px; font-size: 0.8rem; font-weight: 600; cursor: pointer;">
+          <i class="fa-solid fa-user-plus"></i> Arkadaş Olarak Ekle
+        </button>
+      </div>
 
-            <div id="editProfileSection" class="edit-profile-form">
-                <div class="section-subtitle">Profil Bilgileri</div>
-                <div style="margin-bottom: 20px;">
-                    <label class="form-label">Görünen Ad</label>
-                    <input type="text" id="newNameInput" class="form-input" placeholder="Adınızı girin">
-                </div>
-                <div style="background: var(--bg); padding: 15px; border-radius: 12px; border: 1px solid var(--border);">
-                    <label class="form-label" style="color: var(--primary);"><i class="fa-solid fa-camera"></i> Profil Resmini Güncelle</label>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px;">
-                        <button onclick="document.getElementById('fileAvatarInput').click()" class="admin-btn" style="padding: 10px; height: auto; display: block;">
-                            <i class="fa-solid fa-upload"></i><br>Cihazdan Seç
-                        </button>
-                        <button onclick="promptDiceBear()" class="admin-btn" style="padding: 10px; height: auto; display: block;">
-                            <i class="fa-solid fa-wand-magic-sparkles"></i><br>İsimden Oluştur
-                        </button>
-                    </div>
-                    <input type="file" id="fileAvatarInput" accept="image/*" style="display: none;" onchange="handleFileSelect(this)">
-                    <div style="margin-top: 15px;">
-                        <label class="form-label">Veya Görsel URL Yapıştır</label>
-                        <input type="text" id="newAvatarUrlInput" class="form-input" style="margin-bottom: 0;" placeholder="https://..." oninput="handleUrlInput(this)">
-                    </div>
-                </div>
-                <div style="margin-top: 25px; display: flex; gap: 10px;">
-                    <button onclick="saveProfileChanges()" class="form-btn" style="flex: 2;">
-                        <i class="fa-solid fa-floppy-disk"></i> Değişiklikleri Kaydet
-                    </button>
-                    <button onclick="toggleEditProfile()" class="form-btn" style="flex: 1; background: var(--text-muted);">İptal</button>
-                </div>
-            </div>
+      <div id="editProfileSection" class="edit-profile-form">
+        <div class="section-subtitle">Profil Bilgileri</div>
+        
+        <div style="margin-bottom: 20px;">
+          <label class="form-label" for="newNameInput">Görünen Ad</label>
+          <input type="text" id="newNameInput" class="form-input" placeholder="Adınızı girin">
         </div>
 
-        <div class="profile-tabs">
-            <button class="tab-btn active" onclick="openTab(event, 'my-posts-tab')"><i class="fa-solid fa-clone"></i> Paylaşımlarım</button>
-            <button class="tab-btn" onclick="openTab(event, 'my-likes-tab')"><i class="fa-solid fa-heart"></i> Beğendiklerim</button>
-            <button class="tab-btn" onclick="openTab(event, 'my-saves-tab')"><i class="fa-solid fa-bookmark"></i> Kaydedilenler</button>
-            <button class="tab-btn" onclick="openTab(event, 'my-friends-tab')"><i class="fa-solid fa-users"></i> Arkadaşlarım</button>
+        <div style="background: var(--bg); padding: 15px; border-radius: 12px; border: 1px solid var(--border);">
+          <label class="form-label" for="fileAvatarInput" style="color: var(--primary); cursor: pointer;">
+  <i class="fa-solid fa-camera"></i> Profil Resmini Güncelle
+</label>
+          
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px;">
+            <button type="button" onclick="document.getElementById('fileAvatarInput').click()" class="admin-btn" style="padding: 10px; height: auto; display: block;">
+              <i class="fa-solid fa-upload"></i><br>Cihazdan Seç
+            </button>
+            <button type="button" onclick="promptDiceBear()" class="admin-btn" style="padding: 10px; height: auto; display: block;">
+              <i class="fa-solid fa-wand-magic-sparkles"></i><br>İsimden Oluştur
+            </button>
+          </div>
+
+<input type="file" id="fileAvatarInput" accept="image/*" style="display: none;" onchange="handleFileSelect(this)">
+
+          <div style="margin-top: 15px;">
+            <label class="form-label" for="newAvatarUrlInput">Veya Görsel URL Yapıştır</label>
+            <input type="text" id="newAvatarUrlInput" class="form-input" style="margin-bottom: 0;" placeholder="https://..." oninput="handleUrlInput(this)">
+          </div>
         </div>
 
-        <div id="my-posts-tab" class="tab-content active"><div id="my-posts-list"></div></div>
-        <div id="my-likes-tab" class="tab-content"><div id="my-liked-list"></div></div>
-        <div id="my-saves-tab" class="tab-content"><div id="bookmark-items"></div></div>
-
-        <div id="my-friends-tab" class="tab-content">
-            <div class="glass-card" style="padding:20px;">
-                <h3 style="margin-top:0; margin-bottom:20px;">Arkadaşlarım</h3>
-                <div id="friends-list" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(200px, 1fr)); gap:15px;"></div>
-                <div id="no-friends-msg" style="text-align:center; color:var(--text-muted); padding:40px 20px;">
-                    <i class="fa-solid fa-user-group" style="font-size:3rem; margin-bottom:10px; display:block;"></i>
-                    Henüz arkadaş yok
-                </div>
-            </div>
+        <div style="margin-top: 25px; display: flex; gap: 10px;">
+          <button type="button" onclick="saveProfileChanges()" class="form-btn" style="flex: 2;">
+            <i class="fa-solid fa-floppy-disk"></i> Değişiklikleri Kaydet
+          </button>
+          <button type="button" onclick="toggleEditProfile()" class="form-btn" style="flex: 1; background: var(--text-muted);">İptal</button>
         </div>
+      </div>
     </div>
-  </main>
+
+    <div class="profile-tabs">
+      <button class="tab-btn active" onclick="openTab(event, 'my-posts-tab')"><i class="fa-solid fa-clone"></i> Paylaşımlarım</button>
+      <button class="tab-btn" onclick="openTab(event, 'my-likes-tab')"><i class="fa-solid fa-heart"></i> Beğendiklerim</button>
+      <button class="tab-btn" onclick="openTab(event, 'my-saves-tab')"><i class="fa-solid fa-bookmark"></i> Kaydedilenler</button>
+      <button class="tab-btn" onclick="openTab(event, 'my-friends-tab')"><i class="fa-solid fa-users"></i> Arkadaşlarım</button>
+    </div>
+
+    <div id="my-posts-tab" class="tab-content active"><div id="my-posts-list"></div></div>
+    <div id="my-likes-tab" class="tab-content"><div id="my-liked-list"></div></div>
+    <div id="my-saves-tab" class="tab-content"><div id="bookmark-items"></div></div>
+
+    <div id="my-friends-tab" class="tab-content">
+      <div class="glass-card" style="padding:20px;">
+        <h3 style="margin-top:0; margin-bottom:20px;">Arkadaşlarım</h3>
+        <div id="friends-list" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(200px, 1fr)); gap:15px;"></div>
+        <div id="no-friends-msg" style="text-align:center; color:var(--text-muted); padding:40px 20px;">
+          <i class="fa-solid fa-user-group" style="font-size:3rem; margin-bottom:10px; display:block;"></i>
+          Henüz arkadaş yok
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
 
 <aside class="right-panel">
     <div class="glass-card widget-clock">
@@ -266,21 +276,24 @@
         evt.currentTarget.classList.add("active");
         
         // Arkadaşlar sekmesi açılırsa
-        if (tabName === 'my-friends-tab') {
-            setTimeout(() => {
-                if (window.loadFriendsList && typeof window.user !== 'undefined') {
-                    const params = new URLSearchParams(location.search);
-                    const visitedUsername = params.get('id');
-                    
-                    if (!visitedUsername || visitedUsername === window.user.username) {
-                        // Kendi arkadaşlarını yükle
-                        if (typeof window.auth !== 'undefined' && window.auth.currentUser) {
-                            window.loadFriendsList();
-                        }
-                    }
-                }
-            }, 100);
+if (tabName === 'my-friends-tab') {
+    // requestAnimationFrame, tarayıcının bir sonraki kareyi çizmeden hemen önce çalışır
+    requestAnimationFrame(() => {
+        // null/undefined kontrollerini tek bir blokta toplayalım
+        if (window.loadFriendsList && window.user && window.auth?.currentUser) {
+            const params = new URLSearchParams(location.search);
+            const visitedUsername = params.get('id');
+            
+            // Eğer kendi profilimizdeysek yükle
+            if (!visitedUsername || visitedUsername === window.user.username) {
+                // İşlemi çok kısa bir süre daha erteleyerek ana akışı rahatlatıyoruz
+                setTimeout(() => {
+                    window.loadFriendsList();
+                }, 0);
+            }
         }
+    });
+}
     }
 
     function openGalleryUpload(gridId) {

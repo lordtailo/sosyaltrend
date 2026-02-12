@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="stylesheet" href="assets/css/style.css">
   <link rel="icon" type="image/x-icon" href="assets/img/strendsaydamv2.ico">
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
 </head>
 <body>
 
@@ -48,32 +49,38 @@
   </aside>
 
   <main id="main-content">
-  <div id="page-liked" class="page-content active">
-  <div class="glass-card" style="padding:20px;">
- <section class="card" style="
-    max-width: 100%;
-    padding: 18px;">
-    <h2 style="margin-bottom: 20px; text-align: center; color: var(--primary);">Bizimle İletişime Geçin</h2>
-    <p style="text-align: center; color: var(--text-muted); margin-bottom: 30px;">
-      Görüş, öneri veya şikayetlerinizi aşağıdaki form aracılığıyla bize iletebilirsiniz.
-    </p>
+  <div id="page-contact" class="page-content active"> <div class="glass-card" style="padding:20px;">
+    <section class="card" style="max-width: 100%; padding: 18px;">
+      <h2 style="margin-bottom: 20px; text-align: center; color: var(--primary);">Bizimle İletişime Geçin</h2>
+      <p style="text-align: center; color: var(--text-muted); margin-bottom: 30px;">
+        Görüş, öneri veya şikayetlerinizi aşağıdaki form aracılığıyla bize iletebilirsiniz.
+      </p>
 
-    <div class="contact-form">
-      <label class="form-label">Konu</label>
-      <input type="text" id="contactSubject" class="form-input" placeholder="Mesajınızın konusu...">
+      <form class="contact-form" onsubmit="return false;"> <label class="form-label" for="contactSubject">Konu</label>
+        <input type="text" 
+               id="contactSubject" 
+               name="subject" 
+               class="form-input" 
+               placeholder="Mesajınızın konusu...">
 
-      <label class="form-label">Mesajınız</label>
-      <textarea id="contactMessage" class="form-input" rows="5" placeholder="Buraya yazın..." style="resize: none;"></textarea>
+        <label class="form-label" for="contactMessage">Mesajınız</label>
+        <textarea id="contactMessage" 
+                  name="message" 
+                  class="form-input" 
+                  rows="5" 
+                  placeholder="Buraya yazın..." 
+                  style="resize: none;"></textarea>
 
-      <button id="sendMessageBtn" class="form-btn" style="margin-top: 10px;">
-        <i class="fa-solid fa-paper-plane"></i> Gönder
-      </button>
+        <button id="sendMessageBtn" type="button" class="form-btn" style="margin-top: 10px;">
+          <i class="fa-solid fa-paper-plane"></i> Gönder
+        </button>
 
-      <p id="contactStatus" style="margin-top: 15px; font-weight: 600; text-align: center;"></p>
-    </div>
+        <p id="contactStatus" style="margin-top: 15px; font-weight: 600; text-align: center;"></p>
+      </form>
 
-  </section>
-  </div></div>
+    </section>
+  </div>
+</div>
   </main>
 
 <aside class="right-panel">
@@ -116,10 +123,10 @@
 
 <script type="text/javascript">
   // --- YAPILANDIRMA ---
-  (function() {
-    // EmailJS Public Key'inizi buraya yapıştırın
-    emailjs.init("5oSPVDC_cnrMpZ99T"); 
-  })();
+  (function(){
+      // Public Key'inizi buraya tırnak içine yazın
+      emailjs.init("5oSPVDC_cnrMpZ99T"); 
+   })();
 
   const btn = document.getElementById('sendMessageBtn');
   const status = document.getElementById('contactStatus');
