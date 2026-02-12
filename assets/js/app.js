@@ -2447,3 +2447,20 @@ async function updateAddFriendButton(targetUid) {
 }
 // Profil sayfasını ziyaret ettiğiniz arkadaşın profilinizi açarsanız
 
+function handleProfileAction() {
+  const currentUser = auth.currentUser;
+  const viewedUserId = new URLSearchParams(window.location.search).get('uid'); // Profiline bakılan kişinin ID'si
+
+  if (!currentUser) {
+    window.location.href = 'giris.html';
+    return;
+  }
+
+  if (viewedUserId === currentUser.uid) {
+    // KENDİ PROFİLİNDEYSE: Direkt mesajlar sayfasına git
+    window.location.href = 'mesajlar.html';
+  } else {
+    // BAŞKASININ PROFİLİNDEYSE: Mesajlar sayfasına o kullanıcının ID'sini parametre olarak gönder
+    window.location.href = `mesajlar.html?start=${viewedUserId}`;
+  }
+}

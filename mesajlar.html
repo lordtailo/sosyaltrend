@@ -981,6 +981,17 @@
     const auth   = getAuth(fbApp);
     const storage = getStorage(fbApp);
 
+    // Auth kontrolü (onAuthStateChanged) içinde, listenConversations() çağrısından hemen sonra:
+const urlParams = new URLSearchParams(window.location.search);
+const startId = urlParams.get('start');
+
+if (startId) {
+  // Eğer URL'de ?start=ID varsa, o kişiyle sohbeti başlat
+  setTimeout(() => {
+    window.startConvWith(startId); //
+  }, 1500); // Verilerin yüklenmesi için kısa bir bekleme
+}
+
     // ─── Durum ───
     let currentUser    = null;
     let currentConvId  = null;
@@ -1040,6 +1051,29 @@
       setPresence();
       listenConversations();
     });
+    auth.onAuthStateChanged((user) => {
+  if (user) {
+    listenConversations(); // Mevcut fonksiyonun
+
+    // --- BURAYI EKLE ---
+    const urlParams = new URLSearchParams(window.location.search);
+    const startId = urlParams.get('start');
+
+    if (startId) {
+      console.log("Sohbet başlatılıyor:", startId);
+      // Firebase'in ve fonksiyonların yüklenmesi için kısa bir bekleme
+      setTimeout(() => {
+        if (window.startConvWith) {
+          window.startConvWith(startId);
+        } else {
+          // Eğer window.startConvWith değil de sadece startConvWith ise:
+          startConvWith(startId); 
+        }
+      }, 1000); // 1 saniye bekle
+    }
+    // -------------------
+  }
+});
 
     // ─── Presence (Çevrimiçi durumu) ───
     async function setPresence() {
@@ -1057,10 +1091,10 @@
     // ─── KONUŞMALARI DİNLE ───
     function listenConversations() {
       const q = query(
-        collection(db,'conversations'),
-        where('participants','array-contains',currentUser.uid),
-        orderBy('lastMessageAt','desc')
-      );
+  collection(db, 'conversations'), // Koleksiyona git
+  where('participants', 'array-contains', currentUser.uid), // "Benim olduğum mesajları bul" (Filtre)
+  orderBy('lastMessageAt', 'desc') // "En son mesaja göre sırala" (Sıralama)
+);
 
       convUnsub = onSnapshot(q, async snap => {
         allConvs = [];

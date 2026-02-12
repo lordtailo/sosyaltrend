@@ -147,7 +147,11 @@
       
       <div style="display: flex; justify-content: center; gap: 10px; flex-wrap: wrap;">
         <button id="editProfileBtn" onclick="toggleEditProfile()" style="background: var(--input-bg); border: 1px solid var(--border); padding: 8px 20px; border-radius: 10px; font-size: 0.8rem; font-weight: 600; cursor: pointer; color: var(--text-main);" data-i18n="editProfileBtn">Profili Düzenle</button>
-        <button id="addFriendBtn" onclick="sendFriendRequest()" style="background: var(--primary); color: white; border: none; padding: 8px 20px; border-radius: 10px; font-size: 0.8rem; font-weight: 600; cursor: pointer;">
+<button id="profileActionBtn" onclick="handleProfileAction()" style="background: var(--primary); color: white; border: none; padding: 8px 20px; border-radius: 10px; font-size: 0.8rem; font-weight: 600; cursor: pointer; position: relative;">
+  <span id="btnText">Mesaj Gönder</span>
+  <span id="msgBadge" style="display: none; position: absolute; top: -5px; right: -5px; background: #ef4444; color: white; border-radius: 50%; padding: 2px 6px; font-size: 0.7rem;">0</span>
+</button>        
+<button id="addFriendBtn" onclick="sendFriendRequest()" style="background: var(--primary); color: white; border: none; padding: 8px 20px; border-radius: 10px; font-size: 0.8rem; font-weight: 600; cursor: pointer;">
           <i class="fa-solid fa-user-plus"></i> Arkadaş Olarak Ekle
         </button>
       </div>
@@ -316,7 +320,40 @@ if (tabName === 'my-friends-tab') {
         }
     }
 </script>
+<script>
+window.handleProfileAction = function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    // Hem 'id' hem 'uid' hem de senin sistemindeki 'id'yi kontrol eder
+    const targetId = urlParams.get('id') || urlParams.get('uid'); 
 
+    if (!targetId) {
+        alert("Hata: Bir kullanıcı profili seçilmedi. Lütfen ana sayfadan bir profile tıklayın.");
+        return;
+    }
+
+    const currentUser = (typeof auth !== 'undefined') ? auth.currentUser : null;
+
+    // Kendi profilin mi?
+    if (currentUser && (targetId === currentUser.uid || targetId === currentUser.displayName)) {
+        window.location.href = "mesajlar.html";
+    } else {
+        // Hedef kullanıcıya yönlendir
+        window.location.href = "mesajlar.html?start=" + encodeURIComponent(targetId);
+    }
+};
+
+// Sayfa yüklendiğinde URL'de kullanıcı yoksa butonu pasif yap
+window.addEventListener('load', () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const targetId = urlParams.get('id') || urlParams.get('uid');
+    const btn = document.getElementById('profileActionBtn');
+    
+    if (!targetId && btn) {
+        btn.style.opacity = "0.5";
+        btn.title = "Kullanıcı belirlenemedi";
+    }
+});
+</script>
 <script type="module" src="assets/js/app.js"></script>
 </body>
 </html>
