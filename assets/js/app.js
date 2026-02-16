@@ -3142,7 +3142,7 @@ window.populateLikersPreview = async (postId, likes) => {
             const othersBtn = document.createElement('button');
             othersBtn.className = 'mini-link-btn';
             othersBtn.style.cssText = 'background:none;border:none;color:var(--primary);font-weight:700;cursor:pointer;font-size:0.85rem;padding:0;';
-            othersBtn.textContent = `(${likes.length - 3}) Diğer beğenen kişiler.`;
+            othersBtn.textContent = `(${likes.length - 3}) diğer beğenen kişiler.`;
             othersBtn.onclick = () => { window.openLikersModal(postId); };
             container.appendChild(othersBtn);
         }
