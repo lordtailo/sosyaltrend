@@ -1383,6 +1383,8 @@ window.loadPostsFeed = (showAll = false) => {
         
         ${postImageHtml}
 
+        <div id="likers-${d.id}" style="display:flex; align-items:center; gap:8px; margin-bottom:10px; min-height:28px;"></div>
+
         <div style="display:flex; gap:12px;">
               <button class="tool-btn" onclick="likePost('${d.id}', ${isLiked})" style="gap:5px; color:${isLiked ? '#ef4444' : ''}"><i class="${isLiked ? 'fa-solid' : 'fa-regular'} fa-heart"></i><span>${p.likes?.length || 0}</span></button>
               <button class="tool-btn" onclick="toggleCommentSection('${d.id}')" style="gap:5px;"><i class="fa-regular fa-comment"></i><span>${p.comments?.length || 0}</span></button>
@@ -1451,6 +1453,15 @@ window.loadPostsFeed = (showAll = false) => {
 
           if(feed) feed.innerHTML += postHtmlForFeed;
           if(p.username === user.username && myPosts) myPosts.innerHTML += postHtmlBase;
+          if(isLiked && myLikes) myLikes.innerHTML += postHtmlBase;
+          if(isSaved && bookItems) bookItems.innerHTML += postHtmlBase;
+          
+          // Likers preview'ı doldur
+          try {
+              if (window.populateLikersPreview) {
+                  setTimeout(() => { window.populateLikersPreview(d.id, p.likes || []); }, 0);
+              }
+          } catch(e) { console.error('populateLikersPreview error', e); }
           if(isLiked && myLikes) myLikes.innerHTML += postHtmlBase;
           if(isSaved && bookItems) bookItems.innerHTML += postHtmlBase;
           feedPostCount++;
@@ -3089,6 +3100,144 @@ function createShareModal() {
         }
     });
     
+    return modal;
+}
+
+// Beğenenleri göster fonksiyonu - 3 avatar + "X Diğer" butonu
+window.populateLikersPreview = async (postId, likes) => {
+    try {
+        const container = document.getElementById(`likers-${postId}`);
+        if (!container) return;
+        container.innerHTML = '';
+        if (!likes || likes.length === 0) return;
+
+        const preview = likes.slice(0, 3);
+        const userDataMap = {};
+        
+        // Firestore'dan avatar bilgilerini çek
+        try {
+            const q = query(collection(db, 'users'), where('username', 'in', preview));
+            const snap = await getDocs(q);
+            snap.forEach(doc => { 
+                userDataMap[doc.data().username] = doc.data(); 
+            });
+        } catch (e) {
+            console.warn('Avatar query failed, using fallbacks', e);
+        }
+
+        // 3 avatarı göster
+        preview.forEach(username => {
+            const userData = userDataMap[username];
+            const avatar = getAvatarUrl(userData?.avatarUrl || userData?.avatar);
+            const img = document.createElement('img');
+            img.src = avatar;
+            img.title = userData?.displayName || username;
+            img.style.cssText = 'width:28px;height:28px;border-radius:50%;border:2px solid var(--card-bg);object-fit:cover;cursor:pointer;';
+            img.onclick = () => { window.location.href = `profil.html?id=${encodeURIComponent(username)}`; };
+            container.appendChild(img);
+        });
+
+        // "X Diğer" butonu (3'ten fazla varsa)
+        if (likes.length > 3) {
+            const othersBtn = document.createElement('button');
+            othersBtn.className = 'mini-link-btn';
+            othersBtn.style.cssText = 'background:none;border:none;color:var(--primary);font-weight:700;cursor:pointer;font-size:0.85rem;padding:0;';
+            othersBtn.textContent = `${likes.length - 3} Diğer`;
+            othersBtn.onclick = () => { window.openLikersModal(postId); };
+            container.appendChild(othersBtn);
+        }
+    } catch (e) {
+        console.error('populateLikersPreview error:', e);
+    }
+};
+
+// Beğenenleri gösteren modal
+window.openLikersModal = async (postId) => {
+    try {
+        const modal = document.getElementById('likers-modal') || createLikersModal();
+        modal.style.display = 'flex';
+
+        // Gönderiden beğenenleri al
+        const postRef = doc(db, 'posts', postId);
+        const postSnap = await getDoc(postRef);
+        if (!postSnap.exists()) {
+            document.getElementById('likers-list').innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-muted)">Gönderi bulunamadı</div>';
+            return;
+        }
+        
+        const likes = postSnap.data().likes || [];
+        if (likes.length === 0) {
+            document.getElementById('likers-list').innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-muted)">Henüz beğenen yok</div>';
+            return;
+        }
+
+        // Batch ile kullanıcı verilerini çek (max 10 per query)
+        const chunks = [];
+        for (let i=0; i<likes.length; i+=10) {
+            chunks.push(likes.slice(i, i+10));
+        }
+        
+        const users = [];
+        for (const chunk of chunks) {
+            try {
+                const q = query(collection(db, 'users'), where('username', 'in', chunk));
+                const snap = await getDocs(q);
+                snap.forEach(d => { 
+                    users.push(d.data()); 
+                });
+            } catch(e) {
+                console.warn('Batch query failed', e);
+            }
+        }
+
+        // Map yap - order koru
+        const userMap = {};
+        users.forEach(u => { 
+            if (u.username) userMap[u.username] = u; 
+        });
+
+        // HTML render et
+        const listHtml = likes.map(username => {
+            const userData = userMap[username];
+            const avatar = getAvatarUrl(userData?.avatarUrl || userData?.avatar);
+            const name = userData?.displayName || username;
+            return `<div style="display:flex; align-items:center; gap:10px; padding:10px 0; border-bottom:1px solid var(--border); cursor:pointer;" onclick="window.location.href='profil.html?id=${encodeURIComponent(username)}'">
+                        <img src="${avatar}" style="width:40px;height:40px;border-radius:50%;object-fit:cover;">
+                        <div style="flex:1;">
+                            <div style="font-weight:700; font-size:0.9rem;">${name}</div>
+                            <div style="font-size:0.8rem;color:var(--text-muted)">@${username}</div>
+                        </div>
+                    </div>`;
+        }).join('');
+
+        document.getElementById('likers-list').innerHTML = listHtml;
+    } catch (e) {
+        console.error('openLikersModal error:', e);
+        document.getElementById('likers-list').innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-muted)">Yüklenemedi</div>';
+    }
+};
+
+// Likers modal'ı oluştur
+function createLikersModal() {
+    const modal = document.createElement('div');
+    modal.id = 'likers-modal';
+    modal.className = 'share-modal';
+    modal.style.cssText = 'display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:1000;align-items:center;justify-content:center;';
+    modal.innerHTML = `
+        <div class="share-modal-content">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                <h3 style="margin:0; font-weight:700; font-size:1.1rem;">Beğenenler</h3>
+                <button onclick="document.getElementById('likers-modal').style.display='none'" style="background:none; border:none; font-size:1.5rem; cursor:pointer; color:var(--text-muted);">✕</button>
+            </div>
+            <div id="likers-list" style="max-height:60vh; overflow-y:auto; min-width:350px;">
+                <div style="padding:20px;text-align:center;color:var(--text-muted)">Yükleniyor...</div>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+    modal.addEventListener('click', (e) => { 
+        if (e.target === modal) modal.style.display = 'none'; 
+    });
     return modal;
 }
 
