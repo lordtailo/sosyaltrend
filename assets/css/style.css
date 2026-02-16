@@ -873,3 +873,50 @@ aside, .right-panel { display: none; } }
 #friendRequestsList > div {
     animation: slideIn 0.3s ease;
 }
+
+/* MOBILE - Facebook-like adjustments */
+@media (max-width: 768px) {
+    /* Header smaller and more compact */
+    header { height: 56px; grid-template-columns: 1fr auto; padding: 0 12px; top: 32px; }
+    .header-center { display: none; } /* hide wide search */
+    .header-left { gap: 8px; }
+    .logo { font-size: 1.1rem; }
+
+    /* App container becomes single column and full width */
+    .app-container { grid-template-columns: 1fr; padding: 120px 12px 110px 12px; gap: 12px; }
+
+    /* Make cards full width and increase tap targets */
+    .glass-card, .post { padding: 14px; border-radius: 12px; }
+    .post { padding-bottom: 18px; }
+    .post img.user-avatar, .profile-trigger { width:48px; height:48px; }
+
+    /* Bigger toolbar buttons for touch */
+    .tool-btn { width: 44px; height: 44px; }
+
+    /* Right panel hidden on mobile */
+    .right-panel { display: none; }
+    aside { display: none; }
+
+    /* Floating compose button (like FB) */
+    .fab-compose { position: fixed; right: 18px; bottom: 82px; width: 56px; height: 56px; border-radius: 50%; background: var(--primary); color: #fff; display:flex; align-items:center; justify-content:center; box-shadow: 0 8px 24px rgba(0,0,0,0.18); z-index: 10020; cursor: pointer; }
+
+    /* Ensure no content is hidden behind bottom nav */
+    body { padding-bottom: 92px; }
+}
+
+/* Small devices - fixed bottom navigation like Facebook */
+@media (max-width: 480px) {
+    header { top: 28px; }
+    .top-bar { height: 28px; }
+
+    .mobile-bottom-nav { position: fixed; left: 0; right: 0; bottom: 0; height: 56px; background: var(--card-bg); border-top: 1px solid var(--border); display: flex; justify-content: space-around; align-items: center; z-index: 10050; }
+    .mobile-bottom-nav a { flex:1; text-align: center; padding: 8px 4px; color: var(--text-muted); font-size: 0.85rem; text-decoration: none; display: flex; flex-direction: column; align-items: center; gap:4px; }
+    .mobile-bottom-nav a.active { color: var(--primary); }
+    .mobile-bottom-nav i { font-size: 1.2rem; }
+
+    /* Reduce feed padding to feel like app */
+    .app-container { padding-bottom: 120px; }
+}
+
+/* Small utility for bottom nav icon badges */
+.nav-badge { background: #ef4444; color: #fff; border-radius: 999px; padding: 2px 6px; font-size: 0.7rem; font-weight:700; }

@@ -57,6 +57,9 @@ async function loadComponents() {
         });
     }
 }
+
+// Expose sendNotification for manual testing from console
+window.sendNotification = sendNotification;
 async function loadSuggestions() {
     const suggestionsContainer = document.getElementById('dynamic-suggestions-list');
     if (!suggestionsContainer) return;
@@ -90,37 +93,71 @@ async function loadSuggestions() {
             return;
         }
 
-        selectedUsers.forEach((user) => {
-    // 404 hatasını önlemek için: Resim yoksa isim baş harflerinden otomatik avatar oluşturur
-    const fallbackAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(user.displayName || 'User')}&background=random&color=fff`;
-    const userAvatar = user.avatar || fallbackAvatar;
+        // Eğer giriş yapan varsa, arkadaş/durum bilgilerini çek
+        let currentUserData = {};
+        if (auth.currentUser) {
+            try {
+                const curDoc = await getDoc(doc(db, "users", auth.currentUser.uid));
+                if (curDoc.exists()) currentUserData = curDoc.data();
+            } catch (e) {
+                console.warn('Kullanıcı verisi alınamadı:', e);
+            }
+        }
 
-    const userHtml = `
-        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
-            <div style="display: flex; align-items: center; gap: 10px; cursor: pointer;" 
-                 onclick="window.location.href='profil.html?uid=${user.id}'">
-                
-                <img src="${userAvatar}" 
-                     alt="${user.displayName || 'User'}"
-                     style="width: 38px; height: 38px; border-radius: 50%; border: 1.5px solid var(--primary); object-fit: cover;">
-                
-                <div style="max-width: 90px; overflow: hidden;">
-                    <div style="font-size: 0.8rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                        ${user.displayName || 'İsimsiz'}
+        const friends = currentUserData.friends || [];
+        const sentRequests = currentUserData.sentRequests || [];
+        const incomingRequests = currentUserData.friendRequests || [];
+
+        selectedUsers.forEach((user) => {
+                    const fallbackAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(user.displayName || 'User')}&background=random&color=fff`;
+                    const userAvatar = user.avatarUrl || user.avatar || fallbackAvatar;
+
+            const isFriend = friends.includes(user.id);
+            const isSent = sentRequests.some(r => r.toUid === user.id);
+            const isIncoming = incomingRequests.some(r => r.fromUid === user.id);
+
+            let btnLabel = 'Arkadaş Olarak Ekle';
+            let btnAttrs = 'style="background: var(--primary); color: white; border: none; padding: 6px 12px; border-radius: 15px; font-size: 0.7rem; font-weight: 700; cursor: pointer;"';
+            let btnOnclick = `onclick="sendFriendRequestToUid('${user.id}', '${user.username}')"`;
+
+            if (isFriend) {
+                btnLabel = 'Zaten Arkadaşsınız';
+                btnAttrs = 'disabled style="opacity:0.6; cursor:default; background:#94a3b8; color:#fff; border:none; padding:6px 12px; border-radius:15px; font-size:0.7rem; font-weight:700;"';
+                btnOnclick = '';
+            } else if (isSent) {
+                btnLabel = 'Arkadaşlık isteği gönderildi';
+                btnAttrs = 'disabled style="opacity:0.6; cursor:default; background:#94a3b8; color:#fff; border:none; padding:6px 12px; border-radius:15px; font-size:0.7rem; font-weight:700;"';
+                btnOnclick = '';
+            } else if (isIncoming) {
+                btnLabel = 'İstek Bekleniyor';
+                btnAttrs = 'disabled style="opacity:0.6; cursor:default; background:#94a3b8; color:#fff; border:none; padding:6px 12px; border-radius:15px; font-size:0.7rem; font-weight:700;"';
+                btnOnclick = '';
+            }
+
+            const userHtml = `
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                    <div style="display: flex; align-items: center; gap: 10px; cursor: pointer;" 
+                         onclick="window.location.href='profil.html?id=${encodeURIComponent(user.username)}'">
+                        <img src="${userAvatar}" 
+                             alt="${user.displayName || 'User'}"
+                             style="width: 38px; height: 38px; border-radius: 50%; border: 1.5px solid var(--primary); object-fit: cover;">
+                        <div style="max-width: 90px; overflow: hidden;">
+                            <div style="font-size: 0.8rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                ${user.displayName || 'İsimsiz'}
+                            </div>
+                            <div style="font-size: 0.7rem; color: var(--text-muted);">
+                                @${user.username || 'user'}
+                            </div>
+                        </div>
                     </div>
-                    <div style="font-size: 0.7rem; color: var(--text-muted);">
-                        @${user.username || 'user'}
-                    </div>
+                    <button id="addFriendBtn_sugg_${user.id}" ${btnOnclick} ${btnAttrs}>
+                        ${btnLabel}
+                    </button>
                 </div>
-            </div>
-            <button onclick="followUser('${user.id}')" 
-                    style="background: var(--primary); color: white; border: none; padding: 6px 12px; border-radius: 15px; font-size: 0.7rem; font-weight: 700; cursor: pointer;">
-                Takip Et
-            </button>
-        </div>
-    `;
-    suggestionsContainer.insertAdjacentHTML('beforeend', userHtml);
-});
+            `;
+
+            suggestionsContainer.insertAdjacentHTML('beforeend', userHtml);
+        });
     } catch (error) {
         console.error("Öneriler yüklenirken hata:", error);
         suggestionsContainer.innerHTML = '<div style="font-size:0.7rem; color:red;">Kullanıcılar yüklenemedi.</div>';
@@ -138,6 +175,74 @@ document.addEventListener('DOMContentLoaded', loadComponents);
     messagingSenderId: "207734473261",
     appId: "1:207734473261:web:f31b6bf2908c6d88986ea4"
   };
+
+// Hızlı UID ile arkadaş isteği gönderme (suggestions içinden çağrılır)
+async function sendFriendRequestToUid(targetUid, targetUsername) {
+    console.log('sendFriendRequestToUid called ->', { targetUid, targetUsername, currentUid: auth.currentUser?.uid });
+    if (!auth.currentUser) {
+        alert('Lütfen giriş yapın');
+        return;
+    }
+
+    try {
+        const currentUserRef = doc(db, "users", auth.currentUser.uid);
+        const targetUserRef = doc(db, "users", targetUid);
+
+        const targetDoc = await getDoc(targetUserRef);
+        if (!targetDoc.exists()) {
+            alert('Kullanıcı bulunamadı');
+            return;
+        }
+
+        const friendRequest = {
+    fromUid: auth.currentUser.uid,
+    fromUsername: user.username,
+    fromName: user.displayName,
+    fromAvatar: user.avatarUrl,
+    timestamp: Date.now(), // serverTimestamp() yerine Date.now() kullanıldı
+    status: 'pending'
+};
+
+        await updateDoc(targetUserRef, { friendRequests: arrayUnion(friendRequest) }).catch(async (err) => {
+            if (err.code === 'not-found') {
+                await setDoc(targetUserRef, { friendRequests: [friendRequest] }, { merge: true });
+            }
+        });
+
+        // serverTimestamp() yerine Date.now() kullanarak hatayı çözüyoruz
+const requestData = { 
+    toUid: targetUid, 
+    toUsername: targetUsername, 
+    toName: (targetDoc.data().displayName || targetUsername), 
+    toAvatar: (targetDoc.data().avatarUrl || 'assets/img/strendsaydamv2.png'), 
+    timestamp: Date.now() // DEĞİŞİKLİK BURADA
+};
+
+await updateDoc(currentUserRef, { 
+    sentRequests: arrayUnion(requestData) 
+}).catch(async (err) => {
+    if (err.code === 'not-found') {
+        await setDoc(currentUserRef, { 
+            sentRequests: [requestData] // Burada da Date.now() içeren objeyi kullandık
+        }, { merge: true });
+    }
+});
+
+        // UI: butonu güncelle
+        const btn = document.getElementById('addFriendBtn_sugg_' + targetUid);
+        if (btn) {
+            btn.innerHTML = '<i class="fa-solid fa-hourglass-end"></i> Arkadaşlık isteği gönderildi';
+            btn.disabled = true;
+            btn.style.opacity = '0.6';
+            btn.style.cursor = 'default';
+            btn.onclick = (e) => e.preventDefault();
+        }
+
+    } catch (err) {
+        console.error('Hızlı arkadaş isteği gönderme hatası:', err);
+        alert('İstek gönderilemedi: ' + err.message);
+    }
+}
 
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
@@ -215,13 +320,8 @@ onAuthStateChanged(auth, async (fbUser) => {
                     localStorage.setItem('st_displayName', userData.displayName);
                     updateUIWithUser();
                 }
-                // Arkadaş isteklerini güncelle
-                if (userData.friendRequests && userData.friendRequests.length > 0) {
-                    loadFriendRequests(userData.friendRequests);
-                    updateNotificationBadge(userData.friendRequests.length);
-                } else {
-                    updateNotificationBadge(0);
-                }
+                // Bildirimleri (arkadaş istekleri + diğer bildirimler) güncelle
+                loadNotifications(userData);
             }
         });
         
@@ -1092,7 +1192,32 @@ function formatTime(timestamp) {
 
 /* --- SEARCH SON --- */
     
-  window.likePost = async (id, isLiked) => { const ref = doc(db, "posts", id); await updateDoc(ref, { likes: isLiked ? arrayRemove(user.username) : arrayUnion(user.username) }); };
+window.likePost = async (id, isLiked) => {
+    try {
+        const ref = doc(db, "posts", id);
+        // önce gönderiyi oku (sahibi için bildirim göndermek üzere)
+        const snap = await getDoc(ref);
+        if (!snap.exists()) return;
+        const post = snap.data();
+
+        const addingLike = !isLiked;
+        await updateDoc(ref, { likes: addingLike ? arrayUnion(user.username) : arrayRemove(user.username) });
+
+        // Eğer beğenen kişi gönderi sahibi değilse ve beğenme ekleniyorsa bildirim gönder
+        if (addingLike && post.username && post.username !== user.username) {
+            // hedef kullanıcının UID'sini al
+            const uQuery = query(collection(db, "users"), where("username", "==", post.username), limit(1));
+            const uSnap = await getDocs(uQuery);
+            if (!uSnap.empty) {
+                const recipientUid = uSnap.docs[0].id;
+                console.log('likePost -> sending notification to', recipientUid, 'postId:', id);
+                await sendNotification(recipientUid, 'post_like', user.displayName, { postId: id });
+            }
+        }
+    } catch (e) {
+        console.error('likePost hatası:', e);
+    }
+};
   window.toggleBookmark = async (id, isSaved) => { const ref = doc(db, "posts", id); await updateDoc(ref, { savedBy: isSaved ? arrayRemove(user.username) : arrayUnion(user.username) }); };
   window.toggleCommentSection = (id) => { const el = document.getElementById(`comments-${id}`); if(el) el.style.display = el.style.display === 'none' ? 'block' : 'none'; };
   
@@ -1100,17 +1225,38 @@ function formatTime(timestamp) {
       const input = document.getElementById(`input-${id}`);
       const text = input.value.trim();
       if(!text) return;
-      await updateDoc(doc(db, "posts", id), {
-          comments: arrayUnion({ 
-              username: user.username, 
-              displayName: user.displayName, 
-              avatarUrl: user.avatarUrl, 
-              text: text, 
+      try {
+          const postRef = doc(db, "posts", id);
+          const commentObj = {
+              username: user.username,
+              displayName: user.displayName,
+              avatarUrl: user.avatarUrl,
+              text: text,
               time: Date.now(),
               replies: []
-          })
-      });
-      input.value = "";
+          };
+
+          await updateDoc(postRef, { comments: arrayUnion(commentObj) });
+
+          // Bildirim: gönderi sahibi farklıysa bildir
+          const postSnap = await getDoc(postRef);
+          if (postSnap.exists()) {
+              const postData = postSnap.data();
+              if (postData.username && postData.username !== user.username) {
+                  const uQuery = query(collection(db, "users"), where("username", "==", postData.username), limit(1));
+                  const uSnap = await getDocs(uQuery);
+                  if (!uSnap.empty) {
+                      const recipientUid = uSnap.docs[0].id;
+                      console.log('addComment -> sending notification to', recipientUid, 'postId:', id, 'comment:', text.slice(0,50));
+                      await sendNotification(recipientUid, 'post_comment', user.displayName, { postId: id, commentText: text });
+                  }
+              }
+          }
+
+          input.value = "";
+      } catch (e) {
+          console.error('addComment hatası:', e);
+      }
   };
 
 window.addReply = async (postId, commentTime) => {
@@ -1223,7 +1369,7 @@ onSnapshot(query(collection(db, "posts"), orderBy("timestamp", "desc")), (snap) 
     </div>
 ` : "";
 
-const postHtml = `
+        const postHtmlBase = `
     <div class="glass-card post" style="${p.username === 'official_system' ? 'border: 2px solid var(--primary); background: rgba(99, 102, 241, 0.05);' : ''}; position: relative;">
         <div style="position: absolute; top: 15px; right: 15px; display: flex; gap: 8px;">
              ${(isMine || user.isAdmin) ? `
@@ -1313,11 +1459,30 @@ const postHtml = `
               </div>
         </div>
     </div>`;
-          if(feed) feed.innerHTML += postHtml;
-          if(p.username === user.username && myPosts) myPosts.innerHTML += postHtml;
-          if(isLiked && myLikes) myLikes.innerHTML += postHtml;
-          if(isSaved && bookItems) bookItems.innerHTML += postHtml;
+          // Feed'e eklenen posta HTML'e benzersiz id ekleyelim (hash ile yönlendirme için)
+          const postHtmlForFeed = postHtmlBase.replace('<div class="glass-card post"', `<div id="post-${d.id}" class="glass-card post"`);
+
+          if(feed) feed.innerHTML += postHtmlForFeed;
+          if(p.username === user.username && myPosts) myPosts.innerHTML += postHtmlBase;
+          if(isLiked && myLikes) myLikes.innerHTML += postHtmlBase;
+          if(isSaved && bookItems) bookItems.innerHTML += postHtmlBase;
       });
+      // Feed render tamamlandıktan sonra varsa hash ile yönlendirmeyi gerçekleştir
+      try {
+          setTimeout(() => {
+              const h = window.location.hash || '';
+              if (h.startsWith('#post-')) {
+                  const target = document.getElementById(h.slice(1));
+                  if (target) {
+                      target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                      // Yorumlar alanını açmayı dene
+                      const postId = h.replace('#post-', '');
+                      const commentsEl = document.getElementById(`comments-${postId}`);
+                      if (commentsEl) commentsEl.style.display = 'block';
+                  }
+              }
+          }, 300);
+      } catch (e) { console.warn('Hash scroll hata:', e); }
   });
 
   const shareBtn = document.getElementById('shareBtn');
@@ -1530,6 +1695,8 @@ async function loadVisitorProfile() {
                 console.log("Arkadaş butonu güncelleniyor...");
                 addFriendBtn.style.display = 'inline-block';
                 await updateAddFriendButton(visitorUid);
+                // Doğrudan UID ile hızlı gönderim için onclick'i UID tabanlı fonksiyona bağla
+                addFriendBtn.onclick = () => sendFriendRequestToUid(visitorUid, visitedUsername);
             }
         } else {
             console.log("Arkadaş butonu güncellenemedi - visitorUid:", visitorUid, "currentUser:", auth.currentUser?.uid);
@@ -1956,6 +2123,7 @@ document.addEventListener('click', (e) => {
 // ====== ARKADAŞ SİSTEMİ ======
 // Arkadaş isteği gönder - DÜZELTİLDİ
 async function sendFriendRequest() {
+    console.log('sendFriendRequest called, params:', location.search, 'visiting_username:', localStorage.getItem('visiting_username'));
     if (!auth.currentUser) {
         alert('Lütfen giriş yapın');
         return;
@@ -2030,7 +2198,7 @@ async function sendFriendRequest() {
         // UI Güncelleme - Kullanıcı Deneyimi (UX)
         const addFriendBtn = document.getElementById('addFriendBtn');
         if (addFriendBtn) {
-            addFriendBtn.innerHTML = '<i class="fa-solid fa-hourglass-end"></i> İstek Gönderildi';
+            addFriendBtn.innerHTML = '<i class="fa-solid fa-hourglass-end"></i> Arkadaşlık isteği gönderildi';
             addFriendBtn.disabled = true;
             addFriendBtn.style.opacity = '0.6';
             addFriendBtn.style.cursor = 'default';
@@ -2071,7 +2239,7 @@ async function acceptFriendRequest(requesterUid, requesterUsername) {
         });
 
         // Onay bildirimini gönder
-        await sendNotification(requesterUid, 'accepted', user.displayName);
+        await sendNotification(requesterUid, 'friend_accepted', user.displayName);
         
         // UI'da istek kartını kaldır
         const requestCard = document.getElementById(`friend-request-${requesterUid}`);
@@ -2121,7 +2289,7 @@ async function rejectFriendRequest(requesterUid, requesterUsername) {
         }
 
         // Reddetme bildirimini gönder
-        await sendNotification(requesterUid, 'rejected', user.displayName);
+        await sendNotification(requesterUid, 'friend_rejected', user.displayName);
         
         // UI'da istek kartını kaldır
         const requestCard = document.getElementById(`friend-request-${requesterUid}`);
@@ -2139,25 +2307,29 @@ async function rejectFriendRequest(requesterUid, requesterUsername) {
 }
 
 // Bildirim gönder
-async function sendNotification(recipientUid, action, fromName) {
+async function sendNotification(recipientUid, type, fromName, extra = {}) {
     try {
         const recipientRef = doc(db, "users", recipientUid);
         const notification = {
-            type: 'friend_' + action,
+            type: type,
             fromName: fromName,
-            fromUid: auth.currentUser.uid,
-            timestamp: serverTimestamp()
+            fromUid: auth.currentUser ? auth.currentUser.uid : null,
+            timestamp: Date.now(),
+            ...extra
         };
 
+        console.log('sendNotification -> writing notification for', recipientUid, notification);
         await updateDoc(recipientRef, {
             notifications: arrayUnion(notification)
         }).catch(async (err) => {
-            if (err.code === 'not-found') {
+            console.warn('updateDoc notifications failed, attempting setDoc:', err?.code || err);
+            if (err && err.code === 'not-found') {
                 await setDoc(recipientRef, {
                     notifications: [notification]
                 }, { merge: true });
             }
         });
+        console.log('Bildirim eklendi ->', recipientUid, notification);
     } catch (error) {
         console.error("Bildirim gönderme hatası:", error);
     }
@@ -2334,6 +2506,123 @@ async function loadFriendRequests(requests) {
     checkIfNoRequests();
 }
 
+// Birleştirilmiş bildirim yükleyici: arkadaş istekleri + diğer bildirimler
+async function loadNotifications(userData) {
+    const requestsList = document.getElementById('friendRequestsList');
+    const noNotificationsMsg = document.getElementById('noNotificationsMsg');
+
+    // Eğer header partial hâlâ yüklenmediyse, birkaç kez dene (header fetch asenkron olabilir)
+    if (!requestsList) {
+        window._notifRetryCount = (window._notifRetryCount || 0) + 1;
+        if (window._notifRetryCount <= 10) {
+            console.log('loadNotifications: friendRequestsList bulunamadı, yeniden deneniyor...', window._notifRetryCount);
+            setTimeout(() => loadNotifications(userData), 300);
+            return;
+        } else {
+            console.warn('loadNotifications: friendRequestsList bulunamadı - sınır aşıldı.');
+            return;
+        }
+    }
+
+    const friendRequests = Array.isArray(userData.friendRequests) ? userData.friendRequests : [];
+    const otherNotifs = Array.isArray(userData.notifications) ? userData.notifications : [];
+
+    const unreadOther = otherNotifs.filter(n => !n.read).length;
+    const totalCount = friendRequests.length + unreadOther;
+    console.log('loadNotifications - friendRequests:', friendRequests.length, 'otherNotifs:', otherNotifs.length, 'unreadOther:', unreadOther);
+    updateNotificationBadge(totalCount);
+
+    if (totalCount === 0) {
+        requestsList.innerHTML = '';
+        if (noNotificationsMsg) noNotificationsMsg.style.display = 'flex';
+        return;
+    }
+
+    if (noNotificationsMsg) noNotificationsMsg.style.display = 'none';
+    requestsList.innerHTML = '';
+
+    // Önce arkadaş isteklerini göster (onay/reddet butonlu)
+    for (const request of friendRequests) {
+        const requestDiv = document.createElement('div');
+        requestDiv.id = `friend-request-${request.fromUid}`;
+        requestDiv.style.cssText = `padding:12px; margin:8px 12px; border-radius:8px; background:var(--input-bg); border:1px solid var(--border); display:flex; align-items:center; gap:10px; transition:all 0.3s ease; animation: slideIn 0.3s ease;`;
+
+        requestDiv.innerHTML = `
+            <img src="${request.fromAvatar || 'assets/img/strendsaydamv2.png'}" style="width:40px; height:40px; border-radius:50%; object-fit:cover; border:2px solid var(--primary);">
+            <div style="flex:1; min-width:0;">
+                <p style="margin:0; font-size:0.85rem; font-weight:600;">${request.fromName}</p>
+                <p style="margin:3px 0 0 0; font-size:0.75rem; color:var(--text-muted);">@${request.fromUsername}</p>
+                <p style="margin:3px 0 0 0; font-size:0.7rem; color:var(--text-muted); font-style:italic;">Arkadaş isteği gönderdi</p>
+            </div>
+            <div style="display:flex; gap:6px; justify-content:flex-end;">
+                <button onclick="acceptFriendRequest('${request.fromUid}', '${request.fromUsername}')" style="background:linear-gradient(135deg,var(--primary),#4f46e5); color:white; border:none; padding:7px 12px; border-radius:6px; cursor:pointer; font-size:0.75rem; font-weight:600;"><i class="fa-solid fa-check"></i> Onayla</button>
+                <button onclick="rejectFriendRequest('${request.fromUid}', '${request.fromUsername}')" style="background:linear-gradient(135deg,#ef4444,#dc2626); color:white; border:none; padding:7px 12px; border-radius:6px; cursor:pointer; font-size:0.75rem; font-weight:600;"><i class="fa-solid fa-x"></i> Reddet</button>
+            </div>
+        `;
+
+        requestDiv.addEventListener('mouseenter', () => { requestDiv.style.boxShadow = 'var(--shadow)'; requestDiv.style.transform = 'translateY(-2px)'; });
+        requestDiv.addEventListener('mouseleave', () => { requestDiv.style.boxShadow = 'none'; requestDiv.style.transform = 'translateY(0)'; });
+
+        requestsList.appendChild(requestDiv);
+    }
+
+    // Diğer bildirimleri göster
+    for (const n of otherNotifs) {
+        const nDiv = document.createElement('div');
+        nDiv.style.cssText = `padding:12px; margin:8px 12px; border-radius:8px; background:var(--input-bg); border:1px solid var(--border); display:flex; align-items:center; gap:10px; transition:all 0.2s ease;`;
+
+        if (n.read) {
+            nDiv.style.opacity = '0.6';
+        }
+
+        let icon = 'fa-info-circle';
+        let text = '';
+
+        if (n.type?.includes('friend_')) {
+            if (n.type === 'friend_accepted') text = `${n.fromName} arkadaşlık isteğinizi kabul etti`;
+            else if (n.type === 'friend_rejected') text = `${n.fromName} arkadaşlık isteğinizi reddetti`;
+            else text = `${n.fromName} ile ilgili bir arkadaş bildirimi`;
+            icon = 'fa-user-check';
+        } else if (n.type === 'like' || n.type === 'post_like') {
+            text = `${n.fromName} gönderinizi beğendi`;
+            icon = 'fa-heart';
+        } else if (n.type === 'comment' || n.type === 'post_comment') {
+            text = `${n.fromName} gönderinize yorum yaptı`;
+            icon = 'fa-comment';
+        } else if (n.type === 'message' || n.type === 'msg') {
+            text = `${n.fromName} size mesaj gönderdi`;
+            icon = 'fa-message';
+        } else {
+            text = n.message || `${n.fromName || 'Birileri'} bir bildirim gönderdi`;
+        }
+
+        nDiv.innerHTML = `
+            <i class="fa-solid ${icon}" style="font-size:1.1rem; width:34px; text-align:center; color:var(--primary);"></i>
+            <div style="flex:1; min-width:0;">
+                <p style="margin:0; font-size:0.85rem; font-weight:600;">${n.fromName || 'Sistem'}</p>
+                <p style="margin:3px 0 0 0; font-size:0.75rem; color:var(--text-muted);">${text}</p>
+            </div>
+        `;
+
+        nDiv.addEventListener('mouseenter', () => { nDiv.style.boxShadow = 'var(--shadow)'; nDiv.style.transform = 'translateY(-2px)'; });
+        nDiv.addEventListener('mouseleave', () => { nDiv.style.boxShadow = 'none'; nDiv.style.transform = 'translateY(0)'; });
+
+        // Eğer bildirim bir gönderiye aitse, tıklanabilir yap ve ilgili gönderiye git
+        if (n.postId) {
+            nDiv.style.cursor = 'pointer';
+            nDiv.onclick = () => {
+                // Önce dropdown'u kapat
+                const dropdown = document.getElementById('notificationsDropdown');
+                if (dropdown) dropdown.style.display = 'none';
+                // Git
+                window.location.href = `index.html#post-${n.postId}`;
+            };
+        }
+
+        requestsList.appendChild(nDiv);
+    }
+}
+
 // Hiç arkadaş isteği kalmamışsa mesaj göster
 function checkIfNoRequests() {
     const requestsList = document.getElementById('friendRequestsList');
@@ -2344,6 +2633,152 @@ function checkIfNoRequests() {
         noNotificationsMsg.style.display = hasRequests ? 'none' : 'flex';
     }
 }
+
+// Yardımcı: iki bildirimin aynı olup olmadığını anlamak için normalize edilmiş zaman karşılaştırması
+function _normalizeTs(ts) {
+    if (!ts) return null;
+    if (typeof ts === 'number') return ts;
+    if (ts && typeof ts.toMillis === 'function') return ts.toMillis();
+    if (ts && ts.seconds) return (ts.seconds * 1000) + Math.floor((ts.nanoseconds || 0) / 1000000);
+    return null;
+}
+
+function _isSameNotification(a, b) {
+    if (!a || !b) return false;
+    const ta = _normalizeTs(a.timestamp);
+    const tb = _normalizeTs(b.timestamp);
+    return a.type === b.type && (a.fromUid || null) === (b.fromUid || null) && ta === tb && JSON.stringify(a.extra || a.postId || a.commentText || {}) === JSON.stringify(b.extra || b.postId || b.commentText || {});
+}
+
+// Profil sayfasındaki bildirimleri yükle
+async function loadProfileNotifications() {
+    const list = document.getElementById('profile-notifications-list');
+    const noMsg = document.getElementById('profile-no-notifs');
+    if (!list) return;
+
+    try {
+        if (!auth.currentUser) {
+            list.innerHTML = '<div style="color:var(--text-muted);">Giriş yapın</div>';
+            return;
+        }
+
+        const userRef = doc(db, 'users', auth.currentUser.uid);
+        const userSnap = await getDoc(userRef);
+        const allNotifs = (userSnap.exists() && Array.isArray(userSnap.data().notifications)) ? userSnap.data().notifications : [];
+
+        list.innerHTML = '';
+        if (allNotifs.length === 0) {
+            noMsg.style.display = 'block';
+            return;
+        }
+        noMsg.style.display = 'none';
+
+        for (const n of allNotifs.slice().reverse()) {
+            const nDiv = document.createElement('div');
+            nDiv.style.cssText = 'padding:12px; border-radius:8px; background:var(--input-bg); border:1px solid var(--border); display:flex; gap:10px; align-items:center;';
+
+            const icon = (n.type && n.type.includes('like')) ? 'fa-heart' : (n.type && n.type.includes('comment') ? 'fa-comment' : (n.type && n.type.includes('friend') ? 'fa-user' : 'fa-info-circle'));
+            const text = (n.type === 'post_like' || n.type === 'like') ? `${n.fromName} gönderinizi beğendi` : (n.type === 'post_comment' || n.type === 'comment') ? `${n.fromName} gönderinize yorum yaptı` : (n.type === 'friend_accepted' ? `${n.fromName} arkadaş oldu` : (n.type === 'friend_rejected' ? `${n.fromName} isteğinizi reddetti` : (n.message || 'Yeni bildirim')));
+
+            nDiv.innerHTML = `
+                <i class="fa-solid ${icon}" style="font-size:1.1rem; width:34px; text-align:center; color:var(--primary);"></i>
+                <div style="flex:1; min-width:0;">
+                    <div style="font-weight:700; font-size:0.9rem;">${n.fromName || 'Sistem'}</div>
+                    <div style="font-size:0.8rem; color:var(--text-muted);">${text}</div>
+                </div>
+            `;
+
+            const controls = document.createElement('div');
+            controls.style.display = 'flex';
+            controls.style.gap = '6px';
+
+            if (!n.read) {
+                const okBtn = document.createElement('button');
+                okBtn.className = 'form-btn';
+                okBtn.style.background = 'var(--primary)';
+                okBtn.style.padding = '6px 10px';
+                okBtn.style.borderRadius = '8px';
+                okBtn.style.fontSize = '0.8rem';
+                okBtn.style.cursor = 'pointer';
+                okBtn.innerText = 'Okundu';
+                okBtn.onclick = () => markNotificationRead(n);
+                controls.appendChild(okBtn);
+            } else {
+                const seen = document.createElement('div');
+                seen.style.fontSize = '0.8rem';
+                seen.style.color = 'var(--text-muted)';
+                seen.innerText = 'Okundu';
+                controls.appendChild(seen);
+            }
+
+            // Eğer gönderi id'si varsa, hızlıca git butonu ekle
+            if (n.postId) {
+                const goto = document.createElement('button');
+                goto.className = 'form-btn';
+                goto.style.background = 'transparent';
+                goto.style.border = '1px solid var(--border)';
+                goto.style.padding = '6px 10px';
+                goto.style.borderRadius = '8px';
+                goto.style.fontSize = '0.8rem';
+                goto.style.cursor = 'pointer';
+                goto.innerText = 'Gönderiye Git';
+                goto.onclick = () => { window.location.href = `index.html#post-${n.postId}`; };
+                controls.appendChild(goto);
+            }
+
+            nDiv.appendChild(controls);
+            list.appendChild(nDiv);
+        }
+
+    } catch (e) {
+        console.error('loadProfileNotifications hatası:', e);
+    }
+}
+
+// Tek bir bildirimi okundu yap
+async function markNotificationRead(targetNotif) {
+    if (!auth.currentUser) return;
+    try {
+        const userRef = doc(db, 'users', auth.currentUser.uid);
+        const userSnap = await getDoc(userRef);
+        if (!userSnap.exists()) return;
+        const notifs = Array.isArray(userSnap.data().notifications) ? userSnap.data().notifications : [];
+
+        const updated = notifs.map(n => {
+            if (_isSameNotification(n, targetNotif)) {
+                return { ...n, read: true };
+            }
+            return n;
+        });
+
+        await updateDoc(userRef, { notifications: updated });
+        // UI will refresh via onSnapshot listener
+    } catch (e) {
+        console.error('markNotificationRead hata:', e);
+    }
+}
+
+// Tüm bildirimleri okundu yap
+async function markAllNotificationsRead() {
+    if (!auth.currentUser) return;
+    try {
+        const userRef = doc(db, 'users', auth.currentUser.uid);
+        const userSnap = await getDoc(userRef);
+        if (!userSnap.exists()) return;
+        const notifs = Array.isArray(userSnap.data().notifications) ? userSnap.data().notifications : [];
+        if (notifs.length === 0) return;
+
+        const updated = notifs.map(n => ({ ...n, read: true }));
+        await updateDoc(userRef, { notifications: updated });
+        // UI will refresh via onSnapshot
+    } catch (e) {
+        console.error('markAllNotificationsRead hata:', e);
+    }
+}
+
+window.loadProfileNotifications = loadProfileNotifications;
+window.markNotificationRead = markNotificationRead;
+window.markAllNotificationsRead = markAllNotificationsRead;
 
 // Fonksiyonu window nesnesine bağlayarak HTML'den erişilebilir yapıyoruz
 window.toggleNotifications = function() {
@@ -2416,7 +2851,7 @@ async function updateAddFriendButton(targetUid) {
         }
         // İstek gönderdik mi?
         else if (sentRequests.some(req => req.toUid === targetUid)) {
-            addFriendBtn.innerHTML = '<i class="fa-solid fa-hourglass-end"></i> İstek Gönderildi';
+            addFriendBtn.innerHTML = '<i class="fa-solid fa-hourglass-end"></i> Arkadaşlık isteği gönderildi';
             addFriendBtn.disabled = true;
             addFriendBtn.style.opacity = '0.6';
             addFriendBtn.style.cursor = 'default';
@@ -2464,3 +2899,6 @@ function handleProfileAction() {
     window.location.href = `mesajlar.html?start=${viewedUserId}`;
   }
 }
+
+// Expose to global scope so inline onclick handlers work from module script
+window.sendFriendRequestToUid = sendFriendRequestToUid;

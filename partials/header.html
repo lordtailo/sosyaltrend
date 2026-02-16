@@ -23,17 +23,19 @@
   <span id="notificationBadge" style="display:none; position:absolute; top:2px; right:2px; background:#ef4444; width:8px; height:8px; border-radius:50%; border: 2px solid var(--header-bg);"></span>
 </button>
       
-<div id="notificationsDropdown" style="display:none; position:absolute; top:45px; right:0; background:var(--card-bg); border:1px solid var(--border); border-radius:12px; width:340px; max-height:450px; overflow:hidden; z-index:1000; box-shadow:0 10px 30px rgba(0,0,0,0.2); flex-direction:column;">        <div style="padding:15px; border-bottom:1px solid var(--border); background:linear-gradient(135deg, var(--primary), #8b5cf6); color:white; border-radius:12px 12px 0 0; flex-shrink:0;">
-          <h4 style="margin:0; font-size:0.95rem; font-weight:700; display:flex; align-items:center; gap:8px;">
-            <i class="fa-solid fa-bell"></i>
-            Arkadaş İstekleri
-            <span id="requestCountBadge" style="background:rgba(255,255,255,0.3); padding:2px 8px; border-radius:12px; font-size:0.8rem; font-weight:600; margin-left:auto;">0</span>
-          </h4>
+<div id="notificationsDropdown" style="display:none; position:absolute; top:45px; right:0; background:var(--card-bg); border:1px solid var(--border); border-radius:12px; width:340px; max-height:450px; overflow:hidden; z-index:1000; box-shadow:0 10px 30px rgba(0,0,0,0.2); flex-direction:column;">
+        <div style="padding:12px 15px; border-bottom:1px solid var(--border); background:linear-gradient(135deg, var(--primary), #8b5cf6); color:white; border-radius:12px 12px 0 0; flex-shrink:0; display:flex; align-items:center; gap:10px;">
+          <i class="fa-solid fa-bell"></i>
+          <h4 style="margin:0; font-size:0.95rem; font-weight:700; display:inline-block;">Bildirim Kutusu</h4>
+          <span id="requestCountBadge" style="background:rgba(255,255,255,0.3); padding:2px 8px; border-radius:12px; font-size:0.8rem; font-weight:600; margin-left:8px;">0</span>
+          <div style="margin-left:auto;">
+            <button onclick="markAllNotificationsRead()" style="background: rgba(255,255,255,0.18); color: white; border: none; padding:6px 10px; border-radius:8px; font-size:0.8rem; cursor:pointer; font-weight:700;">Hepsini Okundu Yap</button>
+          </div>
         </div>
         <div id="friendRequestsList" style="flex:1; overflow-y:auto;"></div>
         <div id="noNotificationsMsg" style="padding:30px 20px; text-align:center; color:var(--text-muted); font-size:0.85rem; display:flex; flex-direction:column; align-items:center; justify-content:center;">
           <i class="fa-solid fa-inbox" style="font-size:2rem; margin-bottom:12px; opacity:0.5;"></i>
-          <p style="margin:0; font-weight:500;">Yeni arkadaş isteği yok</p>
+          <p style="margin:0; font-weight:500;">Yeni bildirim yok</p>
         </div>
       </div>
     </div>
@@ -56,3 +58,26 @@
     </div>
   </div>
 </header>
+<!-- Mobile bottom navigation (Facebook-like) -->
+<div class="mobile-bottom-nav" id="mobileBottomNav">
+  <a href="index.html" onclick="navigateTo('feed')" class="active">
+    <i class="fa-solid fa-house"></i>
+    <span>Ana</span>
+  </a>
+  <a href="profil.html" onclick="navigateTo('profil')">
+    <i class="fa-solid fa-user"></i>
+    <span>Profil</span>
+  </a>
+  <a href="mesajlar.html">
+    <i class="fa-solid fa-message"></i>
+    <span>Mesajlar</span>
+  </a>
+  <a href="#" onclick="toggleNotifications(); return false;">
+    <i class="fa-solid fa-bell"></i>
+    <span>Bildirimler</span>
+  </a>
+  <a href="#" onclick="document.getElementById('postInput')?.focus();">
+    <i class="fa-solid fa-plus" style="background:var(--primary); color:#fff; padding:6px; border-radius:8px;"></i>
+    <span>Paylaş</span>
+  </a>
+</div>

@@ -200,6 +200,7 @@
       <button class="tab-btn" onclick="openTab(event, 'my-likes-tab')"><i class="fa-solid fa-heart"></i> Beğendiklerim</button>
       <button class="tab-btn" onclick="openTab(event, 'my-saves-tab')"><i class="fa-solid fa-bookmark"></i> Kaydedilenler</button>
       <button class="tab-btn" onclick="openTab(event, 'my-friends-tab')"><i class="fa-solid fa-users"></i> Arkadaşlarım</button>
+      <button class="tab-btn" onclick="openTab(event, 'my-notifs-tab')"><i class="fa-solid fa-bell"></i> Bildirimler</button>
     </div>
 
     <div id="my-posts-tab" class="tab-content active"><div id="my-posts-list"></div></div>
@@ -216,6 +217,18 @@
         </div>
       </div>
     </div>
+    <div id="my-notifs-tab" class="tab-content">
+      <div class="glass-card" style="padding:20px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+          <h3 style="margin:0; font-size:0.95rem; font-weight:800;">Bildirimler</h3>
+          <div>
+            <button id="markAllNotifsBtn" onclick="markAllNotificationsRead()" style="background:var(--primary); color:#fff; border:none; padding:8px 12px; border-radius:8px; font-weight:700; cursor:pointer;">Tümünü Okundu Yap</button>
+          </div>
+        </div>
+        <div id="profile-notifications-list" style="display:flex; flex-direction:column; gap:10px; min-height:120px;"></div>
+        <div id="profile-no-notifs" style="text-align:center; color:var(--text-muted); padding:30px; display:none;">Henüz bildirim yok</div>
+      </div>
+    </div>
   </div>
 </main>
 
@@ -230,9 +243,9 @@
       <div id="dateDisplay" class="date-display"> ...</div>
     </div>
     <div class="glass-card" style="margin-top: 20px; padding: 15px;">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-        <h3 style="font-size: 0.95rem; margin: 0; font-weight: 800; color: var(--text-main);">✨ Kimi Takip Etmeli</h3>
-    </div>
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+    <h3 style="font-size: 0.95rem; margin: 0; font-weight: 800; color: var(--text-main);">✨ Arkadaş Olarak Ekle</h3>
+  </div>
     <div id="dynamic-suggestions-list" style="display: flex; flex-direction: column; gap: 12px;">
         <div style="font-size: 0.8rem; color: var(--text-muted); text-align: center;">Yükleniyor...</div>
     </div>
@@ -298,6 +311,12 @@ if (tabName === 'my-friends-tab') {
         }
     });
 }
+    // Bildirimler sekmesi açılırsa, profil bildirimlerini yükle
+    if (tabName === 'my-notifs-tab') {
+      requestAnimationFrame(() => {
+        if (window.loadProfileNotifications) setTimeout(() => window.loadProfileNotifications(), 0);
+      });
+    }
     }
 
     function openGalleryUpload(gridId) {
