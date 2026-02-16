@@ -985,24 +985,12 @@ window.navigateTo = (pageId) => {
       const btn = document.getElementById('btn-' + pageId);
       if(btn) btn.classList.add('active');
       
-      // Mobile bottom nav aktif durumunu güncelle
       const mobileNav = document.querySelectorAll('.mobile-bottom-nav a');
-      if(mobileNav) {
-          mobileNav.forEach(a => a.classList.remove('active'));
-          // Sayfaya göre aktif linki belirle
-          let mobileTarget = pageId;
-          if(pageId === 'profil') mobileTarget = 'profil';
-          else if(pageId === 'feed') mobileTarget = 'feed';
-          else if(pageId === 'messages') mobileTarget = 'messages';
-          
-          const activeMobileLink = Array.from(mobileNav).find(a => {
-              if(mobileTarget === 'feed') return a.getAttribute('href') === 'index.html';
-              if(mobileTarget === 'profil') return a.getAttribute('href') === 'profil.html';
-              if(mobileTarget === 'messages') return a.getAttribute('href') === 'mesajlar.html';
-              return false;
-          });
-          if(activeMobileLink) activeMobileLink.classList.add('active');
-      }
+const pageMap = { feed: 'index.html', profil: 'profil.html', messages: 'mesajlar.html' };
+
+mobileNav.forEach(a => {
+    a.classList.toggle('active', a.getAttribute('href') === pageMap[pageId]);
+});
       
       window.scrollTo(0,0);
 };
