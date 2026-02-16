@@ -24,6 +24,9 @@ body {
     flex-direction: column; 
 }
 
+/* Prevent horizontal overflow on mobile */
+html, body { overflow-x: hidden; }
+
 /* DARK MODE */
 body.dark-mode {
   --bg:#0f172a;
@@ -243,6 +246,7 @@ header::after {
     .app-container { 
         grid-template-columns: 1fr; 
         padding-top: 120px; /* Mobilde biraz daha az boşluk */
+        padding-left: 12px; padding-right: 12px;
     }
 }
 
@@ -902,6 +906,10 @@ aside, .right-panel { display: none; } }
 
     /* Ensure no content is hidden behind bottom nav */
     body { padding-bottom: 92px; }
+
+    /* Images and cards shouldn't exceed container width */
+    img { max-width: 100%; height: auto; }
+    .glass-card { max-width: 100%; box-sizing: border-box; }
 }
 
 /* Small devices - fixed bottom navigation like Facebook */
@@ -910,7 +918,7 @@ aside, .right-panel { display: none; } }
     .top-bar { height: 28px; }
 
     .mobile-bottom-nav { position: fixed; left: 0; right: 0; bottom: 0; height: 56px; background: var(--card-bg); border-top: 1px solid var(--border); display: flex; justify-content: space-around; align-items: center; z-index: 10050; }
-    .mobile-bottom-nav a { flex:1; text-align: center; padding: 8px 4px; color: var(--text-muted); font-size: 0.85rem; text-decoration: none; display: flex; flex-direction: column; align-items: center; gap:4px; }
+    .mobile-bottom-nav a { flex:1; text-align: center; padding: 6px 4px; color: var(--text-muted); font-size: 0.75rem; text-decoration: none; display: flex; flex-direction: column; align-items: center; gap:4px; overflow: hidden; }
     .mobile-bottom-nav a.active { color: var(--primary); }
     .mobile-bottom-nav i { font-size: 1.2rem; }
 
@@ -920,3 +928,12 @@ aside, .right-panel { display: none; } }
 
 /* Small utility for bottom nav icon badges */
 .nav-badge { background: #ef4444; color: #fff; border-radius: 999px; padding: 2px 6px; font-size: 0.7rem; font-weight:700; }
+
+/* Mobile share button - more prominent */
+.mobile-share-btn { flex: 1.2; }
+.mobile-share-btn:active i { transform: scale(0.95); }
+
+/* Notifications dropdown positioned safely on mobile */
+@media (max-width: 480px) {
+  #notificationsDropdown { width: calc(100vw - 24px); max-width: calc(100vw - 24px); left: 12px; right: auto; max-height: calc(100vh - 120px); }
+}
