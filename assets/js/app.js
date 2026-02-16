@@ -78,6 +78,9 @@ function removeRequestCard(uid) {
             handleFileSelect(this);
         });
     }
+    
+    // Paylaş modalını önceden oluştur
+    createShareModal();
 }
 
 // Expose sendNotification for manual testing from console
@@ -784,7 +787,6 @@ window.clearImagePreview = () => {
       menuSettings: "Ayarlar",
       menuTitle: "Sosyal Menü",
       navFeed: "Anasayfa",
-      navPages: "Topluluk Sayfaları",
       navBookmarks: "Kaydedilenler",
       navBookmarkss: "Kaydettiklerinizi bu sayfa altına topladık, buradan takip edebilir veya kaydettiklerinizi kaldırabilirsiniz.",
       navSubs: "Beğendiklerim",
@@ -793,12 +795,7 @@ window.clearImagePreview = () => {
       searchHeading: "Arama Sonuçları",
       postPlaceholder: "Neler oluyor?",
       shareBtn: "Paylaş",
-      pagesHeading: "Topluluk Sayfaları",
-      pagesSub: "Yeni topluluklar kur ve insanlarla etkileşime geç.",
-      newPagePlaceholder: "Yeni sayfa adı...",
-      createBtn: "Oluştur",
       editProfileBtn: "Profili Düzenle",
-      trendPagesTitle: "🔥 Trend Sayfalar",
       footerTagline: "Topluluğunuzla her zaman bir adım önde olun.",
       footerMenu: "Hızlı Menü",
       footerCorp: "Kurumsal",
@@ -834,19 +831,13 @@ window.clearImagePreview = () => {
       menuSettings: "Settings",
       menuTitle: "Menu",
       navFeed: "Feed",
-      navPages: "Pages",
       navBookmarks: "Bookmarks",
       navSubs: "Liked Posts",
       navSearch: "Search",
       searchHeading: "Search Results",
       postPlaceholder: "What's happening?",
       shareBtn: "Post",
-      pagesHeading: "Community Pages",
-      pagesSub: "Build new communities and engage with people.",
-      newPagePlaceholder: "New page name...",
-      createBtn: "Create",
       editProfileBtn: "Edit Profile",
-      trendPagesTitle: "🔥 Trending Pages",
       footerTagline: "Always stay ahead with your community.",
       footerMenu: "Quick Menu",
       footerCorp: "Corporate",
@@ -1052,9 +1043,7 @@ window.performGlobalSearch = async (forcedQuery = null) => {
     }
 
     // Element Seçimleri
-    const pagesContainer = document.getElementById('search-results-pages');
     const usersContainer = document.getElementById('search-results-users');
-    const secPages = document.getElementById('section-pages');
     const secUsers = document.getElementById('section-users');
     const noResults = document.getElementById('search-no-results');
     const status = document.getElementById('searchStatus');
@@ -1062,9 +1051,7 @@ window.performGlobalSearch = async (forcedQuery = null) => {
     const t = translations[currentLang] || { subBtn: "Takip Et", unsubBtn: "Takibi Bırak" };
 
     // Arayüz Sıfırlama
-    if(pagesContainer) pagesContainer.innerHTML = "";
     if(usersContainer) usersContainer.innerHTML = "";
-    if(secPages) secPages.style.display = "none";
     if(secUsers) secUsers.style.display = "none";
     if(noResults) noResults.style.display = "none";
     if(resultText) resultText.innerText = `"${queryStr}" için sonuçlar`;
@@ -1299,7 +1286,19 @@ window.deletePost = async (id) => { if(confirm(translations[currentLang].confirm
 /* Pages feature removed */
 
 /* GÖNDERİ AYARLARI */
-onSnapshot(query(collection(db, "posts"), orderBy("timestamp", "desc")), (snap) => {
+let showAllFeedPosts = false;
+let currentPostsUnsubscribe = null;
+
+window.loadPostsFeed = (showAll = false) => {
+  if (showAll) showAllFeedPosts = true;
+  if (currentPostsUnsubscribe) currentPostsUnsubscribe();
+  
+  const queryConstraints = [orderBy("timestamp", "desc")];
+  if (!showAllFeedPosts) {
+    queryConstraints.push(limit(7));
+  }
+  
+  currentPostsUnsubscribe = onSnapshot(query(collection(db, "posts"), ...queryConstraints), (snap) => {
       const feed = document.getElementById('feed-items'), 
             myPosts = document.getElementById('my-posts-list'), 
             myLikes = document.getElementById('my-liked-list'), 
@@ -1311,6 +1310,7 @@ onSnapshot(query(collection(db, "posts"), orderBy("timestamp", "desc")), (snap) 
       if(bookItems) bookItems.innerHTML = ""; 
       if(myLikes) myLikes.innerHTML = "";
 
+      let feedPostCount = 0;
       snap.forEach(d => {
           const p = d.data(), 
                 isPage = p.username?.startsWith('page_') || p.username === 'official_system', 
@@ -1387,6 +1387,7 @@ onSnapshot(query(collection(db, "posts"), orderBy("timestamp", "desc")), (snap) 
               <button class="tool-btn" onclick="likePost('${d.id}', ${isLiked})" style="gap:5px; color:${isLiked ? '#ef4444' : ''}"><i class="${isLiked ? 'fa-solid' : 'fa-regular'} fa-heart"></i><span>${p.likes?.length || 0}</span></button>
               <button class="tool-btn" onclick="toggleCommentSection('${d.id}')" style="gap:5px;"><i class="fa-regular fa-comment"></i><span>${p.comments?.length || 0}</span></button>
               <button class="tool-btn" onclick="toggleBookmark('${d.id}', ${isSaved})" style="color:${isSaved ? '#f59e0b' : ''}"><i class="${isSaved ? 'fa-solid' : 'fa-regular'} fa-bookmark"></i></button>
+              <button class="tool-btn" onclick="window.openShareMenu('${d.id}')" style="gap:5px; margin-left:auto;"><i class="fa-solid fa-share"></i></button>
         </div>
         
         <div id="comments-${d.id}" class="comment-area" style="display:none;">
@@ -1452,7 +1453,35 @@ onSnapshot(query(collection(db, "posts"), orderBy("timestamp", "desc")), (snap) 
           if(p.username === user.username && myPosts) myPosts.innerHTML += postHtmlBase;
           if(isLiked && myLikes) myLikes.innerHTML += postHtmlBase;
           if(isSaved && bookItems) bookItems.innerHTML += postHtmlBase;
+          feedPostCount++;
       });
+
+      // Diğer Gönderiler Butonu
+      if (feed && feedPostCount >= 7) {
+        const morePostsBtn = document.createElement('div');
+        morePostsBtn.style.cssText = `
+          text-align: center;
+          padding: 20px;
+          margin-top: 15px;
+        `;
+        morePostsBtn.innerHTML = `
+          <button onclick="window.loadPostsFeed(true);" style="
+            background: linear-gradient(135deg, var(--primary), #8b5cf6);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 50px;
+            font-weight: 700;
+            cursor: pointer;
+            font-size: 0.95rem;
+            transition: all 0.3s ease;
+          " onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+            <i class="fa-solid fa-ellipsis"></i> Diğer Gönderiler
+          </button>
+        `;
+        feed.appendChild(morePostsBtn);
+      }
+      
       // Feed render tamamlandıktan sonra varsa hash ile yönlendirmeyi gerçekleştir
       try {
           setTimeout(() => {
@@ -1470,6 +1499,9 @@ onSnapshot(query(collection(db, "posts"), orderBy("timestamp", "desc")), (snap) 
           }, 300);
       } catch (e) { console.warn('Hash scroll hata:', e); }
   });
+};
+
+loadPostsFeed();
 
   const shareBtn = document.getElementById('shareBtn');
   if(shareBtn) {
@@ -2543,16 +2575,13 @@ async function loadNotifications(userData) {
         requestsList.appendChild(requestDiv);
     }
 
-    // Diğer bildirimleri göster — sadece son 8 tanesini göster
+    // Diğer bildirimleri göster — sadece okunmamış ve son 8 tanesini göster
     const maxNotifications = 8;
-    const recentNotifs = otherNotifs.slice(-maxNotifications);
+    const unreadNotifs = otherNotifs.filter(n => !n.read);
+    const recentNotifs = unreadNotifs.slice(-maxNotifications);
     for (const n of recentNotifs) {
         const nDiv = document.createElement('div');
         nDiv.style.cssText = `padding:12px; margin:8px 12px; border-radius:8px; background:var(--input-bg); border:1px solid var(--border); display:flex; gap:10px; cursor:pointer; transition:all 0.2s ease;`;
-
-        if (n.read) {
-            nDiv.style.opacity = '0.6';
-        }
 
         let icon = 'fa-info-circle';
         let text = '';
@@ -2598,6 +2627,14 @@ async function loadNotifications(userData) {
             e.stopPropagation();
             if (!n.read) {
                 await markNotificationRead(n);
+                // Dropdown'u yenile (okunmuş bildirimi çıkar)
+                if (auth.currentUser) {
+                    const userRef = doc(db, 'users', auth.currentUser.uid);
+                    const userSnap = await getDoc(userRef);
+                    if (userSnap.exists()) {
+                        loadNotifications(userSnap.data());
+                    }
+                }
             }
             // Eğer gönderi id'si varsa git
             if (n.postId) {
@@ -2611,10 +2648,10 @@ async function loadNotifications(userData) {
     }
 
     // Eğer daha fazla bildirim varsa "Tümünü Göster" butonu ekle
-    if (otherNotifs.length > maxNotifications) {
+    if (unreadNotifs.length > maxNotifications) {
         const showAllBtn = document.createElement('div');
         showAllBtn.style.cssText = `padding:12px 15px; text-align:center; border-top:1px solid var(--border); cursor:pointer; color:var(--primary); font-weight:700; font-size:0.85rem; transition:0.2s;`;
-        showAllBtn.innerText = `Tümünü Göster (${otherNotifs.length - maxNotifications} daha)`;
+        showAllBtn.innerText = `Tümünü Göster (${unreadNotifs.length - maxNotifications} daha)`;
         showAllBtn.onmouseenter = () => { showAllBtn.style.background = 'var(--input-bg)'; };
         showAllBtn.onmouseleave = () => { showAllBtn.style.background = 'none'; };
         showAllBtn.onclick = () => {
@@ -2624,6 +2661,25 @@ async function loadNotifications(userData) {
         };
         requestsList.appendChild(showAllBtn);
     }
+
+    // Hepsini Okundu Yap butonu (gönderilerin altında)
+    const markAllBtn = document.createElement('div');
+    markAllBtn.style.cssText = `padding:12px 15px; text-align:center; border-top:1px solid var(--border); cursor:pointer; background:linear-gradient(135deg, var(--primary), #8b5cf6); color:white; font-weight:700; font-size:0.85rem; transition:all 0.2s; flex-shrink:0;`;
+    markAllBtn.innerHTML = '<i class="fa-solid fa-check-double"></i> Hepsini Okundu Yap';
+    markAllBtn.onmouseenter = () => { markAllBtn.style.opacity = '0.8'; };
+    markAllBtn.onmouseleave = () => { markAllBtn.style.opacity = '1'; };
+    markAllBtn.onclick = async () => {
+        await markAllNotificationsRead();
+        // Bildirimleri yenile
+        if (auth.currentUser) {
+            const userRef = doc(db, 'users', auth.currentUser.uid);
+            const userSnap = await getDoc(userRef);
+            if (userSnap.exists()) {
+                loadNotifications(userSnap.data());
+            }
+        }
+    };
+    requestsList.appendChild(markAllBtn);
 }
 
 // Hiç arkadaş isteği kalmamışsa mesaj göster
@@ -2823,6 +2879,15 @@ window.toggleNotifications = function() {
         // Mevcut durumu kontrol et ve tersine çevir
         if (dropdown.style.display === 'none' || dropdown.style.display === '') {
             dropdown.style.display = 'block';
+            // Dropdown açılırken bildirimleri yenile (okunmuş olanlar kaybolur)
+            if (auth.currentUser) {
+                const userRef = doc(db, 'users', auth.currentUser.uid);
+                getDoc(userRef).then(userSnap => {
+                    if (userSnap.exists()) {
+                        loadNotifications(userSnap.data());
+                    }
+                });
+            }
         } else {
             dropdown.style.display = 'none';
         }
@@ -2934,6 +2999,97 @@ function handleProfileAction() {
     // BAŞKASININ PROFİLİNDEYSE: Mesajlar sayfasına o kullanıcının ID'sini parametre olarak gönder
     window.location.href = `mesajlar.html?start=${viewedUserId}`;
   }
+}
+
+// Paylaş Menüsü
+window.openShareMenu = function(postId) {
+    const modal = document.getElementById('share-modal') || createShareModal();
+    modal.style.display = 'flex';
+    
+    // Paylaş seçeneklerini güncelle
+    const baseUrl = window.location.href.split('#')[0];
+    const shareUrl = `${baseUrl}#${postId}`;
+    const shareText = 'SosyaLTrend\'te bir gönderi gördüm. Sana da göstermek istiyorum!';
+    
+    try {
+        document.getElementById('share-whatsapp').onclick = function() {
+            const text = encodeURIComponent(`${shareText}\n${shareUrl}`);
+            window.open(`https://wa.me/?text=${text}`, '_blank');
+            modal.style.display = 'none';
+        };
+        
+        document.getElementById('share-twitter').onclick = function() {
+            const text = encodeURIComponent(shareText);
+            window.open(`https://twitter.com/intent/tweet?text=${text}&url=${encodeURIComponent(shareUrl)}`, '_blank');
+            modal.style.display = 'none';
+        };
+        
+        document.getElementById('share-facebook').onclick = function() {
+            window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`, '_blank');
+            modal.style.display = 'none';
+        };
+        
+        document.getElementById('share-copy-link').onclick = function() {
+            navigator.clipboard.writeText(shareUrl).then(() => {
+                alert('Bağlantı kopyalandı!');
+                modal.style.display = 'none';
+            }).catch(() => {
+                alert('Kopyalanamadı, lütfen elle kopyala: ' + shareUrl);
+            });
+        };
+        
+        document.getElementById('share-copy-embed').onclick = function() {
+            const embedCode = `<iframe src="${shareUrl}" width="100%" height="400" frameborder="0" style="border-radius: 12px;"></iframe>`;
+            navigator.clipboard.writeText(embedCode).then(() => {
+                alert('Embed kodu kopyalandı!');
+                modal.style.display = 'none';
+            }).catch(() => {
+                alert('Kopyalanamadı');
+            });
+        };
+    } catch(e) {
+        console.error('Share menu hata:', e);
+    }
+};
+
+function createShareModal() {
+    const modal = document.createElement('div');
+    modal.id = 'share-modal';
+    modal.className = 'share-modal';
+    modal.innerHTML = `
+        <div class="share-modal-content">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                <h3 style="margin:0; font-weight:700;">Gönderiyi Paylaş</h3>
+                <button onclick="document.getElementById('share-modal').style.display='none'" style="background:none; border:none; font-size:1.5rem; cursor:pointer; color:var(--text-muted);">✕</button>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:10px;">
+                <button id="share-whatsapp" class="share-option" style="background:rgba(37,211,102,0.1); color:#25d366; border:1px solid #25d366;">
+                    <i class="fa-brands fa-whatsapp"></i> WhatsApp'de Paylaş
+                </button>
+                <button id="share-twitter" class="share-option" style="background:rgba(29,155,240,0.1); color:#1d9bf0; border:1px solid #1d9bf0;">
+                    <i class="fa-brands fa-twitter"></i> Twitter'da Paylaş
+                </button>
+                <button id="share-facebook" class="share-option" style="background:rgba(59,89,152,0.1); color:#3b5998; border:1px solid #3b5998;">
+                    <i class="fa-brands fa-facebook"></i> Facebook'da Paylaş
+                </button>
+                <button id="share-copy-link" class="share-option" style="background:var(--input-bg); color:var(--text);">
+                    <i class="fa-solid fa-link"></i> Bağlantıyı Kopyala
+                </button>
+                <button id="share-copy-embed" class="share-option" style="background:var(--input-bg); color:var(--text);">
+                    <i class="fa-solid fa-code"></i> Embed Kodunu Kopyala
+                </button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+    
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            modal.style.display = 'none';
+        }
+    });
+    
+    return modal;
 }
 
 // Expose to global scope so inline onclick handlers work from module script

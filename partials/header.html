@@ -24,13 +24,15 @@
 </button>
       
 <div id="notificationsDropdown" style="display:none; position:absolute; top:45px; right:0; background:var(--card-bg); border:1px solid var(--border); border-radius:12px; width:340px; max-height:450px; overflow:hidden; z-index:1000; box-shadow:0 10px 30px rgba(0,0,0,0.2); flex-direction:column;">
-        <div style="padding:12px 15px; border-bottom:1px solid var(--border); background:linear-gradient(135deg, var(--primary), #8b5cf6); color:white; border-radius:12px 12px 0 0; flex-shrink:0; display:flex; align-items:center; gap:10px;">
-          <i class="fa-solid fa-bell"></i>
-          <h4 style="margin:0; font-size:0.95rem; font-weight:700; display:inline-block;">Bildirim Kutusu</h4>
-          <span id="requestCountBadge" style="background:rgba(255,255,255,0.3); padding:2px 8px; border-radius:12px; font-size:0.8rem; font-weight:600; margin-left:8px;">0</span>
-          <div style="margin-left:auto;">
-            <button onclick="markAllNotificationsRead()" style="background: rgba(255,255,255,0.18); color: white; border: none; padding:6px 10px; border-radius:8px; font-size:0.8rem; cursor:pointer; font-weight:700;">Hepsini Okundu Yap</button>
+        <div style="padding:12px 15px; border-bottom:1px solid var(--border); background:linear-gradient(135deg, var(--primary), #8b5cf6); color:white; border-radius:12px 12px 0 0; flex-shrink:0; display:flex; align-items:center; gap:10px; justify-content:space-between;">
+          <div style="display:flex; align-items:center; gap:10px; flex:1;">
+            <i class="fa-solid fa-bell"></i>
+            <h4 style="margin:0; font-size:0.95rem; font-weight:700; display:inline-block;">Bildirim Kutusu</h4>
+            <span id="requestCountBadge" style="background:rgba(255,255,255,0.3); padding:2px 8px; border-radius:12px; font-size:0.8rem; font-weight:600;">0</span>
           </div>
+          <button onclick="window.location.href='profil.html#my-notifs-tab'" style="background: rgba(255,255,255,0.18); color: white; border: none; padding:6px 10px; border-radius:8px; font-size:0.75rem; cursor:pointer; font-weight:700; white-space:nowrap; transition: all 0.2s ease;" onmouseover="this.style.background='rgba(255,255,255,0.25)'" onmouseout="this.style.background='rgba(255,255,255,0.18)';">
+            <i class="fa-solid fa-arrow-right"></i> Bildirimlerime Git
+          </button>
         </div>
         <div id="friendRequestsList" style="flex:1; overflow-y:auto;"></div>
         <div id="noNotificationsMsg" style="padding:30px 20px; text-align:center; color:var(--text-muted); font-size:0.85rem; display:flex; flex-direction:column; align-items:center; justify-content:center;">
@@ -75,9 +77,5 @@
   <a href="#" onclick="toggleNotifications(); return false;">
     <i class="fa-solid fa-bell"></i>
     <span>Bildirimler</span>
-  </a>
-  <a href="mesajlar.html">
-    <i class="fa-solid fa-message"></i>
-    <span>Mesajlar</span>
   </a>
 </div>
