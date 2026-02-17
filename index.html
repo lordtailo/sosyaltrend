@@ -18,31 +18,27 @@
         text-align: center;
         box-shadow: 0 4px 15px rgba(0,0,0,0.2);
         font-family: inherit;
-        position: relative;
     }
     .timer-title { font-weight: 800; font-size: 1.1rem; text-transform: uppercase; margin-bottom: 5px; }
     .location-info { font-size: 0.85rem; margin-bottom: 12px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 5px; }
     
-    .ramadan-timer { display: flex; justify-content: center; gap: 12px; margin-bottom: 15px; }
+    .ramadan-timer { display: flex; justify-content: center; gap: 10px; margin-bottom: 15px; }
     .timer-item { display: flex; flex-direction: column; align-items: center; }
     .timer-value { 
-        font-size: 1.5rem; font-weight: 800; background: rgba(255,255,255,0.2); 
-        padding: 5px 10px; border-radius: 8px; min-width: 45px; backdrop-filter: blur(5px);
+        font-size: 1.4rem; font-weight: 800; background: rgba(255,255,255,0.2); 
+        padding: 5px 8px; border-radius: 8px; min-width: 42px; backdrop-filter: blur(5px);
     }
-    .timer-label { font-size: 0.65rem; text-transform: uppercase; margin-top: 4px; font-weight: 600; }
+    .timer-label { font-size: 0.6rem; text-transform: uppercase; margin-top: 4px; font-weight: 600; }
 
-    /* İmsakiye Butonu ve Seçici */
     .imsakiye-btn {
         background: rgba(255, 255, 255, 0.2);
         border: 1px solid rgba(255, 255, 255, 0.4);
         color: white;
-        padding: 6px 12px;
+        padding: 6px 15px;
         border-radius: 20px;
         font-size: 0.75rem;
         cursor: pointer;
         transition: 0.3s;
-        text-decoration: none;
-        display: inline-block;
     }
     .imsakiye-btn:hover { background: rgba(255, 255, 255, 0.4); }
 
@@ -55,8 +51,9 @@
         background: white;
         color: #333;
         font-size: 0.9rem;
-        width: 80%;
-        max-width: 200px;
+        width: 90%;
+        max-width: 250px;
+        cursor: pointer;
     }
 </style>
 </head>
@@ -112,23 +109,13 @@
         <div class="timer-item"><span class="timer-value" id="r-sec">00</span><span class="timer-label">Sn</span></div>
     </div>
 
-    <button class="imsakiye-btn" onclick="toggleCitySelector()">📍 Şehir Değiştir / İmsakiye</button>
+    <button class="imsakiye-btn" onclick="toggleCitySelector()">📍 Şehir Seç / İmsakiye</button>
     <br>
     <select id="city-selector" onchange="changeCity(this.value)">
-        <option value="Istanbul">İstanbul</option>
-        <option value="Ankara">Ankara</option>
-        <option value="Izmir">İzmir</option>
-        <option value="Bursa">Bursa</option>
-        <option value="Antalya">Antalya</option>
-        <option value="Adana">Adana</option>
-        <option value="Konya">Konya</option>
-        <option value="Gaziantep">Gaziantep</option>
-        <option value="Samsun">Samsun</option>
-        <option value="Trabzon">Trabzon</option>
-        <option value="Erzurum">Erzurum</option>
-        <option value="Diyarbakir">Diyarbakır</option>
+        <option value="Adana">Adana</option><option value="Adiyaman">Adıyaman</option><option value="Afyonkarahisar">Afyonkarahisar</option><option value="Agri">Ağrı</option><option value="Aksaray">Aksaray</option><option value="Amasya">Amasya</option><option value="Ankara">Ankara</option><option value="Antalya">Antalya</option><option value="Ardahan">Ardahan</option><option value="Artvin">Artvin</option><option value="Aydin">Aydın</option><option value="Balikesir">Balıkesir</option><option value="Bartin">Bartın</option><option value="Batman">Batman</option><option value="Bayburt">Bayburt</option><option value="Bilecik">Bilecik</option><option value="Bingol">Bingöl</option><option value="Bitlis">Bitlis</option><option value="Bolu">Bolu</option><option value="Burdur">Burdur</option><option value="Bursa">Bursa</option><option value="Canakkale">Çanakkale</option><option value="Cankiri">Çankırı</option><option value="Corum">Çorum</option><option value="Denizli">Denizli</option><option value="Diyarbakir">Diyarbakır</option><option value="Duzce">Düzce</option><option value="Edirne">Edirne</option><option value="Elazig">Elazığ</option><option value="Erzincan">Erzincan</option><option value="Erzurum">Erzurum</option><option value="Eskisehir">Eskişehir</option><option value="Gaziantep">Gaziantep</option><option value="Giresun">Giresun</option><option value="Gumushane">Gümüşhane</option><option value="Hakkari">Hakkari</option><option value="Hatay">Hatay</option><option value="Igdir">Iğdır</option><option value="Isparta">Isparta</option><option value="Istanbul" selected>İstanbul</option><option value="Izmir">İzmir</option><option value="Kahramanmaras">Kahramanmaraş</option><option value="Karabuk">Karabük</option><option value="Karaman">Karaman</option><option value="Kars">Kars</option><option value="Kastamonu">Kastamonu</option><option value="Kayseri">Kayseri</option><option value="Kilis">Kilis</option><option value="Kirikkale">Kırıkkale</option><option value="Kirklareli">Kırklareli</option><option value="Kirsehir">Kırşehir</option><option value="Kocaeli">Kocaeli</option><option value="Konya">Konya</option><option value="Kutahya">Kütahya</option><option value="Malatya">Malatya</option><option value="Manisa">Manisa</option><option value="Mardin">Mardin</option><option value="Mersin">Mersin</option><option value="Mugla">Muğla</option><option value="Mus">Muş</option><option value="Nevsehir">Nevşehir</option><option value="Nigde">Niğde</option><option value="Ordu">Ordu</option><option value="Osmaniye">Osmaniye</option><option value="Rize">Rize</option><option value="Sakarya">Sakarya</option><option value="Samsun">Samsun</option><option value="Sanliurfa">Şanlıurfa</option><option value="Siirt">Siirt</option><option value="Sinop">Sinop</option><option value="Sirnak">Şırnak</option><option value="Sivas">Sivas</option><option value="Tekirdag">Tekirdağ</option><option value="Tokat">Tokat</option><option value="Trabzon">Trabzon</option><option value="Tunceli">Tunceli</option><option value="Usak">Uşak</option><option value="Van">Van</option><option value="Yalova">Yalova</option><option value="Yozgat">Yozgat</option><option value="Zonguldak">Zonguldak</option>
     </select>
 </div>
+
     <div id="page-feed" class="page-content active">
         <div class="glass-card">
             <div style="padding: 20px;">
@@ -217,10 +204,12 @@
         selector.style.display = selector.style.display === 'inline-block' ? 'none' : 'inline-block';
     }
 
-    async function changeCity(city) {
-        selectedCity = city;
-        document.getElementById("current-city-text").innerText = city;
-        document.getElementById('city-selector').style.display = 'none';
+    async function changeCity(cityValue) {
+        const selector = document.getElementById('city-selector');
+        const cityName = selector.options[selector.selectedIndex].text;
+        selectedCity = cityValue;
+        document.getElementById("current-city-text").innerText = cityName;
+        selector.style.display = 'none';
         await updateVakitler();
     }
 
@@ -276,11 +265,10 @@
                 document.getElementById("r-sec").innerText = s < 10 ? "0"+s : s;
             }, 1000);
         } catch (error) {
-            console.error("Vakitler alınamadı:", error);
+            console.error("Vakitler yüklenemedi.");
         }
     }
 
-    // İlk çalışma
     updateVakitler();
 </script>
 </body>
