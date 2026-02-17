@@ -2,12 +2,19 @@
 <html lang="tr">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>SosyaLTrend • Sosyal Ağ - Profiliniz</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="stylesheet" href="assets/css/style.css">
   <link rel="icon" type="image/x-icon" href="assets/img/strendsaydamv2.ico">
   <style>
+    /* Taşıma Sorunu İçin Genel Düzeltme */
+    html, body {
+        overflow-x: hidden;
+        width: 100%;
+        position: relative;
+    }
+
     /* Galeri ve Albüm Entegre Stilleri - Responsive Güncelleme */
     .album-container {
         margin-bottom: 25px;
@@ -15,6 +22,7 @@
         background: rgba(var(--primary-rgb, 99, 102, 241), 0.05);
         border-radius: 18px;
         border: 1px solid var(--border);
+        box-sizing: border-box;
     }
     .album-header {
         display: flex;
@@ -33,7 +41,7 @@
     }
     .gallery-grid {
         display: grid;
-        /* Mobil öncelikli: varsayılan 3 sütun, masaüstünde otomatik sığdırma */
+        /* Mobil öncelikli: varsayılan 3 sütun */
         grid-template-columns: repeat(3, 1fr);
         gap: 10px;
         min-height: 50px;
@@ -99,11 +107,20 @@
     @keyframes slideDown { from { opacity: 0; max-height: 0; } to { opacity: 1; max-height: 1000px; } }
     .section-subtitle { font-size: 1rem; font-weight: 700; color: var(--text-main); margin-bottom: 15px; }
     .form-label { display: block; font-size: 0.85rem; font-weight: 600; color: var(--text-main); margin-bottom: 8px; }
-    .form-input { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--input-bg); color: var(--text-main); outline: none; font-size: 0.9rem; }
+    .form-input { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--input-bg); color: var(--text-main); outline: none; font-size: 0.9rem; box-sizing: border-box; }
     .form-btn { background: var(--primary); color: white; border: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.3s; }
     .form-btn:hover { opacity: 0.9; }
     .admin-btn { background: var(--primary); color: white; border: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.3s; }
     .admin-btn:hover { opacity: 0.9; }
+
+    /* Uygulama Konteynırı Düzenlemesi */
+    .app-container {
+        display: flex;
+        width: 100%;
+        max-width: 100vw;
+        overflow-x: hidden;
+        box-sizing: border-box;
+    }
   </style>
 </head>
 <body>
@@ -134,9 +151,9 @@
     </div>
   </aside>
 
-  <main id="main-content">
+  <main id="main-content" style="max-width: 100%; overflow-x: hidden;">
   <div id="page-profile" class="page-content active">
-    <div class="glass-card" style="padding: 40px; text-align: center; position: relative;">
+    <div class="glass-card" style="padding: 40px 20px; text-align: center; position: relative; box-sizing: border-box;">
       <div id="selfPrivateIndicator" style="display:none; position:absolute; top:10px; right:10px; background:#fef2f2; color:#ef4444; padding:4px 12px; border-radius:20px; font-size:0.7rem; font-weight:700; border:1px solid #fecaca;">
         <i class="fa-solid fa-eye-slash"></i> Profiliniz Gizli
       </div>
@@ -210,7 +227,7 @@
     <div id="my-friends-tab" class="tab-content">
       <div class="glass-card" style="padding:20px;">
         <h3 style="margin-top:0; margin-bottom:20px;">Arkadaşlarım</h3>
-        <div id="friends-list" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(200px, 1fr)); gap:15px;"></div>
+        <div id="friends-list" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(150px, 1fr)); gap:15px;"></div>
         <div id="no-friends-msg" style="text-align:center; color:var(--text-muted); padding:40px 20px;">
           <i class="fa-solid fa-user-group" style="font-size:3rem; margin-bottom:10px; display:block;"></i>
           Henüz arkadaş yok
@@ -219,10 +236,10 @@
     </div>
     <div id="my-notifs-tab" class="tab-content">
       <div class="glass-card" style="padding:20px;">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap: wrap; gap: 10px;">
           <h3 style="margin:0; font-size:0.95rem; font-weight:800;">Bildirimler</h3>
           <div>
-            <button id="markAllNotifsBtn" onclick="markAllNotificationsRead()" style="background:var(--primary); color:#fff; border:none; padding:8px 12px; border-radius:8px; font-weight:700; cursor:pointer;">Tümünü Okundu Yap</button>
+            <button id="markAllNotifsBtn" onclick="markAllNotificationsRead()" style="background:var(--primary); color:#fff; border:none; padding:8px 12px; border-radius:8px; font-weight:700; cursor:pointer; font-size: 0.8rem;">Tümünü Okundu Yap</button>
           </div>
         </div>
         <div id="profile-notifications-list" style="display:flex; flex-direction:column; gap:10px; min-height:120px;"></div>
@@ -253,30 +270,28 @@
   </aside>
 </div>
 
-<div id="footer-placeholder"></div>  
-
 <div id="editModal" class="modal-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; align-items: center; justify-content: center;">
     <div class="glass-card" style="width: 90%; max-width: 500px; padding: 20px;">
         <div style="display: flex; justify-content: space-between; margin-bottom: 15px;">
             <h3 style="margin: 0;">Gönderiyi Düzenle</h3>
             <button onclick="closeEditModal()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-main);">&times;</button>
         </div>
-        <textarea id="editPostInput" style="width: 100%; min-height: 120px; border: 1px solid var(--border); border-radius: 8px; padding: 10px; background: transparent; color: var(--text-main); outline: none; resize: vertical;"></textarea>
+        <textarea id="editPostInput" style="width: 100%; min-height: 120px; border: 1px solid var(--border); border-radius: 8px; padding: 10px; background: transparent; color: var(--text-main); outline: none; resize: vertical; box-sizing: border-box;"></textarea>
         <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 15px;">
             <button onclick="closeEditModal()" style="padding: 8px 20px; border-radius: 20px; border: 1px solid var(--border); background: transparent; cursor: pointer;">İptal</button>
             <button id="saveEditBtn" style="padding: 8px 20px; border-radius: 20px; border: none; background: var(--primary); color: white; font-weight: bold; cursor: pointer;">Kaydet</button>
         </div>
     </div>
+</div>
+
 <div data-include="partials/footer.html"></div>
 <script src="assets/js/include.js"></script>
 <script>
     let currentTargetGrid = null;
-    // Kalıcı depolama verisini çek
     let galleryData = JSON.parse(localStorage.getItem('userGalleryData')) || {
         albums: [{ id: 'grid-default', name: 'Genel Galeri', photos: [] }]
     };
 
-    // Sayfa açıldığında galeriyi oluştur
     function openTab(evt, tabName) {
         var i, tabcontent, tablinks;
         tabcontent = document.getElementsByClassName("tab-content");
@@ -292,31 +307,24 @@
         document.getElementById(tabName).classList.add("active");
         evt.currentTarget.classList.add("active");
         
-        // Arkadaşlar sekmesi açılırsa
-if (tabName === 'my-friends-tab') {
-    // requestAnimationFrame, tarayıcının bir sonraki kareyi çizmeden hemen önce çalışır
-    requestAnimationFrame(() => {
-        // null/undefined kontrollerini tek bir blokta toplayalım
-        if (window.loadFriendsList && window.user && window.auth?.currentUser) {
-            const params = new URLSearchParams(location.search);
-            const visitedUsername = params.get('id');
-            
-            // Eğer kendi profilimizdeysek yükle
-            if (!visitedUsername || visitedUsername === window.user.username) {
-                // İşlemi çok kısa bir süre daha erteleyerek ana akışı rahatlatıyoruz
-                setTimeout(() => {
-                    window.loadFriendsList();
-                }, 0);
-            }
+        if (tabName === 'my-friends-tab') {
+            requestAnimationFrame(() => {
+                if (window.loadFriendsList && window.user && window.auth?.currentUser) {
+                    const params = new URLSearchParams(location.search);
+                    const visitedUsername = params.get('id');
+                    if (!visitedUsername || visitedUsername === window.user.username) {
+                        setTimeout(() => {
+                            window.loadFriendsList();
+                        }, 0);
+                    }
+                }
+            });
         }
-    });
-}
-    // Bildirimler sekmesi açılırsa, profil bildirimlerini yükle
-    if (tabName === 'my-notifs-tab') {
-      requestAnimationFrame(() => {
-        if (window.loadProfileNotifications) setTimeout(() => window.loadProfileNotifications(), 0);
-      });
-    }
+        if (tabName === 'my-notifs-tab') {
+          requestAnimationFrame(() => {
+            if (window.loadProfileNotifications) setTimeout(() => window.loadProfileNotifications(), 0);
+          });
+        }
     }
 
     function openGalleryUpload(gridId) {
@@ -342,7 +350,6 @@ if (tabName === 'my-friends-tab') {
 <script>
 window.handleProfileAction = function() {
     const urlParams = new URLSearchParams(window.location.search);
-    // Hem 'id' hem 'uid' hem de senin sistemindeki 'id'yi kontrol eder
     const targetId = urlParams.get('id') || urlParams.get('uid'); 
 
     if (!targetId) {
@@ -352,16 +359,13 @@ window.handleProfileAction = function() {
 
     const currentUser = (typeof auth !== 'undefined') ? auth.currentUser : null;
 
-    // Kendi profilin mi?
     if (currentUser && (targetId === currentUser.uid || targetId === currentUser.displayName)) {
         window.location.href = "mesajlar.html";
     } else {
-        // Hedef kullanıcıya yönlendir
         window.location.href = "mesajlar.html?start=" + encodeURIComponent(targetId);
     }
 };
 
-// Sayfa yüklendiğinde URL'de kullanıcı yoksa butonu pasif yap
 window.addEventListener('load', () => {
     const urlParams = new URLSearchParams(window.location.search);
     const targetId = urlParams.get('id') || urlParams.get('uid');
