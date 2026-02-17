@@ -1010,7 +1010,6 @@ aside, .right-panel { display: none; } }
 }
 
 /* Ramazan */
-<style>
     .ramadan-widget {
         background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d);
         border-radius: 15px;
@@ -1057,4 +1056,3 @@ aside, .right-panel { display: none; } }
     .imsakiye-table td { padding: 8px; border-bottom: 1px solid #eee; text-align: center; }
     .imsakiye-table tr:nth-child(even) { background: #fafafa; }
     .close-modal { position: absolute; top: 10px; right: 15px; font-size: 1.5rem; cursor: pointer; color: #333; font-weight: bold; }
-</style>
