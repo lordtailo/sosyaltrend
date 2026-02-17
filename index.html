@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="stylesheet" href="assets/css/style.css">
   <link rel="icon" type="image/x-icon" href="assets/img/strendsaydamv2.ico">
- <style>
+<style>
     .ramadan-widget {
         background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d);
         border-radius: 15px;
@@ -17,39 +17,17 @@
         color: white;
         text-align: center;
         box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-        font-family: inherit; /* Sitenin genel fontunu kullanır */
+        font-family: inherit;
     }
-    .timer-title {
-        font-weight: 800;
-        font-size: 1.1rem;
-        text-transform: uppercase;
-        letter-spacing: 1px;
+    .timer-title { font-weight: 800; font-size: 1.1rem; text-transform: uppercase; margin-bottom: 3px; text-shadow: 1px 1px 2px rgba(0,0,0,0.3); }
+    .location-info { font-size: 0.75rem; margin-bottom: 10px; opacity: 0.9; font-style: italic; }
+    .ramadan-timer { display: flex; justify-content: center; gap: 12px; }
+    .timer-item { display: flex; flex-direction: column; align-items: center; }
+    .timer-value { 
+        font-size: 1.5rem; font-weight: 800; background: rgba(255,255,255,0.2); 
+        padding: 5px 10px; border-radius: 8px; min-width: 45px; backdrop-filter: blur(5px);
     }
-    .ramadan-timer {
-        display: flex;
-        justify-content: center;
-        gap: 15px;
-        margin-top: 10px;
-    }
-    .timer-item {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-    }
-    .timer-value {
-        font-size: 1.5rem;
-        font-weight: 800;
-        background: rgba(255,255,255,0.2);
-        padding: 5px 10px;
-        border-radius: 8px;
-        min-width: 45px;
-    }
-    .timer-label {
-        font-size: 0.7rem;
-        text-transform: uppercase;
-        margin-top: 4px;
-        opacity: 0.9;
-    }
+    .timer-label { font-size: 0.65rem; text-transform: uppercase; margin-top: 4px; font-weight: 600; }
 </style>
 </head>
 <body>
@@ -92,12 +70,13 @@
 
  <main id="main-content">
 <div class="ramadan-widget">
-    <div id="timer-title" class="timer-title">🌙 Ramazan 2026'ya Kalan Süre</div>
+    <div id="status-title" class="timer-title">Vakitler Hesaplanıyor...</div>
+    <div id="location-text" class="location-info">📍 Konum alınıyor...</div>
     <div id="ramadan-countdown" class="ramadan-timer">
-        <div class="timer-item"><span class="timer-value" id="rd-day">00</span><span class="timer-label">Gün</span></div>
-        <div class="timer-item"><span class="timer-value" id="rd-hour">00</span><span class="timer-label">Saat</span></div>
-        <div class="timer-item"><span class="timer-value" id="rd-min">00</span><span class="timer-label">Dak</span></div>
-        <div class="timer-item"><span class="timer-value" id="rd-sec">00</span><span class="timer-label">Sn</span></div>
+        <div class="timer-item"><span class="timer-value" id="r-day">00</span><span class="timer-label">Gün</span></div>
+        <div class="timer-item"><span class="timer-value" id="r-hour">00</span><span class="timer-label">Saat</span></div>
+        <div class="timer-item"><span class="timer-value" id="r-min">00</span><span class="timer-label">Dak</span></div>
+        <div class="timer-item"><span class="timer-value" id="r-sec">00</span><span class="timer-label">Sn</span></div>
     </div>
 </div>
     <div id="page-feed" class="page-content active">
@@ -180,41 +159,89 @@
 
 <script type="module" src="assets/js/app.js"></script>
 <script>
-    function updateRamadanLogic() {
-        const now = new Date();
-        const ramadanStart = new Date("February 19, 2026 00:00:00");
-        // İftar vakti (Örn: İstanbul 18:49)
-        const iftarTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 18, 49, 0);
-        
-        let target;
-        if (now < ramadanStart) {
-            target = ramadanStart;
-            document.getElementById("timer-title").innerText = "🌙 Ramazan'a Kalan Süre";
-        } else {
-            target = iftarTime;
-            document.getElementById("timer-title").innerText = "🍲 İftara Kalan Süre";
-            
-            // Eğer iftar vakti geçtiyse bir sonraki güne kur veya mesaj ver
-            if (now > iftarTime) {
-                document.getElementById("ramadan-countdown").innerHTML = "<b>Hayırlı İftarlar!</b>";
-                return;
+    let userCity = "Istanbul";
+    let userCountry = "Turkey";
+
+    async function getVakitler() {
+        try {
+            // Konum izni alarak şehri bulmaya çalış
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(async (position) => {
+                    const lat = position.coords.latitude;
+                    const lon = position.coords.longitude;
+                    // Aladhan API ile koordinattan vakit ve şehir çekme
+                    const response = await fetch(`https://api.aladhan.com/v1/timingsByAddress?address=${lat},${lon}&method=13`); // Method 13 = Diyanet
+                    const data = await response.json();
+                    startCounter(data.data.timings, "Bulunduğunuz Konum");
+                }, () => {
+                    fetchDefaultVakitler(); // İzin verilmezse İstanbul
+                });
+            } else {
+                fetchDefaultVakitler();
             }
+        } catch (e) {
+            fetchDefaultVakitler();
         }
-
-        const diff = target - now;
-        const d = Math.floor(diff / (1000 * 60 * 60 * 24));
-        const h = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-        const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-        const s = Math.floor((diff % (1000 * 60)) / 1000);
-
-        document.getElementById("rd-day").innerText = d < 10 ? "0"+d : d;
-        document.getElementById("rd-hour").innerText = h < 10 ? "0"+h : h;
-        document.getElementById("rd-min").innerText = m < 10 ? "0"+m : m;
-        document.getElementById("rd-sec").innerText = s < 10 ? "0"+s : s;
     }
 
-    setInterval(updateRamadanLogic, 1000);
-    updateRamadanLogic();
+    async function fetchDefaultVakitler() {
+        const response = await fetch(`https://api.aladhan.com/v1/timingsByCity?city=Istanbul&country=Turkey&method=13`);
+        const data = await response.json();
+        startCounter(data.data.timings, "İstanbul");
+    }
+
+    function startCounter(timings, cityName) {
+        document.getElementById("location-text").innerText = `📍 ${cityName} Vakitleri`;
+        
+        setInterval(() => {
+            const now = new Date();
+            const ramadanStart = new Date("2026-02-19T00:00:00");
+            
+            let targetDate;
+            let title;
+
+            if (now < ramadanStart) {
+                targetDate = ramadanStart;
+                title = "🌙 Ramazan'a Kalan Süre";
+            } else {
+                // İmsak ve İftar saatlerini bugünün tarihine uyarla
+                const imsakParts = timings.Imsak.split(':');
+                const iftarParts = timings.Maghrib.split(':');
+                
+                const imsakToday = new Date();
+                imsakToday.setHours(imsakParts[0], imsakParts[1], 0);
+                
+                const iftarToday = new Date();
+                iftarToday.setHours(iftarParts[0], iftarParts[1], 0);
+
+                if (now < imsakToday) {
+                    targetDate = imsakToday;
+                    title = "⏳ Sahura Kalan Süre";
+                } else if (now < iftarToday) {
+                    targetDate = iftarToday;
+                    title = "🍲 İftara Kalan Süre";
+                } else {
+                    // İftar sonrası bir sonraki günün imsağına odaklan (basit mantık)
+                    targetDate = new Date(imsakToday.getTime() + 24 * 60 * 60 * 1000);
+                    title = "✨ Sahura Kalan (Yarın)";
+                }
+            }
+
+            const diff = targetDate - now;
+            const d = Math.floor(diff / (1000 * 60 * 60 * 24));
+            const h = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+            const s = Math.floor((diff % (1000 * 60)) / 1000);
+
+            document.getElementById("status-title").innerText = title;
+            document.getElementById("r-day").innerText = d < 10 ? "0"+d : d;
+            document.getElementById("r-hour").innerText = h < 10 ? "0"+h : h;
+            document.getElementById("r-min").innerText = m < 10 ? "0"+m : m;
+            document.getElementById("r-sec").innerText = s < 10 ? "0"+s : s;
+        }, 1000);
+    }
+
+    getVakitler();
 </script>
 </body>
 </html>
