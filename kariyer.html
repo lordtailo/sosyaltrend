@@ -7,6 +7,54 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="stylesheet" href="assets/css/style.css">
   <link rel="icon" type="image/x-icon" href="assets/img/strendsaydamv2.ico">
+  <style>
+    .ramadan-widget {
+        background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d);
+        border-radius: 15px;
+        padding: 15px;
+        margin-bottom: 20px;
+        color: white;
+        text-align: center;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        font-family: inherit;
+    }
+    .timer-title { font-weight: 800; font-size: 1.1rem; text-transform: uppercase; margin-bottom: 5px; }
+    .current-city-label { font-size: 0.8rem; opacity: 0.9; margin-bottom: 10px; display: block; }
+    
+    .ramadan-timer { display: flex; justify-content: center; gap: 10px; margin-bottom: 15px; }
+    .timer-item { display: flex; flex-direction: column; align-items: center; }
+    .timer-value { 
+        font-size: 1.4rem; font-weight: 800; background: rgba(255,255,255,0.2); 
+        padding: 5px 8px; border-radius: 8px; min-width: 42px; backdrop-filter: blur(5px);
+    }
+    .timer-label { font-size: 0.6rem; text-transform: uppercase; margin-top: 4px; font-weight: 600; }
+
+    .widget-actions { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; }
+    .w-select {
+        background: white; color: #333; border: none; padding: 6px 10px;
+        border-radius: 20px; font-size: 0.75rem; cursor: pointer; outline: none;
+    }
+    .w-btn {
+        background: rgba(255, 255, 255, 0.2); border: 1px solid rgba(255, 255, 255, 0.4);
+        color: white; padding: 6px 15px; border-radius: 20px; font-size: 0.75rem; cursor: pointer; transition: 0.3s;
+    }
+    .w-btn:hover { background: rgba(255, 255, 255, 0.4); }
+
+    /* İmsakiye Modal */
+    #imsakiye-modal {
+        display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.85); z-index: 9999; justify-content: center; align-items: center; padding: 15px;
+    }
+    .modal-content {
+        background: white; color: #333; width: 100%; max-width: 450px;
+        max-height: 85vh; border-radius: 15px; overflow-y: auto; padding: 20px; position: relative;
+    }
+    .imsakiye-table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 0.85rem; }
+    .imsakiye-table th { background: #f1f1f1; padding: 10px; border-bottom: 2px solid #ddd; position: sticky; top: 0; }
+    .imsakiye-table td { padding: 8px; border-bottom: 1px solid #eee; text-align: center; }
+    .imsakiye-table tr:nth-child(even) { background: #fafafa; }
+    .close-modal { position: absolute; top: 10px; right: 15px; font-size: 1.5rem; cursor: pointer; color: #333; font-weight: bold; }
+</style>
 </head>
 <style>
     /* Kariyer Sayfasına Özel Ek Stiller */
@@ -270,5 +318,110 @@
 </div>
 
 <script type="module" src="assets/js/app.js"></script>
+<script>
+    const cities = ["Adana","Adıyaman","Afyonkarahisar","Ağrı","Aksaray","Amasya","Ankara","Antalya","Ardahan","Artvin","Aydın","Balıkesir","Bartın","Batman","Bayburt","Bilecik","Bingöl","Bitlis","Bolu","Burdur","Bursa","Çanakkale","Çankırı","Çorum","Denizli","Diyarbakır","Düzce","Edirne","Elazığ","Erzincan","Erzurum","Eskişehir","Gaziantep","Giresun","Gümüşhane","Hakkari","Hatay","Iğdır","Isparta","İstanbul","İzmir","Kahramanmaraş","Karabük","Karaman","Kars","Kastamonu","Kayseri","Kilis","Kırıkkale","Kırklareli","Kırşehir","Kocaeli","Konya","Kütahya","Malatya","Manisa","Mardin","Mersin","Muğla","Muş","Nevşehir","Niğde","Ordu","Osmaniye","Rize","Sakarya","Samsun","Şanlıurfa","Siirt","Sinop","Şırnak","Sivas","Tekirdağ","Tokat","Trabzon","Tunceli","Uşak","Van","Yalova","Yozgat","Zonguldak"];
+    
+    let selectedCity = "Istanbul";
+    let timerInterval;
+
+    // Şehir listesini doldur
+    const select = document.getElementById('city-select');
+    cities.forEach(city => {
+        let opt = document.createElement('option');
+        // API için Türkçe karakterleri temizle
+        let val = city.replace(/İ/g, 'I').replace(/ı/g, 'i').replace(/Ğ/g, 'G').replace(/ğ/g, 'g').replace(/Ü/g, 'U').replace(/ü/g, 'u').replace(/Ş/g, 'S').replace(/ş/g, 's').replace(/Ö/g, 'O').replace(/ö/g, 'o').replace(/Ç/g, 'C').replace(/ç/g, 'c');
+        opt.value = val;
+        opt.innerHTML = city;
+        if(city === "İstanbul") opt.selected = true;
+        select.appendChild(opt);
+    });
+
+    async function changeCity(cityVal) {
+        selectedCity = cityVal;
+        document.getElementById("active-city-name").innerText = select.options[select.selectedIndex].text;
+        updateVakitler();
+    }
+
+    async function updateVakitler() {
+        try {
+            const res = await fetch(`https://api.aladhan.com/v1/timingsByCity?city=${selectedCity}&country=Turkey&method=13`);
+            const data = await res.json();
+            const timings = data.data.timings;
+            
+            if(timerInterval) clearInterval(timerInterval);
+            
+            timerInterval = setInterval(() => {
+                const now = new Date();
+                const ramadanStart = new Date("2026-02-19T00:00:00");
+                
+                let target;
+                let title;
+
+                if (now < ramadanStart) {
+                    target = ramadanStart;
+                    title = "🌙 Ramazan'a Kalan";
+                } else {
+                    const [iH, iM] = timings.Imsak.split(':');
+                    const [fH, fM] = timings.Maghrib.split(':');
+                    const imsakToday = new Date(); imsakToday.setHours(iH, iM, 0);
+                    const iftarToday = new Date(); iftarToday.setHours(fH, fM, 0);
+
+                    if (now < imsakToday) { target = imsakToday; title = "⏳ Sahura Kalan"; }
+                    else if (now < iftarToday) { target = iftarToday; title = "🍲 İftara Kalan"; }
+                    else { target = new Date(imsakToday.getTime() + 86400000); title = "✨ Sahura Kalan (Yarın)"; }
+                }
+
+                const diff = target - now;
+                document.getElementById("status-title").innerText = title;
+                document.getElementById("r-day").innerText = Math.floor(diff / 86400000).toString().padStart(2, '0');
+                document.getElementById("r-hour").innerText = Math.floor((diff / 3600000) % 24).toString().padStart(2, '0');
+                document.getElementById("r-min").innerText = Math.floor((diff / 60000) % 60).toString().padStart(2, '0');
+                document.getElementById("r-sec").innerText = Math.floor((diff / 1000) % 60).toString().padStart(2, '0');
+            }, 1000);
+        } catch(e) { console.error("Hata:", e); }
+    }
+
+    async function openImsakiye() {
+        const modal = document.getElementById("imsakiye-modal");
+        const tbody = document.getElementById("imsakiye-body");
+        document.getElementById("modal-city-title").innerText = select.options[select.selectedIndex].text + " İmsakiyesi";
+        tbody.innerHTML = "<tr><td colspan='4'>Yükleniyor...</td></tr>";
+        modal.style.display = "flex";
+
+        try {
+            // Şubat ve Mart 2026 verilerini çek (Ramazan her iki aya yayılıyor)
+            const res = await fetch(`https://api.aladhan.com/v1/calendarByCity/2026?city=${selectedCity}&country=Turkey&method=13`);
+            const data = await res.json();
+            
+            let html = "";
+            let ramadanDay = 1;
+            
+            // 19 Şubat'tan itibaren 30 gün dön
+            Object.keys(data.data).forEach(month => {
+                data.data[month].forEach(day => {
+                    const dateParts = day.date.gregorian.date.split('-'); // DD-MM-YYYY
+                    const dateObj = new Date(dateParts[2], dateParts[1]-1, dateParts[0]);
+                    const ramadanStart = new Date(2026, 1, 19); // 19 Şubat
+                    const ramadanEnd = new Date(2026, 2, 20); // 20 Mart (yaklaşık)
+
+                    if(dateObj >= ramadanStart && ramadanDay <= 30) {
+                        html += `<tr>
+                            <td>${ramadanDay}. Gün</td>
+                            <td>${day.date.gregorian.day} ${day.date.gregorian.month.en.substring(0,3)}</td>
+                            <td><b>${day.timings.Imsak.split(' ')[0]}</b></td>
+                            <td style="color:#b21f1f"><b>${day.timings.Maghrib.split(' ')[0]}</b></td>
+                        </tr>`;
+                        ramadanDay++;
+                    }
+                });
+            });
+            tbody.innerHTML = html;
+        } catch(e) { tbody.innerHTML = "<tr><td colspan='4'>Vakitler alınamadı.</td></tr>"; }
+    }
+
+    function closeImsakiye() { document.getElementById("imsakiye-modal").style.display = "none"; }
+
+    updateVakitler();
+</script>
 </body>
 </html>
