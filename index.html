@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="stylesheet" href="assets/css/style.css">
   <link rel="icon" type="image/x-icon" href="assets/img/strendsaydamv2.ico">
-  <style>
+ <style>
     .ramadan-widget {
         background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d);
         border-radius: 15px;
@@ -17,6 +17,13 @@
         color: white;
         text-align: center;
         box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        font-family: inherit; /* Sitenin genel fontunu kullanır */
+    }
+    .timer-title {
+        font-weight: 800;
+        font-size: 1.1rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
     }
     .ramadan-timer {
         display: flex;
@@ -84,13 +91,13 @@
   </aside>
 
  <main id="main-content">
-  <div class="ramadan-widget">
-    <div style="font-weight: 700; font-size: 1.1rem;">🌙 Ramazan 2026'ya Kalan Süre</div>
+<div class="ramadan-widget">
+    <div id="timer-title" class="timer-title">🌙 Ramazan 2026'ya Kalan Süre</div>
     <div id="ramadan-countdown" class="ramadan-timer">
-        <div class="timer-item"><span class="timer-value" id="r-day">00</span><span class="timer-label">Gün</span></div>
-        <div class="timer-item"><span class="timer-value" id="r-hour">00</span><span class="timer-label">Saat</span></div>
-        <div class="timer-item"><span class="timer-value" id="r-min">00</span><span class="timer-label">Dak</span></div>
-        <div class="timer-item"><span class="timer-value" id="r-sec">00</span><span class="timer-label">Sn</span></div>
+        <div class="timer-item"><span class="timer-value" id="rd-day">00</span><span class="timer-label">Gün</span></div>
+        <div class="timer-item"><span class="timer-value" id="rd-hour">00</span><span class="timer-label">Saat</span></div>
+        <div class="timer-item"><span class="timer-value" id="rd-min">00</span><span class="timer-label">Dak</span></div>
+        <div class="timer-item"><span class="timer-value" id="rd-sec">00</span><span class="timer-label">Sn</span></div>
     </div>
 </div>
     <div id="page-feed" class="page-content active">
@@ -173,29 +180,41 @@
 
 <script type="module" src="assets/js/app.js"></script>
 <script>
-    function startRamadanCountdown() {
-        const target = new Date("Feb 19, 2026 00:00:00").getTime();
+    function updateRamadanLogic() {
+        const now = new Date();
+        const ramadanStart = new Date("February 19, 2026 00:00:00");
+        // İftar vakti (Örn: İstanbul 18:49)
+        const iftarTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 18, 49, 0);
         
-        setInterval(() => {
-            const now = new Date().getTime();
-            const diff = target - now;
-
-            const d = Math.floor(diff / (1000 * 60 * 60 * 24));
-            const h = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-            const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-            const s = Math.floor((diff % (1000 * 60)) / 1000);
-
-            document.getElementById("r-day").innerText = d < 10 ? "0"+d : d;
-            document.getElementById("r-hour").innerText = h < 10 ? "0"+h : h;
-            document.getElementById("r-min").innerText = m < 10 ? "0"+m : m;
-            document.getElementById("r-sec").innerText = s < 10 ? "0"+s : s;
-
-            if (diff < 0) {
-                document.getElementById("ramadan-countdown").innerHTML = "<h3>Hayırlı Ramazanlar!</h3>";
+        let target;
+        if (now < ramadanStart) {
+            target = ramadanStart;
+            document.getElementById("timer-title").innerText = "🌙 Ramazan'a Kalan Süre";
+        } else {
+            target = iftarTime;
+            document.getElementById("timer-title").innerText = "🍲 İftara Kalan Süre";
+            
+            // Eğer iftar vakti geçtiyse bir sonraki güne kur veya mesaj ver
+            if (now > iftarTime) {
+                document.getElementById("ramadan-countdown").innerHTML = "<b>Hayırlı İftarlar!</b>";
+                return;
             }
-        }, 1000);
+        }
+
+        const diff = target - now;
+        const d = Math.floor(diff / (1000 * 60 * 60 * 24));
+        const h = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+        const s = Math.floor((diff % (1000 * 60)) / 1000);
+
+        document.getElementById("rd-day").innerText = d < 10 ? "0"+d : d;
+        document.getElementById("rd-hour").innerText = h < 10 ? "0"+h : h;
+        document.getElementById("rd-min").innerText = m < 10 ? "0"+m : m;
+        document.getElementById("rd-sec").innerText = s < 10 ? "0"+s : s;
     }
-    startRamadanCountdown();
+
+    setInterval(updateRamadanLogic, 1000);
+    updateRamadanLogic();
 </script>
 </body>
 </html>
