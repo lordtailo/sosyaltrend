@@ -361,8 +361,10 @@ header::after {
     #topBarDateTime span:first-child { display: none; } 
     .app-container { 
         grid-template-columns: 1fr; 
-        padding-top: 120px; /* Mobilde biraz daha az boşluk */
-        padding-left: 12px; padding-right: 12px;
+        padding: 120px 12px 80px 12px; /* üst ve alt boşluk verildi */
+        min-height: calc(100vh - 120px); /* header kadar alanı düş
+        allow vertical scroll */
+        overflow-y: auto;
     }
 }
 
