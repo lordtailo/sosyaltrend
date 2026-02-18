@@ -2557,11 +2557,28 @@ async function sendNotification(recipientUid, type, fromName, extra = {}) {
     }
 }
 
+// helper: uygula arama filtresi (input veya liste güncelleme çağırır)
+function applyFriendSearch() {
+    const searchInput = document.getElementById('friendSearch');
+    if (!searchInput) return;
+    const q = searchInput.value.trim().toLowerCase();
+    console.log('applyFriendSearch called with q="' + q + '"');
+    document.querySelectorAll('#friends-list .friend-card').forEach(card => {
+        card.style.display = card.dataset.search && card.dataset.search.includes(q) ? '' : 'none';
+    });
+}
+
 // Arkadaşlar listesini yükle (isOwnProfile=true ise tüm arkadaşlar, false ise ortak arkadaşlar)
 async function loadFriendsList(userRef, isOwnProfile = true) {
     const friendsTab = document.getElementById('friends-list');
     const noFriendsMsg = document.getElementById('no-friends-msg');
     
+    // ensure search input has handler every time we load list
+    const searchInput = document.getElementById('friendSearch');
+    if (searchInput) {
+        searchInput.oninput = applyFriendSearch;
+    }
+
     if (!friendsTab || !auth || !auth.currentUser) return;
 
     try {
@@ -2683,6 +2700,7 @@ async function loadFriendsList(userRef, isOwnProfile = true) {
                 `;
                 // attach searchable text
                 friendCard.dataset.search = ((friendData.displayName || '') + ' ' + friendData.username).toLowerCase();
+                console.log('added friend card search:', friendCard.dataset.search);
                 
                 // only need to bind mutual click, propagation no longer matters
                 if (mutualCount > 0) {
@@ -2710,6 +2728,8 @@ async function loadFriendsList(userRef, isOwnProfile = true) {
                 friendsTab.appendChild(friendCard);
             }
         }
+        // once all friend cards are appended, apply current search filter
+        applyFriendSearch();
     } catch (error) {
         console.error("Arkadaşlar listesi yükleme hatası:", error);
     }
@@ -2828,6 +2848,8 @@ async function showMutuals(friendUid) {
                 console.warn('Mutual friend fetch error', e);
             }
         }
+        // after list render, reapply search filter in case user typed earlier
+        applyFriendSearch();
     } catch (error) {
         console.error('showMutuals error:', error);
     }

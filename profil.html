@@ -366,13 +366,11 @@
                         const searchInput = document.getElementById('friendSearch');
                         if (searchInput) searchInput.value = '';
                         window.loadFriendsList(null, isOwnProfile);
-                        // friend search filtering
+                        // friend search filtering - simple helper
                         if (searchInput) {
                             searchInput.oninput = () => {
-                                const q = searchInput.value.trim().toLowerCase();
-                                document.querySelectorAll('#friends-list .friend-card').forEach(card => {
-                                    card.style.display = card.dataset.search.includes(q) ? '' : 'none';
-                                });
+                                console.log('friend search input:', searchInput.value);
+                                applyFriendSearch();
                             };
                         }
                     }, 0);
