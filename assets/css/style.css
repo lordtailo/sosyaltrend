@@ -198,6 +198,59 @@ header::after {
     background: linear-gradient(135deg, var(--primary), var(--primary-dark));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 1024px) {
+    .app-container {
+        grid-template-columns: 240px 1fr;
+        padding: 136px 3% 32px 3%;
+    }
+    .right-panel {
+        display: none; /* hide right sidebar on tablets */
+    }
+}
+
+@media (max-width: 768px) {
+    header {
+        grid-template-columns: 1fr;
+        height: auto;
+        padding: 10px 3%;
+    }
+    .header-center {
+        display: none; /* collapse search bar on narrow screens */
+    }
+    .app-container {
+        grid-template-columns: 1fr;
+        padding: 120px 3% 32px 3%;
+    }
+    .main-content, .page-content {
+        padding: 0 5px;
+        width: 100%;
+    }
+    .top-bar {
+        font-size: 0.6rem;
+    }
+    /* ensure content doesn't overflow horizontally */
+    .ramadan-widget, .glass-card, .album-container, .profile-tabs {
+        width: 100%;
+        box-sizing: border-box;
+    }
+    img, video {
+        max-width: 100%;
+        height: auto;
+    }
+}
+
+@media (max-width: 480px) {
+    .theme-btn { width:36px; height:36px; }
+    .mobile-bottom-nav a span { display: none; }
+    .mobile-bottom-nav a { font-size: 1.2rem; }
+    .profile-tabs { gap: 5px; }
+    .tab-btn { padding: 8px 12px; font-size: 0.75rem; }
+    .main-content, .page-content { font-size: 0.9rem; }
+}
+
     cursor: pointer;
     font-weight: 800;
 }
