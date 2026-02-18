@@ -1331,8 +1331,36 @@ window.likePost = async (id, isLiked) => {
         console.error('likePost hatası:', e);
     }
 };
-  window.toggleBookmark = async (id, isSaved) => { const ref = doc(db, "posts", id); await updateDoc(ref, { savedBy: isSaved ? arrayRemove(user.username) : arrayUnion(user.username) }); };
-  window.toggleCommentSection = (id) => { const el = document.getElementById(`comments-${id}`); if(el) el.style.display = el.style.display === 'none' ? 'block' : 'none'; };
+  window.toggleBookmark = async (id, isSaved) => {
+    try {
+        const ref = doc(db, "posts", id);
+        // read post to know owner for notification
+        const snap = await getDoc(ref);
+        if (!snap.exists()) return;
+        const post = snap.data();
+
+        const saving = !isSaved;
+        await updateDoc(ref, { savedBy: saving ? arrayUnion(user.username) : arrayRemove(user.username) });
+
+        // notify owner when someone else saves their post
+        if (saving && post.username && post.username !== user.username) {
+            const uQuery = query(collection(db, "users"), where("username", "==", post.username), limit(1));
+            const uSnap = await getDocs(uQuery);
+            if (!uSnap.empty) {
+                const recipientUid = uSnap.docs[0].id;
+                const postSnippet = post.content ? post.content.slice(0, 50) : '(Görselli gönderi)';
+                await sendNotification(recipientUid, 'post_saved', user.displayName, { postId: id, postContent: postSnippet });
+            }
+        }
+        // also send a small confirmation to ourselves so we see something
+        if (saving && auth.currentUser) {
+            const meSnippet = post.content ? post.content.slice(0, 50) : '(Görselli gönderi)';
+            await sendNotification(auth.currentUser.uid, 'saved_self', user.displayName, { postId: id, postContent: meSnippet });
+        }
+    } catch (e) {
+        console.error('toggleBookmark hatası:', e);
+    }
+  };  window.toggleCommentSection = (id) => { const el = document.getElementById(`comments-${id}`); if(el) el.style.display = el.style.display === 'none' ? 'block' : 'none'; };
   
   window.addComment = async (id) => {
       const input = document.getElementById(`input-${id}`);
@@ -3007,6 +3035,14 @@ async function loadNotifications(userData) {
             text = `${n.fromName} gönderinizi beğendi`;
             detail = n.postContent ? `"${n.postContent}${n.postContent.length > 50 ? '...' : ''}"` : '';
             icon = 'fa-heart';
+        } else if (n.type === 'saved_self') {
+            text = `Gönderiyi kaydettiniz`;
+            detail = n.postContent ? `"${n.postContent}${n.postContent.length > 50 ? '...' : ''}"` : '';
+            icon = 'fa-bookmark';
+        } else if (n.type === 'saved' || n.type === 'post_saved') {
+            text = `${n.fromName} gönderinizi kaydetti`;
+            detail = n.postContent ? `"${n.postContent}${n.postContent.length > 50 ? '...' : ''}"` : '';
+            icon = 'fa-bookmark';
         } else if (n.type === 'comment' || n.type === 'post_comment') {
             text = `${n.fromName} gönderinize yorum yaptı`;
             detail = n.commentText ? `"${n.commentText.slice(0, 50)}${n.commentText.length > 50 ? '...' : ''}"` : '';
@@ -3178,6 +3214,12 @@ async function loadProfileNotifications() {
 
             if (n.type === 'post_like' || n.type === 'like') {
                 mainText = `${n.fromName} gönderinizi beğendi`;
+                detailText = n.postContent ? `"${n.postContent}${n.postContent.length >= 50 ? '...' : ''}"` : 'Gönderi hakkında daha fazla bilgi görmek için tıkla.';
+            } else if (n.type === 'saved_self') {
+                mainText = `Gönderiyi kaydettiniz`;
+                detailText = n.postContent ? `"${n.postContent}${n.postContent.length >= 50 ? '...' : ''}"` : 'Gönderi hakkında daha fazla bilgi görmek için tıkla.';
+            } else if (n.type === 'post_saved' || n.type === 'saved') {
+                mainText = `${n.fromName} gönderinizi kaydetti`;
                 detailText = n.postContent ? `"${n.postContent}${n.postContent.length >= 50 ? '...' : ''}"` : 'Gönderi hakkında daha fazla bilgi görmek için tıkla.';
             } else if (n.type === 'post_comment' || n.type === 'comment') {
                 mainText = `${n.fromName} gönderinize yorum yaptı`;
