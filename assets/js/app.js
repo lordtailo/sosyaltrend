@@ -1,6 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, doc, updateDoc, setDoc, arrayUnion, arrayRemove, deleteDoc, getDoc, getDocs, limit, where } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-import { getAuth, onAuthStateChanged, signOut, updateEmail, sendPasswordResetEmail, updateProfile } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { getAuth, onAuthStateChanged, signOut, updateEmail, updatePassword, sendPasswordResetEmail, updateProfile } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
 
 /* Özel Günler ve Tarihte Bugün Veri Seti */
@@ -313,6 +313,8 @@ onAuthStateChanged(auth, async (fbUser) => {
                     // User already exists
                 }
             }
+                    // no privacy sync needed, revert to original behaviour
+
         } catch (err) {
             console.error("Avatar yükleme hatası:", err);
             user.avatarUrl = "assets/img/strendsaydamv2.png";
@@ -342,6 +344,12 @@ onAuthStateChanged(auth, async (fbUser) => {
                 }
                 // Bildirimleri (arkadaş istekleri + diğer bildirimler) güncelle
                 loadNotifications(userData);
+                // isPrivate değişmişse yerelde de sakla
+                if (typeof userData.isPrivate !== 'undefined' && userData.isPrivate !== isPrivate) {
+                    isPrivate = userData.isPrivate;
+                    localStorage.setItem('st_isPrivate', isPrivate);
+                    updateUIWithUser();
+                }
             }
         });
         
@@ -388,8 +396,19 @@ onAuthStateChanged(auth, async (fbUser) => {
         }
         
         if (auth.currentUser) {
-            // Arkadaşlar listesini yükle
-            loadFriendsList();
+            // Kendi profilse tüm arkadaşları yükle ve varsayılan tabı açık bırak
+            loadFriendsList(null, true);
+        }
+    } else {
+        // Başka bir profil ziyareti
+        if (auth.currentUser) {
+            // otomatik 'Ortak Arkadaşlar' sekmesini aç
+            const friendsTabBtn = document.getElementById('friends-tab-btn');
+            if (friendsTabBtn) {
+                friendsTabBtn.click();
+            }
+            // yükle (isOwnProfile=false)
+            loadFriendsList(null, false);
         }
     }
 });
@@ -451,6 +470,76 @@ let tempAvatarBuffer = null;
             console.warn("editProfileSection element bulunamadı!");
         }
     };
+
+    // ----------------------------------
+    // Ayarlar menüsü / gizlilik vs.
+    // ----------------------------------
+    window.toggleProfileSettings = () => {
+        const menu = document.getElementById('profileSettingsMenu');
+        if (menu) menu.classList.toggle('visible');
+    };
+
+    window.changePassword = async () => {
+        const menu = document.getElementById('profileSettingsMenu');
+        if (menu) menu.classList.remove('visible');
+        if (!auth.currentUser) return alert('Giriş yapmalısınız');
+        const newPass = prompt(translations[currentLang].changePassword + ':');
+        if (newPass && newPass.length >= 6) {
+            try {
+                await updatePassword(auth.currentUser, newPass);
+                alert('✅ Şifreniz güncellendi');
+            } catch (e) {
+                console.error(e);
+                alert('❌ Şifre değiştirilemedi: ' + e.message);
+            }
+        } else if (newPass) {
+            alert('Şifre en az 6 karakter olmalıdır');
+        }
+    };
+
+    window.changeEmail = async () => {
+        const menu = document.getElementById('profileSettingsMenu');
+        if (menu) menu.classList.remove('visible');
+        if (!auth.currentUser) return alert('Giriş yapmalısınız');
+        const newEmail = prompt(translations[currentLang].changeEmail + ':');
+        if (newEmail && newEmail.includes('@')) {
+            try {
+                await updateEmail(auth.currentUser, newEmail);
+                alert('✅ E-posta adresiniz güncellendi');
+            } catch (e) {
+                console.error(e);
+                alert('❌ E-posta değiştirilemedi: ' + e.message);
+            }
+        } else if (newEmail) {
+            alert('Geçerli bir e-posta girin');
+        }
+    };
+
+    window.toggleProfilePrivacy = async () => {
+        const menu = document.getElementById('profileSettingsMenu');
+        if (menu) menu.classList.remove('visible');
+        isPrivate = !isPrivate;
+        localStorage.setItem('st_isPrivate', isPrivate);
+        // Firestore'a kaydetmek için
+        if (auth.currentUser) {
+            try {
+                await updateDoc(doc(db, 'users', auth.currentUser.uid), { isPrivate });
+            } catch (e) {
+                console.error('privacy update error', e);
+            }
+        }
+        updateUIWithUser();
+        alert(isPrivate ? '✅ Profiliniz artık gizli.' : '✅ Profiliniz artık herkese açık.');
+    };
+
+    // global click listener menüyü kapatmak için
+    document.addEventListener('click', (e) => {
+        const menu = document.getElementById('profileSettingsMenu');
+        // if click is not inside the menu and not on the settings button (or its children)
+        if (menu && !menu.contains(e.target) && !e.target.closest('#settingsBtn')) {
+            menu.classList.remove('visible');
+        }
+    });
 
 // Kullanıcının tüm eski postlarının avatarını güncelle
 async function updateUserPostsAvatar(username, newAvatarUrl) {
@@ -817,6 +906,14 @@ window.clearImagePreview = () => {
       settingTheme: "Koyu Tema",
       commentPlaceholder: "Yorum yaz...",
       sendComment: "Gönder",
+      changePassword: "Şifreni Değiştir",
+      changeEmail: "E-postanı Değiştir",
+      privacyOption: "Profilini Gizle",
+      privacyOptionShow: "Profilini Göster",
+      privateLabel: "Gizli",
+      privateBanner: "Profiliniz Gizli",
+      profileHiddenMessage: "Bu profil gizlidir.",
+      friendViewNote: "Profil arkadaşlara açık",
       helpHeading: "Yardım Merkezi",
       helpSub: "Sıkça Sorulan Sorular",
       helpText: "SosyalTrend kullanımı hakkında merak ettiğiniz her şey burada.",
@@ -838,6 +935,14 @@ window.clearImagePreview = () => {
       postPlaceholder: "What's happening?",
       shareBtn: "Post",
       editProfileBtn: "Edit Profile",
+      changePassword: "Change Password",
+      changeEmail: "Change Email",
+      privacyOption: "Hide Profile",
+      privacyOptionShow: "Show Profile",
+      privateLabel: "Private",
+      profileHiddenMessage: "This profile is private.",
+      privateBanner: "Your profile is private",
+      friendViewNote: "Profile visible to friends",
       footerTagline: "Always stay ahead with your community.",
       footerMenu: "Quick Menu",
       footerCorp: "Corporate",
@@ -892,6 +997,8 @@ window.clearImagePreview = () => {
     const enBtn = document.getElementById('lang-en');
     if(trBtn) trBtn.className = currentLang === 'tr' ? 'active' : 'inactive';
     if(enBtn) enBtn.className = currentLang === 'en' ? 'active' : 'inactive';
+    // after translations we might need to re-sync dynamic UI text like privacy
+    updateUIWithUser();
   }
   applyTranslations();
 
@@ -958,7 +1065,40 @@ function getAvatarUrl(avatarUrlOrSeed, type = 'user') {
 
     // Gizlilik Durumu Güncelleme
     if(pTg) pTg.checked = isPrivate;
-    if(sPi) sPi.style.display = isPrivate ? 'block' : 'none';
+    if(sPi) {
+        // only show indicator when on own profile
+        let showInd = isPrivate;
+        const params = new URLSearchParams(location.search);
+        const visitedUsername = params.get('id');
+        if (visitedUsername && visitedUsername !== user.username) {
+            showInd = false;
+        }
+        sPi.style.display = showInd ? 'block' : 'none';
+    }
+    const pBanner = document.getElementById('selfPrivateBanner');
+    if(pBanner) {
+        // only show banner when viewing own profile
+        let showBanner = isPrivate;
+        const params = new URLSearchParams(location.search);
+        const visitedUsername = params.get('id');
+        if (visitedUsername && visitedUsername !== user.username) {
+            showBanner = false;
+        }
+        pBanner.style.display = showBanner ? 'block' : 'none';
+    }
+    // update simulate button label if present
+    const simBtn = document.getElementById('simulateVisitorBtn');
+    if (simBtn) {
+        simBtn.innerText = isSimulatingVisitor() ? 'Simülasyonu Kapat' : 'Ziyaretçi Gözünden Gör';
+    }
+
+    // Ayarlar menüsündeki gizlilik metnini güncelle
+    const privText = document.getElementById('privacyMenuText');
+    if(privText) {
+        privText.innerText = isPrivate
+            ? (translations[currentLang].privacyOptionShow || 'Profilini Göster')
+            : (translations[currentLang].privacyOption || 'Profilini Gizle');
+    }
 }
 
 window.togglePrivacy = () => {
@@ -1617,18 +1757,38 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 /* ============================   */
 
+// visitor simulation helper
+function isSimulatingVisitor() {
+    return localStorage.getItem('simulateVisitor') === 'true';
+}
+
+window.toggleVisitorSimulation = () => {
+    const current = isSimulatingVisitor();
+    localStorage.setItem('simulateVisitor', current ? 'false' : 'true');
+    const msg = current ? 'Simülasyon kapatıldı' : 'Ziyaretçi simülasyonu etkin. Sayfa yeniden yüklenecek.';
+    alert(msg);
+    location.reload();
+};
+
 // Ziyaretçi Profili Göster
 async function loadVisitorProfile() {
     const params = new URLSearchParams(location.search);
-    const visitedUsername = params.get('id');
+    let visitedUsername = params.get('id');
+    const simulate = isSimulatingVisitor();
+    if (simulate && (!visitedUsername || visitedUsername === user.username)) {
+        // force visitor state on own profile
+        visitedUsername = '__simulate__';
+    }
     
     // Ziyaretçi modu değilse çık (kendi profili)
     if (!visitedUsername || visitedUsername === user.username) {
         // Kendi profili - button'ları düzenle
         const editBtn = document.getElementById('editProfileBtn');
         const addFriendBtn = document.getElementById('addFriendBtn');
+        const settingsBtn = document.getElementById('settingsBtn');
         if (editBtn) editBtn.style.display = 'inline-block';
         if (addFriendBtn) addFriendBtn.style.display = 'none';
+        if (settingsBtn) settingsBtn.style.display = 'inline-block';
         // Own profile buttons updated
         return;
     }
@@ -1640,10 +1800,15 @@ async function loadVisitorProfile() {
     
     // Profil düzenle butonunu gizle
     const editBtn = document.getElementById('editProfileBtn');
+    const settingsBtn = document.getElementById('settingsBtn');
     if (editBtn) {
         editBtn.style.display = 'none';
-        // Edit profile button hidden
     }
+    if (settingsBtn) {
+        settingsBtn.style.display = 'none';
+    }
+    const settingsMenu = document.getElementById('profileSettingsMenu');
+    if (settingsMenu) settingsMenu.classList.remove('visible');
     
     // Arkadaş Olarak Ekle butonunu HEMEN göster
     const addFriendBtn = document.getElementById('addFriendBtn');
@@ -1682,15 +1847,13 @@ async function loadVisitorProfile() {
         let visitorAvatar = null;
         let visitorPosts = [];
         let visitorUid = null;
+        let visitedData = null;
+        let isFriend = false;
         
         snap.forEach(doc => {
             const p = doc.data();
             if (p.username === visitedUsername) {
                 visitorPosts.push({ id: doc.id, ...p });
-                if (visitorDisplayName === visitedUsername) {
-                    visitorDisplayName = p.name || visitedUsername;
-                    visitorAvatar = getAvatarUrl(p.avatarSeed, 'user');
-                }
             }
         });
 
@@ -1699,7 +1862,31 @@ async function loadVisitorProfile() {
         const userSnap = await getDocs(userQuery);
         if (!userSnap.empty) {
             visitorUid = userSnap.docs[0].id;
+            visitedData = userSnap.docs[0].data();
             // Visitor UID found
+
+            // set display name & avatar from the user record (fall back to defaults)
+            visitorDisplayName = visitedData.displayName || visitedData.name || visitedUsername;
+            visitorAvatar = getAvatarUrl(visitedData.avatarUrl || visitedData.avatar || "strendsaydamv2.png", 'user');
+
+            // gizlilik kontrolü: profil gizliyse ve ziyaretçi arkadaş değilse içerik göstermeyelim
+            if (visitedData.isPrivate) {
+                if (auth.currentUser && visitedData.friends && Array.isArray(visitedData.friends)) {
+                    isFriend = visitedData.friends.includes(auth.currentUser.uid);
+                }
+                if (!isFriend) {
+                    const container = document.getElementById('main-content');
+                    if (container) {
+                        const msg = translations[currentLang].profileHiddenMessage || 'Bu profil gizlidir.';
+                        container.innerHTML = `<div style="border-radius:1rem; background:var(--card-bg); text-align:center; padding:40px; color:var(--text-muted);">
+                            <i class="fa-solid fa-lock" style="font-size:3rem; margin-bottom:15px;"></i>
+                            <p>${msg}</p>
+                        </div>`;
+                    }
+                    return; // skip rest of visitor loading
+                }
+            }
+
         } else {
             // Visitor UID not found
         }
@@ -1713,6 +1900,7 @@ async function loadVisitorProfile() {
         
         const profileAvatar = document.getElementById('profilePageAvatar');
         if (profileAvatar) {
+            // use avatar that we determined above (already includes fallback)
             profileAvatar.src = visitorAvatar || getAvatarUrl("strendsaydamv2", 'user');
         }
 
@@ -1728,6 +1916,18 @@ async function loadVisitorProfile() {
             }
         } else {
             // Friend button update failed
+        }
+
+        // eğer profil gizliyse ve biz arkadaşsak bazı öğeleri gizle
+        if (visitedData && visitedData.isPrivate && isFriend) {
+            const profileAvatarEl = document.getElementById('profilePageAvatar');
+            if (profileAvatarEl) profileAvatarEl.style.display = 'none';
+            const actionBtn = document.getElementById('profileActionBtn');
+            if (actionBtn) actionBtn.style.display = 'none';
+            const addFriendBtn = document.getElementById('addFriendBtn');
+            if (addFriendBtn) addFriendBtn.style.display = 'none';
+            const notice = document.getElementById('friendViewNotice');
+            if (notice) notice.style.display = 'block';
         }
         
         // Ziyaretçinin postlarını göster
@@ -2357,25 +2557,75 @@ async function sendNotification(recipientUid, type, fromName, extra = {}) {
     }
 }
 
-// Arkadaşlar listesini yükle
-async function loadFriendsList(userRef) {
+// Arkadaşlar listesini yükle (isOwnProfile=true ise tüm arkadaşlar, false ise ortak arkadaşlar)
+async function loadFriendsList(userRef, isOwnProfile = true) {
     const friendsTab = document.getElementById('friends-list');
     const noFriendsMsg = document.getElementById('no-friends-msg');
     
-    if (!friendsTab) return;
+    if (!friendsTab || !auth || !auth.currentUser) return;
 
     try {
-        // userRef verilmemişse kendi UID'imizi kullan
-        if (!userRef && auth && auth.currentUser) {
-            userRef = doc(db, "users", auth.currentUser.uid);
+        let targetUserData = null;
+        
+        if (!isOwnProfile) {
+            // Başka birinin profili - visitedUsername'dan bulmalıyız
+            const params = new URLSearchParams(location.search);
+            const visitedUsername = params.get('id');
+            
+            if (!visitedUsername) return;
+            
+            // Firebase'de username ile kullanıcı ara
+            try {
+                const usersRef = collection(db, 'users');
+                const q = query(usersRef, where('username', '==', visitedUsername));
+                const querySnapshot = await getDocs(q);
+                
+                if (querySnapshot.size > 0) {
+                    targetUserData = querySnapshot.docs[0].data();
+                } else {
+                    if (noFriendsMsg) noFriendsMsg.style.display = 'block';
+                    return;
+                }
+            } catch (e) {
+                console.warn('Ziyaret edilen kullanıcı bulunamadı:', e);
+                if (noFriendsMsg) noFriendsMsg.style.display = 'block';
+                return;
+            }
+        } else {
+            // Kendi profil
+            if (!userRef && auth.currentUser) {
+                userRef = doc(db, "users", auth.currentUser.uid);
+            }
+            const userDoc = await getDoc(userRef);
+            if (userDoc.exists()) {
+                targetUserData = userDoc.data();
+            }
         }
         
-        if (!userRef) return;
+        if (!targetUserData) return;
         
-        const userDoc = await getDoc(userRef);
-        const friends = userDoc.data()?.friends || [];
+        const friends = targetUserData.friends || [];
 
-        if (friends.length === 0) {
+        // logged-in kullanıcının da arkadaş listesi (mutual hesapları için)
+        let myFriends = [];
+        if (auth && auth.currentUser) {
+            try {
+                const me = await getDoc(doc(db, "users", auth.currentUser.uid));
+                if (me.exists()) {
+                    myFriends = me.data()?.friends || [];
+                }
+            } catch (e) {
+                console.warn('Kendi arkadaş listesi alınamadı:', e);
+            }
+        }
+
+        // Eğer başka profil ise sadece ortak arkadaşları filtrele
+        let displayFriends = friends;
+        if (!isOwnProfile) {
+            displayFriends = friends.filter(f => myFriends.includes(f));
+        }
+
+        if (displayFriends.length === 0) {
             friendsTab.innerHTML = '';
             noFriendsMsg.style.display = 'block';
             return;
@@ -2385,12 +2635,19 @@ async function loadFriendsList(userRef) {
         friendsTab.innerHTML = '';
 
         // Her arkadaşın bilgisini çek
-        for (const friendUid of friends) {
+        for (const friendUid of displayFriends) {
             const friendRef = doc(db, "users", friendUid);
             const friendDoc = await getDoc(friendRef);
             
             if (friendDoc.exists()) {
                 const friendData = friendDoc.data();
+
+                // mutual friends sayısını hesapla
+                let mutualCount = 0;
+                if (myFriends.length && friendData.friends) {
+                    mutualCount = friendData.friends.filter(f => myFriends.includes(f)).length;
+                }
+
                 const friendCard = document.createElement('div');
                 friendCard.style.cssText = `
                     background: var(--input-bg);
@@ -2401,14 +2658,22 @@ async function loadFriendsList(userRef) {
                     transition: all 0.3s ease;
                 `;
                 
+                let mutualHtml = '';
+                if (mutualCount > 0) {
+                    mutualHtml = `<p style="margin:4px 0 0 0; color:var(--text-muted); font-size:0.75rem;">🌐 ${mutualCount} ortak arkadaş</p>`;
+                }
+
                 friendCard.innerHTML = `
-                    <img src="${friendData.avatarUrl || 'assets/img/strendsaydamv2.png'}" 
-                         style="width: 80px; height: 80px; border-radius: 50%; border: 2px solid var(--primary); object-fit: cover; margin-bottom: 10px;">
-                    <h4 style="margin: 8px 0; font-size: 0.9rem; word-break: break-word;">${friendData.displayName || friendData.username}</h4>
-                    <p style="margin: 5px 0; color: var(--text-muted); font-size: 0.8rem;">@${friendData.username}</p>
-                    <button onclick="removeFriend('${friendUid}')" style="background: #ef4444; color: white; border: none; padding: 6px 12px; border-radius: 8px; cursor: pointer; font-size: 0.75rem; margin-top: 10px;">
+                    <div style="cursor: pointer;" onclick="window.location.href='profil.html?id=${encodeURIComponent(friendData.username)}'">
+                        <img src="${friendData.avatarUrl || 'assets/img/strendsaydamv2.png'}" 
+                             style="width: 80px; height: 80px; border-radius: 50%; border: 2px solid var(--primary); object-fit: cover; margin-bottom: 10px;">
+                        <h4 style="margin: 8px 0; font-size: 0.9rem; word-break: break-word;">${friendData.displayName || friendData.username}</h4>
+                        <p style="margin: 5px 0; color: var(--text-muted); font-size: 0.8rem;">@${friendData.username}</p>
+                        ${mutualHtml}
+                    </div>
+                    ${isOwnProfile ? `<button onclick="removeFriend('${friendUid}')" style="background: #ef4444; color: white; border: none; padding: 6px 12px; border-radius: 8px; cursor: pointer; font-size: 0.75rem; margin-top: 10px;">
                         <i class="fa-solid fa-trash"></i> Arkadaşlığı Sonlandır
-                    </button>
+                    </button>` : ''}
                 `;
                 
                 friendCard.addEventListener('mouseenter', () => {
