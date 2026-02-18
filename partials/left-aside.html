@@ -1,0 +1,25 @@
+<aside>
+    
+    <div class="glass-card sidebar-profile-card" onclick="navigateTo('profil')" style="
+    cursor: pointer;
+    padding: 21px;
+    text-align: center;
+    align-items: center;">
+        <img id="sidebarAvatar" src="" style="
+    width: 97px;
+    height: 99px;
+    border-radius: 50%;
+    border: 2px solid var(--primary);
+    object-fit: cover;">
+        <div style="overflow: hidden;">
+            <div id="sidebarDisplayName" style="font-weight: 800; font-size: 0.95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">...</div>
+            <div id="sidebarUsername" style="font-size: 0.8rem; color: var(--text-muted);">@...</div>
+        </div>
+    </div>
+    <div class="glass-card sidebar-container">
+        <div class="sidebar-title" data-i18n="menuTitle">Sosyal Menü</div>
+        <a href="index.html" onclick="navigateTo('feed')" class="menu-style-btn nav-item active" id="btn-feed">
+            <i class="fa-solid fa-house"></i> <span data-i18n="navFeed">Anasayfa</span>
+        </a>
+    </div>
+  </aside>

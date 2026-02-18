@@ -22,4 +22,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       console.error('Include error:', url, err);
     }
   }));
+
+  // signal that all includes have been processed so other scripts can act
+  document.dispatchEvent(new Event('includesLoaded'));
 });

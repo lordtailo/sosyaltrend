@@ -189,8 +189,8 @@ async function loadSuggestions() {
     }
 }
 
-// Sayfa yüklendiğinde çalıştır
-document.addEventListener('DOMContentLoaded', loadComponents);
+// Sayfa yüklendiğinde çalıştır (parçalar yüklendikten sonra)
+document.addEventListener('includesLoaded', loadComponents);
 
   const firebaseConfig = {
     apiKey: "AIzaSyBegJHqlfPagx8biFyS_FnE3iXOksgfoAU",
