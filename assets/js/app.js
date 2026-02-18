@@ -3036,7 +3036,7 @@ async function loadNotifications(userData) {
             detail = n.postContent ? `"${n.postContent}${n.postContent.length > 50 ? '...' : ''}"` : '';
             icon = 'fa-heart';
         } else if (n.type === 'saved_self') {
-            text = `Gönderiyi kaydettiniz`;
+            text = `Gönderi kaydettiniz`;
             detail = n.postContent ? `"${n.postContent}${n.postContent.length > 50 ? '...' : ''}"` : '';
             icon = 'fa-bookmark';
         } else if (n.type === 'saved' || n.type === 'post_saved') {
