@@ -14,6 +14,18 @@
    /* Yeni Eklenen Premium Değişkenler */
    --premium-gradient: linear-gradient(135deg, #8b5cf6 0%, #d946ef 100%);
    --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+   /* özel renkler */
+   --accent-red: #b21f1f;
+   --accent-yellow: #fdbb2d;
+   --accent-darkblue: #1a2a6c;
+   --ramadan-gradient: linear-gradient(135deg, var(--accent-darkblue), var(--accent-red), var(--accent-yellow));
+   --accent-pink: #ec4899;
+   --msg-my-bg: linear-gradient(135deg, #6366f1, #a855f7);
+   --online-green: #22c55e;
+   --danger: #ef4444;
+   --success: #10b981;
+   --warning: #f59e0b;
+   --header-bg: var(--card-bg);
 }
 
 body { 
@@ -150,20 +162,19 @@ body.dark-mode .theme-btn i{
 /* BAŞLIK (HEADER) - Top Bar'ın hemen altında çakılı */
 header {
     background: var(--card-bg);
-    backdrop-filter: blur(12px); 
-    height: 72px; 
+    backdrop-filter: blur(12px);
+    height: 72px;
     width: 100%;
-    display: grid; 
-    grid-template-columns: 1.2fr 2fr 1.2fr;
-    align-items: center; 
-    padding: 0 3%; 
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 3%;
     position: fixed; /* Sticky yerine fixed */
     top: 32px; /* Top Bar yüksekliği kadar aşağıda */
     left: 0;
     z-index: 9999;
     border-bottom: 1px solid var(--border);
     box-sizing: border-box;
-    gap: 4px;
 }
 
 header::after { 
@@ -190,17 +201,76 @@ header::after {
     min-height: 100vh;
 }
 
-/* --- DİĞER HEADER ÖĞELERİ --- */
-.header-left { display: flex; align-items: center; gap: 20px; }
-.header-right { display: flex; justify-content: flex-end; position: relative; align-items: center; gap: 14px;}
-.logo { 
-    font-size: 1.5rem;
-    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
+/* --- RAMADAN WIDGET & MODAL STYLES (taşınmış) --- */
+.ramadan-widget {
+    background: var(--ramadan-gradient);
+    border-radius: 15px;
+    padding: 15px;
+    margin-bottom: 20px;
+    color: #fff;
+    text-align: center;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    font-family: inherit;
+}
+.timer-title { font-weight: 800; font-size: 1.1rem; text-transform: uppercase; margin-bottom: 5px; }
+.current-city-label { font-size: 0.8rem; opacity: 0.9; margin-bottom: 10px; display: block; }
+.ramadan-timer { display: flex; justify-content: center; gap: 10px; margin-bottom: 15px; }
+.timer-item { display: flex; flex-direction: column; align-items: center; }
+.timer-value { 
+    font-size: 1.4rem; font-weight: 800; background: rgba(255,255,255,0.2); 
+    padding: 5px 8px; border-radius: 8px; min-width: 42px; backdrop-filter: blur(5px);
+}
+.timer-label { font-size: 0.6rem; text-transform: uppercase; margin-top: 4px; font-weight: 600; }
+.widget-actions { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; }
+.w-select {
+    background: white; color: var(--text-main); border: none; padding: 6px 10px;
+    border-radius: 20px; font-size: 0.75rem; cursor: pointer; outline: none;
+}
+.w-btn {
+    background: rgba(255, 255, 255, 0.2); border: 1px solid rgba(255, 255, 255, 0.4);
+    color: white; padding: 6px 15px; border-radius: 20px; font-size: 0.75rem; cursor: pointer; transition: 0.3s;
+}
+.w-btn:hover { background: rgba(255, 255, 255, 0.4); }
+
+/* İmsakiye modal */
+#imsakiye-modal {
+    display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.85); z-index: 9999; justify-content: center; align-items: center; padding: 15px;
+}
+.modal-content {
+    background: var(--card-bg); color: var(--text-main); width: 100%; max-width: 450px;
+    max-height: 85vh; border-radius: 15px; overflow-y: auto; padding: 20px; position: relative;
+}
+#modal-city-title { margin: 0 0 5px 0; color: var(--accent-red); }
+#imsakiye-modal p { margin: 0 0 15px 0; font-size: 0.8rem; color: var(--text-muted); }
+.imsakiye-table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 0.85rem; }
+.imsakiye-table th { background: #f1f1f1; padding: 10px; border-bottom: 2px solid #ddd; position: sticky; top: 0; }
+.imsakiye-table td { padding: 8px; border-bottom: 1px solid #eee; text-align: center; }
+.imsakiye-table tr:nth-child(even) { background: #fafafa; }
+.close-modal { position: absolute; top: 10px; right: 15px; font-size: 1.5rem; cursor: pointer; color: var(--text-main); font-weight: bold; }
+
+/* job icons */
+.job-icon {
+    width: 48px;
+    height: 48px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:1.5rem;
+    border-radius:12px;
+    color: var(--primary);
+    background: rgba(99,102,241,0.1);
+}
+.job-icon.pink {
+    color: var(--accent-pink);
+    background: rgba(236,72,153,0.1);
 }
 
-/* Mobile responsiveness */
+.job-title {
+    color: var(--text-main);
+    margin: 0;
+    font-size: 1.2rem;
+}
 @media (max-width: 1024px) {
     .app-container {
         grid-template-columns: 240px 1fr;
@@ -211,36 +281,6 @@ header::after {
     }
 }
 
-@media (max-width: 768px) {
-    header {
-        grid-template-columns: 1fr;
-        height: auto;
-        padding: 10px 3%;
-    }
-    .header-center {
-        display: none; /* collapse search bar on narrow screens */
-    }
-    .app-container {
-        grid-template-columns: 1fr;
-        padding: 120px 3% 32px 3%;
-    }
-    .main-content, .page-content {
-        padding: 0 5px;
-        width: 100%;
-    }
-    .top-bar {
-        font-size: 0.6rem;
-    }
-    /* ensure content doesn't overflow horizontally */
-    .ramadan-widget, .glass-card, .album-container, .profile-tabs {
-        width: 100%;
-        box-sizing: border-box;
-    }
-    img, video {
-        max-width: 100%;
-        height: auto;
-    }
-}
 
 @media (max-width: 480px) {
     .theme-btn { width:36px; height:36px; }
@@ -255,6 +295,12 @@ header::after {
     font-weight: 800;
 }
 .header-center { display: flex; justify-content: center; align-items: center; gap: 10px; }
+
+/* ensure header areas align properly */
+.header-left, .header-right { display: flex; align-items: center; gap: 14px; }
+.header-right { flex-wrap: nowrap; }
+.header-right { justify-content: flex-end; }
+.header-right > * { flex-shrink: 0; }
 
 .search-wrapper { position: relative; width: 100%; max-width: 450px; }
 .search-wrapper input {
@@ -934,9 +980,10 @@ aside, .right-panel { display: none; } }
 /* MOBILE - Facebook-like adjustments */
 @media (max-width: 768px) {
     /* Header smaller and more compact */
-    header { height: 56px; grid-template-columns: 1fr auto; padding: 0 12px; top: 32px; }
+    header { height: 56px; padding: 0 12px; top: 32px; }
     .header-center { display: none; } /* hide wide search */
     .header-left { gap: 8px; }
+    .header-right { gap: 8px; }
     .logo { font-size: 1.1rem; }
 
     /* App container becomes single column and full width */
@@ -946,6 +993,22 @@ aside, .right-panel { display: none; } }
     .glass-card, .post { padding: 14px; border-radius: 12px; }
     .post { padding-bottom: 18px; }
     .post img.user-avatar, .profile-trigger { width:48px; height:48px; }
+
+    /* Hide wide search bar earlier */
+    .header-center { display: none; }
+
+    /* Smaller top bar font */
+    .top-bar { font-size: 0.6rem; }
+
+    /* Make main content flush with container edges */
+    .main-content, .page-content { padding: 0 5px; width: 100%; }
+
+    /* Ensure content doesn't overflow horizontally */
+    .ramadan-widget, .glass-card, .album-container, .profile-tabs {
+        width: 100%;
+        box-sizing: border-box;
+    }
+    img, video { max-width: 100%; height: auto; }
 
     /* Bigger toolbar buttons for touch */
     .tool-btn { width: 44px; height: 44px; }

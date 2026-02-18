@@ -9,55 +9,7 @@
   <link rel="stylesheet" href="assets/css/style.css">
   <link rel="icon" type="image/x-icon" href="assets/img/strendsaydamv2.ico">
   <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
-  <style>
-    .ramadan-widget {
-        background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d);
-        border-radius: 15px;
-        padding: 15px;
-        margin-bottom: 20px;
-        color: white;
-        text-align: center;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-        font-family: inherit;
-    }
-    .timer-title { font-weight: 800; font-size: 1.1rem; text-transform: uppercase; margin-bottom: 5px; }
-    .current-city-label { font-size: 0.8rem; opacity: 0.9; margin-bottom: 10px; display: block; }
-    
-    .ramadan-timer { display: flex; justify-content: center; gap: 10px; margin-bottom: 15px; }
-    .timer-item { display: flex; flex-direction: column; align-items: center; }
-    .timer-value { 
-        font-size: 1.4rem; font-weight: 800; background: rgba(255,255,255,0.2); 
-        padding: 5px 8px; border-radius: 8px; min-width: 42px; backdrop-filter: blur(5px);
-    }
-    .timer-label { font-size: 0.6rem; text-transform: uppercase; margin-top: 4px; font-weight: 600; }
-
-    .widget-actions { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; }
-    .w-select {
-        background: white; color: #333; border: none; padding: 6px 10px;
-        border-radius: 20px; font-size: 0.75rem; cursor: pointer; outline: none;
-    }
-    .w-btn {
-        background: rgba(255, 255, 255, 0.2); border: 1px solid rgba(255, 255, 255, 0.4);
-        color: white; padding: 6px 15px; border-radius: 20px; font-size: 0.75rem; cursor: pointer; transition: 0.3s;
-    }
-    .w-btn:hover { background: rgba(255, 255, 255, 0.4); }
-
-    /* İmsakiye Modal */
-    #imsakiye-modal {
-        display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-        background: rgba(0,0,0,0.85); z-index: 9999; justify-content: center; align-items: center; padding: 15px;
-    }
-    .modal-content {
-        background: white; color: #333; width: 100%; max-width: 450px;
-        max-height: 85vh; border-radius: 15px; overflow-y: auto; padding: 20px; position: relative;
-    }
-    .imsakiye-table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 0.85rem; }
-    .imsakiye-table th { background: #f1f1f1; padding: 10px; border-bottom: 2px solid #ddd; position: sticky; top: 0; }
-    .imsakiye-table td { padding: 8px; border-bottom: 1px solid #eee; text-align: center; }
-    .imsakiye-table tr:nth-child(even) { background: #fafafa; }
-    .close-modal { position: absolute; top: 10px; right: 15px; font-size: 1.5rem; cursor: pointer; color: #333; font-weight: bold; }
-</style>
-</head>
+  </head>
 <body>
 
   <div class="top-bar">
@@ -94,8 +46,8 @@
 <div id="imsakiye-modal">
     <div class="modal-content">
         <span class="close-modal" onclick="closeImsakiye()">&times;</span>
-        <h3 id="modal-city-title" style="margin: 0 0 5px 0; color: #b21f1f;">İmsakiye 2026</h3>
-        <p style="margin: 0 0 15px 0; font-size: 0.8rem; color: #666;">Vakitler Diyanet İşleri Başkanlığı uyumludur.</p>
+        <h3 id="modal-city-title">İmsakiye 2026</h3>
+        <p>Vakitler Diyanet İşleri Başkanlığı uyumludur.</p>
         <table class="imsakiye-table">
             <thead>
                 <tr>
@@ -322,7 +274,7 @@
                             <td>${ramadanDay}. Gün</td>
                             <td>${day.date.gregorian.day} ${day.date.gregorian.month.en.substring(0,3)}</td>
                             <td><b>${day.timings.Imsak.split(' ')[0]}</b></td>
-                            <td style="color:#b21f1f"><b>${day.timings.Maghrib.split(' ')[0]}</b></td>
+                            <td class="accent-red"><b>${day.timings.Maghrib.split(' ')[0]}</b></td>
                         </tr>`;
                         ramadanDay++;
                     }
