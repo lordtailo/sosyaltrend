@@ -3200,7 +3200,11 @@ async function loadProfileNotifications() {
             const nDiv = document.createElement('div');
             nDiv.style.cssText = `padding:15px; border-radius:12px; background:var(--input-bg); border:1px solid var(--border); display:grid; grid-template-columns:auto 1fr auto; gap:12px; align-items:start; cursor:pointer; transition:all 0.2s ease; ${n.read ? 'opacity:0.65;' : 'background:var(--card-bg); border:1px solid var(--primary);'}`;
 
-            const icon = (n.type && n.type.includes('like')) ? 'fa-heart' : (n.type && n.type.includes('comment') ? 'fa-comment' : (n.type && n.type.includes('friend') ? 'fa-user-check' : 'fa-info-circle'));
+            const icon = 
+            (n.type && n.type.includes('like')) ? 'fa-heart' : 
+            (n.type && n.type.includes('comment') ? 'fa-comment' :
+            (n.type && n.type.includes('saved') ? 'fa-bookmark' : 
+            (n.type && n.type.includes('friend') ? 'fa-user-check' : 'fa-info-circle'));
             const iconColors = {
                 'fa-heart': '#ef4444',
                 'fa-comment': '#3b82f6',
