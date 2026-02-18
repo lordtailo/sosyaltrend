@@ -2649,12 +2649,13 @@ async function loadFriendsList(userRef, isOwnProfile = true) {
                 }
 
                 const friendCard = document.createElement('div');
+                friendCard.className = 'friend-card';
                 friendCard.style.cssText = `
                     background: var(--input-bg);
                     padding: 15px;
                     border-radius: 10px;
                     text-align: center;
-                    cursor: pointer;
+                    /* no cursor:pointer; we only want avatar clickable */
                     transition: all 0.3s ease;
                 `;
                 
@@ -2668,9 +2669,10 @@ async function loadFriendsList(userRef, isOwnProfile = true) {
                 }
 
                 friendCard.innerHTML = `
-                    <div class="profile-link" style="cursor: pointer;" onclick="window.location.href='profil.html?id=${encodeURIComponent(friendData.username)}'">
+                    <div>
                         <img src="${friendData.avatarUrl || 'assets/img/strendsaydamv2.png'}" 
-                             style="width: 80px; height: 80px; border-radius: 50%; border: 2px solid var(--primary); object-fit: cover; margin-bottom: 10px;">
+                             style="width: 80px; height: 80px; border-radius: 50%; border: 2px solid var(--primary); object-fit: cover; margin-bottom: 10px; cursor:pointer;"
+                             onclick="window.location.href='profil.html?id=${encodeURIComponent(friendData.username)}'">
                         <h4 style="margin: 8px 0; font-size: 0.9rem; word-break: break-word;">${friendData.displayName || friendData.username}</h4>
                         <p style="margin: 5px 0; color: var(--text-muted); font-size: 0.8rem;">@${friendData.username}</p>
                     </div>
@@ -2679,6 +2681,8 @@ async function loadFriendsList(userRef, isOwnProfile = true) {
                         <i class="fa-solid fa-trash"></i> Arkadaşlığı Sonlandır
                     </button>` : ''}
                 `;
+                // attach searchable text
+                friendCard.dataset.search = ((friendData.displayName || '') + ' ' + friendData.username).toLowerCase();
                 
                 // only need to bind mutual click, propagation no longer matters
                 if (mutualCount > 0) {
@@ -2689,6 +2693,9 @@ async function loadFriendsList(userRef, isOwnProfile = true) {
                         });
                     }
                 }
+
+                // store searchable text as data attribute (name+username)
+                friendCard.dataset.search = ((friendData.displayName || '') + ' ' + friendData.username).toLowerCase();
                 
                 friendCard.addEventListener('mouseenter', () => {
                     friendCard.style.transform = 'translateY(-5px)';
@@ -2753,10 +2760,19 @@ async function showMutuals(friendUid) {
         const overlay = document.createElement('div');
         overlay.id = 'mutualModal';
         overlay.className = 'modal-overlay';
-        overlay.style.display = 'flex';
-        overlay.style.alignItems = 'center';
-        overlay.style.justifyContent = 'center';
-        overlay.style.zIndex = '3000';
+        // position and full-screen background like other modals
+        overlay.style.cssText = `
+            display:flex;
+            position:fixed;
+            top:0;
+            left:0;
+            width:100%;
+            height:100%;
+            background:rgba(0,0,0,0.5);
+            align-items:center;
+            justify-content:center;
+            z-index:3000;
+        `;
         overlay.innerHTML = `
             <div class="glass-card" style="width:90%; max-width:500px; padding:20px; box-sizing:border-box;">
                 <div style="display:flex; justify-content:space-between; margin-bottom:15px;">
@@ -2787,14 +2803,15 @@ async function showMutuals(friendUid) {
                     padding: 10px;
                     border-radius: 10px;
                     text-align: center;
-                    cursor: pointer;
+                    /* cursor on card removed so only img is clickable */
                     transition: all 0.3s ease;
                     width: 80px;
                 `;
                 card.innerHTML = `
-                    <div style="cursor:pointer;" onclick="window.location.href='profil.html?id=${encodeURIComponent(u.username)}'">
+                    <div>
                         <img src="${u.avatarUrl || 'assets/img/strendsaydamv2.png'}" 
-                                style="width: 60px; height: 60px; border-radius: 50%; border: 2px solid var(--primary); object-fit: cover; margin-bottom: 5px;">
+                                style="width: 60px; height: 60px; border-radius: 50%; border: 2px solid var(--primary); object-fit: cover; margin-bottom: 5px; cursor:pointer;"
+                                onclick="window.location.href='profil.html?id=${encodeURIComponent(u.username)}'">
                         <p style="margin:0; font-size:0.75rem; word-break: break-word;">${u.displayName || u.username}</p>
                     </div>
                 `;

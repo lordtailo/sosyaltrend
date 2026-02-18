@@ -121,10 +121,12 @@ body.dark-mode .theme-btn i{
 /* clickable mutual friend count */
 .mutual-info {
     cursor: pointer;
-    text-decoration: underline;
+    /* no underline for a cleaner look */
+    text-decoration: none;
 }
 .mutual-info:hover {
     color: var(--primary);
+    text-decoration: none;
 }
 
 /* ensure modal content scrolls if too tall */
