@@ -118,6 +118,21 @@ body.dark-mode .theme-btn i{
     transition: background-color 0.2s, border-color 0.2s, color 0.1s; 
 }
 
+/* clickable mutual friend count */
+.mutual-info {
+    cursor: pointer;
+    text-decoration: underline;
+}
+.mutual-info:hover {
+    color: var(--primary);
+}
+
+/* ensure modal content scrolls if too tall */
+.modal-overlay .glass-card {
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
 /* TOP BAR - Sayfanın en üstünde çakılı */
 .top-bar {
     background: linear-gradient(90deg, #6366f1, #a855f7, #6366f1);
@@ -1026,6 +1041,15 @@ aside, .right-panel { display: none; } }
     /* Images and cards shouldn't exceed container width */
     img { max-width: 100%; height: auto; }
     .glass-card { max-width: 100%; box-sizing: border-box; }
+
+    /* PROFILE PAGE ADJUSTMENTS */
+    #page-profile .glass-card { padding: 20px 10px; }
+    #page-profile img#profilePageAvatar { width: 80px; height: 80px; }
+    #page-profile h2 { font-size: 1.3rem; }
+    #page-profile .tab-btn { padding: 8px 12px; font-size: 0.8rem; }
+    /* action buttons stack on mobile */
+    .profile-actions { flex-direction: column; gap: 8px; }
+    .profile-actions button { width: 100%; max-width: 240px; }
 }
 
 /* Small devices - fixed bottom navigation like Facebook */

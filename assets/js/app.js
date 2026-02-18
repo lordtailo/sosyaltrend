@@ -2660,21 +2660,35 @@ async function loadFriendsList(userRef, isOwnProfile = true) {
                 
                 let mutualHtml = '';
                 if (mutualCount > 0) {
-                    mutualHtml = `<p style="margin:4px 0 0 0; color:var(--text-muted); font-size:0.75rem;">🌐 ${mutualCount} ortak arkadaş</p>`;
+                    // make the mutual count clickable
+                    mutualHtml = `<p class="mutual-info" data-uid="${friendUid}" 
+                        style="margin:4px 0 0 0; color:var(--text-muted); font-size:0.75rem; cursor:pointer;">
+                        🌐 ${mutualCount} ortak arkadaş
+                    </p>`;
                 }
 
                 friendCard.innerHTML = `
-                    <div style="cursor: pointer;" onclick="window.location.href='profil.html?id=${encodeURIComponent(friendData.username)}'">
+                    <div class="profile-link" style="cursor: pointer;" onclick="window.location.href='profil.html?id=${encodeURIComponent(friendData.username)}'">
                         <img src="${friendData.avatarUrl || 'assets/img/strendsaydamv2.png'}" 
                              style="width: 80px; height: 80px; border-radius: 50%; border: 2px solid var(--primary); object-fit: cover; margin-bottom: 10px;">
                         <h4 style="margin: 8px 0; font-size: 0.9rem; word-break: break-word;">${friendData.displayName || friendData.username}</h4>
                         <p style="margin: 5px 0; color: var(--text-muted); font-size: 0.8rem;">@${friendData.username}</p>
-                        ${mutualHtml}
                     </div>
+                    ${mutualHtml}
                     ${isOwnProfile ? `<button onclick="removeFriend('${friendUid}')" style="background: #ef4444; color: white; border: none; padding: 6px 12px; border-radius: 8px; cursor: pointer; font-size: 0.75rem; margin-top: 10px;">
                         <i class="fa-solid fa-trash"></i> Arkadaşlığı Sonlandır
                     </button>` : ''}
                 `;
+                
+                // only need to bind mutual click, propagation no longer matters
+                if (mutualCount > 0) {
+                    const mutualEl = friendCard.querySelector('.mutual-info');
+                    if (mutualEl) {
+                        mutualEl.addEventListener('click', () => {
+                            showMutuals(friendUid);
+                        });
+                    }
+                }
                 
                 friendCard.addEventListener('mouseenter', () => {
                     friendCard.style.transform = 'translateY(-5px)';
@@ -2722,6 +2736,88 @@ async function removeFriend(friendUid) {
 
 // Fonksiyonu HTML'den (onclick) erişilebilir hale getirir
 window.removeFriend = removeFriend;
+
+// Bir arkadaş ile ortak olan arkadaşları gösteren modal
+async function showMutuals(friendUid) {
+    if (!auth?.currentUser) return;
+    try {
+        const meDoc = await getDoc(doc(db, "users", auth.currentUser.uid));
+        const friendDoc = await getDoc(doc(db, "users", friendUid));
+        if (!meDoc.exists() || !friendDoc.exists()) return;
+
+        const myFriends = meDoc.data().friends || [];
+        const theirFriends = friendDoc.data().friends || [];
+        const mutualIds = theirFriends.filter(id => myFriends.includes(id));
+
+        // create overlay structure
+        const overlay = document.createElement('div');
+        overlay.id = 'mutualModal';
+        overlay.className = 'modal-overlay';
+        overlay.style.display = 'flex';
+        overlay.style.alignItems = 'center';
+        overlay.style.justifyContent = 'center';
+        overlay.style.zIndex = '3000';
+        overlay.innerHTML = `
+            <div class="glass-card" style="width:90%; max-width:500px; padding:20px; box-sizing:border-box;">
+                <div style="display:flex; justify-content:space-between; margin-bottom:15px;">
+                    <h3 style="margin:0;">Ortak Arkadaşlar</h3>
+                    <button id="closeMutualBtn" style="background:none; border:none; font-size:1.5rem; cursor:pointer; color:var(--text-main);">&times;</button>
+                </div>
+                <div id="mutualListContainer" style="display:flex; flex-wrap:wrap; gap:10px; justify-content:center;
+                      max-height:60vh; overflow-y:auto;"></div>
+            </div>
+        `;
+        document.body.appendChild(overlay);
+        document.getElementById('closeMutualBtn').addEventListener('click', () => overlay.remove());
+
+        const container = document.getElementById('mutualListContainer');
+        if (mutualIds.length === 0) {
+            container.innerHTML = '<p>Ortakh arkadaş bulunamadı.</p>';
+            return;
+        }
+
+        for (const uid of mutualIds) {
+            try {
+                const uDoc = await getDoc(doc(db, "users", uid));
+                if (!uDoc.exists()) continue;
+                const u = uDoc.data();
+                const card = document.createElement('div');
+                card.style.cssText = `
+                    background: var(--input-bg);
+                    padding: 10px;
+                    border-radius: 10px;
+                    text-align: center;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                    width: 80px;
+                `;
+                card.innerHTML = `
+                    <div style="cursor:pointer;" onclick="window.location.href='profil.html?id=${encodeURIComponent(u.username)}'">
+                        <img src="${u.avatarUrl || 'assets/img/strendsaydamv2.png'}" 
+                                style="width: 60px; height: 60px; border-radius: 50%; border: 2px solid var(--primary); object-fit: cover; margin-bottom: 5px;">
+                        <p style="margin:0; font-size:0.75rem; word-break: break-word;">${u.displayName || u.username}</p>
+                    </div>
+                `;
+                card.addEventListener('mouseenter', () => {
+                    card.style.transform = 'translateY(-3px)';
+                    card.style.boxShadow = 'var(--shadow)';
+                });
+                card.addEventListener('mouseleave', () => {
+                    card.style.transform = 'translateY(0)';
+                    card.style.boxShadow = 'none';
+                });
+                container.appendChild(card);
+            } catch (e) {
+                console.warn('Mutual friend fetch error', e);
+            }
+        }
+    } catch (error) {
+        console.error('showMutuals error:', error);
+    }
+}
+
+// Fonksiyonu global erişime aç (kullanıldığı yerde onclick içinde olabilir)
+window.showMutuals = showMutuals;
 
 // Arkadaş isteklerini yükle ve bildirim dropdown'unda göster
 async function loadFriendRequests(requests) {
