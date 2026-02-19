@@ -3219,6 +3219,10 @@ async function loadProfileNotifications() {
             if (n.type === 'post_like' || n.type === 'like') {
                 mainText = `${n.fromName} gönderinizi beğendi`;
                 detailText = n.postContent ? `"${n.postContent}${n.postContent.length >= 50 ? '...' : ''}"` : 'Gönderi hakkında daha fazla bilgi görmek için tıkla.';
+                else if (n.type === 'like') {
+                mainText = `Gönderiyi beğendiniz`;
+                detailText = n.postContent ? `"${n.postContent}${n.postContent.length >= 50 ? '...' : ''}"` : 'Gönderi hakkında daha fazla bilgi görmek için tıkla.';
+            }
             } else if (n.type === 'saved_self') {
                 mainText = `Gönderiyi kaydettiniz`;
                 detailText = n.postContent ? `"${n.postContent}${n.postContent.length >= 50 ? '...' : ''}"` : 'Gönderi hakkında daha fazla bilgi görmek için tıkla.';
