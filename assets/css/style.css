@@ -1153,3 +1153,13 @@ aside, .right-panel { display: none; } }
   }
 }
 
+/* Gerçek Uygulama Deneyimi */
+body {
+  overscroll-behavior-y: contain; /* Sayfayı aşağı çekip yenilemeyi kapatır */
+  -webkit-tap-highlight-color: transparent; /* Mobilde tıklama efektini temizler */
+  user-select: none; /* Metin seçmeyi butonlarda engeller (daha profesyonel durur) */
+}
+
+input, textarea {
+  user-select: auto; /* Yazı alanlarında seçmeyi geri açar */
+}
