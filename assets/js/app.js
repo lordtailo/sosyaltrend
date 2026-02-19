@@ -1331,6 +1331,7 @@ window.likePost = async (id, isLiked) => {
         console.error('likePost hatası:', e);
     }
 };
+
   window.toggleBookmark = async (id, isSaved) => {
     try {
         const ref = doc(db, "posts", id);
@@ -1619,21 +1620,24 @@ window.loadPostsFeed = (showAll = false) => {
           // Feed'e eklenen posta HTML'e benzersiz id ekleyelim (hash ile yönlendirme için)
           const postHtmlForFeed = postHtmlBase.replace('<div class="glass-card post"', `<div id="post-${d.id}" class="glass-card post"`);
 
-          if(feed) feed.innerHTML += postHtmlForFeed;
-          if(p.username === user.username && myPosts) myPosts.innerHTML += postHtmlBase;
-          if(isLiked && myLikes) myLikes.innerHTML += postHtmlBase;
-          if(isSaved && bookItems) bookItems.innerHTML += postHtmlBase;
-          
-          // Likers preview'ı doldur
-          try {
-              if (window.populateLikersPreview) {
-                  setTimeout(() => { window.populateLikersPreview(d.id, p.likes || []); }, 0);
-              }
-          } catch(e) { console.error('populateLikersPreview error', e); }
-          if(isLiked && myLikes) myLikes.innerHTML += postHtmlBase;
-          if(isSaved && bookItems) bookItems.innerHTML += postHtmlBase;
-          feedPostCount++;
-      });
+if(feed) feed.innerHTML += postHtmlForFeed;
+if(p.username === user.username && myPosts) myPosts.innerHTML += postHtmlBase;
+if(isLiked && myLikes) myLikes.innerHTML += postHtmlBase;
+if(isSaved && bookItems) bookItems.innerHTML += postHtmlBase;
+
+// Likers preview'ı doldur
+try {
+    if (window.populateLikersPreview) {
+        setTimeout(() => { window.populateLikersPreview(d.id, p.likes || []); }, 0);
+    }
+} catch(e) { 
+    console.error('populateLikersPreview error', e); 
+}
+
+// BURADAKİ TEKRAR EDEN SATIRLAR SİLİNDİ (Çift görünmeyi ve çift tetiklenmeyi bu engeller)
+feedPostCount++;
+});
+
 
       // Diğer Gönderiler Butonu
       if (feed && feedPostCount >= 7) {
