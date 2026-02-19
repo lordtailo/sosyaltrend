@@ -1752,8 +1752,6 @@ loadPostsFeed();
   };
 /* ============================ */
 
-/* Gündem özelliği kaldırıldı */
-
 /* MOBİLE VERSİYONDA İÇERİK AYARLAMA */
 document.addEventListener('DOMContentLoaded', () => {
     const leftBtn = document.getElementById('leftOpenBtn');
