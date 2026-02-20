@@ -1152,9 +1152,3 @@ aside, .right-panel { display: none; } }
     font-size: 0.9rem;
   }
 }
-
-/* admin.html içindeki mevcut style bloğuna ekle */
-@media (max-width: 768px) {
-    .data-table { display: block; overflow-x: auto; white-space: nowrap; }
-    .stat-grid { grid-template-columns: 1fr 1fr; }
-}
