@@ -3699,3 +3699,20 @@ function createLikersModal() {
 
 // Expose to global scope so inline onclick handlers work from module script
 window.sendFriendRequestToUid = sendFriendRequestToUid;
+
+window.broadcastAnnouncement = async () => {
+    const msg = prompt("Tüm kullanıcılara gönderilecek duyuruyu yazın:");
+    if (!msg) return;
+    
+    try {
+        await addDoc(collection(db, "notifications"), {
+            type: "system",
+            message: msg,
+            timestamp: serverTimestamp(),
+            from: "Yönetim"
+        });
+        alert("✅ Duyuru başarıyla yayınlandı!");
+    } catch (e) {
+        alert("❌ Hata: " + e.message);
+    }
+};
