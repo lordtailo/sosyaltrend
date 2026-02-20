@@ -95,6 +95,13 @@
             <button class="tab-btn" onclick="switchTab('users')">Kullanıcı Yönetimi</button>
             <button class="tab-btn" onclick="switchTab('moderation')">İçerik Denetimi</button>
         </div>
+        
+        <div class="admin-actions">
+    <button onclick="broadcastAnnouncement()" class="action-btn" style="background:var(--primary); color:white;">
+        <i class="fa-solid fa-bullhorn"></i> Sistem Duyurusu Yayınla
+    </button>
+</div>
+
 
         <div id="section-announcement" class="admin-section active">
             <div class="section-subtitle">Tüm Sisteme Duyuru Yayınla</div>
