@@ -440,24 +440,12 @@ async function migrateOldAvatars() {
 async function updateAdminStats() {
     if(!user.isAdmin) return;
     try {
-        const [postsSnap, usersSnap] = await Promise.all([
-            getDocs(collection(db, "posts")),
-            getDocs(collection(db, "users"))
-        ]);
-
-        const stats = {
-            'stat-total-posts': postsSnap.size,
-            'stat-total-users': usersSnap.size,
-            'stat-total-activity': 0 // Geliştirilebilir: beğeniler + yorumlar
-        };
-
-        // DOM elementlerini güvenli bir şekilde güncelle
-        Object.keys(stats).forEach(id => {
-            const el = document.getElementById(id);
-            if (el) el.innerText = stats[id];
-        });
+        const postsSnap = await getDocs(collection(db, "posts"));
+        // Elementler sayfada varsa güncelle
+        const postStat = document.getElementById('stat-total-posts');
+        if (postStat) postStat.innerText = postsSnap.size;
     } catch (error) {
-        console.error("İstatistikler yüklenemedi:", error);
+        console.error("Admin istatistikleri yüklenirken hata:", error);
     }
 }
 
@@ -1343,7 +1331,6 @@ window.likePost = async (id, isLiked) => {
         console.error('likePost hatası:', e);
     }
 };
-
   window.toggleBookmark = async (id, isSaved) => {
     try {
         const ref = doc(db, "posts", id);
@@ -1632,24 +1619,21 @@ window.loadPostsFeed = (showAll = false) => {
           // Feed'e eklenen posta HTML'e benzersiz id ekleyelim (hash ile yönlendirme için)
           const postHtmlForFeed = postHtmlBase.replace('<div class="glass-card post"', `<div id="post-${d.id}" class="glass-card post"`);
 
-if(feed) feed.innerHTML += postHtmlForFeed;
-if(p.username === user.username && myPosts) myPosts.innerHTML += postHtmlBase;
-if(isLiked && myLikes) myLikes.innerHTML += postHtmlBase;
-if(isSaved && bookItems) bookItems.innerHTML += postHtmlBase;
-
-// Likers preview'ı doldur
-try {
-    if (window.populateLikersPreview) {
-        setTimeout(() => { window.populateLikersPreview(d.id, p.likes || []); }, 0);
-    }
-} catch(e) { 
-    console.error('populateLikersPreview error', e); 
-}
-
-// BURADAKİ TEKRAR EDEN SATIRLAR SİLİNDİ (Çift görünmeyi ve çift tetiklenmeyi bu engeller)
-feedPostCount++;
-});
-
+          if(feed) feed.innerHTML += postHtmlForFeed;
+          if(p.username === user.username && myPosts) myPosts.innerHTML += postHtmlBase;
+          if(isLiked && myLikes) myLikes.innerHTML += postHtmlBase;
+          if(isSaved && bookItems) bookItems.innerHTML += postHtmlBase;
+          
+          // Likers preview'ı doldur
+          try {
+              if (window.populateLikersPreview) {
+                  setTimeout(() => { window.populateLikersPreview(d.id, p.likes || []); }, 0);
+              }
+          } catch(e) { console.error('populateLikersPreview error', e); }
+          if(isLiked && myLikes) myLikes.innerHTML += postHtmlBase;
+          if(isSaved && bookItems) bookItems.innerHTML += postHtmlBase;
+          feedPostCount++;
+      });
 
       // Diğer Gönderiler Butonu
       if (feed && feedPostCount >= 7) {
@@ -1763,6 +1747,8 @@ loadPostsFeed();
     if(menu) menu.classList.remove('active');
   };
 /* ============================ */
+
+/* Gündem özelliği kaldırıldı */
 
 /* MOBİLE VERSİYONDA İÇERİK AYARLAMA */
 document.addEventListener('DOMContentLoaded', () => {
@@ -3050,7 +3036,7 @@ async function loadNotifications(userData) {
             detail = n.postContent ? `"${n.postContent}${n.postContent.length > 50 ? '...' : ''}"` : '';
             icon = 'fa-heart';
         } else if (n.type === 'saved_self') {
-            text = `Gönderi kaydettiniz`;
+            text = `Gönderiyi kaydettiniz`;
             detail = n.postContent ? `"${n.postContent}${n.postContent.length > 50 ? '...' : ''}"` : '';
             icon = 'fa-bookmark';
         } else if (n.type === 'saved' || n.type === 'post_saved') {
@@ -3214,7 +3200,7 @@ async function loadProfileNotifications() {
             const nDiv = document.createElement('div');
             nDiv.style.cssText = `padding:15px; border-radius:12px; background:var(--input-bg); border:1px solid var(--border); display:grid; grid-template-columns:auto 1fr auto; gap:12px; align-items:start; cursor:pointer; transition:all 0.2s ease; ${n.read ? 'opacity:0.65;' : 'background:var(--card-bg); border:1px solid var(--primary);'}`;
 
-            const icon = (n.type && n.type.includes('like')) ? 'fa-heart' : (n.type && n.type.includes('comment') ? 'fa-comment' :(n.type && n.type.includes('friend') ? 'fa-user-check' : 'fa-info-circle'));
+            const icon = (n.type && n.type.includes('like')) ? 'fa-heart' : (n.type && n.type.includes('comment') ? 'fa-comment' : (n.type && n.type.includes('friend') ? 'fa-user-check' : 'fa-info-circle'));
             const iconColors = {
                 'fa-heart': '#ef4444',
                 'fa-comment': '#3b82f6',
@@ -3697,22 +3683,4 @@ function createLikersModal() {
     return modal;
 }
 
-// Expose to global scope so inline onclick handlers work from module script
 window.sendFriendRequestToUid = sendFriendRequestToUid;
-
-window.broadcastAnnouncement = async () => {
-    const msg = prompt("Tüm kullanıcılara gönderilecek duyuruyu yazın:");
-    if (!msg) return;
-    
-    try {
-        await addDoc(collection(db, "notifications"), {
-            type: "system",
-            message: msg,
-            timestamp: serverTimestamp(),
-            from: "Yönetim"
-        });
-        alert("✅ Duyuru başarıyla yayınlandı!");
-    } catch (e) {
-        alert("❌ Hata: " + e.message);
-    }
-};
