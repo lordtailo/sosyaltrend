@@ -440,12 +440,24 @@ async function migrateOldAvatars() {
 async function updateAdminStats() {
     if(!user.isAdmin) return;
     try {
-        const postsSnap = await getDocs(collection(db, "posts"));
-        // Elementler sayfada varsa güncelle
-        const postStat = document.getElementById('stat-total-posts');
-        if (postStat) postStat.innerText = postsSnap.size;
+        const [postsSnap, usersSnap] = await Promise.all([
+            getDocs(collection(db, "posts")),
+            getDocs(collection(db, "users"))
+        ]);
+
+        const stats = {
+            'stat-total-posts': postsSnap.size,
+            'stat-total-users': usersSnap.size,
+            'stat-total-activity': 0 // Geliştirilebilir: beğeniler + yorumlar
+        };
+
+        // DOM elementlerini güvenli bir şekilde güncelle
+        Object.keys(stats).forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.innerText = stats[id];
+        });
     } catch (error) {
-        console.error("Admin istatistikleri yüklenirken hata:", error);
+        console.error("İstatistikler yüklenemedi:", error);
     }
 }
 
