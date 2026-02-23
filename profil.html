@@ -329,6 +329,19 @@
         document.getElementById(tabName).classList.add("active");
         evt.currentTarget.classList.add("active");
         
+        // Ensure profile data is loaded when switching to posts/likes/saves tabs
+        if (['my-posts-tab','my-likes-tab','my-saves-tab'].includes(tabName)) {
+            requestAnimationFrame(() => {
+                if (window.loadProfileSections && typeof window.loadProfileSections === 'function') {
+                    try {
+                        window.loadProfileSections();
+                    } catch(e) {
+                        console.warn('loadProfileSections call failed:', e);
+                    }
+                }
+            });
+        }
+        
         if (tabName === 'my-friends-tab') {
             requestAnimationFrame(() => {
                 if (window.loadFriendsList && window.user && window.auth?.currentUser) {
@@ -421,6 +434,16 @@ window.addEventListener('load', () => {
 });
 </script>
 <script type="module" src="assets/js/app.js"></script>
+<script>
+// After app.js loads, populate profile sections directly
+setTimeout(() => {
+    if (typeof window.loadProfileSections === 'function') {
+        window.loadProfileSections();
+    } else {
+        console.warn('loadProfileSections not ready');
+    }
+}, 1000);
+</script>
 
 </body>
 </html>

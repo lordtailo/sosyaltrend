@@ -649,14 +649,6 @@ margin-top: 15px; border-top: 1px solid var(--border); padding-top: 15px; }
 .comment-del-btn { background:none; border:none; color:#ef4444; cursor:pointer; opacity:0.6; transition:0.2s; font-size:0.75rem; }
 .comment-del-btn:hover { opacity:1; }
 
-/* Poll display styling */
-.poll-question { font-weight:700; margin-bottom:10px; }
-.poll-options { display:flex; flex-wrap:wrap; gap:8px; }
-.poll-options button { padding:6px 12px; border-radius:8px; border:1px solid var(--primary); background:var(--input-bg); cursor:pointer; }
-.poll-options button:disabled { opacity:0.6; cursor:default; }
-
-/* share modal poll button icon spacing */
-#share-poll .fa-poll { margin-right:6px; }
 
 /* Replies and comment structure enhancements */
 .comment-reply {

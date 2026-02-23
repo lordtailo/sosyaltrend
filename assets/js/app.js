@@ -384,6 +384,12 @@ onAuthStateChanged(auth, async (fbUser) => {
         
         // UI Güncelleme (Profil resmi, isimler vb.)
         updateUIWithUser();
+        // Ensure feed is loaded with current user context so profile tabs populate
+        try { loadPostsFeed(); } catch(e) { console.warn('loadPostsFeed retry failed', e); }
+        // also populate profile sections if on profile page
+        if (typeof window.loadProfileSections === 'function') {
+            try { window.loadProfileSections(); } catch(e) { console.warn('loadProfileSections call during auth state failed', e); }
+        }
         
         // Real-time kullanıcı profili listener - Avatar değişikliklerini senkronize et
         onSnapshot(doc(db, "users", fbUser.uid), (docSnapshot) => {
@@ -1501,25 +1507,22 @@ window.loadPostsFeed = (showAll = false) => {
   
   currentPostsUnsubscribe = onSnapshot(query(collection(db, "posts"), ...queryConstraints), (snap) => {
       try {
-          const feed = document.getElementById('feed-items'), 
-                myPosts = document.getElementById('my-posts-list'), 
-                myLikes = document.getElementById('my-liked-list'), 
-                bookItems = document.getElementById('bookmark-items'), 
+          const feed = document.getElementById('feed-items'),
+                myPosts = document.getElementById('my-posts-list'),
+                myLikes = document.getElementById('my-liked-list'),
+                bookItems = document.getElementById('bookmark-items'),
                 t = translations[currentLang];
-          // debug: snapshot summary
-          try { console.log('loadPostsFeed snapshot:', { size: snap.size, ids: snap.docs.map(d=>d.id) }); } catch(e) { console.log('snapshot log failed', e); }
-          // accumulate HTML so we can replace in one shot and avoid flicker
+          
+          // accumulate HTML so we can replace in one shot
           let feedHtml = '';
           let myPostsHtml = '';
           let likesHtml = '';
           let bookHtml = '';
 
-
-
       let feedPostCount = 0;
       if (snap.empty) {
           console.warn('loadPostsFeed: empty snapshot');
-          return; // don't wipe existing content
+          return;
       }
       snap.forEach(d => {
           try {
@@ -1591,25 +1594,7 @@ window.loadPostsFeed = (showAll = false) => {
               </div>
         </div>
         
-        ${(() => {
-            if (p.type === 'poll') {
-                let html = '';
-                if (p.text) {
-                    html += `<p style="white-space: pre-wrap; margin-bottom:8px;">${p.text}</p>`;
-                }
-                html += `<div class="poll-question">${p.question}</div>`;
-                html += '<div class="poll-options">';
-                const opts = p.options || [];
-                opts.forEach((opt, idx) => {
-                    const hasVoted = auth.currentUser && opt.voters && opt.voters.includes(auth.currentUser.uid);
-                    html += `<button ${hasVoted ? 'disabled' : ''} onclick="votePoll('${d.id}', ${idx})">${opt.text} (${opt.votes||0})</button>`;
-                });
-                html += '</div>';
-                return html;
-            } else {
-                return `<p style="white-space: pre-wrap; margin-bottom:10px;">${contentWithLinks}</p>${postImageHtml}`;
-            }
-        })()}
+        <p style="white-space: pre-wrap; margin-bottom:10px;">${contentWithLinks}</p>${postImageHtml}
 
         <div id="likers-${d.id}" style="display:flex; align-items:center; gap:8px; margin-bottom:10px; min-height:28px;"></div>
 
@@ -1693,22 +1678,19 @@ window.loadPostsFeed = (showAll = false) => {
                   setTimeout(() => { window.populateLikersPreview(d.id, p.likes || []); }, 0);
               }
           } catch(e) { console.error('populateLikersPreview error', e); }
-          if(isLiked && myLikes) likesHtml += postHtmlBase;
-          if(isSaved && bookItems) bookHtml += postHtmlBase;
           feedPostCount++;
           } catch(err) {
               console.error('post render error', err, d.id);
           }
       });
 
-      // populate containers with accumulated HTML (only if we built something)
+      // populate feed only
       if (snap.size > 0 && feedHtml.trim() === '') {
           console.warn('loadPostsFeed: no HTML generated for non-empty snapshot, skipping overwrite');
       } else {
-          if(feed) feed.innerHTML = feedHtml;
-          if(myPosts) myPosts.innerHTML = myPostsHtml;
-          if(myLikes) myLikes.innerHTML = likesHtml;
-          if(bookItems) bookItems.innerHTML = bookHtml;
+          if(feed) {
+              feed.innerHTML = feedHtml;
+          }
       }
 
       // Diğer Gönderiler Butonu
@@ -2110,6 +2092,94 @@ async function loadVisitorProfile() {
         }
     }
 }
+
+// For profile page: load own posts/likes/bookmarks separately
+window.loadProfileSections = async () => {
+    console.log('loadProfileSections invoked');
+    if (!auth.currentUser) {
+        console.warn('loadProfileSections: no auth user');
+        return;
+    }
+    const uname = user.username;
+    const myPostsList = document.getElementById('my-posts-list');
+    const myLikesList = document.getElementById('my-liked-list');
+    const bookmarkList = document.getElementById('bookmark-items');
+    console.log('profile lists elements', { myPostsList, myLikesList, bookmarkList });
+    if (myPostsList) myPostsList.innerHTML = '';
+    if (myLikesList) myLikesList.innerHTML = '';
+    if (bookmarkList) bookmarkList.innerHTML = '';
+
+    try {
+        const q = query(collection(db, 'posts'), orderBy('timestamp','desc'));
+        const snap = await getDocs(q);
+        let total=0, mineCount=0, likedCount=0, savedCount=0;
+        snap.forEach(d => {
+            total++;
+            const p = d.data();
+            const isMine = p.username === uname || p.adminUser === uname;
+            const isLiked = p.likes?.includes(uname);
+            const isSaved = p.savedBy?.includes(uname);
+            if(isMine) mineCount++;
+            if(isLiked) likedCount++;
+            if(isSaved) savedCount++;
+            const postHtml = `
+                <div class="glass-card post" style="position: relative;">
+                    <div style="display:flex; gap:10px; margin-bottom:10px;">
+                        <img src="${getAvatarUrl(p.avatarUrl||p.avatarSeed||'assets/img/strendsaydamv2.png','user')}" class="user-avatar" style="cursor:pointer;" onclick="location.href='profil.html?id=${encodeURIComponent(p.username)}'">
+                        <div>
+                            <div style="font-weight:700; display:flex; align-items:center; gap:5px; cursor:pointer;" onclick="location.href='profil.html?id=${encodeURIComponent(p.username)}'">
+                                ${p.name}
+                                <span class="post-time">• ${formatTime(p.timestamp)}</span>
+                            </div>
+                            <div style="font-size:0.75rem; color:var(--text-muted); cursor:pointer;" onclick="location.href='profil.html?id=${encodeURIComponent(p.username)}'">@${p.username}</div>
+                        </div>
+                    </div>
+                    <p style="white-space: pre-wrap; margin-bottom:10px;">${(p.content||"").replace(/(#[\wığüşöçİĞÜŞÖÇ]+)/g,'<span class="hashtag-link" onclick="searchTrend(\'$1\')">$1</span>')}</p>
+                    ${p.image ? `
+                    <div class="post-image-wrapper" style="
+                        margin: 12px auto;
+                        border-radius: 12px;
+                        overflow: hidden;
+                        background: rgb(0, 0, 0);
+                        border: 1px solid var(--border);
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        transition: 0.3s ease-in-out;
+                        max-height: 103%;
+                        max-width: 50%;
+                        height: auto;
+                        width: 100%;
+                    ">
+                        <img src="${p.image}"
+                             loading="lazy"
+                             style="
+                                width: 100%; 
+                                height: 100%; 
+                                object-fit: cover; 
+                                cursor: zoom-in;
+                                transition: all 0.3s ease;
+                             " 
+                             onclick="toggleImageExpand(this)"
+                             alt="Post görseli">
+                    </div>
+                    ` : ''}
+                    <div style="display:flex; gap:12px;">
+                        <button class="tool-btn" onclick="likePost('${d.id}', ${isLiked})" style="gap:5px; color:${isLiked?'#ef4444':''}"><i class="${isLiked?'fa-solid':'fa-regular'} fa-heart"></i><span>${p.likes?.length||0}</span></button>
+                        <button class="tool-btn" style="gap:5px;"><i class="fa-regular fa-comment"></i><span>${p.comments?.length||0}</span></button>
+                    </div>
+                </div>
+            `;
+            if (isMine && myPostsList) myPostsList.innerHTML += postHtml;
+            if (isLiked && myLikesList) myLikesList.innerHTML += postHtml;
+            if (isSaved && bookmarkList) bookmarkList.innerHTML += postHtml;
+        });
+    } catch(e) {
+        console.error('loadProfileSections error', e);
+    } finally {
+        console.log('loadProfileSections stats', { total, mineCount, likedCount, savedCount });
+    }
+};
 
 // PROFİL YÖNLENDİRME
 window.navigateTo = function (page, userId = null) {
@@ -3642,110 +3712,8 @@ document.addEventListener('input', (e) => {
 });
 
 // poll button next to share composer
-const pollBtn = document.getElementById('pollToggle');
-if (pollBtn) {
-    pollBtn.addEventListener('click', () => {
-        openPollCreator();
-    });
-} else {
-    // in case the element is added later (injection), delegate via DOMContentLoaded
-    document.addEventListener('click', (e) => {
-        if (e.target && e.target.id === 'pollToggle') openPollCreator();
-    });
-}
 
-// Poll creation helper
-async function openPollCreator() {
-    console.log('openPollCreator called');
-    if (!auth.currentUser) { alert('Lütfen giriş yapın'); return; }
-    const question = prompt('Anket sorusu nedir?');
-    if (!question) {
-        console.log('poll cancelled: no question');
-        return;
-    }
-    const opts = prompt('Seçenekleri virgülle ayırarak girin (örn: Evet,Hayır)');
-    if (!opts) {
-        console.log('poll cancelled: no options');
-        return;
-    }
-    const options = opts.split(',').map(o => ({ text: o.trim(), votes: 0, voters: [] })).filter(o => o.text);
-    if (options.length < 2) { alert('En az iki seçenek girin.'); return; }
-    // optional caption from post input area
-    let caption = '';
-    const postInput = document.getElementById('postInput');
-    if (postInput && postInput.value.trim()) {
-        caption = postInput.value.trim();
-    }
-    console.log('creating poll', { question, options, caption });
-    try {
-        const docRef = await addDoc(collection(db, 'posts'), {
-            type: 'poll',
-            question,
-            options,
-            text: caption, // may be empty
-            name: user.displayName,
-            username: user.username,
-            avatarUrl: user.avatarUrl,
-            timestamp: serverTimestamp(),
-            likes: [],
-            comments: []
-        });
-        console.log('poll created with id', docRef.id);
-        // verify the created document is readable immediately
-        try {
-            const createdSnap = await getDoc(doc(db, 'posts', docRef.id));
-            console.log('createdDoc exists:', createdSnap.exists(), 'data:', createdSnap.data());
-        } catch (e) {
-            console.warn('Could not read created doc immediately:', e);
-        }
-        alert('Anket oluşturuldu!');
-        if (postInput) postInput.value = ''; // clear caption area after creating
-        // make sure feed shows it immediately
-        loadPostsFeed(true);
-        // set hash so feed helper will try to open it
-        window.location.hash = `post-${docRef.id}`;
-        // also actively wait and scroll to the new post when it appears
-        (async () => {
-            const el = await waitForElement(`#post-${docRef.id}`, 5000, 200);
-            if (el) {
-                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            } else {
-                console.warn('New poll element not found after creation:', docRef.id);
-            }
-        })();
-    } catch (e) {
-        console.error('Anket oluşturma hatası:', e);
-        alert('Anket oluşturulamadı: ' + e.message);
-    }
-}
 
-// Vote on poll
-async function votePoll(postId, optIdx) {
-    if (!auth.currentUser) { alert('Lütfen giriş yapın'); return; }
-    try {
-        const ref = doc(db, 'posts', postId);
-        const snap = await getDoc(ref);
-        if (!snap.exists()) return;
-        const post = snap.data();
-        const opts = post.options || [];
-        if (!opts[optIdx]) return;
-        // remove previous vote
-        opts.forEach(o => {
-            if (o.voters && o.voters.includes(auth.currentUser.uid)) {
-                o.voters = o.voters.filter(u => u !== auth.currentUser.uid);
-                o.votes = (o.votes || 0) - 1;
-            }
-        });
-        // add new vote
-        opts[optIdx].voters = opts[optIdx].voters || [];
-        opts[optIdx].voters.push(auth.currentUser.uid);
-        opts[optIdx].votes = (opts[optIdx].votes || 0) + 1;
-        await updateDoc(ref, { options: opts });
-        // snapshot listener will refresh feed automatically
-    } catch (e) {
-        console.error('votePoll error', e);
-    }
-}
 
 // Paylaş Menüsü
 window.openShareMenu = function(postId) {
@@ -3776,11 +3744,6 @@ window.openShareMenu = function(postId) {
         document.getElementById('share-facebook').onclick = function() {
             window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`, '_blank');
             modal.style.display = 'none';
-        };
-        document.getElementById('share-poll').onclick = function() {
-            console.log('share-poll clicked for post', postId);
-            modal.style.display = 'none';
-            openPollCreator();
         };
         
         document.getElementById('share-copy-link').onclick = function() {
@@ -3831,9 +3794,6 @@ function createShareModal() {
                 </button>
                 <button id="share-copy-embed" class="share-option" style="background:var(--input-bg); color:var(--text);">
                     <i class="fa-solid fa-code"></i> Embed Kodunu Kopyala
-                </button>
-                <button id="share-poll" class="share-option" style="background:rgba(75,85,99,0.1); color:#4b5563; border:1px solid #4b5563;">
-                    <i class="fa-solid fa-poll"></i> Anket Oluştur
                 </button>
             </div>
         </div>
