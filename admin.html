@@ -109,45 +109,51 @@
         window.location.href = 'login.html';
     } else {
         try {
-            // Firestore'dan kullanıcının güncel dökümanını alıyoruz
+            // 1. Önce Firestore'dan kullanıcının güncel dökümanını çekiyoruz
             const userRef = doc(db, "users", user.uid);
             const userDoc = await getDoc(userRef);
             
             let isAdmin = false;
 
-            if (userDoc.exists()) {
+            // 2. KONTROL: Eğer mail senin ana mailinse VEYA veritabanında rolü 'admin' ise
+            if (user.email === "officialfthuzun@gmail.com") {
+                isAdmin = true;
+            } else if (userDoc.exists()) {
                 const userData = userDoc.data();
-                // Yetki Kontrolü: Mail senin mailinse VEYA veritabanındaki rolü 'admin' ise
-                if (user.email === "officialfthuzun@gmail.com" || userData.role === 'admin') {
+                if (userData.role === 'admin') {
                     isAdmin = true;
                 }
-            } else if (user.email === "officialfthuzun@gmail.com") {
-                // Eğer döküman henüz oluşmamışsa ama mail ana admin maili ise yine izin ver
-                isAdmin = true;
             }
 
+            // 3. KARAR: Eğer hiçbir şartı sağlamıyorsa dışarı at
             if (!isAdmin) {
-                // Eğer admin değilse uyarı ver ve ana sayfaya at
-                alert("Yetkisiz erişim! Bu alana girmek için yönetici yetkiniz olmalıdır.");
+                console.warn("Yetkisiz deneme:", user.email);
+                alert("Yetkisiz erişim! Yönetici değilsiniz.");
                 window.location.href = 'index.html';
-            } else {
-                // Admin ise sayfayı yükle
-                console.log("Yönetici girişi başarılı.");
-                updateStats();
-                loadUsers();
-                loadPosts();
-                loadReports();
-                
-                const welcomeMsg = document.getElementById('welcomeMessage');
-                if (welcomeMsg) welcomeMsg.innerText = `Hoş geldin Yönetici, ${user.email}`;
+                return; // Kodun devamını çalıştırma
             }
+
+            // 4. BAŞARILI: Admin ise içerikleri yükle
+            console.log("Yönetici yetkisi onaylandı:", user.email);
+            
+            // Mevcut fonksiyonlarını çağır
+            if (typeof updateStats === 'function') updateStats();
+            if (typeof loadUsers === 'function') loadUsers();
+            if (typeof loadPosts === 'function') loadPosts();
+            if (typeof loadReports === 'function') loadReports();
+            
+            const welcomeMsg = document.getElementById('welcomeMessage');
+            if (welcomeMsg) {
+                welcomeMsg.innerHTML = `<i class="fa-solid fa-user-shield"></i> Hoş geldin Yönetici: <b>${user.email}</b>`;
+            }
+
         } catch (error) {
-            console.error("Yetki kontrolü sırasında hata:", error);
+            console.error("Yetki sistemi hatası:", error);
+            // Hata durumunda güvenlik için ana sayfaya at
             window.location.href = 'index.html';
         }
     }
 });
-
 
     async function initAdmin() {
         try {
