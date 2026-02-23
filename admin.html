@@ -104,17 +104,38 @@
 
     let isAdminInitialized = false;
 
-    onAuthStateChanged(auth, (user) => {
-        if (!user || user.email !== ADMIN_EMAIL) {
-            alert("Yetkisiz Erişim!");
-            window.location.href = "index.html";
-        } else {
-            if (!isAdminInitialized) {
-                initAdmin();
-                isAdminInitialized = true;
+    onAuthStateChanged(auth, async (user) => {
+    if (!user) {
+        window.location.href = 'login.html';
+    } else {
+        try {
+            // Firestore'dan kullanıcının rolünü kontrol et
+            const userDoc = await getDoc(doc(db, "users", user.uid));
+            const userData = userDoc.exists() ? userDoc.data() : null;
+
+            // Yetki Kontrolü: Mail senin mailinse VEYA veritabanındaki rolü 'admin' ise içeri al
+            const isAdmin = (user.email === "officialfthuzun@gmail.com") || (userData && userData.role === 'admin');
+
+            if (!isAdmin) {
+                alert("Yetkisiz erişim! Yönetici değilsiniz.");
+                window.location.href = 'index.html';
+            } else {
+                // Admin ise istatistikleri ve listeleri yükle
+                updateStats();
+                loadUsers();
+                loadPosts();
+                loadReports();
+                
+                const welcomeMsg = document.getElementById('welcomeMessage');
+                if (welcomeMsg) welcomeMsg.innerText = `Hoş geldin Yönetici, ${user.email}`;
             }
+        } catch (error) {
+            console.error("Yetki kontrol hatası:", error);
+            window.location.href = 'index.html';
         }
-    });
+    }
+});
+
 
     async function initAdmin() {
         try {
