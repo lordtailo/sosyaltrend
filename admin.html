@@ -105,53 +105,56 @@
     let isAdminInitialized = false;
 
     onAuthStateChanged(auth, async (user) => {
+    const welcomeMsg = document.getElementById('welcomeMessage');
+    
     if (!user) {
+        // Giriş yapılmamışsa login'e gönder
         window.location.href = 'login.html';
-    } else {
-        try {
-            // 1. Önce Firestore'dan kullanıcının güncel dökümanını çekiyoruz
-            const userRef = doc(db, "users", user.uid);
-            const userDoc = await getDoc(userRef);
-            
-            let isAdmin = false;
+        return;
+    }
 
-            // 2. KONTROL: Eğer mail senin ana mailinse VEYA veritabanında rolü 'admin' ise
-            if (user.email === "officialfthuzun@gmail.com") {
-                isAdmin = true;
-            } else if (userDoc.exists()) {
-                const userData = userDoc.data();
-                if (userData.role === 'admin') {
-                    isAdmin = true;
-                }
+    try {
+        // 1. Önce "Kontrol ediliyor..." mesajı verelim ki hemen index'e atmasın
+        if (welcomeMsg) welcomeMsg.innerText = "Yetki kontrol ediliyor...";
+
+        // 2. Firestore'dan dökümanı çek
+        const userRef = doc(db, "users", user.uid);
+        const userDoc = await getDoc(userRef);
+        
+        let isAdmin = false;
+
+        // 3. Yetkiyi sorgula
+        if (user.email === "officialfthuzun@gmail.com") {
+            isAdmin = true; // Sen her zaman adminsin
+        } else if (userDoc.exists()) {
+            const userData = userDoc.data();
+            if (userData.role === 'admin') {
+                isAdmin = true; // Veritabanında admin olanlar
             }
+        }
 
-            // 3. KARAR: Eğer hiçbir şartı sağlamıyorsa dışarı at
-            if (!isAdmin) {
-                console.warn("Yetkisiz deneme:", user.email);
-                alert("Yetkisiz erişim! Yönetici değilsiniz.");
-                window.location.href = 'index.html';
-                return; // Kodun devamını çalıştırma
-            }
-
-            // 4. BAŞARILI: Admin ise içerikleri yükle
-            console.log("Yönetici yetkisi onaylandı:", user.email);
+        // 4. KARAR ANI
+        if (isAdmin) {
+            // YETKİ VAR: Sayfayı yükle
+            console.log("Yönetici girişi onaylandı.");
+            if (welcomeMsg) welcomeMsg.innerHTML = `<i class="fa-solid fa-user-shield"></i> Hoş geldin Yönetici: <b>${user.email}</b>`;
             
-            // Mevcut fonksiyonlarını çağır
-            if (typeof updateStats === 'function') updateStats();
-            if (typeof loadUsers === 'function') loadUsers();
-            if (typeof loadPosts === 'function') loadPosts();
-            if (typeof loadReports === 'function') loadReports();
-            
-            const welcomeMsg = document.getElementById('welcomeMessage');
-            if (welcomeMsg) {
-                welcomeMsg.innerHTML = `<i class="fa-solid fa-user-shield"></i> Hoş geldin Yönetici: <b>${user.email}</b>`;
-            }
-
-        } catch (error) {
-            console.error("Yetki sistemi hatası:", error);
-            // Hata durumunda güvenlik için ana sayfaya at
+            // Mevcut yükleme fonksiyonlarını çalıştır
+            updateStats();
+            loadUsers();
+            loadPosts();
+            loadReports();
+        } else {
+            // YETKİ YOK: Bilgi ver ve index'e at
+            console.warn("Yetkisiz erişim denemesi:", user.email);
+            alert("Bu sayfaya erişim yetkiniz bulunmamaktadır!");
             window.location.href = 'index.html';
         }
+
+    } catch (error) {
+        console.error("Sistem hatası:", error);
+        // Hata durumunda güvenlik amaçlı ana sayfaya yönlendir
+        window.location.href = 'index.html';
     }
 });
 
