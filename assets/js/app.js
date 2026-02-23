@@ -643,7 +643,7 @@ window.handleFileSelect = async (input) => {
     if (!file || !auth.currentUser) return;
 
     if (file.size > 5 * 1024 * 1024) {
-        alert("Dosya 1MB'dan küçük olmalıdır!");
+        alert("Dosya 5MB'dan küçük olmalıdır!");
         input.value = "";
         return;
     }
