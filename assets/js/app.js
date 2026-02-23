@@ -834,7 +834,7 @@ if (imageInput) {
         const file = e.target.files[0];
         if (file) {
             // Base64 dönüşümü yapılırken boyut kontrolü kritik
-            if (file.size > 1024 * 1024) { 
+            if (file.size > 300 * 1024 * 1024) { 
                 alert("Lütfen 1MB'dan küçük bir fotoğraf seçin.");
                 this.value = "";
                 return;
