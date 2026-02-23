@@ -2210,10 +2210,12 @@ window.navigateTo = function (page, userId = null) {
 
     page = page.toLowerCase();
 
-    if (page === 'profil' || page === 'profil') {
+    // support both Turkish and English keywords for profile
+    if (page === 'profil' || page === 'profile') {
         if (userId) {
             location.href = `profil.html?id=${encodeURIComponent(userId)}`;
         } else {
+            // always redirect to the actual file name (profil.html)
             location.href = `profil.html`;
         }
         return;

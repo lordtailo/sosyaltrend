@@ -261,9 +261,38 @@ header::after {
 #modal-city-title { margin: 0 0 5px 0; color: var(--accent-red); }
 #imsakiye-modal p { margin: 0 0 15px 0; font-size: 0.8rem; color: var(--text-muted); }
 .imsakiye-table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 0.85rem; }
-.imsakiye-table th { background: #f1f1f1; padding: 10px; border-bottom: 2px solid #ddd; position: sticky; top: 0; }
-.imsakiye-table td { padding: 8px; border-bottom: 1px solid #eee; text-align: center; }
-.imsakiye-table tr:nth-child(even) { background: #fafafa; }
+.imsakiye-table th { background: #1e293b; padding: 10px; border: 1px solid #ccc; position: sticky; top: 0; color: #fff; }
+.imsakiye-table td { padding: 8px; border: 1px solid #ccc; text-align: center; }
+/* tüm satırlar aynı arka plan rengine sahip olsun */
+.imsakiye-table tr { background: #fafafa; }
+/* iç tablo varsa miras alsın */
+.imsakiye-table td > table { background: inherit; }
+
+/* dark-mode eşleştirmeleri */
+body.dark-mode .imsakiye-table thead,
+body.dark-mode .imsakiye-table th {
+    background: #1e293b; /* same as light mode header */
+    color: #f1f5f9;
+    border: 1px solid #475569;
+}
+body.dark-mode .imsakiye-table tr {
+    background: #334155;
+}
+body.dark-mode .imsakiye-table td {
+    border: 1px solid #475569;
+}
+
+/* dark mode adjustments for imsakiye */
+body.dark-mode .imsakiye-table th {
+    background: #334155;
+    border-bottom-color: #475569;
+}
+body.dark-mode .imsakiye-table td {
+    border-bottom-color: #475569;
+}
+body.dark-mode .imsakiye-table tr:nth-child(even) {
+    background: #1e293b;
+}
 .close-modal { position: absolute; top: 10px; right: 15px; font-size: 1.5rem; cursor: pointer; color: var(--text-main); font-weight: bold; }
 
 /* job icons */
