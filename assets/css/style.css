@@ -240,7 +240,7 @@ header::after {
 .timer-label { font-size: 0.6rem; text-transform: uppercase; margin-top: 4px; font-weight: 600; }
 .widget-actions { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; }
 .w-select {
-    background: white; color: var(--text-main); border: none; padding: 6px 10px;
+    background: white; border: none; padding: 6px 10px;
     border-radius: 20px; font-size: 0.75rem; cursor: pointer; outline: none;
 }
 .w-btn {
