@@ -58,6 +58,7 @@
         <span class="close-modal" onclick="closeImsakiye()">&times;</span>
         <h3 id="modal-city-title">İmsakiye 2026</h3>
         <p>Vakitler Diyanet İşleri Başkanlığı uyumludur.</p>
+        <div id="imsakiye-summary" style="margin-bottom:10px;font-weight:600;"></div>
         <table class="imsakiye-table">
             <thead>
                 <tr>
@@ -75,7 +76,8 @@
     <div id="page-feed" class="page-content active">
         <div class="glass-card">
             <div style="padding: 20px;">
-                <textarea id="postInput" style="width:100%; border:none; outline:none; resize:none; font-size:1.1rem; min-height:80px;" data-i18n-placeholder="postPlaceholder"></textarea>
+                <textarea id="postInput" oninput="updatePostCount()" maxlength="280" style="width:100%; border:none; outline:none; resize:none; font-size:1.1rem; min-height:80px;" data-i18n-placeholder="postPlaceholder"></textarea>
+                <div style="text-align:right; font-size:0.75rem; color:var(--text-muted);" id="post-charcount">0/280</div>
                 
                 <div id="imagePreviewContainer" style="display: none; position: relative; margin-top: 10px; width: fit-content;">
                     <img id="imagePreview" src="" style="max-width: 200px; max-height: 200px; border-radius: 12px; border: 1px solid var(--border);">
@@ -92,8 +94,6 @@
                     <button class="tool-btn" type="button" onclick="document.getElementById('imageInput').click()">
                         <i class="fa-regular fa-image"></i>
                     </button>
-                    
-                    <button class="tool-btn"><i class="fa-solid fa-list-ul"></i></button>
                     <button class="tool-btn" id="emojiToggle" type="button"><i class="fa-regular fa-face-smile"></i></button>
                     
                     <div id="emojiPicker" class="glass-card" style="display: none; position: absolute; top: -143px; left: 126px; z-index: 100; padding: 4px; width: 200px; grid-template-columns: repeat(7, 1fr); gap: 6px;">
@@ -205,34 +205,76 @@
         modal.style.display = "flex";
 
         try {
-            // Şubat ve Mart 2026 verilerini çek (Ramazan her iki aya yayılıyor)
             const res = await fetch(`https://api.aladhan.com/v1/calendarByCity/2026?city=${selectedCity}&country=Turkey&method=13`);
             const data = await res.json();
-            
+
             let html = "";
-            let ramadanDay = 1;
-            
-            // 19 Şubat'tan itibaren 30 gün dön
+            const today = new Date(); today.setHours(0,0,0,0);
+            const now = new Date();
+            const ramadanStart = new Date(2026, 1, 19); // 19 Şubat
+            let todaysIftar = null;
+            let todayPassed = false;
+
             Object.keys(data.data).forEach(month => {
                 data.data[month].forEach(day => {
-                    const dateParts = day.date.gregorian.date.split('-'); // DD-MM-YYYY
+                    const dateParts = day.date.gregorian.date.split('-');
                     const dateObj = new Date(dateParts[2], dateParts[1]-1, dateParts[0]);
-                    const ramadanStart = new Date(2026, 1, 19); // 19 Şubat
-                    const ramadanEnd = new Date(2026, 2, 20); // 20 Mart (yaklaşık)
 
-                    if(dateObj >= ramadanStart && ramadanDay <= 30) {
+                    if(dateObj.getTime() === today.getTime()) {
+                        const [fH, fMraw] = day.timings.Maghrib.split(':');
+                        const fHn = parseInt(fH, 10);
+                        const fMn = parseInt(fMraw, 10);
+                        todaysIftar = new Date();
+                        todaysIftar.setHours(fHn, fMn, 0, 0);
+                    }
+
+                    // compute Ramadan day number relative to start date
+                    const ramadanDay = Math.floor((dateObj - ramadanStart) / 86400000) + 1;
+                    const isVisible = dateObj >= ramadanStart && dateObj >= today && ramadanDay >= 1 && ramadanDay <= 30;
+
+                    if(isVisible && dateObj.getTime() === today.getTime() && todaysIftar && now > todaysIftar) {
+                        todayPassed = true;
+                    }
+
+                    if(isVisible && !(dateObj.getTime() === today.getTime() && todaysIftar && now > todaysIftar)) {
+                        if(ramadanDay === 30) {
+                            html += `<tr class="arefe-separator">
+                                <td colspan="4" style="text-align:center;font-weight:bold;color:#a00;">Bayram Arefesi</td>
+                            </tr>`;
+                        }
                         html += `<tr>
                             <td>${ramadanDay}. Gün</td>
                             <td>${day.date.gregorian.day} ${day.date.gregorian.month.en.substring(0,3)}</td>
                             <td><b>${day.timings.Imsak.split(' ')[0]}</b></td>
                             <td class="accent-red"><b>${day.timings.Maghrib.split(' ')[0]}</b></td>
                         </tr>`;
-                        ramadanDay++;
                     }
                 });
             });
+
+            let daysElapsed = 0;
+            if(today >= ramadanStart) {
+                daysElapsed = Math.floor((today - ramadanStart) / 86400000) + 1;
+                if(daysElapsed > 30) daysElapsed = 30;
+            }
+            const daysLeft = 30 - daysElapsed;
+            const summaryEl = document.getElementById("imsakiye-summary");
+            if(summaryEl) {
+                if(daysElapsed > 0) {
+                    summaryEl.innerText = `Kaç gündür niyetliyiz: ${daysElapsed} • Kaç gün kaldı: ${daysLeft >= 0 ? daysLeft : 0}`;
+                } else {
+                    summaryEl.innerText = "Ramazan başlamadı.";
+                }
+            }
+            console.log('openImsakiye summary', {today, daysElapsed, daysLeft, todaysIftar, todayPassed});
+
             tbody.innerHTML = html;
-        } catch(e) { tbody.innerHTML = "<tr><td colspan='4'>Vakitler alınamadı.</td></tr>"; }
+        } catch(e) {
+            tbody.innerHTML = "<tr><td colspan='4'>Vakitler alınamadı.</td></tr>";
+            const summaryEl = document.getElementById("imsakiye-summary");
+            if(summaryEl) summaryEl.innerText = "Vakitler alınamadı.";
+            console.error(e);
+        }
     }
 
     function closeImsakiye() { document.getElementById("imsakiye-modal").style.display = "none"; }

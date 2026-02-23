@@ -301,16 +301,11 @@ header::after {
 
 @media (max-width: 480px) {
     .theme-btn { width:36px; height:36px; }
-    .mobile-bottom-nav a span { display: none; }
-    .mobile-bottom-nav a { font-size: 1.2rem; }
     .profile-tabs { gap: 5px; }
     .tab-btn { padding: 8px 12px; font-size: 0.75rem; }
     .main-content, .page-content { font-size: 0.9rem; }
 }
 
-    cursor: pointer;
-    font-weight: 800;
-}
 .header-center { display: flex; justify-content: center; align-items: center; gap: 10px; }
 
 /* ensure header areas align properly */
@@ -654,6 +649,41 @@ margin-top: 15px; border-top: 1px solid var(--border); padding-top: 15px; }
 .comment-del-btn { background:none; border:none; color:#ef4444; cursor:pointer; opacity:0.6; transition:0.2s; font-size:0.75rem; }
 .comment-del-btn:hover { opacity:1; }
 
+/* Poll display styling */
+.poll-question { font-weight:700; margin-bottom:10px; }
+.poll-options { display:flex; flex-wrap:wrap; gap:8px; }
+.poll-options button { padding:6px 12px; border-radius:8px; border:1px solid var(--primary); background:var(--input-bg); cursor:pointer; }
+.poll-options button:disabled { opacity:0.6; cursor:default; }
+
+/* share modal poll button icon spacing */
+#share-poll .fa-poll { margin-right:6px; }
+
+/* Replies and comment structure enhancements */
+.comment-reply {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 5px;
+    background: rgba(0,0,0,0.03);
+    padding: 5px;
+    border-radius: 8px;
+    margin-left: 34px; /* indented relative to comment */
+}
+.comment-actions {
+    display: flex;
+    gap: 5px;
+    align-items: center;
+}
+.reply-btn {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 0.7rem;
+    cursor: pointer;
+    margin-top: 5px;
+    font-weight: bold;
+}
+
 .profile-section-title { 
 border-bottom: 2px solid var(--border); margin: 30px 0 15px; display: inline-block; padding-bottom: 5px; font-size: 1.1rem; }
 .edit-profile-form { display: none; margin-top: 25px; padding-top: 25px; border-top: 1px solid var(--border); text-align: left; animation: fadeIn 0.4s ease; }
@@ -869,7 +899,8 @@ aside, .right-panel { display: none; } }
         transition: background 0.3s ease;}
 
     .footer-links li a:active {
-        background: var(--border) !important; }}
+        background: var(--border) !important; }
+}
 
 .sidebar-profile-card {
     transition: transform 0.2s ease, background-color 0.2s;
@@ -1061,21 +1092,12 @@ aside, .right-panel { display: none; } }
     header { top: 28px; }
     .top-bar { height: 28px; }
 
-    .mobile-bottom-nav { position: fixed; left: 0; right: 0; bottom: 0; height: 56px; background: var(--card-bg); border-top: 1px solid var(--border); display: flex; justify-content: space-around; align-items: center; z-index: 10050; }
-    .mobile-bottom-nav a { flex:1; text-align: center; padding: 6px 4px; color: var(--text-muted); font-size: 0.75rem; text-decoration: none; display: flex; flex-direction: column; align-items: center; gap:4px; overflow: hidden; }
-    .mobile-bottom-nav a.active { color: var(--primary); }
-    .mobile-bottom-nav i { font-size: 1.2rem; }
-
-    /* Reduce feed padding to feel like app */
-    .app-container { padding-bottom: 120px; }
 }
 
 /* Small utility for bottom nav icon badges */
 .nav-badge { background: #ef4444; color: #fff; border-radius: 999px; padding: 2px 6px; font-size: 0.7rem; font-weight:700; }
 
 /* Mobile share button - more prominent */
-.mobile-share-btn { flex: 1.2; }
-.mobile-share-btn:active i { transform: scale(0.95); }
 
 /* Notifications dropdown positioned safely on mobile */
 @media (max-width: 480px) {
