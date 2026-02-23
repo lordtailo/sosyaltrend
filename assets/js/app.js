@@ -642,8 +642,8 @@ window.handleFileSelect = async (input) => {
     const file = input.files[0];
     if (!file || !auth.currentUser) return;
 
-    if (file.size > 5 * 1024 * 1024) {
-        alert("Dosya 5MB'dan küçük olmalıdır!");
+    if (file.size > 300 * 1024 * 1024) {
+        alert("Dosya 300MB'dan küçük olmalıdır!");
         input.value = "";
         return;
     }
