@@ -104,56 +104,54 @@
 
     let isAdminInitialized = false;
 
-    onAuthStateChanged(auth, async (user) => {
+    // admin.html içindeki ilgili kısmı bununla değiştirin
+onAuthStateChanged(auth, async (user) => {
     const welcomeMsg = document.getElementById('welcomeMessage');
-    
+
     if (!user) {
-        // Giriş yapılmamışsa login'e gönder
         window.location.href = 'login.html';
         return;
     }
 
     try {
-        // 1. Önce "Kontrol ediliyor..." mesajı verelim ki hemen index'e atmasın
-        if (welcomeMsg) welcomeMsg.innerText = "Yetki kontrol ediliyor...";
-
-        // 2. Firestore'dan dökümanı çek
+        // 1. Önce veritabanından kullanıcının rolünü alalım
         const userRef = doc(db, "users", user.uid);
         const userDoc = await getDoc(userRef);
         
         let isAdmin = false;
+        let userData = null;
 
-        // 3. Yetkiyi sorgula
-        if (user.email === "officialfthuzun@gmail.com") {
-            isAdmin = true; // Sen her zaman adminsin
-        } else if (userDoc.exists()) {
-            const userData = userDoc.data();
-            if (userData.role === 'admin') {
-                isAdmin = true; // Veritabanında admin olanlar
+        if (userDoc.exists()) {
+            userData = userDoc.data();
+            // EĞER mail senin mailinse VEYA veritabanında role "admin" ise
+            if (user.email === "officialfthuzun@gmail.com" || userData.role === 'admin') {
+                isAdmin = true;
             }
+        } else if (user.email === "officialfthuzun@gmail.com") {
+            // Döküman yoksa bile ana admini içeri al
+            isAdmin = true;
         }
 
-        // 4. KARAR ANI
+        // 2. Kontrol bittikten sonra karar verelim
         if (isAdmin) {
-            // YETKİ VAR: Sayfayı yükle
-            console.log("Yönetici girişi onaylandı.");
-            if (welcomeMsg) welcomeMsg.innerHTML = `<i class="fa-solid fa-user-shield"></i> Hoş geldin Yönetici: <b>${user.email}</b>`;
+            console.log("Yetki onaylandı, sayfa yükleniyor...");
+            if (welcomeMsg) {
+                welcomeMsg.innerHTML = `<i class="fa-solid fa-user-shield"></i> Hoş geldin Yönetici: <b>${user.email}</b>`;
+            }
             
-            // Mevcut yükleme fonksiyonlarını çalıştır
+            // Verileri yükleyen fonksiyonlarını çalıştır
             updateStats();
             loadUsers();
             loadPosts();
             loadReports();
         } else {
-            // YETKİ YOK: Bilgi ver ve index'e at
-            console.warn("Yetkisiz erişim denemesi:", user.email);
-            alert("Bu sayfaya erişim yetkiniz bulunmamaktadır!");
+            // Eğer admin değilse
+            console.error("Yetkisiz Giriş Denemesi:", user.email);
+            alert("Yönetici yetkiniz bulunmuyor!");
             window.location.href = 'index.html';
         }
-
     } catch (error) {
-        console.error("Sistem hatası:", error);
-        // Hata durumunda güvenlik amaçlı ana sayfaya yönlendir
+        console.error("Sistem Hatası:", error);
         window.location.href = 'index.html';
     }
 });
@@ -314,4 +312,3 @@
 
 </body>
 </html>
-
