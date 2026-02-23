@@ -109,18 +109,30 @@
         window.location.href = 'login.html';
     } else {
         try {
-            // Firestore'dan kullanıcının rolünü kontrol et
-            const userDoc = await getDoc(doc(db, "users", user.uid));
-            const userData = userDoc.exists() ? userDoc.data() : null;
+            // Firestore'dan kullanıcının güncel dökümanını alıyoruz
+            const userRef = doc(db, "users", user.uid);
+            const userDoc = await getDoc(userRef);
+            
+            let isAdmin = false;
 
-            // Yetki Kontrolü: Mail senin mailinse VEYA veritabanındaki rolü 'admin' ise içeri al
-            const isAdmin = (user.email === "officialfthuzun@gmail.com") || (userData && userData.role === 'admin');
+            if (userDoc.exists()) {
+                const userData = userDoc.data();
+                // Yetki Kontrolü: Mail senin mailinse VEYA veritabanındaki rolü 'admin' ise
+                if (user.email === "officialfthuzun@gmail.com" || userData.role === 'admin') {
+                    isAdmin = true;
+                }
+            } else if (user.email === "officialfthuzun@gmail.com") {
+                // Eğer döküman henüz oluşmamışsa ama mail ana admin maili ise yine izin ver
+                isAdmin = true;
+            }
 
             if (!isAdmin) {
-                alert("Yetkisiz erişim! Yönetici değilsiniz.");
+                // Eğer admin değilse uyarı ver ve ana sayfaya at
+                alert("Yetkisiz erişim! Bu alana girmek için yönetici yetkiniz olmalıdır.");
                 window.location.href = 'index.html';
             } else {
-                // Admin ise istatistikleri ve listeleri yükle
+                // Admin ise sayfayı yükle
+                console.log("Yönetici girişi başarılı.");
                 updateStats();
                 loadUsers();
                 loadPosts();
@@ -130,7 +142,7 @@
                 if (welcomeMsg) welcomeMsg.innerText = `Hoş geldin Yönetici, ${user.email}`;
             }
         } catch (error) {
-            console.error("Yetki kontrol hatası:", error);
+            console.error("Yetki kontrolü sırasında hata:", error);
             window.location.href = 'index.html';
         }
     }
