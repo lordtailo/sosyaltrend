@@ -1351,7 +1351,8 @@ window.likePost = async (id, isLiked) => {
         console.error('likePost hatası:', e);
     }
 };
-  window.toggleBookmark = async (id, isSaved) => {
+  // id: post id, isSaved: current state at render time, btn: HTML element that was clicked (optional)
+  window.toggleBookmark = async (id, isSaved, btn) => {
     try {
         const ref = doc(db, "posts", id);
         // read post to know owner for notification
@@ -1361,6 +1362,22 @@ window.likePost = async (id, isLiked) => {
 
         const saving = !isSaved;
         await updateDoc(ref, { savedBy: saving ? arrayUnion(user.username) : arrayRemove(user.username) });
+
+        // update button appearance immediately if element provided
+        if (btn) {
+            try {
+                const icon = btn.querySelector('i');
+                if (saving) {
+                    icon.classList.remove('fa-regular');
+                    icon.classList.add('fa-solid');
+                    btn.style.color = '#f59e0b';
+                } else {
+                    icon.classList.remove('fa-solid');
+                    icon.classList.add('fa-regular');
+                    btn.style.color = '';
+                }
+            } catch(_) {}
+        }
 
         // notify owner when someone else saves their post
         if (saving && post.username && post.username !== user.username) {
@@ -1376,6 +1393,11 @@ window.likePost = async (id, isLiked) => {
         if (saving && auth.currentUser) {
             const meSnippet = post.content ? post.content.slice(0, 50) : '(Görselli gönderi)';
             await sendNotification(auth.currentUser.uid, 'saved_self', user.displayName, { postId: id, postContent: meSnippet });
+        }
+
+        // if we are on profile page, trigger a reload of section lists so counts update
+        if (window.location.pathname.endsWith('profil.html') && typeof window.loadProfileSections === 'function') {
+            setTimeout(() => window.loadProfileSections(), 500);
         }
     } catch (e) {
         console.error('toggleBookmark hatası:', e);
@@ -2167,6 +2189,7 @@ window.loadProfileSections = async () => {
                     <div style="display:flex; gap:12px;">
                         <button class="tool-btn" onclick="likePost('${d.id}', ${isLiked})" style="gap:5px; color:${isLiked?'#ef4444':''}"><i class="${isLiked?'fa-solid':'fa-regular'} fa-heart"></i><span>${p.likes?.length||0}</span></button>
                         <button class="tool-btn" style="gap:5px;"><i class="fa-regular fa-comment"></i><span>${p.comments?.length||0}</span></button>
+                        <button class="tool-btn" onclick="toggleBookmark('${d.id}', ${isSaved})" style="color:${isSaved ? '#f59e0b' : ''}"><i class="${isSaved ? 'fa-solid' : 'fa-regular'} fa-bookmark"></i></button>
                     </div>
                 </div>
             `;
