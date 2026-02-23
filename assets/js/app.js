@@ -1,3 +1,4 @@
+var total = 0, mineCount = 0, likedCount = 0, followerCount = 0;
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, doc, updateDoc, setDoc, arrayUnion, arrayRemove, deleteDoc, getDoc, getDocs, limit, where } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { getAuth, onAuthStateChanged, signOut, updateEmail, updatePassword, sendPasswordResetEmail, updateProfile } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
@@ -43,6 +44,7 @@ const tarihteBugun = [
     { ay: 11, gun: 5, baslik: "Tarihte Bugün", mesaj: "1934: Türk kadınına seçme ve seçilme hakkı tanındı! 🗳️" }
 ];
 
+let someData = [];
 // HELPER FONKSİYONLAR
 // Button'un "disabled/pending" durumuna koy
 function disableButton(btn, text) {
@@ -123,27 +125,7 @@ async function loadSuggestions() {
         // Diziyi rastgele karıştır (Her yenilemede farklı kişiler gelsin)
         usersArray.sort(() => Math.random() - 0.5);
 
-        // Sadece ilk 5 kişiyi seç
-        const selectedUsers = usersArray.slice(0, 5);
-        // Eğer giriş yapan kullanıcı seçilmediyse en son elemana kendisini koy
-        if (auth.currentUser) {
-            const currentUid = auth.currentUser.uid;
-            if (!selectedUsers.some(u => u.id === currentUid)) {
-                const selfIdx = usersArray.findIndex(u => u.id === currentUid);
-                if (selfIdx !== -1) {
-                    selectedUsers[selectedUsers.length - 1] = usersArray[selfIdx];
-                }
-            }
-        }
-
-        suggestionsContainer.innerHTML = ''; // Temizle
-
-        if (selectedUsers.length === 0) {
-            suggestionsContainer.innerHTML = '<div style="font-size:0.7rem; color:var(--text-muted);">Önerilecek kullanıcı bulunamadı.</div>';
-            return;
-        }
-
-        // Eğer giriş yapan varsa, arkadaş/durum bilgilerini çek
+        // --- BURADA ARKADAŞ BİLGİLERİNİ ÇEKİYORUZ ---
         let currentUserData = {};
         if (auth.currentUser) {
             try {
@@ -158,9 +140,26 @@ async function loadSuggestions() {
         const sentRequests = currentUserData.sentRequests || [];
         const incomingRequests = currentUserData.friendRequests || [];
 
+        // --- HATA DÜZELTME: FİLTRELEME MANTIĞI ---
+        // Sadece kendin olmayan ve ZATEN ARKADAŞ OLMADIĞIN kişileri önerilere al
+        let filteredUsers = usersArray.filter(u => u.id !== currentUid && !friends.includes(u.id));
+
+        // Sadece ilk 5 kişiyi seç
+        const selectedUsers = filteredUsers.slice(0, 5);
+        
+        // Not: "Kendini sona ekleme" mantığı öneri sisteminde teknik olarak "Arkadaş Ekle" butonu 
+        // çıkaracağı için yukarıdaki filtreleme ile devre dışı bırakıldı.
+
+        suggestionsContainer.innerHTML = ''; // Temizle
+
+        if (selectedUsers.length === 0) {
+            suggestionsContainer.innerHTML = '<div style="font-size:0.7rem; color:var(--text-muted);">Önerilecek kullanıcı bulunamadı.</div>';
+            return;
+        }
+
         selectedUsers.forEach((user) => {
-                    const fallbackAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(user.displayName || 'User')}&background=random&color=fff`;
-                    const userAvatar = user.avatarUrl || user.avatar || fallbackAvatar;
+            const fallbackAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(user.displayName || 'User')}&background=random&color=fff`;
+            const userAvatar = user.avatarUrl || user.avatar || fallbackAvatar;
 
             const isFriend = friends.includes(user.id);
             const isSent = sentRequests.some(r => r.toUid === user.id);
@@ -171,6 +170,7 @@ async function loadSuggestions() {
             let btnAttrs = 'style="background: var(--primary); color: white; border: none; padding: 6px 12px; border-radius: 15px; font-size: 0.7rem; font-weight: 700; cursor: pointer;"';
             let btnOnclick = `onclick="sendFriendRequestToUid('${user.id}', '${user.username}')"`;
 
+            // BELİRTTİĞİN BLOK (DOKUNULMADI)
             if (isSelf) {
                 btnLabel = 'Profilinize Gidin';
                 btnAttrs = 'style="background: var(--primary); color: white; border: none; padding: 6px 12px; border-radius: 15px; font-size: 0.7rem; font-weight: 700; cursor: pointer;"';
@@ -182,7 +182,7 @@ async function loadSuggestions() {
             } else if (isSent) {
                 // allow cancellation from suggestions
                 btnLabel = 'İsteği iptal et';
-                btnAttrs = 'style="background: var(--primary); color: white; border: none; padding:6px 12px; border-radius:15px; font-size:0.7rem; font-weight:700; cursor:pointer;"';
+                btnAttrs = 'style="background: var(--primary); color: white; border: none; padding: 6px 12px; border-radius: 15px; font-size: 0.7rem; font-weight: 700; cursor: pointer;"';
                 btnOnclick = `onclick="cancelFriendRequestToUid('${user.id}', '${user.username}')"`;
             } else if (isIncoming) {
                 btnLabel = 'İstek Bekleniyor';
@@ -193,7 +193,8 @@ async function loadSuggestions() {
             const userHtml = `
                 <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
                     <div style="display: flex; align-items: center; gap: 10px; cursor: pointer;" 
-                         onclick="window.location.href='${isSelf ? 'profil.html' : `profil.html?id=${encodeURIComponent(user.username)}`}'">                        <img src="${userAvatar}" 
+                         onclick="window.location.href='${isSelf ? 'profil.html' : `profil.html?id=${encodeURIComponent(user.username)}`}'">
+                        <img src="${userAvatar}" 
                              alt="${user.displayName || 'User'}"
                              style="width: 38px; height: 38px; border-radius: 50%; border: 1.5px solid var(--primary); object-fit: cover;">
                         <div style="max-width: 90px; overflow: hidden;">
@@ -212,7 +213,7 @@ async function loadSuggestions() {
             `;
 
             suggestionsContainer.insertAdjacentHTML('beforeend', userHtml);
-            // programmatic binding in case inline onclick fails or global function missing
+
             if (isSent) {
                 const btnEl = document.getElementById('addFriendBtn_sugg_' + user.id);
                 if (btnEl) {
@@ -335,147 +336,101 @@ function waitForElement(selector, timeout = 5000, interval = 200) {
     });
 }
 
-const ADMIN_EMAIL = "officialfthuzun@gmail.com";
-
-// Avatar sistemini otomatik olarak strendsaydamv2'ye initialize et
-localStorage.setItem('st_avatar', 'strendsaydamv2');
-
 onAuthStateChanged(auth, async (fbUser) => {
-    if (!fbUser) 
-        { window.location.href = 'login.html'; kontrolEtVeOtomatikPostAt(); } else {
-        // Kullanıcı bilgilerini güncelle
+    // Header'daki butonu seçiyoruz
+    const adminBtn = document.getElementById('adminMenuBtn');
+
+    if (!fbUser) {
+        if (adminBtn) adminBtn.style.display = 'none';
+        window.location.href = 'login.html';
+        if (typeof kontrolEtVeOtomatikPostAt === 'function') kontrolEtVeOtomatikPostAt();
+    } else {
+        // Kullanıcı bilgilerini ata
         user.username = fbUser.email.split('@')[0];
         user.displayName = localStorage.getItem('st_displayName') || fbUser.displayName || user.username;
         
-        // Avatar URL'i Firestore'dan çek
         try {
             const userRef = doc(db, "users", fbUser.uid);
             const userDoc = await getDoc(userRef);
             
-            if (userDoc.exists() && userDoc.data().avatarUrl) {
-                // Firestore'dan gelen avatar var
-                user.avatarUrl = userDoc.data().avatarUrl;
+            if (userDoc.exists()) {
+                const userData = userDoc.data();
+                
+                // --- SADECE ROLE GÖRE YETKİ KONTROLÜ ---
+                // Eğer veritabanındaki rolü 'admin' ise isAdmin true olur
+                user.isAdmin = (userData.role === 'admin');
+                
+                // Avatarı güncelle
+                user.avatarUrl = userData.avatarUrl || "assets/img/strendsaydamv2.png";
             } else {
-                // Varsayılan avatar
+                // Yeni kayıt (Varsayılan olarak admin değildir)
+                user.isAdmin = false;
                 user.avatarUrl = "assets/img/strendsaydamv2.png";
                 
-                // İlk kez giriş - document oluştur
-                try {
-                    await setDoc(userRef, {
-                        displayName: user.displayName,
-                        avatarUrl: user.avatarUrl,
-                        email: fbUser.email,
-                        username: user.username,
-                        createdAt: serverTimestamp()
-                    }, { merge: true });
-                } catch (e) {
-                    // User already exists
-                }
+                await setDoc(userRef, {
+                    displayName: user.displayName,
+                    avatarUrl: user.avatarUrl,
+                    email: fbUser.email,
+                    username: user.username,
+                    role: 'user', // Varsayılan rol
+                    createdAt: serverTimestamp()
+                }, { merge: true });
             }
-                    // no privacy sync needed, revert to original behaviour
+
+            // --- BUTON GÖRÜNÜRLÜĞÜ ---
+            if (adminBtn) {
+                adminBtn.style.display = user.isAdmin ? 'flex' : 'none';
+            }
 
         } catch (err) {
-            console.error("Avatar yükleme hatası:", err);
-            user.avatarUrl = "assets/img/strendsaydamv2.png";
+            console.error("Yetki kontrol hatası:", err);
         }
 
-        // Admin Kontrolü
-        user.isAdmin = fbUser.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
-        
-        // UI Güncelleme (Profil resmi, isimler vb.)
-        updateUIWithUser();
-        // Ensure feed is loaded with current user context so profile tabs populate
-        try { loadPostsFeed(); } catch(e) { console.warn('loadPostsFeed retry failed', e); }
-        // also populate profile sections if on profile page
+        // Arayüz ve Feed Güncellemeleri
+        if (typeof updateUIWithUser === 'function') updateUIWithUser();
+        try { if (typeof loadPostsFeed === 'function') loadPostsFeed(); } catch(e) {}
+
+        // Profil İstatistikleri
         if (typeof window.loadProfileSections === 'function') {
-            try { window.loadProfileSections(); } catch(e) { console.warn('loadProfileSections call during auth state failed', e); }
+            window.total = (typeof someData !== 'undefined' && someData !== null) ? someData.length : 0;
+            window.mineCount = (typeof someMines !== 'undefined' && someMines !== null) ? someMines.length : 0;
+            window.likedCount = (typeof likedPosts !== 'undefined' && likedPosts !== null) ? likedPosts.length : 0;
+            window.savedCount = (typeof savedPosts !== 'undefined' && savedPosts !== null) ? savedPosts.length : 0;
+            window.followerCount = (typeof followers !== 'undefined' && followers !== null) ? followers.length : 0;
+            window.followingCount = (typeof following !== 'undefined' && following !== null) ? following.length : 0;
+            try { window.loadProfileSections(); } catch(e) {}
         }
-        
-        // Real-time kullanıcı profili listener - Avatar değişikliklerini senkronize et
+
+        // --- ANLIK (REAL-TIME) ROL TAKİBİ ---
+        // Panelden birini admin yaptığınızda sayfa yenilenmeden butonun gelmesi için gerekli
         onSnapshot(doc(db, "users", fbUser.uid), (docSnapshot) => {
             if (docSnapshot.exists()) {
                 const userData = docSnapshot.data();
-                // Avatar değişmişse güncelle
+                const isNowAdmin = (userData.role === 'admin');
+                
+                // Rol değiştiyse butonu güncelle
+                if (user.isAdmin !== isNowAdmin) {
+                    user.isAdmin = isNowAdmin;
+                    if (adminBtn) adminBtn.style.display = isNowAdmin ? 'flex' : 'none';
+                }
+
                 if (userData.avatarUrl && userData.avatarUrl !== user.avatarUrl) {
                     user.avatarUrl = userData.avatarUrl;
-                    localStorage.setItem('st_avatarUrl', userData.avatarUrl);
                     updateUIWithUser();
                 }
-                // Display name değişmişse güncelle
                 if (userData.displayName && userData.displayName !== user.displayName) {
                     user.displayName = userData.displayName;
-                    localStorage.setItem('st_displayName', userData.displayName);
                     updateUIWithUser();
                 }
-                // Bildirimleri (arkadaş istekleri + diğer bildirimler) güncelle
-                loadNotifications(userData);
-                // isPrivate değişmişse yerelde de sakla
-                if (typeof userData.isPrivate !== 'undefined' && userData.isPrivate !== isPrivate) {
-                    isPrivate = userData.isPrivate;
-                    localStorage.setItem('st_isPrivate', isPrivate);
-                    updateUIWithUser();
-                }
+                if (typeof loadNotifications === 'function') loadNotifications(userData);
             }
         });
-        
-        // Eski postların avatarlarını güncelle
-        migrateOldAvatars();
 
-        // ADMIN ÖZEL İŞLEMLERİ
-        const adminBtn = document.getElementById('adminMenuBtn');
-        if (user.isAdmin) {
-            // İstatistikleri çek
-            updateAdminStats();
-            // HTML'deki butonu görünür yap
-            if (adminBtn) {
-                adminBtn.style.display = 'flex'; // Veya 'block', tasarımınıza göre
-            }
-        } else {
-            // Eğer admin değilse butonu gizle (Güvenlik için önlem)
-            if (adminBtn) {
-                adminBtn.style.display = 'none';
-            }
-        }
+        if (typeof migrateOldAvatars === 'function') migrateOldAvatars();
+        if (user.isAdmin && typeof updateAdminStats === 'function') updateAdminStats();
     }
-    
-    // Profil sayfasında ziyaretçi profilini kontrol et
-    loadVisitorProfile();
-    
-    // Kendi profili açılıyorsa
-    const params = new URLSearchParams(location.search);
-    const visitedUsername = params.get('id');
-    if (!visitedUsername || visitedUsername === user.username) {
-        // localStorage'ı temizle
-        localStorage.removeItem('visiting_username');
-        
-        // Arkadaş butonu gizle
-        const addFriendBtn = document.getElementById('addFriendBtn');
-        if (addFriendBtn) {
-            addFriendBtn.style.display = 'none';
-        }
-        
-        // Profili Düzenle butonunu göster
-        const editBtn = document.getElementById('editProfileBtn');
-        if (editBtn) {
-            editBtn.style.display = 'inline-block';
-        }
-        
-        if (auth.currentUser) {
-            // Kendi profilse tüm arkadaşları yükle ve varsayılan tabı açık bırak
-            loadFriendsList(null, true);
-        }
-    } else {
-        // Başka bir profil ziyareti
-        if (auth.currentUser) {
-            // otomatik 'Ortak Arkadaşlar' sekmesini aç
-            const friendsTabBtn = document.getElementById('friends-tab-btn');
-            if (friendsTabBtn) {
-                friendsTabBtn.click();
-            }
-            // yükle (isOwnProfile=false)
-            loadFriendsList(null, false);
-        }
-    }
+
+    if (typeof loadVisitorProfile === 'function') loadVisitorProfile();
 });
 
 // Eski postların avatarlarını strendsaydamv2 ile güncellemek
@@ -1146,27 +1101,38 @@ window.togglePrivacy = () => {
   };
 
 window.navigateTo = (pageId) => {
-      // Navigate to page
+      // 1. Admin Kontrolü (Hata düzeltme: 'user' değişkeninin tanımlı olduğundan emin olun)
+      // Eğer auth.currentUser kullanıyorsanız ona göre revize edilmeli
+      const isAdmin = (typeof user !== 'undefined' && user.isAdmin);
       
-      if(pageId === 'admin' && !user.isAdmin) {
+      if(pageId === 'admin' && !isAdmin) {
           alert("Bu bölüme sadece yönetici erişebilir!");
-          window.navigateTo('feed'); return;
-        }
+          window.navigateTo('feed'); 
+          return;
+      }
 
-      // Sayfa içeriklerini gizle/göster
+      // 2. Sayfa içeriklerini gizle/göster
       document.querySelectorAll('.page-content').forEach(p => p.classList.remove('active'));
       const target = document.getElementById('page-' + pageId);
-      if(target) target.classList.add('active');
+      if(target) {
+          target.classList.add('active');
+      }
 
-      // Navigasyon butonlarını aktif yap
+      // 3. Navigasyon butonlarını aktif yap
       document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
       const btn = document.getElementById('btn-' + pageId);
       if(btn) btn.classList.add('active');
       
+      // 4. KRİTİK EKLEME: Sayfa değiştiğinde ilgili veriyi yükle
+      // Eğer ana sayfaya (feed) geçildiyse postları tekrar yükle veya başlat
+      if(pageId === 'feed') {
+          if (typeof loadPostsFeed === 'function') {
+              loadPostsFeed();
+          }
+      }
       
       window.scrollTo(0,0);
 };
-
 
 //* SEARCH ARAMA FONKSIYONLARI *//
 const staticDatabase = {
@@ -1535,17 +1501,17 @@ window.loadPostsFeed = (showAll = false) => {
                 bookItems = document.getElementById('bookmark-items'),
                 t = translations[currentLang];
           
-          // accumulate HTML so we can replace in one shot
+          if (snap.empty) {
+              if (feed) feed.innerHTML = `<div style="padding:20px; text-align:center; color:var(--text-muted);">${t.noPosts || 'Henüz gönderi yok.'}</div>`;
+              return;
+          }
+
           let feedHtml = '';
           let myPostsHtml = '';
           let likesHtml = '';
           let bookHtml = '';
-
-      let feedPostCount = 0;
-      if (snap.empty) {
-          console.warn('loadPostsFeed: empty snapshot');
-          return;
-      }
+          let feedPostCount = 0;
+      
       snap.forEach(d => {
           try {
               console.log('rendering post', d.id);
@@ -1558,39 +1524,13 @@ window.loadPostsFeed = (showAll = false) => {
                   
               const avatarUrl = getAvatarUrl(p.avatarUrl || p.avatarSeed || "assets/img/strendsaydamv2.png", isPage ? 'page' : 'user');
               const contentWithLinks = (p.content || "").replace(/(#[\wığüşöçİĞÜŞÖÇ]+)/g, '<span class="hashtag-link" onclick="searchTrend(\'$1\')">$1</span>');
-              // Profil linki: Kendi profili ise 'profil', başkasıysa 'profil.html?id=username'
               const profileLink = isMine ? "javascript:navigateTo('profil')" : `profil.html?id=${encodeURIComponent(p.username)}`;
               const targetNav = isMine ? 'profil' : (isPage ? 'pages' : 'feed');
               
-             const postImageHtml = p.image ? `
-    <div class="post-image-wrapper" style="
-    margin: 12px auto;
-    border-radius: 12px;
-    overflow: hidden;
-    background: rgb(0, 0, 0);
-    border: 1px solid var(--border);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: 0.3s ease-in-out;
-    max-height: 103%;
-    max-width: 50%;
-    height: auto;
-    width: 100%;
-    ">
-        <img src="${p.image}" 
-             loading="lazy"
-             style="
-                width: 100%; 
-                height: 100%; 
-                object-fit: cover; 
-                cursor: zoom-in;
-                transition: all 0.3s ease;
-             " 
-             onclick="toggleImageExpand(this)"
-             alt="Post görseli">
-    </div>
-` : "";
+              const postImageHtml = p.image ? `
+    <div class="post-image-wrapper" style="margin: 12px auto; border-radius: 12px; overflow: hidden; background: rgb(0, 0, 0); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; transition: 0.3s ease-in-out; max-height: 103%; max-width: 50%; height: auto; width: 100%;">
+        <img src="${p.image}" loading="lazy" style="width: 100%; height: 100%; object-fit: cover; cursor: zoom-in; transition: all 0.3s ease;" onclick="toggleImageExpand(this)" alt="Post görseli">
+    </div>` : "";
 
         const postHtmlBase = `
     <div class="glass-card post" style="${p.username === 'official_system' ? 'border: 2px solid var(--primary); background: rgba(99, 102, 241, 0.05);' : ''}; position: relative;">
@@ -1615,18 +1555,14 @@ window.loadPostsFeed = (showAll = false) => {
                   <div style="font-size:0.75rem; color:var(--text-muted); cursor:pointer;" onclick="${isMine ? "navigateTo('profil')" : `location.href='profil.html?id=${encodeURIComponent(p.username)}'`}">@${p.username}</div>
               </div>
         </div>
-        
         <p style="white-space: pre-wrap; margin-bottom:10px;">${contentWithLinks}</p>${postImageHtml}
-
         <div id="likers-${d.id}" style="display:flex; align-items:center; gap:8px; margin-bottom:10px; min-height:28px;"></div>
-
         <div style="display:flex; gap:12px;">
               <button class="tool-btn" onclick="likePost('${d.id}', ${isLiked})" style="gap:5px; color:${isLiked ? '#ef4444' : ''}"><i class="${isLiked ? 'fa-solid' : 'fa-regular'} fa-heart"></i><span>${p.likes?.length || 0}</span></button>
               <button class="tool-btn" onclick="toggleCommentSection('${d.id}')" style="gap:5px;"><i class="fa-regular fa-comment"></i><span>${p.comments?.length || 0}</span></button>
               <button class="tool-btn" onclick="toggleBookmark('${d.id}', ${isSaved})" style="color:${isSaved ? '#f59e0b' : ''}"><i class="${isSaved ? 'fa-solid' : 'fa-regular'} fa-bookmark"></i></button>
               <button class="tool-btn" onclick="window.openShareMenu('${d.id}')" style="gap:5px; margin-left:auto;"><i class="fa-solid fa-share"></i></button>
         </div>
-        
         <div id="comments-${d.id}" class="comment-area" style="display:none;">
               <div id="list-${d.id}">
                   ${(p.comments || []).map(c => `
@@ -1639,16 +1575,8 @@ window.loadPostsFeed = (showAll = false) => {
                                   ${c.isEdited ? `<small style="font-size: 0.65rem; color: var(--text-muted); margin-left: 4px;">(düzenlendi)</small>` : ''}
                               </div>
                               <div class="comment-actions" style="display: flex; gap: 5px;">
-                                ${(c.username === user.username) ? `
-                                    <button onclick="openEditModal('${d.id}', \`${c.text.replace(/`/g, '\\`').replace(/"/g, '&quot;').replace(/\n/g, '\\n')}\`, 'comment', ${c.time})" style="background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:0.75rem;">
-                                        <i class="fa-solid fa-pen"></i>
-                                    </button>
-                                ` : ''}
-                                ${(c.username === user.username || user.isAdmin) ? `
-                                    <button class="comment-del-btn" onclick="deleteComment('${d.id}', ${c.time}, '${c.text.replace(/'/g, "\\'")}')">
-                                        <i class="fa-solid fa-trash-can"></i>
-                                    </button>
-                                ` : ''}
+                                ${(c.username === user.username) ? `<button onclick="openEditModal('${d.id}', \`${c.text.replace(/`/g, '\\`').replace(/"/g, '&quot;').replace(/\n/g, '\\n')}\`, 'comment', ${c.time})" style="background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:0.75rem;"><i class="fa-solid fa-pen"></i></button>` : ''}
+                                ${(c.username === user.username || user.isAdmin) ? `<button class="comment-del-btn" onclick="deleteComment('${d.id}', ${c.time}, '${c.text.replace(/'/g, "\\'")}')"><i class="fa-solid fa-trash-can"></i></button>` : ''}
                               </div>
                           </div>
                           <div style="margin-left: 34px; width: calc(100% - 34px);">
@@ -1660,19 +1588,10 @@ window.loadPostsFeed = (showAll = false) => {
                                           ${r.isEdited ? `<small style="font-size: 0.6rem; color: var(--text-muted); margin-left: 4px;">(düzenlendi)</small>` : ''}
                                       </div>
                                       <div class="comment-actions" style="display: flex; gap: 5px; align-items: center;">
-                                          ${(r.username === user.username) ? `
-                                              <button onclick="openEditModal('${d.id}', \`${r.text.replace(/`/g, '\\`').replace(/"/g, '&quot;').replace(/\n/g, '\\n')}\`, 'reply', ${c.time}, ${r.time})" style="background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:0.7rem;">
-                                                  <i class="fa-solid fa-pen"></i>
-                                              </button>
-                                          ` : ''}
-                                          ${(r.username === user.username || user.isAdmin) ? `
-                                              <button class="comment-del-btn" style="font-size:0.6rem; position:static; background:none; border:none; color:#ef4444; cursor:pointer;" onclick="deleteReply('${d.id}', ${c.time}, ${r.time})">
-                                                  <i class="fa-solid fa-xmark"></i>
-                                              </button>
-                                          ` : ''}
+                                          ${(r.username === user.username) ? `<button onclick="openEditModal('${d.id}', \`${r.text.replace(/`/g, '\\`').replace(/"/g, '&quot;').replace(/\n/g, '\\n')}\`, 'reply', ${c.time}, ${r.time})" style="background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:0.7rem;"><i class="fa-solid fa-pen"></i></button>` : ''}
+                                          ${(r.username === user.username || user.isAdmin) ? `<button class="comment-del-btn" style="font-size:0.6rem; position:static; background:none; border:none; color:#ef4444; cursor:pointer;" onclick="deleteReply('${d.id}', ${c.time}, ${r.time})"><i class="fa-solid fa-xmark"></i></button>` : ''}
                                       </div>
-                                  </div>
-                              `).join('')}
+                                  </div>`).join('')}
                               <button class="reply-btn" onclick="addReply('${d.id}', ${c.time})" style="background:none; border:none; color:var(--text-muted); font-size:0.7rem; cursor:pointer; margin-top:5px; font-weight:bold;">Yanıtla</button>
                           </div>
                       </div>`).join('')}
@@ -1686,7 +1605,7 @@ window.loadPostsFeed = (showAll = false) => {
               </div>
         </div>
     </div>`;
-          // Feed'e eklenen posta HTML'e benzersiz id ekleyelim (hash ile yönlendirme için)
+
           const postHtmlForFeed = postHtmlBase.replace('<div class="glass-card post"', `<div id="post-${d.id}" class="glass-card post"`);
 
           if(feed) feedHtml += postHtmlForFeed;
@@ -1694,7 +1613,6 @@ window.loadPostsFeed = (showAll = false) => {
           if(isLiked && myLikes) likesHtml += postHtmlBase;
           if(isSaved && bookItems) bookHtml += postHtmlBase;
           
-          // Likers preview'ı doldur
           try {
               if (window.populateLikersPreview) {
                   setTimeout(() => { window.populateLikersPreview(d.id, p.likes || []); }, 0);
@@ -1706,42 +1624,24 @@ window.loadPostsFeed = (showAll = false) => {
           }
       });
 
-      // populate feed only
-      if (snap.size > 0 && feedHtml.trim() === '') {
-          console.warn('loadPostsFeed: no HTML generated for non-empty snapshot, skipping overwrite');
-      } else {
-          if(feed) {
-              feed.innerHTML = feedHtml;
-          }
+      // HTML'leri topluca güncelle (Burası düzeldi)
+      if (feedHtml.trim() !== '') {
+          if(feed) feed.innerHTML = feedHtml;
+          if(myPosts && myPostsHtml) myPosts.innerHTML = myPostsHtml;
+          if(myLikes && likesHtml) myLikes.innerHTML = likesHtml;
+          if(bookItems && bookHtml) bookItems.innerHTML = bookHtml;
       }
 
-      // Diğer Gönderiler Butonu
       if (feed && feedPostCount >= 7) {
         const morePostsBtn = document.createElement('div');
-        morePostsBtn.style.cssText = `
-          text-align: center;
-          padding: 20px;
-          margin-top: 15px;
-        `;
+        morePostsBtn.style.cssText = `text-align: center; padding: 20px; margin-top: 15px;`;
         morePostsBtn.innerHTML = `
-          <button onclick="window.loadPostsFeed(true);" style="
-            background: linear-gradient(135deg, var(--primary), #8b5cf6);
-            color: white;
-            border: none;
-            padding: 12px 30px;
-            border-radius: 50px;
-            font-weight: 700;
-            cursor: pointer;
-            font-size: 0.95rem;
-            transition: all 0.3s ease;
-          " onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+          <button onclick="window.loadPostsFeed(true);" style="background: linear-gradient(135deg, var(--primary), #8b5cf6); color: white; border: none; padding: 12px 30px; border-radius: 50px; font-weight: 700; cursor: pointer; font-size: 0.95rem; transition: all 0.3s ease;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
             <i class="fa-solid fa-ellipsis"></i> Diğer Gönderiler
-          </button>
-        `;
+          </button>`;
         feed.appendChild(morePostsBtn);
       }
       
-      // Feed render tamamlandıktan sonra varsa hash ile yönlendirmeyi gerçekleştir
       try {
         (async () => {
             try {
@@ -1754,8 +1654,6 @@ window.loadPostsFeed = (showAll = false) => {
                     const postId = h.replace('#post-', '');
                     const commentsEl = document.getElementById(`comments-${postId}`);
                     if (commentsEl) commentsEl.style.display = 'block';
-                } else {
-                    console.warn('Could not find element for hash', h);
                 }
             } catch (e) { console.warn('Hash scroll helper error:', e); }
         })();
