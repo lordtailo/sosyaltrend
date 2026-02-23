@@ -66,6 +66,7 @@
                     <th>Tarih</th>
                     <th>İmsak</th>
                     <th>İftar</th>
+                    <th>Not</th>
                 </tr>
             </thead>
             <tbody id="imsakiye-body">
@@ -209,6 +210,7 @@
             const data = await res.json();
 
             let html = "";
+            
             const today = new Date(); today.setHours(0,0,0,0);
             const now = new Date();
             const ramadanStart = new Date(2026, 1, 19); // 19 Şubat
@@ -237,18 +239,23 @@
                     }
 
                     if(isVisible && !(dateObj.getTime() === today.getTime() && todaysIftar && now > todaysIftar)) {
-                        if(ramadanDay === 30) {
-                            html += `<tr class="arefe-separator">
-                                <td colspan="4" style="text-align:center;font-weight:bold;color:#a00;">Bayram Arefesi</td>
+                            if(ramadanDay === 30) {
+                                html += `<tr class="arefe-separator">
+                                    <td colspan="5" style="text-align:center;font-weight:bold;color:#a00;">Bayram Arefesi</td>
+                                </tr>`;
+                            }
+                            // determine special label for this row
+                            let specialLabel = '';
+                            if (ramadanDay === 27) specialLabel = '⭐ Kadir Gecesi';
+                            if (ramadanDay === 29) specialLabel = '🌙 Bayram Arefesi';
+                            html += `<tr>
+                                <td>${ramadanDay}. Gün</td>
+                                <td>${day.date.gregorian.day} ${day.date.gregorian.month.en.substring(0,3)}</td>
+                                <td><b>${day.timings.Imsak.split(' ')[0]}</b></td>
+                                <td class="accent-red"><b>${day.timings.Maghrib.split(' ')[0]}</b></td>
+                                <td>${specialLabel}</td>
                             </tr>`;
                         }
-                        html += `<tr>
-                            <td>${ramadanDay}. Gün</td>
-                            <td>${day.date.gregorian.day} ${day.date.gregorian.month.en.substring(0,3)}</td>
-                            <td><b>${day.timings.Imsak.split(' ')[0]}</b></td>
-                            <td class="accent-red"><b>${day.timings.Maghrib.split(' ')[0]}</b></td>
-                        </tr>`;
-                    }
                 });
             });
 
@@ -265,6 +272,14 @@
                 } else {
                     summaryEl.innerText = "Ramazan başlamadı.";
                 }
+            }
+            // show special days (Kadir Gecesi and Bayram Arefesi) if determined
+            const specialsEl = document.getElementById('imsakiye-specials');
+            if (specialsEl) {
+                let sHtml = '';
+                if (kadirDate) sHtml += `✨ Kadir Gecesi: ${kadirDate}`;
+                if (arefeDate) sHtml += (sHtml ? '<br>' : '') + `🌙 Bayram Arefesi: ${arefeDate}`;
+                specialsEl.innerHTML = sHtml;
             }
             console.log('openImsakiye summary', {today, daysElapsed, daysLeft, todaysIftar, todayPassed});
 
