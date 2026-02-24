@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Kayıt Ol • SosyaLTrend</title>
+  <link rel="stylesheet" href="../assets/css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+  <div data-include="../panels/header.html"></div>
+
+  <div class="auth-container">
+    <h2>Kayıt Ol</h2>
+    <form id="registerForm">
+      <input type="text" id="displayName" placeholder="Görünen Ad" required>
+      <input type="email" id="email" placeholder="E-posta" required>
+      <input type="password" id="password" placeholder="Şifre" required>
+      <button type="submit">Kayıt Ol</button>
+    </form>
+    <p><a href="login.html">Zaten hesabın var mı? Giriş Yap</a></p>
+  </div>
+
+  <script src="../assets/js/include.js"></script>
+  <script type="module" src="../assets/js/auth.js"></script>
+  <div data-include="../panels/footer.html"></div>
+</body>
+</html>

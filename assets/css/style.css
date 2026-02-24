@@ -118,6 +118,39 @@ body.dark-mode .theme-btn i{
     transition: background-color 0.2s, border-color 0.2s, color 0.1s; 
 }
 
+/* authentication container */
+.auth-container {
+    max-width: 400px;
+    margin: 80px auto;
+    padding: 30px;
+    background: var(--card-bg);
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+    text-align: center;
+}
+.auth-container input {
+    width: 100%;
+    padding: 10px;
+    margin: 8px 0;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--input-bg);
+    color: var(--text-main);
+    box-sizing: border-box;
+}
+.auth-container button {
+    width: 100%;
+    padding: 10px;
+    background: var(--primary);
+    border: none;
+    border-radius: 6px;
+    color: #fff;
+    font-weight: 600;
+    cursor: pointer;
+}
+.auth-container a { color: var(--primary); text-decoration: none; }
+
+
 /* clickable mutual friend count */
 .mutual-info {
     cursor: pointer;
