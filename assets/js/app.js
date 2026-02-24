@@ -4046,8 +4046,9 @@ window.loadProfileSections = async () => {
                             <div style="font-size:0.75rem; color:var(--text-muted);">@${p.username}</div>
                         </div>
                     </div>
-                    <p style="white-space: pre-wrap; margin-bottom:10px;">${(p.content||'').replace(/(#[\\wığüşöçİĞÜŞÖÇ]+)/g,'<span class="hashtag-link" onclick="searchTrend(\\'$1\\')">$1</span>')}</p>
-                    ${p.image ? `<div style="margin:12px 0;"><img src="${p.image}" style="width:100%;border-radius:8px;object-fit:cover;"></div>` : ''}
+<p style="white-space: pre-wrap; margin-bottom:10px;">
+  ${(p.content || '').replace(/(#[a-zA-Z0-9ığüşöçİĞÜŞÖÇ]+)/g, '<span class="hashtag-link" onclick="searchTrend(\'$1\')">$1</span>')}
+</p>                    ${p.image ? `<div style="margin:12px 0;"><img src="${p.image}" style="width:100%;border-radius:8px;object-fit:cover;"></div>` : ''}
                     <div style="display:flex; gap:12px; align-items:center;">
                         <div style="display:flex; gap:8px; align-items:center; color:${isLiked? '#ef4444':''}"><i class="${isLiked? 'fa-solid' : 'fa-regular'} fa-heart"></i> <span>${Array.isArray(p.likes)? p.likes.length:0}</span></div>
                         <div style="display:flex; gap:8px; align-items:center;"><i class="fa-regular fa-comment"></i> <span>${Array.isArray(p.comments)? p.comments.length:0}</span></div>
