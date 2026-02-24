@@ -3987,6 +3987,97 @@ function createLikersModal() {
     return modal;
 }
 
+// Profil sekmelerini dolduran fonksiyon: gönderiler, beğeniler, kayıtlar
+window.loadProfileSections = async () => {
+    console.log('loadProfileSections invoked');
+    const myPostsList = document.getElementById('my-posts-list');
+    const myLikesList = document.getElementById('my-liked-list');
+    const bookmarkList = document.getElementById('bookmark-items');
+
+    if (myPostsList) myPostsList.innerHTML = '';
+    if (myLikesList) myLikesList.innerHTML = '';
+    if (bookmarkList) bookmarkList.innerHTML = '';
+
+    try {
+        // Resolve username: visited profile or current user
+        const params = new URLSearchParams(location.search);
+        const visitedId = params.get('id') || params.get('uid');
+        let uname = visitedId || (window.user && window.user.username) || null;
+
+        if (!uname && auth.currentUser) {
+            // fetch from users collection as fallback
+            try {
+                const me = await getDoc(doc(db, 'users', auth.currentUser.uid));
+                if (me.exists()) uname = me.data().username;
+            } catch (e) { console.warn('Could not resolve username for profile sections', e); }
+        }
+
+        if (!uname) {
+            console.warn('loadProfileSections: no username available');
+            return;
+        }
+
+        const q = query(collection(db, 'posts'), orderBy('timestamp','desc'));
+        const snap = await getDocs(q);
+
+        let total=0, mineCount=0, likedCount=0, savedCount=0;
+
+        snap.forEach(d => {
+            total++;
+            const p = d.data();
+            const isMine = p.username === uname || p.adminUser === uname;
+            const isLiked = Array.isArray(p.likes) && p.likes.includes(uname);
+            const isSaved = Array.isArray(p.savedBy) && p.savedBy.includes(uname) || Array.isArray(p.saved) && p.saved.includes(uname);
+
+            if (isMine) mineCount++;
+            if (isLiked) likedCount++;
+            if (isSaved) savedCount++;
+
+            // basic post html (kept simple to avoid relying on other helpers)
+            const postHtml = `
+                <div class="glass-card post" style="position: relative; margin-bottom:12px;">
+                    <div style="display:flex; gap:10px; margin-bottom:10px; align-items:center;">
+                        <img src="${getAvatarUrl(p.avatarUrl||p.avatarSeed||'assets/img/strendsaydamv2.png','user')}" class="user-avatar" style="width:44px;height:44px;border-radius:50%;cursor:pointer;" onclick="location.href='profil.html?id=${encodeURIComponent(p.username)}'">
+                        <div>
+                            <div style="font-weight:700; display:flex; align-items:center; gap:8px; cursor:pointer;" onclick="location.href='profil.html?id=${encodeURIComponent(p.username)}'">
+                                ${p.name||p.displayName||p.username}
+                                <span class="post-time" style="font-size:0.8rem;color:var(--text-muted);">• ${formatTime ? formatTime(p.timestamp) : ''}</span>
+                            </div>
+                            <div style="font-size:0.75rem; color:var(--text-muted);">@${p.username}</div>
+                        </div>
+                    </div>
+                    <p style="white-space: pre-wrap; margin-bottom:10px;">${(p.content||'').replace(/(#[\\wığüşöçİĞÜŞÖÇ]+)/g,'<span class="hashtag-link" onclick="searchTrend(\\'$1\\')">$1</span>')}</p>
+                    ${p.image ? `<div style="margin:12px 0;"><img src="${p.image}" style="width:100%;border-radius:8px;object-fit:cover;"></div>` : ''}
+                    <div style="display:flex; gap:12px; align-items:center;">
+                        <div style="display:flex; gap:8px; align-items:center; color:${isLiked? '#ef4444':''}"><i class="${isLiked? 'fa-solid' : 'fa-regular'} fa-heart"></i> <span>${Array.isArray(p.likes)? p.likes.length:0}</span></div>
+                        <div style="display:flex; gap:8px; align-items:center;"><i class="fa-regular fa-comment"></i> <span>${Array.isArray(p.comments)? p.comments.length:0}</span></div>
+                        <div style="display:flex; gap:8px; align-items:center; color:${isSaved? '#f59e0b':''}"><i class="${isSaved? 'fa-solid' : 'fa-regular'} fa-bookmark"></i></div>
+                    </div>
+                </div>
+            `;
+
+            if (isMine && myPostsList) myPostsList.innerHTML += postHtml;
+            if (isLiked && myLikesList) myLikesList.innerHTML += postHtml;
+            if (isSaved && bookmarkList) bookmarkList.innerHTML += postHtml;
+        });
+
+        // If empty, show friendly messages
+        if (myPostsList && myPostsList.innerHTML.trim() === '') {
+            myPostsList.innerHTML = `<div style="text-align:center;padding:30px;color:var(--text-muted);">Henüz gönderi yok</div>`;
+        }
+        if (myLikesList && myLikesList.innerHTML.trim() === '') {
+            myLikesList.innerHTML = `<div style="text-align:center;padding:30px;color:var(--text-muted);">Henüz beğenilen gönderi yok</div>`;
+        }
+        if (bookmarkList && bookmarkList.innerHTML.trim() === '') {
+            bookmarkList.innerHTML = `<div style="text-align:center;padding:30px;color:var(--text-muted);">Henüz kayıtlı gönderi yok</div>`;
+        }
+
+        console.log('loadProfileSections stats', { total, mineCount, likedCount, savedCount });
+    } catch (e) {
+        console.error('loadProfileSections error', e);
+    }
+};
+
 window.sendFriendRequestToUid = sendFriendRequestToUid;
 // expose cancel helpers globally so inline onclick handlers can call them
 window.cancelFriendRequest = cancelFriendRequest;
