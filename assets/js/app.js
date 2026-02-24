@@ -52,58 +52,677 @@ function waitForElement(selector, timeout = 5000, interval = 200) {
   });
 }
 
-function formatTime(ts) {
-  const d = new Date(ts);
-  return d.toLocaleString();
+onAuthStateChanged(auth, async (fbUser) => {
+    // Header'daki butonu seçiyoruz
+    const adminBtn = document.getElementById('adminMenuBtn');
+
+    if (!fbUser) {
+        if (adminBtn) adminBtn.style.display = 'none';
+        window.location.href = 'login.html';
+        if (typeof kontrolEtVeOtomatikPostAt === 'function') kontrolEtVeOtomatikPostAt();
+    } else {
+        // Kullanıcı bilgilerini ata
+        user.username = fbUser.email.split('@')[0];
+        user.displayName = localStorage.getItem('st_displayName') || fbUser.displayName || user.username;
+        
+        try {
+            const userRef = doc(db, "users", fbUser.uid);
+            const userDoc = await getDoc(userRef);
+            
+            if (userDoc.exists()) {
+                const userData = userDoc.data();
+                
+                // --- SADECE ROLE GÖRE YETKİ KONTROLÜ ---
+                // Eğer veritabanındaki rolü 'admin' ise isAdmin true olur
+                user.isAdmin = (userData.role === 'admin');
+                
+                // Avatarı güncelle
+                user.avatarUrl = userData.avatarUrl || "assets/img/strendsaydamv2.png";
+            } else {
+                // Yeni kayıt (Varsayılan olarak admin değildir)
+                user.isAdmin = false;
+                user.avatarUrl = "assets/img/strendsaydamv2.png";
+                
+                await setDoc(userRef, {
+                    displayName: user.displayName,
+                    avatarUrl: user.avatarUrl,
+                    email: fbUser.email,
+                    username: user.username,
+                    role: 'user', // Varsayılan rol
+                    createdAt: serverTimestamp()
+                }, { merge: true });
+            }
+
+            // --- BUTON GÖRÜNÜRLÜĞÜ ---
+            if (adminBtn) {
+                adminBtn.style.display = user.isAdmin ? 'flex' : 'none';
+            }
+
+        } catch (err) {
+            console.error("Yetki kontrol hatası:", err);
+        }
+
+        // Arayüz ve Feed Güncellemeleri
+        if (typeof updateUIWithUser === 'function') updateUIWithUser();
+        try { if (typeof loadPostsFeed === 'function') loadPostsFeed(); } catch(e) {}
+
+        // Profil İstatistikleri
+        if (typeof window.loadProfileSections === 'function') {
+            window.total = (typeof someData !== 'undefined' && someData !== null) ? someData.length : 0;
+            window.mineCount = (typeof someMines !== 'undefined' && someMines !== null) ? someMines.length : 0;
+            window.likedCount = (typeof likedPosts !== 'undefined' && likedPosts !== null) ? likedPosts.length : 0;
+            window.savedCount = (typeof savedPosts !== 'undefined' && savedPosts !== null) ? savedPosts.length : 0;
+            window.followerCount = (typeof followers !== 'undefined' && followers !== null) ? followers.length : 0;
+            window.followingCount = (typeof following !== 'undefined' && following !== null) ? following.length : 0;
+            try { window.loadProfileSections(); } catch(e) {}
+        }
+
+        // --- ANLIK (REAL-TIME) ROL TAKİBİ ---
+        // Panelden birini admin yaptığınızda sayfa yenilenmeden butonun gelmesi için gerekli
+        onSnapshot(doc(db, "users", fbUser.uid), (docSnapshot) => {
+            if (docSnapshot.exists()) {
+                const userData = docSnapshot.data();
+                const isNowAdmin = (userData.role === 'admin');
+                
+                // Rol değiştiyse butonu güncelle
+                if (user.isAdmin !== isNowAdmin) {
+                    user.isAdmin = isNowAdmin;
+                    if (adminBtn) adminBtn.style.display = isNowAdmin ? 'flex' : 'none';
+                }
+
+                if (userData.avatarUrl && userData.avatarUrl !== user.avatarUrl) {
+                    user.avatarUrl = userData.avatarUrl;
+                    updateUIWithUser();
+                }
+                if (userData.displayName && userData.displayName !== user.displayName) {
+                    user.displayName = userData.displayName;
+                    updateUIWithUser();
+                }
+                if (typeof loadNotifications === 'function') loadNotifications(userData);
+            }
+        });
+
+        if (typeof migrateOldAvatars === 'function') migrateOldAvatars();
+        if (user.isAdmin && typeof updateAdminStats === 'function') updateAdminStats();
+    }
+
+    if (typeof loadVisitorProfile === 'function') loadVisitorProfile();
+});
+
+// Eski postların avatarlarını strendsaydamv2 ile güncellemek
+async function migrateOldAvatars() {
+    // Bir defa çalış
+    if (localStorage.getItem('avatarsMigrated')) return;
+    
+    try {
+        const postsSnap = await getDocs(collection(db, "posts"));
+        
+        postsSnap.forEach(async (postDoc) => {
+            const post = postDoc.data();
+            // Eğer avatarUrl yoksa, varsayılan URL'i ekle
+            if (!post.avatarUrl) {
+                await updateDoc(postDoc.ref, { 
+                    avatarUrl: "assets/img/strendsaydamv2.png"
+                });
+            }
+        });
+        
+        localStorage.setItem('avatarsMigrated', 'true');
+    } catch (err) {
+        console.error("Avatar migration hatası:", err);
+    }
 }
 
-function getAvatarUrl(url, type = 'user') {
-  if (!url) return 'assets/img/strendsaydamv2.png';
-  return url;
+async function updateAdminStats() {
+    if(!user.isAdmin) return;
+    try {
+        const postsSnap = await getDocs(collection(db, "posts"));
+        // Elementler sayfada varsa güncelle
+        const postStat = document.getElementById('stat-total-posts');
+        if (postStat) postStat.innerText = postsSnap.size;
+    } catch (error) {
+        console.error("Admin istatistikleri yüklenirken hata:", error);
+    }
 }
 
-// simple UI helpers
-function disableButton(btn, text) {
-  if (btn) {
-    btn.innerHTML = text;
-    btn.disabled = true;
-    btn.style.opacity = '0.6';
-    btn.style.cursor = 'default';
+// --- PROFIL DUZENLEME VE AVATAR FONKSIYONLARI ---
+let tempAvatarBuffer = null;
+    window.toggleEditProfile = () => {
+        const form = document.getElementById('editProfileSection');
+        if (form) {
+            form.classList.toggle('active');
+            
+            // Mevcut değerleri doldur
+            const nameInput = document.getElementById('newNameInput');
+            if (nameInput) nameInput.value = user.displayName || "";
+            
+            const urlInput = document.getElementById('newAvatarUrlInput');
+            if (urlInput && user.avatarUrl && user.avatarUrl.startsWith('http')) {
+                urlInput.value = user.avatarUrl;
+            }
+            
+            tempAvatarBuffer = null;
+        } else {
+            console.warn("editProfileSection element bulunamadı!");
+        }
+    };
+
+    // ----------------------------------
+    // Ayarlar menüsü / gizlilik vs.
+    // ----------------------------------
+    window.toggleProfileSettings = () => {
+        const menu = document.getElementById('profileSettingsMenu');
+        if (menu) menu.classList.toggle('visible');
+    };
+
+    window.changePassword = async () => {
+        const menu = document.getElementById('profileSettingsMenu');
+        if (menu) menu.classList.remove('visible');
+        if (!auth.currentUser) return alert('Giriş yapmalısınız');
+        const newPass = prompt(translations[currentLang].changePassword + ':');
+        if (newPass && newPass.length >= 6) {
+            try {
+                await updatePassword(auth.currentUser, newPass);
+                alert('✅ Şifreniz güncellendi');
+            } catch (e) {
+                console.error(e);
+                alert('❌ Şifre değiştirilemedi: ' + e.message);
+            }
+        } else if (newPass) {
+            alert('Şifre en az 6 karakter olmalıdır');
+        }
+    };
+
+    window.changeEmail = async () => {
+        const menu = document.getElementById('profileSettingsMenu');
+        if (menu) menu.classList.remove('visible');
+        if (!auth.currentUser) return alert('Giriş yapmalısınız');
+        const newEmail = prompt(translations[currentLang].changeEmail + ':');
+        if (newEmail && newEmail.includes('@')) {
+            try {
+                await updateEmail(auth.currentUser, newEmail);
+                alert('✅ E-posta adresiniz güncellendi');
+            } catch (e) {
+                console.error(e);
+                alert('❌ E-posta değiştirilemedi: ' + e.message);
+            }
+        } else if (newEmail) {
+            alert('Geçerli bir e-posta girin');
+        }
+    };
+
+    window.toggleProfilePrivacy = async () => {
+        const menu = document.getElementById('profileSettingsMenu');
+        if (menu) menu.classList.remove('visible');
+        isPrivate = !isPrivate;
+        localStorage.setItem('st_isPrivate', isPrivate);
+        // Firestore'a kaydetmek için
+        if (auth.currentUser) {
+            try {
+                await updateDoc(doc(db, 'users', auth.currentUser.uid), { isPrivate });
+            } catch (e) {
+                console.error('privacy update error', e);
+            }
+        }
+        updateUIWithUser();
+        alert(isPrivate ? '✅ Profiliniz artık gizli.' : '✅ Profiliniz artık herkese açık.');
+    };
+
+    // global click listener menüyü kapatmak için
+    document.addEventListener('click', (e) => {
+        const menu = document.getElementById('profileSettingsMenu');
+        // if click is not inside the menu and not on the settings button (or its children)
+        if (menu && !menu.contains(e.target) && !e.target.closest('#settingsBtn')) {
+            menu.classList.remove('visible');
+        }
+    });
+
+// Kullanıcının tüm eski postlarının avatarını güncelle
+async function updateUserPostsAvatar(username, newAvatarUrl) {
+    try {
+        const postsSnap = await getDocs(
+            query(collection(db, "posts"), where("username", "==", username))
+        );
+        
+        postsSnap.forEach(async (postDoc) => {
+            try {
+                await updateDoc(postDoc.ref, {
+                    avatarUrl: newAvatarUrl
+                });
+            } catch (err) {
+                console.error("Post güncelleme hatası:", err);
+            }
+        });
+        
+        // Comment'leri de güncelle
+        await updateUserCommentsAvatar(username, newAvatarUrl);
+        
+    } catch (error) {
+        console.error("Post güncelleme sorgusi hatası:", error);
+    }
+}
+
+// Kullanıcının tüm comment ve reply'larının avatarını güncelle
+async function updateUserCommentsAvatar(username, newAvatarUrl) {
+    try {
+        const postsSnap = await getDocs(collection(db, "posts"));
+        
+        postsSnap.forEach(async (postDoc) => {
+            const post = postDoc.data();
+            if (!post.comments || post.comments.length === 0) return;
+            
+            let updated = false;
+            const updatedComments = post.comments.map(comment => {
+                let updatedComment = { ...comment };
+                
+                // Comment'in avatarını güncelle
+                if (comment.username === username) {
+                    updatedComment.avatarUrl = newAvatarUrl;
+                    updated = true;
+                }
+                
+                // Reply'ların avatarını güncelle
+                if (comment.replies && comment.replies.length > 0) {
+                    updatedComment.replies = comment.replies.map(reply => {
+                        if (reply.username === username) {
+                            updated = true;
+                            return { ...reply, avatarUrl: newAvatarUrl };
+                        }
+                        return reply;
+                    });
+                }
+                
+                return updatedComment;
+            });
+            
+            // Eğer bir değişiklik varsa Firestore'da update et
+            if (updated) {
+                try {
+                    await updateDoc(postDoc.ref, {
+                        comments: updatedComments
+                    });
+                } catch (err) {
+                    console.error("Comment güncelleme hatası:", err);
+                }
+            }
+        });
+        
+    } catch (error) {
+        console.error("Comment güncelleme hatası:", error);
+    }
+}
+
+
+/* Profil Resmini Değiştir */
+window.handleFileSelect = async (input) => {
+    const file = input.files[0];
+    if (!file || !auth.currentUser) return;
+
+    if (file.size > 300 * 1024 * 1024) {
+        alert("Dosya 300MB'dan küçük olmalıdır!");
+        input.value = "";
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = async () => {
+        try {
+            const base64Data = reader.result;
+            const userRef = doc(db, "users", auth.currentUser.uid);
+            
+            // Dizi olmadığı için burada serverTimestamp() kullanmak güvenlidir.
+            await updateDoc(userRef, {
+                avatarUrl: base64Data,
+                avatarType: "local",
+                avatarUpdatedAt: serverTimestamp() 
+            });
+            
+            user.avatarUrl = base64Data;
+            updateUIWithUser();
+            alert("✅ Profil resminiz güncellendi!");
+            input.value = "";
+        } catch (error) {
+            console.error("Avatar hatası:", error);
+            alert("❌ Hata: " + error.message);
+        }
+    };
+    reader.readAsDataURL(file);
+};
+
+// export module-level function for HTML onclicks
+window.sendFriendRequest = async () => {
+    // delegate to the real implementation defined later in this module
+    if (typeof sendFriendRequest === 'function') {
+        return sendFriendRequest();
+    }
+    // fallback: do nothing
+};
+
+window.handleUrlInput = async (input) => {
+    const url = input.value.trim();
+    if (!url) return;
+    
+    // Auth kontrolü
+    if (!auth.currentUser) {
+        alert("Lütfen giriş yapın!");
+        return;
+    }
+    
+    // URL kontrolü
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+        alert("Geçerli URL girin (http:// ile başlamalı)");
+        return;
+    }
+
+    try {
+        // Firestore'da kaydet
+        await updateDoc(doc(db, "users", auth.currentUser.uid), {
+            avatarUrl: url,
+            avatarType: "url"
+        }).catch(async (err) => {
+            if (err.code === 'not-found') {
+                await setDoc(doc(db, "users", auth.currentUser.uid), {
+                    avatarUrl: url,
+                    avatarType: "url",
+                    displayName: user.displayName,
+                    email: auth.currentUser.email
+                });
+            } else {
+                throw err;
+            }
+        });
+        
+        user.avatarUrl = url;
+        updateUIWithUser();
+        
+        // Eski postları güncelle (background'da)
+        updateUserPostsAvatar(user.username, url);
+        
+        alert("Avatar güncellendi!");
+        input.value = "";
+        
+    } catch (error) {
+        console.error("Hata:", error);
+        alert("Hata: " + error.message);
+    }
+};
+
+  window.promptDiceBear = async () => {
+    // Auth kontrolü
+    if (!auth.currentUser) {
+        alert("Lütfen giriş yapın!");
+        return;
+    }
+    
+    const name = user.displayName || user.username;
+    const dicebearUrl = `https://api.dicebear.com/7.x/avataaars/png?seed=${encodeURIComponent(name)}&size=256`;
+    
+    try {
+        await updateDoc(doc(db, "users", auth.currentUser.uid), {
+            avatarUrl: dicebearUrl,
+            avatarType: "dicebear"
+        }).catch(async (err) => {
+            if (err.code === 'not-found') {
+                await setDoc(doc(db, "users", auth.currentUser.uid), {
+                    avatarUrl: dicebearUrl,
+                    avatarType: "dicebear",
+                    displayName: user.displayName,
+                    email: auth.currentUser.email
+                });
+            } else {
+                throw err;
+            }
+        });
+        
+        user.avatarUrl = dicebearUrl;
+        updateUIWithUser();
+        
+        // Eski postları güncelle (background'da)
+        updateUserPostsAvatar(user.username, dicebearUrl);
+        
+        alert("Avatar oluşturuldu!");
+        
+    } catch (error) {
+        console.error("Hata:", error);
+        alert("Hata: " + error.message);
+    }
+  };
+
+  window.saveProfileChanges = async () => {
+    const name = document.getElementById('newNameInput').value.trim();
+
+    if(name) { 
+        user.displayName = name; 
+        localStorage.setItem('st_displayName', name);
+        
+        // Firestore'da güncelle
+        try {
+            await updateDoc(doc(db, "users", auth.currentUser.uid), {
+                displayName: name
+            });
+        } catch (err) {
+            console.error("Display name güncelleme hatası:", err);
+        }
+        
+        await updateProfile(auth.currentUser, { displayName: name }).catch(e => console.error(e));
+    }
+
+    finishUpdate();
+  };
+
+  function finishUpdate() {
+    alert("Profil başarıyla güncellendi!");
+    location.reload();
   }
+
+
+  window.updateUserEmail = async () => {
+    const mail = prompt("Yeni e-posta:");
+    if(mail && auth.currentUser) {
+      try {
+        await updateEmail(auth.currentUser, mail);
+        alert("Başarılı! Lütfen yeni maille giriş yapın.");
+        logout();
+      } catch(e) { alert("Hata: " + e.message); }
+    }
+  };
+
+  window.sendResetMail = async () => {
+    try {
+      await sendPasswordResetEmail(auth, auth.currentUser.email);
+      alert("Sıfırlama bağlantısı gönderildi.");
+    } catch(e) { alert("Hata: " + e.message); }
+  };
+
+  window.logout = async () => {
+    await signOut(auth);
+    window.location.href = 'login.html';
+  };
+
+let selectedImageBase64 = null;
+
+// Görsel Seçme İşlemi
+const imageInput = document.getElementById('imageInput');
+
+// Sadece element sayfada varsa olay dinleyiciyi ekle
+if (imageInput) {
+    imageInput.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            // Base64 dönüşümü yapılırken boyut kontrolü kritik
+            if (file.size > 300 * 1024 * 1024) { 
+                alert("Lütfen 300MB'dan küçük bir fotoğraf seçin.");
+                this.value = "";
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                selectedImageBase64 = event.target.result;
+                const previewImg = document.getElementById('imagePreview');
+                const previewContainer = document.getElementById('imagePreviewContainer');
+                
+                if(previewImg) previewImg.src = selectedImageBase64;
+                if(previewContainer) previewContainer.style.display = 'block';
+            };
+            reader.readAsDataURL(file);
+        }
+    });
 }
 
-// simple UI helpers (could be expanded)
-window.toggleDarkMode = () => {
-  document.documentElement.classList.toggle('dark');
+// Önizleme Temizleme
+window.clearImagePreview = () => {
+    selectedImageBase64 = null;
+    document.getElementById('imageInput').value = "";
+    document.getElementById('imagePreviewContainer').style.display = 'none';
 };
+  
+// --- ÇEVİRİLER VE KAYDETME ÖZELLİĞİ ---
+  const translations = {
+    tr: {
+      searchPlaceholder: "Arama",
+      searchBtn: "Arama",
+      menuProfile: "Profiliniz",
+      menuSettings: "Ayarlar",
+      menuTitle: "Sosyal Menü",
+      navFeed: "Anasayfa",
+      navBookmarks: "Kaydedilenler",
+      navBookmarkss: "Kaydettiklerinizi bu sayfa altına topladık, buradan takip edebilir veya kaydettiklerinizi kaldırabilirsiniz.",
+      navSubs: "Beğendiklerim",
+      navSubss: "Beğendiğiniz içerikleri bu sayfa altına topladık, buradan takip edebilir veya beğenileri kaldırabilirsiniz.",
+      navSearch: "Aramalar",
+      searchHeading: "Arama Sonuçları",
+      postPlaceholder: "Neler oluyor?",
+      shareBtn: "Paylaş",
+      editProfileBtn: "Profili Düzenle",
+      footerTagline: "Topluluğunuzla her zaman bir adım önde olun.",
+      footerMenu: "Hızlı Menü",
+      footerCorp: "Kurumsal",
+      footerAbout: "Hakkımızda",
+      footerCareer: "Kariyer",
+      footerSupport: "Destek",
+      footerContact: "İletişim",
+      footerHelp: "Yardım Merkezi",
+      footerRights: "Tüm Hakları Saklıdır.",
+      subBtn: "Abone Ol",
+      unsubBtn: "Bırak",
+      promptNewName: "Yeni Görünen Ad:",
+      confirmDelete: "Bu gönderiyi silmek istediğine emin misin?",
+      confirmDeletePage: "Bu sayfayı ve tüm verilerini silmek istediğine emin misin?",
+      confirmDeleteComment: "Yorumu silmek istediğine emin misin?",
+      myPostsTitle: "Paylaşımlarım",
+      settingPrivate: "Gizli Profil",
+      settingPrivateDesc: "Profilinizi ve paylaşımlarınızı diğer kullanıcılardan gizleyin.",
+      settingTheme: "Koyu Tema",
+      commentPlaceholder: "Yorum yaz...",
+      sendComment: "Gönder",
+      changePassword: "Şifreni Değiştir",
+      changeEmail: "E-postanı Değiştir",
+      privacyOption: "Profilini Gizle",
+      privacyOptionShow: "Profilini Göster",
+      privateLabel: "Gizli",
+      privateBanner: "Profiliniz Gizli",
+      profileHiddenMessage: "Bu profil gizlidir.",
+      friendViewNote: "Profil arkadaşlara açık",
+      helpHeading: "Yardım Merkezi",
+      helpSub: "Sıkça Sorulan Sorular",
+      helpText: "SosyalTrend kullanımı hakkında merak ettiğiniz her şey burada.",
+      contactHeading: "İletişim",
+      contactText: "Bizimle iletişime geçmek için officialfthuzun@gmail.com adresine mail atabilirsiniz.",
+      sendBtn: "Mesajı Gönder"
+    },
+    en: {
+      searchPlaceholder: "Search pages or people...",
+      searchBtn: "Search",
+      menuProfile: "Your Profile",
+      menuSettings: "Settings",
+      menuTitle: "Menu",
+      navFeed: "Feed",
+      navBookmarks: "Bookmarks",
+      navSubs: "Liked Posts",
+      navSearch: "Search",
+      searchHeading: "Search Results",
+      postPlaceholder: "What's happening?",
+      shareBtn: "Post",
+      editProfileBtn: "Edit Profile",
+      changePassword: "Change Password",
+      changeEmail: "Change Email",
+      privacyOption: "Hide Profile",
+      privacyOptionShow: "Show Profile",
+      privateLabel: "Private",
+      profileHiddenMessage: "This profile is private.",
+      privateBanner: "Your profile is private",
+      friendViewNote: "Profile visible to friends",
+      footerTagline: "Always stay ahead with your community.",
+      footerMenu: "Quick Menu",
+      footerCorp: "Corporate",
+      footerAbout: "About Us",
+      footerCareer: "Careers",
+      footerSupport: "Support",
+      footerContact: "Contact",
+      footerHelp: "Help Center",
+      footerRights: "All Rights Reserved.",
+      subBtn: "Subscribe",
+      unsubBtn: "Leave",
+      promptNewName: "New Display Name:",
+      confirmDelete: "Are sure you want to delete this post?",
+      confirmDeletePage: "Are sure you want to delete this page and all its data?",
+      confirmDeleteComment: "Are sure you want to delete this comment?",
+      myPostsTitle: "My Posts",
+      settingPrivate: "Private Profile",
+      settingPrivateDesc: "Hide your profile and posts from other users.",
+      settingTheme: "Dark Theme",
+      commentPlaceholder: "Write a comment...",
+      sendComment: "Send",
+      helpHeading: "Help Center",
+      helpSub: "Frequently Asked Questions",
+      helpText: "Everything you wonder about using SosyalTrend is here.",
+      contactHeading: "Contact",
+      contactText: "To contact us, you can send an e-mail to officialfthuzun@gmail.com.",
+      sendBtn: "Send Message"
+    }
+  };
 
-window.toggleNotifications = () => {
-  const dd = document.getElementById('notificationsDropdown');
-  if (dd) dd.style.display = (dd.style.display === 'flex' ? 'none' : 'flex');
-};
+  let currentLang = localStorage.getItem('st_lang') || 'tr';
+  let isPrivate = localStorage.getItem('st_isPrivate') === 'true';
 
-window.navigateTo = (page) => {
-  // simple wrapper to change pages; default behaviour is to just navigate
-  // to the href of clicked link which is already set, so we intentionally
-  // return true to allow default.
-  return true;
-};
+  window.changeLanguage = (lang) => {
+    // Language changed
+    currentLang = lang;
+    localStorage.setItem('st_lang', lang);
+    applyTranslations(); // Çevirileri uygula
+  };
 
-// -------- authentication ----------
-async function initAuth() {
-  try {
-    const current = await api.getCurrentUser();
-    window.currentUser = current;
-    user.id = current.id;
-    user.username = current.username || current.email.split('@')[0];
-    user.displayName = current.displayName || user.username;
-    user.avatarUrl = current.avatarUrl || user.avatarUrl;
-    user.isAdmin = current.role === 'admin';
+  function applyTranslations() {
+    const t = translations[currentLang];
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+      const key = el.getAttribute('data-i18n');
+      if (t[key]) el.innerText = t[key];
+    });
+    document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+      const key = el.getAttribute('data-i18n-placeholder');
+      if (t[key]) el.placeholder = t[key];
+    });
+    const trBtn = document.getElementById('lang-tr');
+    const enBtn = document.getElementById('lang-en');
+    if(trBtn) trBtn.className = currentLang === 'tr' ? 'active' : 'inactive';
+    if(enBtn) enBtn.className = currentLang === 'en' ? 'active' : 'inactive';
+    // after translations we might need to re-sync dynamic UI text like privacy
     updateUIWithUser();
-    loadPostsFeed();
-  } catch (err) {
-    window.location.href = '/auth/login.html';
   }
+  applyTranslations();
+
+function getAvatarUrl(avatarUrlOrSeed, type = 'user') {
+    // Eğer string ise kontrol et
+    if (avatarUrlOrSeed && typeof avatarUrlOrSeed === 'string') {
+        // HTTP/HTTPS URL'si veya Data URL (Base64)
+        if (avatarUrlOrSeed.startsWith('http') || avatarUrlOrSeed.startsWith('data:')) {
+            return avatarUrlOrSeed;
+        }
+    }
+    // Admin ikon kontrolü - SADECE admin-shield için özel işlem
+    if (avatarUrlOrSeed === 'admin-shield') return "https://api.dicebear.com/7.x/bottts/svg?seed=Admin";
+    // Default avatar
+    return "assets/img/strendsaydamv2.png";
 }
 
 function updateUIWithUser() {
