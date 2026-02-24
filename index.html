@@ -163,6 +163,10 @@
                 document.getElementById("r-day").innerText = Math.floor(diff / 86400000).toString().padStart(2, '0');                                                           document.getElementById("r-hour").innerText = Math.floor((diff / 3600000) % 24).toString().padStart(2, '0');                                                    document.getElementById("r-min").innerText = Math.floor((diff / 60000) % 60).toString().padStart(2, '0');                                                       document.getElementById("r-sec").innerText = Math.floor((diff / 1000) % 60).toString().padStart(2, '0');                                                    }, 1000);
         } catch(e) { console.error("Hata:", e); }
     }
+
+    function closeImsakiye() { document.getElementById("imsakiye-modal").style.display = "none"; }
+
+    updateVakitler();
 </script>
 </body>
 </html>
