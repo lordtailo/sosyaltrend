@@ -1316,83 +1316,6 @@ function formatTime(timestamp) {
     } catch(e) { return "..."; }
 }
 
-function renderPostHtml(p) {
-    const isPage = p.username?.startsWith('page_') || p.username === 'official_system';
-    const isMine = p.username === user.username || p.adminUser === user.username;
-    const isLiked = p.likes?.includes(user.username);
-    const isSaved = Array.isArray(p.savedBy) && p.savedBy.includes(user.username) || Array.isArray(p.saved) && p.saved.includes(user.username);
-    const avatarUrl = getAvatarUrl(p.avatarUrl || p.avatarSeed || 'assets/img/strendsaydamv2.png', isPage ? 'page' : 'user');
-    const contentWithLinks = (p.content || "").replace(/(#[\wığüşöçİĞÜŞÖÇ]+)/g, '<span class="hashtag-link" onclick="searchTrend(\'$1\')">$1</span>');
-    const postImageHtml = p.image ? `
-        <div class="post-image-wrapper" style="margin: 12px auto; border-radius: 12px; overflow: hidden; background: rgb(0, 0, 0); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; transition:0.3s ease-in-out; max-height: 103%; max-width: 50%; height: auto; width: 100%;">
-            <img src="${p.image}" loading="lazy" style="width: 100%; height: 100%; object-fit: cover; cursor: zoom-in;" onclick="toggleImageExpand(this)" alt="Post görseli">
-        </div>
-    ` : "";
-    const t = translations[currentLang];
-
-    let html = `
-        <div class="glass-card post" style="position: relative;${p.username === 'official_system' ? 'border: 2px solid var(--primary); background: rgba(99, 102, 241, 0.05);' : ''}">
-            <div style="position: absolute; top: 15px; right: 15px; display:flex; gap:8px;">
-                ${(isMine || user.isAdmin) ? `
-                    <button onclick="openEditModal('${p.id}', \`${p.content.replace(/`/g,'\\`').replace(/"/g,'&quot;').replace(/\n/g,'\\n')}\`, 'post')" style="background:none;border:none;color:var(--text-muted);cursor:pointer;">
-                        <i class="fa-solid fa-pen"></i>
-                    </button>
-                    <button class="post-delete-btn" style="position:static;" onclick="deletePost('${p.id}')">
-                        <i class="fa-solid fa-trash"></i>
-                    </button>
-                ` : ''}
-            </div>
-            <div style="display:flex; gap:10px; margin-bottom:10px;">
-                <img src="${avatarUrl}" class="${isPage ? 'page-avatar' : 'user-avatar'}" style="cursor:pointer;" onclick="${isMine ? "navigateTo('profil')" : `location.href='profil.html?id=${encodeURIComponent(p.username)}'`}">
-                <div>
-                    <div style="font-weight:700; display:flex; align-items:center; gap:5px; cursor:pointer;" onclick="${isMine ? "navigateTo('profil')" : `location.href='profil.html?id=${encodeURIComponent(p.username)}'`}">
-                        ${p.name} ${isPage ? '<i class="fa-solid fa-circle-check" style="color:var(--primary); font-size:0.7rem;"></i>' : ''}
-                        <span class="post-time">• ${formatTime(p.timestamp)}</span>
-                        ${p.isEdited ? `<span style="font-size:0.6rem;color:var(--text-muted);font-weight:normal;">(düzenlendi)</span>` : ''}
-                    </div>
-                    <div style="font-size:0.75rem; color:var(--text-muted); cursor:pointer;" onclick="${isMine ? "navigateTo('profil')" : `location.href='profil.html?id=${encodeURIComponent(p.username)}'`}">@${p.username}</div>
-                </div>
-            </div>
-            <p style="white-space: pre-wrap; margin-bottom:10px;">${contentWithLinks}</p>
-            ${postImageHtml}
-            <div id="likers-${p.id}" style="display:flex; align-items:center; gap:8px; margin-bottom:10px; min-height:28px;"></div>
-            <div style="display:flex; gap:12px;">
-                <button class="tool-btn" onclick="likePost('${p.id}', ${isLiked})" style="gap:5px; color:${isLiked ? '#ef4444' : ''}"><i class="${isLiked ? 'fa-solid' : 'fa-regular'} fa-heart"></i><span>${p.likes?.length || 0}</span></button>
-                <button class="tool-btn" onclick="toggleCommentSection('${p.id}')" style="gap:5px;"><i class="fa-regular fa-comment"></i><span>${p.comments?.length || 0}</span></button>
-                <button class="tool-btn" onclick="toggleBookmark('${p.id}', ${isSaved})" style="color:${isSaved ? '#f59e0b' : ''}"><i class="${isSaved ? 'fa-solid' : 'fa-regular'} fa-bookmark"></i></button>
-                <button class="tool-btn" onclick="window.openShareMenu('${p.id}')" style="gap:5px; margin-left:auto;"><i class="fa-solid fa-share"></i></button>
-            </div>
-            <div id="comments-${p.id}" class="comment-area" style="display:none;">
-                <div id="list-${p.id}">
-                    ${(p.comments || []).map(c => `
-                        <div class="comment-item" style="flex-direction:column; align-items:flex-start; gap:5px;">
-                            <div style="display:flex; align-items:center; width:100%; gap:10px;">
-                                <img src="${getAvatarUrl(c.avatarUrl || c.avatarSeed || 'assets/img/strendsaydamv2.png','user')}" style="width:24px;height:24px;border-radius:50%;cursor:pointer;" onclick="${c.username===user.username?"navigateTo('profil')":`location.href='profil.html?id=${encodeURIComponent(c.username)}'`}">
-                                <div style="flex:1;">
-                                    <span class=\"comment-meta\" style=\"cursor:pointer;\" onclick=\"${c.username===user.username?\"navigateTo('profil')\":`location.href='profil.html?id=${encodeURIComponent(c.username)}'`}\">${c.displayName}</span>
-                                    <span style=\"font-size:0.8rem;\">${c.text}</span>
-                                    ${c.isEdited?`<small style=\"font-size:0.65rem;color:var(--text-muted);margin-left:4px;\">(düzenlendi)</small>`:''}
-                                </div>
-                                <div class=\"comment-actions\" style=\"display:flex; gap:5px;\">
-                                  ${(c.username===user.username)?`<button onclick=\"openEditModal('${p.id}', \\\`${c.text.replace(/`/g,'\\\\`').replace(/"/g,'&quot;').replace(/\n/g,'\\\\n')}\\\`, 'comment', ${c.time})\" style=\"background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:0.75rem;\"><i class=\"fa-solid fa-pen\"></i></button>`:''}
-                                  ${(c.username===user.username||user.isAdmin)?`<button class=\"comment-del-btn\" onclick=\"deleteComment('${p.id}', ${c.time}, '${c.text.replace(/'/g,\\"\\\\'\\")}')\"><i class=\"fa-solid fa-trash-can\"></i></button>`:''}
-                                </div>
-                            </div>
-                            <button class=\"reply-btn\" onclick=\"addReply('${p.id}', ${c.time})\" style=\"background:none;border:none;color:var(--text-muted);font-size:0.7rem;cursor:pointer;margin-top:5px;font-weight:bold;\">Yanıtla</button>
-                        </div>`).join('')}
-                </div>
-                <div style="display:flex; flex-direction:column; gap:4px; margin-top:10px;">
-                    <div style="display:flex; gap:8px;">
-                        <input type="text" id="input-${p.id}" placeholder="${t.commentPlaceholder}" oninput="updateCommentCount('${p.id}')" maxlength="200" style="flex:1; padding:8px 12px; border-radius:10px; border:1px solid var(--border); outline:none; background: var(--input-bg); color: var(--text-main);">
-                        <button onclick="addComment('${p.id}')" style="background:var(--primary); color:white; border:none; padding:0 15px; border-radius:10px; cursor:pointer;">${t.sendComment}</button>
-                    </div>
-                    <span id="charcount-${p.id}" style="font-size:0.7rem; color:var(--text-muted); text-align:right;">0/200</span>
-                </div>
-            </div>
-        </div>\n`;
-    return html;
-}
-
 /* --- SEARCH SON --- */
     
 window.likePost = async (id, isLiked) => {
@@ -1584,8 +1507,7 @@ window.loadPostsFeed = (showAll = false) => {
                 bookItems = document.getElementById('bookmark-items'), 
                 t = translations[currentLang];
           // debug: snapshot summary
-          // debug: snapshot summary removed
-
+          try { console.log('loadPostsFeed snapshot:', { size: snap.size, ids: snap.docs.map(d=>d.id) }); } catch(e) { console.log('snapshot log failed', e); }
           // accumulate HTML so we can replace in one shot and avoid flicker
           let feedHtml = '';
           let myPostsHtml = '';
@@ -1601,12 +1523,25 @@ window.loadPostsFeed = (showAll = false) => {
       }
       snap.forEach(d => {
           try {
+              console.log('rendering post', d.id);
               const p = d.data(), 
                     isPage = p.username?.startsWith('page_') || p.username === 'official_system', 
                     isMine = p.username === user.username || p.adminUser === user.username, 
                     isLiked = p.likes?.includes(user.username), 
-                    isSaved = p.savedBy?.includes(user.username); // removed verbose debug
-
+                    isSaved = p.savedBy?.includes(user.username);
+              console.log(' post meta', { username: p.username, type: p.type, question: p.question });
+              // simplified rendering using shared helper; exit before old HTML code
+              const postHtmlBase = renderPostHtml({ ...p, id: d.id });
+              const postHtmlForFeed = postHtmlBase.replace('<div class="glass-card post"', `<div id="post-${d.id}" class="glass-card post"`);
+              if(feed) feedHtml += postHtmlForFeed;
+              if(p.username === user.username && myPosts) myPostsHtml += postHtmlBase;
+              if(isLiked && myLikes) likesHtml += postHtmlBase;
+              if(isSaved && bookItems) bookHtml += postHtmlBase;
+              if (window.populateLikersPreview) {
+                  setTimeout(() => { window.populateLikersPreview(d.id, p.likes || []); }, 0);
+              }
+              feedPostCount++;
+              return;
                   
               const avatarUrl = getAvatarUrl(p.avatarUrl || p.avatarSeed || "assets/img/strendsaydamv2.png", isPage ? 'page' : 'user');
               const contentWithLinks = (p.content || "").replace(/(#[\wığüşöçİĞÜŞÖÇ]+)/g, '<span class="hashtag-link" onclick="searchTrend(\'$1\')">$1</span>');
@@ -2134,91 +2069,16 @@ async function loadVisitorProfile() {
                     <p>${visitorDisplayName} henüz gönderi paylaşmamış.</p>
                 </div>`;
             } else {
-                const t = translations[currentLang];
                 visitorPosts.forEach(post => {
-                    const avatarUrl = getAvatarUrl(post.avatarSeed, 'user');
-                    const contentWithLinks = (post.content || "").replace(/(#[\wığüşöçİĞÜŞÖÇ]+)/g, '<span class="hashtag-link" onclick="searchTrend(\'$1\')">$1</span>');
-                    
-                    const postImageHtml = post.image ? `
-                        <div class="post-image-wrapper" style="margin: 12px auto; border-radius: 12px; overflow: hidden; background: rgb(0, 0, 0); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; max-height: 103%; max-width: 50%; height: auto; width: 100%;">
-                            <img src="${post.image}" loading="lazy" style="width: 100%; height: 100%; object-fit: cover; cursor: zoom-in;" onclick="toggleImageExpand(this)" alt="Post görseli">
-                        </div>
-                    ` : "";
-                    
-                    const isLiked = post.likes?.includes(user.username);
-                    const isSaved = Array.isArray(post.savedBy) && post.savedBy.includes(user.username) || Array.isArray(post.saved) && post.saved.includes(user.username);
-                    
-                    const postHtml = `
-                        <div class="glass-card post" style="position: relative;">
-                            <div style="display:flex; gap:10px; margin-bottom:10px;">
-                                <img src="${avatarUrl}" class="user-avatar" style="cursor:pointer;" onclick="location.href='profil.html?id=${encodeURIComponent(post.username)}'">
-                                <div>
-                                    <div style="font-weight:700; display:flex; align-items:center; gap:5px; cursor:pointer;" onclick="location.href='profil.html?id=${encodeURIComponent(post.username)}'">
-                                        ${post.name}
-                                        <span class="post-time">• ${formatTime(post.timestamp)}</span>
-                                    </div>
-                                    <div style="font-size:0.75rem; color:var(--text-muted); cursor:pointer;" onclick="location.href='profil.html?id=${encodeURIComponent(post.username)}'">@${post.username}</div>
-                                </div>
-                            </div>
-                            
-                            <p style="white-space: pre-wrap; margin-bottom:10px;">${contentWithLinks}</p>
-                            ${postImageHtml}
-                            
-                            <div style="display:flex; gap:12px;">
-                                <button class="tool-btn" onclick="likePost('${post.id}', ${isLiked})" style="gap:5px; color:${isLiked ? '#ef4444' : ''}">
-                                    <i class="${isLiked ? 'fa-solid' : 'fa-regular'} fa-heart"></i><span>${post.likes?.length || 0}</span>
-                                </button>
-                                <button class="tool-btn" onclick="toggleCommentSection('${post.id}')" style="gap:5px;"><i class="fa-regular fa-comment"></i><span>${post.comments?.length || 0}</span></button>
-                                <button class="tool-btn" onclick="toggleBookmark('${post.id}', ${isSaved})" style="color:${isSaved ? '#f59e0b' : ''}"><i class="${isSaved ? 'fa-solid' : 'fa-regular'} fa-bookmark"></i></button>
-                                <button class="tool-btn" onclick="window.openShareMenu('${post.id}')" style="gap:5px; margin-left:auto;"><i class="fa-solid fa-share"></i></button>
-                            </div>
-                            <div id="comments-${post.id}" class="comment-area" style="display:none;">
-                                <div id="list-${post.id}">
-                                    ${(post.comments || []).map(c => `
-                                        <div class="comment-item" style="flex-direction: column; align-items: flex-start; gap: 5px;">
-                                            <div style="display: flex; align-items: center; width: 100%; gap: 10px;">
-                                                <img src="${getAvatarUrl(c.avatarUrl || c.avatarSeed || 'assets/img/strendsaydamv2.png', 'user')}" style="width: 24px; height: 24px; border-radius: 50%; cursor:pointer;" onclick="${c.username === user.username ? "navigateTo('profil')" : `location.href='profil.html?id=${encodeURIComponent(c.username)}'`}">
-                                                <div style="flex: 1;">
-                                                    <span class="comment-meta" style="cursor:pointer;" onclick="${c.username === user.username ? "navigateTo('profil')" : `location.href='profil.html?id=${encodeURIComponent(c.username)}'`}">${c.displayName}</span> 
-                                                    <span style="font-size: 0.8rem;">${c.text}</span>
-                                                    ${c.isEdited ? `<small style="font-size: 0.65rem; color: var(--text-muted); margin-left: 4px;">(düzenlendi)</small>` : ''}
-                                                </div>
-                                                <div class="comment-actions" style="display: flex; gap: 5px;">
-                                                  ${(c.username === user.username) ? `
-                                                      <button onclick="openEditModal('${post.id}', \`${c.text.replace(/`/g, '\\`').replace(/"/g, '&quot;').replace(/\n/g, '\\n')}\`, 'comment', ${c.time})" style="background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:0.75rem;">
-                                                          <i class="fa-solid fa-pen"></i>
-                                                      </button>
-                                                  ` : ''}
-                                                  ${(c.username === user.username || user.isAdmin) ? `
-                                                      <button class="comment-del-btn" onclick="deleteComment('${post.id}', ${c.time}, '${c.text.replace(/'/g, "\\'")}')">
-                                                          <i class="fa-solid fa-trash-can"></i>
-                                                      </button>
-                                                  ` : ''}
-                                                </div>
-                                            </div>
-                                            <button class="reply-btn" onclick="addReply('${post.id}', ${c.time})" style="background:none; border:none; color:var(--text-muted); font-size:0.7rem; cursor:pointer; margin-top:5px; font-weight:bold;">Yanıtla</button>
-                                        </div>`).join('')}
-                                </div>
-                                <div style="display:flex; flex-direction:column; gap:4px; margin-top:10px;">
-                                    <div style="display:flex; gap:8px;">
-                                        <input type="text" id="input-${post.id}" placeholder="${t.commentPlaceholder}" oninput="updateCommentCount('${post.id}')" maxlength="200" style="flex:1; padding:8px 12px; border-radius:10px; border:1px solid var(--border); outline:none; background: var(--input-bg); color: var(--text-main);">
-                                        <button onclick="addComment('${post.id}')" style="background:var(--primary); color:white; border:none; padding:0 15px; border-radius:10px; cursor:pointer;">${t.sendComment}</button>
-                                    </div>
-                                    <span id="charcount-${post.id}" style="font-size:0.7rem; color:var(--text-muted); text-align:right;">0/200</span>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                    
-                    myPostsList.innerHTML += postHtml;
+                    // reuse renderer for consistency
+                    myPostsList.innerHTML += renderPostHtml(post);
                 });
             }
         }
         
         // Showing visitor profile posts
     } catch (err) {
-        console.error("Ziyaretçi profili yüklenirken hata:", err); // corrected encoding
-
+        console.error("Ziyaretçi profili yüklenirken hata:", err);
     } finally {
         // Hata olsa bile, eğer ziyaretçi profiliyse arkadaş butonu görüntülensin
         const addFriendBtn = document.getElementById('addFriendBtn');
@@ -2800,8 +2660,7 @@ function applyFriendSearch() {
     const searchInput = document.getElementById('friendSearch');
     if (!searchInput) return;
     const q = searchInput.value.trim().toLowerCase();
-    // friend search called
-
+    console.log('applyFriendSearch called with q="' + q + '"');
     document.querySelectorAll('#friends-list .friend-card').forEach(card => {
         card.style.display = card.dataset.search && card.dataset.search.includes(q) ? '' : 'none';
     });
@@ -2939,8 +2798,7 @@ async function loadFriendsList(userRef, isOwnProfile = true) {
                 `;
                 // attach searchable text
                 friendCard.dataset.search = ((friendData.displayName || '') + ' ' + friendData.username).toLowerCase();
-                // added friend card search
-
+                console.log('added friend card search:', friendCard.dataset.search);
                 
                 // only need to bind mutual click, propagation no longer matters
                 if (mutualCount > 0) {
@@ -3695,8 +3553,7 @@ async function cancelFriendRequest(targetUid, targetUsername) {
 
 // Cancel helper for suggestion buttons
 async function cancelFriendRequestToUid(targetUid, targetUsername) {
-    // cancelFriendRequestToUid invoked
-
+    console.log('cancelFriendRequestToUid invoked', targetUid, targetUsername);
     if (!auth.currentUser) return;
     try {
         const currentUserRef = doc(db, "users", auth.currentUser.uid);
@@ -3776,19 +3633,16 @@ if (pollBtn) {
 
 // Poll creation helper
 async function openPollCreator() {
-    // openPollCreator
-
+    console.log('openPollCreator called');
     if (!auth.currentUser) { alert('Lütfen giriş yapın'); return; }
     const question = prompt('Anket sorusu nedir?');
     if (!question) {
-        // poll cancelled, missing question
-
+        console.log('poll cancelled: no question');
         return;
     }
     const opts = prompt('Seçenekleri virgülle ayırarak girin (örn: Evet,Hayır)');
     if (!opts) {
-        // poll cancelled, missing options
-
+        console.log('poll cancelled: no options');
         return;
     }
     const options = opts.split(',').map(o => ({ text: o.trim(), votes: 0, voters: [] })).filter(o => o.text);
@@ -3799,8 +3653,7 @@ async function openPollCreator() {
     if (postInput && postInput.value.trim()) {
         caption = postInput.value.trim();
     }
-    // creating poll
-
+    console.log('creating poll', { question, options, caption });
     try {
         const docRef = await addDoc(collection(db, 'posts'), {
             type: 'poll',
@@ -3814,13 +3667,11 @@ async function openPollCreator() {
             likes: [],
             comments: []
         });
-        // poll created
-
+        console.log('poll created with id', docRef.id);
         // verify the created document is readable immediately
         try {
             const createdSnap = await getDoc(doc(db, 'posts', docRef.id));
-            // createdDoc exists check
-
+            console.log('createdDoc exists:', createdSnap.exists(), 'data:', createdSnap.data());
         } catch (e) {
             console.warn('Could not read created doc immediately:', e);
         }
@@ -3904,8 +3755,7 @@ window.openShareMenu = function(postId) {
             modal.style.display = 'none';
         };
         document.getElementById('share-poll').onclick = function() {
-            // share-poll clicked
-
+            console.log('share-poll clicked for post', postId);
             modal.style.display = 'none';
             openPollCreator();
         };
@@ -4116,8 +3966,7 @@ function createLikersModal() {
 
 // Profil sekmelerini dolduran fonksiyon: gönderiler, beğeniler, kayıtlar
 window.loadProfileSections = async () => {
-    // profile sections load invoked
-
+    console.log('loadProfileSections invoked');
     const myPostsList = document.getElementById('my-posts-list');
     const myLikesList = document.getElementById('my-liked-list');
     const bookmarkList = document.getElementById('bookmark-items');
@@ -4149,7 +3998,6 @@ window.loadProfileSections = async () => {
         const snap = await getDocs(q);
 
         let total=0, mineCount=0, likedCount=0, savedCount=0;
-        const t = translations[currentLang];
 
         snap.forEach(d => {
             total++;
@@ -4162,7 +4010,7 @@ window.loadProfileSections = async () => {
             if (isLiked) likedCount++;
             if (isSaved) savedCount++;
 
-            // basic post html (kept simple to avoid relying on other helpers)
+            // use shared renderer to keep markup consistent with feed
             const postHtml = renderPostHtml({ ...p, id: d.id });
 
             if (isMine && myPostsList) myPostsList.innerHTML += postHtml;
@@ -4181,8 +4029,7 @@ window.loadProfileSections = async () => {
             bookmarkList.innerHTML = `<div style="text-align:center;padding:30px;color:var(--text-muted);">Henüz kayıtlı gönderi yok</div>`;
         }
 
-        // profile sections stats logged
-
+        console.log('loadProfileSections stats', { total, mineCount, likedCount, savedCount });
     } catch (e) {
         console.error('loadProfileSections error', e);
     }
@@ -4194,5 +4041,4 @@ window.cancelFriendRequest = cancelFriendRequest;
 window.cancelFriendRequestToUid = cancelFriendRequestToUid;
 
 // logging for debugging cache/availability
-// debug helper availability
-
+console.log('cancelFriendRequestToUid available on window:', typeof window.cancelFriendRequestToUid);
