@@ -1,0 +1,81 @@
+/* shared authentication page styles */
+:root {
+  --bg: #f4f6fb;
+  --card: #fff;
+  --text: #333;
+  --primary: #4f46e5;
+  --primary-hover: #4338ca;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.wrapper {
+  display: flex;
+  max-width: 900px;
+  width: 100%;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(0,0,0,.15);
+  background: var(--card);
+}
+
+.left {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  background: linear-gradient(135deg, #4f46e5, #6366f1);
+  padding: 40px;
+  color: #fff;
+  align-items: center;
+}
+.left h1 { font-size: 2.2rem; margin-bottom: 10px; text-align: center; }
+.left p { max-width: 360px; color: #e0e7ff; font-size: 1rem; text-align: center; line-height: 1.5; }
+
+.card {
+  flex: 1;
+  background: var(--card);
+  padding: 40px;
+}
+
+h1 { text-align: center; margin-bottom: 10px; }
+.subtitle { text-align: center; color: #666; margin-bottom: 20px; font-size: 0.9rem; line-height: 1.4; }
+
+input { width: 100%; padding: 12px; margin: 8px 0; border-radius: 10px; border: 1px solid #ddd; outline-color: var(--primary); }
+button { width: 100%; padding: 12px; margin: 15px 0 8px 0; border-radius: 10px; border: none; background: var(--primary); color: #fff; font-weight: 600; cursor: pointer; transition: 0.3s; }
+button:hover { background: var(--primary-hover); }
+
+.forgot-container { text-align: right; margin-bottom: 10px; }
+.forgot-link { font-size: 0.85rem; color: #666; text-decoration: none; cursor: pointer; transition: 0.2s; }
+.forgot-link:hover { color: var(--primary); }
+
+.authMsg { text-align: center; margin-top: 10px; font-size: .9rem; min-height: 20px; line-height: 1.4; }
+
+.toggle-link { display: block; text-align: center; margin-top: 15px; color: var(--primary); text-decoration: none; font-size: .9rem; font-weight: 500; cursor: pointer; }
+.toggle-link:hover { text-decoration: underline; }
+
+.divider { width: 1px; background: rgba(0,0,0,.1); }
+
+footer.site-footer { width: 100%; padding: 20px 30px; font-size: .8rem; color: #888; margin-top: 20px; text-align: center; }
+.footer-links { display: flex; gap: 10px; align-items: center; justify-content: center; flex-wrap: wrap; }
+.footer-links a { color: #888; text-decoration: none; }
+.footer-links a::after { content: '•'; margin: 0 8px; }
+.footer-links a:last-child::after { content: ''; }
+
+@media(max-width: 768px) { .wrapper { flex-direction: column; } .divider { width: 100%; height: 1px; } }

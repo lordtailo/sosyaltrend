@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SosyalTrend • Şifremi Unuttum</title>
+  <link rel="icon" type="image/x-icon" href="/assets/img/strendsaydamv2.ico">
+  <link rel="stylesheet" href="/assets/css/auth.css">
+</head>
+<body>
+  <div class="wrapper">
+    <div class="left">
+      <div style="font-size:3.5rem;margin-bottom:15px;">✨</div>
+      <h1>SosyalTrend</h1>
+      <p>Trendleri yakalamak ve topluluğa katılmak için hemen aramıza katılın.</p>
+    </div>
+    <div class="divider"></div>
+    <div class="card">
+      <h1>Şifre Yenileme</h1>
+      <p class="subtitle">E-posta adresinizi girin, size bir sıfırlama bağlantısı gönderelim.</p>
+      <form id="forgotForm">
+        <input id="resetEmail" type="email" placeholder="E‑posta Adresi" required />
+        <button type="submit">Sıfırlama Bağlantısı Gönder</button>
+      </form>
+      <p id="resetMsg" class="authMsg"></p>
+      <a href="/auth/login.html" class="toggle-link">Giriş sayfasına dön</a>
+    </div>
+  </div>
+  <footer class="site-footer">
+    <div class="footer-links">
+      <a href="#">© 2026 SosyalTrend</a>
+      <a href="#">S.S.S</a>
+      <a href="#">Gizlilik Politikası</a>
+      <a href="#">Hakkımızda</a>
+      <a href="#">İletişim</a>
+    </div>
+  </footer>
+
+<script type="module" src="/assets/js/auth.js"></script>
+</body>
+</html>

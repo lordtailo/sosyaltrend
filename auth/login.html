@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SosyalTrend • Giriş Yap</title>
+  <link rel="icon" type="image/x-icon" href="/assets/img/strendsaydamv2.ico">
+  <link rel="stylesheet" href="/assets/css/auth.css">
+</head>
+<body>
+  <div class="wrapper">
+    <div class="left">
+      <div style="font-size:3.5rem;margin-bottom:15px;">✨</div>
+      <h1>SosyalTrend</h1>
+      <p>Trendleri yakalamak ve topluluğa katılmak için hemen aramıza katılın.</p>
+    </div>
+    <div class="divider"></div>
+    <div class="card">
+      <h1>🔑 Giriş Yap</h1>
+      <p class="subtitle">Bilgilerinizi girerek devam edin</p>
+      <form id="loginForm">
+        <input id="loginEmail" type="email" placeholder="E‑posta Adresi" required autocomplete="username" />
+        <input id="loginPassword" type="password" placeholder="Şifre" required autocomplete="current-password" />
+        <button type="submit">Giriş Yap</button>
+      </form>
+      <p id="loginMsg" class="authMsg"></p>
+      <a href="/auth/google" class="toggle-link" style="background:#db4437;color:#fff;padding:8px;border-radius:8px;display:block;margin:10px auto;text-decoration:none;">Google ile Giriş</a>
+      <a href="/auth/forgot.html" class="toggle-link">Şifremi Unuttum?</a>
+      <a href="/auth/register.html" class="toggle-link">Hesabınız yok mu? Kayıt Olun</a>
+    </div>
+  </div>
+  <footer class="site-footer">
+    <div class="footer-links">
+      <a href="#">© 2026 SosyalTrend</a>
+      <a href="#">S.S.S</a>
+      <a href="#">Gizlilik Politikası</a>
+      <a href="#">Hakkımızda</a>
+      <a href="#">İletişim</a>
+    </div>
+  </footer>
+
+<script type="module" src="/assets/js/auth.js"></script>
+</body>
+</html>
