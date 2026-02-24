@@ -120,7 +120,8 @@
 
     async function changeCity(cityVal) {
         selectedCity = cityVal;
-        document.getElementById("active-city-name").innerText = select.options[selectedCity].text;                                                              updateVakitler();
+        document.getElementById("active-city-name").innerText = select.options[select.selectedIndex].text;
+        updateVakitler();
     }
 
     async function updateVakitler() {
@@ -145,7 +146,16 @@
                     const [fH, fM] = timings.Maghrib.split(':');
                     const imsakToday = new Date(); imsakToday.setHours(iH, iM, 0);
                     const iftarToday = new Date(); iftarToday.setHours(fH, fM, 0);
-                    if (now < imsakToday) { target = imsakToday; title = "⏳ Sahura Kalan"; }                                                                                       else if (now < iftarToday) { target = iftarToday; title = "�  İftara Kalan"; }                                                                                  else { target = new Date(imsakToday.getTime() + 86400000); title = "✨ Sahura Kalan (Yarın)"; }
+                    if (now < imsakToday) {
+                    target = imsakToday;
+                    title = "⏳ Sahura Kalan";
+                } else if (now < iftarToday) {
+                    target = iftarToday;
+                    title = "⌛ İftara Kalan";
+                } else {
+                    target = new Date(imsakToday.getTime() + 86400000);
+                    title = "✨ Sahura Kalan (Yarın)";
+                }
                 }
 
                 const diff = target - now;
