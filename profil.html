@@ -329,6 +329,14 @@
         document.getElementById(tabName).classList.add("active");
         evt.currentTarget.classList.add("active");
         
+        // whenever posts/likes/saves tabs open, refresh their contents
+        if (tabName === 'my-posts-tab' || tabName === 'my-likes-tab' || tabName === 'my-saves-tab') {
+            if (window.loadProfileSections) {
+                // loadProfileSections will fill all three lists appropriately
+                window.loadProfileSections();
+            }
+        }
+        
         if (tabName === 'my-friends-tab') {
             requestAnimationFrame(() => {
                 if (window.loadFriendsList && window.user && window.auth?.currentUser) {
@@ -389,6 +397,13 @@
             input.value = ""; 
         }
     }
+
+    // ensure profile content sections load when page is first shown
+    document.addEventListener('DOMContentLoaded', () => {
+        if (window.loadProfileSections) {
+            window.loadProfileSections();
+        }
+    });
 </script>
 <script>
 window.handleProfileAction = function() {
