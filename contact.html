@@ -1,0 +1,155 @@
+
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SosyaLTrend • Sosyal Ağ - İletişim</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="assets/css/style.css">
+  <link rel="icon" type="image/x-icon" href="assets/img/strendsaydamv2.ico">
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+  </head>
+<body>
+
+  <div class="top-bar">
+    <div class="top-bar-left">
+      <span id="welcomeMessage" style="opacity: 0.8;"><i class="fa-solid fa-circle-check" style="font-size: 0.6rem; animation: pulse 2s infinite;"></i> Yükleniyor...</span>
+    </div>
+    <div class="top-bar-right"><span id="topBarDateTime"><i class="fa-regular fa-clock"></i> Yükleniyor...</span></div>
+  </div>
+
+<div id="header-placeholder"></div>
+
+<div class="app-container">
+  <div data-include="partials/left-aside.html"></div>
+
+  <main id="main-content">
+
+
+
+  <div id="page-contact" class="page-content active"> <div class="glass-card" style="padding:20px;">
+    <section class="card" style="max-width: 100%; padding: 18px;">
+      <h2 style="margin-bottom: 20px; text-align: center; color: var(--primary);">Bizimle İletişime Geçin</h2>
+      <p style="text-align: center; color: var(--text-muted); margin-bottom: 30px;">
+        Görüş, öneri veya şikayetlerinizi aşağıdaki form aracılığıyla bize iletebilirsiniz.
+      </p>
+
+      <form class="contact-form" onsubmit="return false;"> <label class="form-label" for="contactSubject">Konu</label>
+        <input type="text" 
+               id="contactSubject" 
+               name="subject" 
+               class="form-input" 
+               placeholder="Mesajınızın konusu...">
+
+        <label class="form-label" for="contactMessage">Mesajınız</label>
+        <textarea id="contactMessage" 
+                  name="message" 
+                  class="form-input" 
+                  rows="5" 
+                  placeholder="Buraya yazın..." 
+                  style="resize: none;"></textarea>
+
+        <button id="sendMessageBtn" type="button" class="form-btn" style="margin-top: 10px;">
+          <i class="fa-solid fa-paper-plane"></i> Gönder
+        </button>
+
+        <p id="contactStatus" style="margin-top: 15px; font-weight: 600; text-align: center;"></p>
+      </form>
+
+    </section>
+  </div>
+</div>
+  </main>
+
+<div data-include="partials/right-aside.html"></div>
+</div>
+
+
+<div id="footer-placeholder"></div>  
+
+<div id="editModal" class="modal-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; align-items: center; justify-content: center;">
+    <div class="glass-card" style="width: 90%; max-width: 500px; padding: 20px;">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 15px;">
+            <h3 style="margin: 0;">Gönderiyi Düzenle</h3>
+            <button onclick="closeEditModal()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-main);">&times;</button>
+        </div>
+        <textarea id="editPostInput" style="width: 100%; min-height: 120px; border: 1px solid var(--border); border-radius: 8px; padding: 10px; background: transparent; color: var(--text-main); outline: none; resize: vertical;"></textarea>
+        <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 15px;">
+            <button onclick="closeEditModal()" style="padding: 8px 20px; border-radius: 20px; border: 1px solid var(--border); background: transparent; cursor: pointer;">İptal</button>
+            <button id="saveEditBtn" style="padding: 8px 20px; border-radius: 20px; border: none; background: var(--primary); color: white; font-weight: bold; cursor: pointer;">Kaydet</button>
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript">
+  // --- YAPILANDIRMA ---
+  (function(){
+      // Public Key'inizi buraya tırnak içine yazın
+      emailjs.init("5oSPVDC_cnrMpZ99T"); 
+   })();
+
+  const btn = document.getElementById('sendMessageBtn');
+  const status = document.getElementById('contactStatus');
+
+  if (btn) {
+    btn.onclick = async () => {
+      const subject = document.getElementById('contactSubject').value.trim();
+      const message = document.getElementById('contactMessage').value.trim();
+      
+      // Kullanıcı bilgilerini localStorage'dan çekiyoruz (app.js ile uyumlu)
+      const senderName = localStorage.getItem('st_username') || "Misafir Kullanıcı";
+      const senderEmail = localStorage.getItem('st_email') || "E-posta yok";
+
+      if (!subject || !message) {
+        status.innerText = "Lütfen tüm alanları doldurun!";
+        status.style.color = "#ef4444";
+        return;
+      }
+
+      try {
+        // Butonu devre dışı bırak
+        btn.disabled = true;
+        btn.innerText = "Gönderiliyor...";
+        status.innerText = "Lütfen bekleyin...";
+        status.style.color = "var(--text-muted)";
+
+        // EmailJS Şablon Parametreleri
+        // Şablonunuzda {{subject}}, {{message}}, {{from_name}} gibi değişkenler olmalı
+        const templateParams = {
+          subject: subject,
+          message: message,
+          from_name: senderName,
+          reply_to: senderEmail
+        };
+
+        // EmailJS Gönderimi
+        // 'YOUR_SERVICE_ID' ve 'YOUR_TEMPLATE_ID' kısımlarını panelden aldıklarınızla değiştirin
+        await emailjs.send('service_6e2b6ko', 'template_nab3nm9', templateParams);
+
+        // Başarılı durum
+        status.innerText = "✅ Mesajınız başarıyla e-posta olarak gönderildi!";
+        status.style.color = "#10b981";
+        
+        // Formu temizle
+        document.getElementById('contactSubject').value = "";
+        document.getElementById('contactMessage').value = "";
+
+      } catch (error) {
+        console.error("Hata:", error);
+        status.innerText = "❌ Mesaj gönderilemedi: " + (error.text || "Bir hata oluştu");
+        status.style.color = "#ef4444";
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Gönder';
+      }
+    };
+  }
+</script>
+
+<script src="assets/js/include.js"></script>
+<script type="module" src="assets/js/app.js"></script>
+
+</body>
+</html>
+

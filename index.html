@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="keywords" content="sosyaltrend,sosyal ağ,sosyal,ağ,sosyalağ,ücretsiz sosyal ağ">
+  <title>SosyaLTrend • Sosyal Ağ - Anasayfa</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="assets/css/style.css">
+  <link rel="icon" type="image/x-icon" href="assets/img/strendsaydamv2.ico">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#6366f1">
+
+</head>
+<body>
+  
+  <div class="top-bar">
+    <div class="top-bar-left">
+      <span id="welcomeMessage" style="opacity: 0.8;"><i class="fa-solid fa-circle-check" style="font-size: 0.6rem; animation: pulse 2s infinite;"></i> Yükleniyor...</span>
+    </div>
+    <div class="top-bar-right"><span id="topBarDateTime"><i class="fa-regular fa-clock"></i> Yükleniyor...</span></div>
+  </div>
+
+<div id="header-placeholder"></div>
+
+<div class="app-container">
+  <div data-include="partials/left-aside.html"></div>
+
+ <main id="main-content">
+<div class="ramadan-widget">
+    <div id="status-title" class="timer-title">Ramazan 2026</div>
+    <span class="current-city-label">📍 <span id="active-city-name">İstanbul</span> İmsakiyesi</span>
+    
+    <div id="ramadan-countdown" class="ramadan-timer">
+        <div class="timer-item"><span class="timer-value" id="r-day">00</span><span class="timer-label">Gün</span></div>
+        <div class="timer-item"><span class="timer-value" id="r-hour">00</span><span class="timer-label">Saat</span></div>
+        <div class="timer-item"><span class="timer-value" id="r-min">00</span><span class="timer-label">Dak</span></div>
+        <div class="timer-item"><span class="timer-value" id="r-sec">00</span><span class="timer-label">Sn</span></div>
+    </div>
+
+    <div class="widget-actions">
+        <select id="city-select" class="w-select" onchange="changeCity(this.value)">
+            </select>
+        <button class="w-btn" onclick="openImsakiye()">📅 Tam İmsakiye</button>
+    </div>
+</div>
+
+<div id="imsakiye-modal">
+    <div class="modal-content">
+        <span class="close-modal" onclick="closeImsakiye()">&times;</span>
+        <h3 id="modal-city-title">İmsakiye 2026</h3>
+        <p>Vakitler Diyanet İşleri Başkanlığı uyumludur.</p>
+        <div id="imsakiye-summary" style="margin-bottom:10px;font-weight:600;"></div>
+        <table class="imsakiye-table">
+            <thead>
+                <tr>
+                    <th>Gün</th>
+                    <th>Tarih</th>
+                    <th>İmsak</th>
+                    <th>İftar</th>
+                    <th>Not</th>
+                </tr>
+            </thead>
+            <tbody id="imsakiye-body">
+                </tbody>
+        </table>
+    </div>
+</div>
+    <div id="page-feed" class="page-content active">
+        <div class="glass-card">
+            <div style="padding: 20px;">
+                <textarea id="postInput" oninput="updatePostCount()" maxlength="280" style="width:100%; border:none; outline:none; resize:none; font-size:1.1rem; min-height:80px;" data-i18n-placeholder="postPlaceholder"></textarea>
+                <div style="text-align:right; font-size:0.75rem; color:var(--text-muted);" id="post-charcount">0/280</div>
+                
+                <div id="imagePreviewContainer" style="display: none; position: relative; margin-top: 10px; width: fit-content;">
+                    <img id="imagePreview" src="" style="max-width: 200px; max-height: 200px; border-radius: 12px; border: 1px solid var(--border);">
+                    <button type="button" onclick="clearImagePreview()" style="position: absolute; top: -10px; right: -10px; background: #ff4d4d; color: white; border: none; border-radius: 50%; width: 25px; height: 25px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border); padding: 15px 20px;">
+                <div style="display:flex; gap:8px; position: relative;">
+                    <input type="file" id="imageInput" accept="image/*" style="display: none;">
+                    
+                    <button class="tool-btn" type="button" onclick="document.getElementById('imageInput').click()">
+                        <i class="fa-regular fa-image"></i>
+                    </button>
+                    <button class="tool-btn" id="emojiToggle" type="button"><i class="fa-regular fa-face-smile"></i></button>
+                    
+                    <div id="emojiPicker" class="glass-card" style="display: none; position: absolute; top: -143px; left: 126px; z-index: 100; padding: 4px; width: 200px; grid-template-columns: repeat(7, 1fr); gap: 6px;">
+                        <span style="cursor:pointer">😊</span><span style="cursor:pointer">😁</span><span style="cursor:pointer">😂</span><span style="cursor:pointer">🤣</span><span style="cursor:pointer">😡</span><span style="cursor:pointer">😠</span><span style="cursor:pointer">😭</span>
+                        <span style="cursor:pointer">❤️</span><span style="cursor:pointer">💚</span><span style="cursor:pointer">💙</span><span style="cursor:pointer">💔</span><span style="cursor:pointer">💘</span><span style="cursor:pointer">💗</span><span style="cursor:pointer">💝</span>
+                        <span style="cursor:pointer">👍</span><span style="cursor:pointer">👎</span><span style="cursor:pointer">🙌</span><span style="cursor:pointer">🙏</span><span style="cursor:pointer">✨</span><span style="cursor:pointer">📺</span><span style="cursor:pointer">🎞️</span>
+                        <span style="cursor:pointer">🔒</span><span style="cursor:pointer">🔥</span><span style="cursor:pointer">🚀</span><span style="cursor:pointer">🎉</span><span style="cursor:pointer">💯</span><span style="cursor:pointer">😇</span><span style="cursor:pointer">😇</span>
+                        <span style="cursor:pointer">🍏</span><span style="cursor:pointer">🍎</span><span style="cursor:pointer">🍌</span><span style="cursor:pointer">🍐</span><span style="cursor:pointer">🍇</span><span style="cursor:pointer">🍳</span><span style="cursor:pointer">🍔</span>
+                        <span style="cursor:pointer">🚗</span><span style="cursor:pointer">🚕</span><span style="cursor:pointer">🚌</span><span style="cursor:pointer">🚑</span><span style="cursor:pointer">🚒</span><span style="cursor:pointer">🚢</span><span style="cursor:pointer">✈️</span>
+                    </div>
+                </div>
+                <button id="shareBtn" style="background: var(--primary); color: white; border: none; padding: 10px 25px; border-radius: 50px; font-weight: 700; cursor: pointer;" data-i18n="shareBtn">Paylaş</button>
+            </div>
+        </div>
+        <div id="feed-items"></div>
+    </div>
+</main>
+
+<div data-include="partials/right-aside.html"></div>
+</div>
+
+
+<div id="editModal" class="modal-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; align-items: center; justify-content: center;">
+    <div class="glass-card" style="width: 90%; max-width: 500px; padding: 20px;">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 15px;">
+            <h3 style="margin: 0;">Gönderiyi Düzenle</h3>
+            <button onclick="closeEditModal()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-main);">&times;</button>
+        </div>
+        <textarea id="editPostInput" style="width: 100%; min-height: 120px; border: 1px solid var(--border); border-radius: 8px; padding: 10px; background: transparent; color: var(--text-main); outline: none; resize: vertical;"></textarea>
+        <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 15px;">
+            <button onclick="closeEditModal()" style="padding: 8px 20px; border-radius: 20px; border: 1px solid var(--border); background: transparent; cursor: pointer;">İptal</button>
+            <button id="saveEditBtn" style="padding: 8px 20px; border-radius: 20px; border: none; background: var(--primary); color: white; font-weight: bold; cursor: pointer;">Kaydet</button>
+        </div>
+    </div>
+</div>
+
+<div id="footer-placeholder"></div>  
+
+<script src="assets/js/include.js"></script>
+<script type="module" src="assets/js/app.js"></script>
+<script>
+    const cities = ["Adana","Adıyaman","Afyonkarahisar","Ağrı","Aksaray","Amasya","Ankara","Antalya","Ardahan","Artvin","Aydın","Balıkesir","Bartın","Batman","Bayburt","Bilecik","Bingöl","Bitlis","Bolu","Burdur","Bursa","Çanakkale","Çankırı","Çorum","Denizli","Diyarbakır","Düzce","Edirne","Elazığ","Erzincan","Erzurum","Eskişehir","Gaziantep","Giresun","Gümüşhane","Hakkari","Hatay","Iğdır","Isparta","İstanbul","İzmir","Kahramanmaraş","Karabük","Karaman","Kars","Kastamonu","Kayseri","Kilis","Kırıkkale","Kırklareli","Kırşehir","Kocaeli","Konya","Kütahya","Malatya","Manisa","Mardin","Mersin","Muğla","Muş","Nevşehir","Niğde","Ordu","Osmaniye","Rize","Sakarya","Samsun","Şanlıurfa","Siirt","Sinop","Şırnak","Sivas","Tekirdağ","Tokat","Trabzon","Tunceli","Uşak","Van","Yalova","Yozgat","Zonguldak"];
+    
+    let selectedCity = "Istanbul";
+    let timerInterval;
+
+    // Şehir listesini doldur
+    const select = document.getElementById('city-select');
+    cities.forEach(city => {
+        let opt = document.createElement('option');
+        // API için Türkçe karakterleri temizle
+        let val = city.replace(/İ/g, 'I').replace(/ı/g, 'i').replace(/Ğ/g, 'G').replace(/ğ/g, 'g').replace(/Ü/g, 'U').replace(/ü/g, 'u').replace(/Ş/g, 'S').replace(/ş/g, 's').replace(/Ö/g, 'O').replace(/ö/g, 'o').replace(/Ç/g, 'C').replace(/ç/g, 'c');
+        opt.value = val;
+        opt.innerHTML = city;
+        if(city === "İstanbul") opt.selected = true;
+        select.appendChild(opt);
+    });
+
+    async function changeCity(cityVal) {
+        selectedCity = cityVal;
+        document.getElementById("active-city-name").innerText = select.options[select.selectedIndex].text;
+        updateVakitler();
+    }
+
+    async function updateVakitler() {
+        try {
+            const res = await fetch(`https://api.aladhan.com/v1/timingsByCity?city=${selectedCity}&country=Turkey&method=13`);
+            const data = await res.json();
+            const timings = data.data.timings;
+            
+            if(timerInterval) clearInterval(timerInterval);
+            
+            timerInterval = setInterval(() => {
+                const now = new Date();
+                const ramadanStart = new Date("2026-02-19T00:00:00");
+                
+                let target;
+                let title;
+
+                if (now < ramadanStart) {
+                    target = ramadanStart;
+                    title = "🌙 Ramazan'a Kalan";
+                } else {
+                    const [iH, iM] = timings.Imsak.split(':');
+                    const [fH, fM] = timings.Maghrib.split(':');
+                    const imsakToday = new Date(); imsakToday.setHours(iH, iM, 0);
+                    const iftarToday = new Date(); iftarToday.setHours(fH, fM, 0);
+
+                    if (now < imsakToday) { target = imsakToday; title = "⏳ Sahura Kalan"; }
+                    else if (now < iftarToday) { target = iftarToday; title = "🍲 İftara Kalan"; }
+                    else { target = new Date(imsakToday.getTime() + 86400000); title = "✨ Sahura Kalan (Yarın)"; }
+                }
+
+                const diff = target - now;
+                document.getElementById("status-title").innerText = title;
+                document.getElementById("r-day").innerText = Math.floor(diff / 86400000).toString().padStart(2, '0');
+                document.getElementById("r-hour").innerText = Math.floor((diff / 3600000) % 24).toString().padStart(2, '0');
+                document.getElementById("r-min").innerText = Math.floor((diff / 60000) % 60).toString().padStart(2, '0');
+                document.getElementById("r-sec").innerText = Math.floor((diff / 1000) % 60).toString().padStart(2, '0');
+            }, 1000);
+        } catch(e) { console.error("Hata:", e); }
+    }
+
+    async function openImsakiye() {
+        const modal = document.getElementById("imsakiye-modal");
+        const tbody = document.getElementById("imsakiye-body");
+        document.getElementById("modal-city-title").innerText = select.options[select.selectedIndex].text + " İmsakiyesi";
+        tbody.innerHTML = "<tr><td colspan='4'>Yükleniyor...</td></tr>";
+        modal.style.display = "flex";
+
+        try {
+            const res = await fetch(`https://api.aladhan.com/v1/calendarByCity/2026?city=${selectedCity}&country=Turkey&method=13`);
+            const data = await res.json();
+
+            let html = "";
+            
+            const today = new Date(); today.setHours(0,0,0,0);
+            const now = new Date();
+            const ramadanStart = new Date(2026, 1, 19); // 19 Şubat
+            let todaysIftar = null;
+            let todayPassed = false;
+
+            Object.keys(data.data).forEach(month => {
+                data.data[month].forEach(day => {
+                    const dateParts = day.date.gregorian.date.split('-');
+                    const dateObj = new Date(dateParts[2], dateParts[1]-1, dateParts[0]);
+
+                    if(dateObj.getTime() === today.getTime()) {
+                        const [fH, fMraw] = day.timings.Maghrib.split(':');
+                        const fHn = parseInt(fH, 10);
+                        const fMn = parseInt(fMraw, 10);
+                        todaysIftar = new Date();
+                        todaysIftar.setHours(fHn, fMn, 0, 0);
+                    }
+
+                    // compute Ramadan day number relative to start date
+                    const ramadanDay = Math.floor((dateObj - ramadanStart) / 86400000) + 1;
+                    const isVisible = dateObj >= ramadanStart && dateObj >= today && ramadanDay >= 1 && ramadanDay <= 30;
+
+                    if(isVisible && dateObj.getTime() === today.getTime() && todaysIftar && now > todaysIftar) {
+                        todayPassed = true;
+                    }
+
+                    if(isVisible && !(dateObj.getTime() === today.getTime() && todaysIftar && now > todaysIftar)) {
+                            if(ramadanDay === 30) {
+                                html += `<tr class="arefe-separator">
+                                    <td colspan="5" style="text-align:center;font-weight:bold;color:#a00;">Bayram Arefesi</td>
+                                </tr>`;
+                            }
+                            // determine special label for this row
+                            let specialLabel = '';
+                            if (ramadanDay === 27) specialLabel = '⭐ Kadir Gecesi';
+                            if (ramadanDay === 29) specialLabel = '🌙 Bayram Arefesi';
+                            html += `<tr>
+                                <td>${ramadanDay}. Gün</td>
+                                <td>${day.date.gregorian.day} ${day.date.gregorian.month.en.substring(0,3)}</td>
+                                <td><b>${day.timings.Imsak.split(' ')[0]}</b></td>
+                                <td class="accent-red"><b>${day.timings.Maghrib.split(' ')[0]}</b></td>
+                                <td>${specialLabel}</td>
+                            </tr>`;
+                        }
+                });
+            });
+
+            let daysElapsed = 0;
+            if(today >= ramadanStart) {
+                daysElapsed = Math.floor((today - ramadanStart) / 86400000) + 1;
+                if(daysElapsed > 30) daysElapsed = 30;
+            }
+            const daysLeft = 30 - daysElapsed;
+            const summaryEl = document.getElementById("imsakiye-summary");
+            if(summaryEl) {
+                if(daysElapsed > 0) {
+                    summaryEl.innerText = `Kaç gündür niyetliyiz: ${daysElapsed} • Kaç gün kaldı: ${daysLeft >= 0 ? daysLeft : 0}`;
+                } else {
+                    summaryEl.innerText = "Ramazan başlamadı.";
+                }
+            }
+            // show special days (Kadir Gecesi and Bayram Arefesi) if determined
+            const specialsEl = document.getElementById('imsakiye-specials');
+            if (specialsEl) {
+                let sHtml = '';
+                if (kadirDate) sHtml += `✨ Kadir Gecesi: ${kadirDate}`;
+                if (arefeDate) sHtml += (sHtml ? '<br>' : '') + `🌙 Bayram Arefesi: ${arefeDate}`;
+                specialsEl.innerHTML = sHtml;
+            }
+            console.log('openImsakiye summary', {today, daysElapsed, daysLeft, todaysIftar, todayPassed});
+
+            tbody.innerHTML = html;
+        } catch(e) {
+            tbody.innerHTML = "<tr><td colspan='4'>Vakitler alınamadı.</td></tr>";
+            const summaryEl = document.getElementById("imsakiye-summary");
+            if(summaryEl) summaryEl.innerText = "Vakitler alınamadı.";
+            console.error(e);
+        }
+    }
+
+    function closeImsakiye() { document.getElementById("imsakiye-modal").style.display = "none"; }
+
+    updateVakitler();
+</script>
+</body>
+</html>

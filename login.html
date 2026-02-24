@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SosyalTrend • Sosyal Ağ - Giriş Yap & Kayıt Ol!</title>
+  <link rel="icon" type="image/x-icon" href="assets/img/strendsaydamv2.ico">
+
+  <style>
+    :root {
+      --bg: #f4f6fb;
+      --card: #fff;
+      --text: #333;
+      --primary: #4f46e5;
+      --primary-hover: #4338ca;
+    }
+    
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    
+    body {
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    
+    .wrapper {
+      display: flex;
+      max-width: 900px;
+      width: 100%;
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 10px 30px rgba(0,0,0,.15);
+      background: var(--card);
+    } 
+    
+    .left {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      background: linear-gradient(135deg, #4f46e5, #6366f1);
+      padding: 40px;
+      color: #fff;
+      align-items: center;
+    } 
+    .left h1 { font-size: 2.2rem; margin-bottom: 10px; text-align: center; } 
+    .left p { max-width: 360px; color: #e0e7ff; font-size: 1rem; text-align: center; line-height: 1.5; }
+    
+    .card { flex: 1; background: var(--card); padding: 40px; display: none; }
+    .card.active { display: block; animation: fadeIn 0.5s ease; }
+
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+    h1 { text-align: center; margin-bottom: 10px; }
+    .subtitle { text-align: center; color: #666; margin-bottom: 20px; font-size: 0.9rem; line-height: 1.4; }
+    
+    input { width: 100%; padding: 12px; margin: 8px 0; border-radius: 10px; border: 1px solid #ddd; outline-color: var(--primary); }
+    button { width: 100%; padding: 12px; margin: 15px 0 8px 0; border-radius: 10px; border: none; background: var(--primary); color: #fff; font-weight: 600; cursor: pointer; transition: 0.3s; }
+    button:hover { background: var(--primary-hover); }
+
+    .forgot-container { text-align: right; margin-bottom: 10px; }
+    .forgot-link { font-size: 0.85rem; color: #666; text-decoration: none; cursor: pointer; transition: 0.2s; }
+    .forgot-link:hover { color: var(--primary); }
+    
+    .authMsg { text-align: center; margin-top: 10px; font-size: .9rem; min-height: 20px; line-height: 1.4; }
+    
+    .toggle-link { display: block; text-align: center; margin-top: 15px; color: var(--primary); text-decoration: none; font-size: .9rem; font-weight: 500; cursor: pointer; }
+    .toggle-link:hover { text-decoration: underline; }
+    
+    .divider { width: 1px; background: rgba(0,0,0,.1); } 
+
+    footer.site-footer { width: 100%; padding: 20px 30px; font-size: .8rem; color: #888; margin-top: 20px; text-align: center; }
+    .footer-links { display: flex; gap: 10px; align-items: center; justify-content: center; flex-wrap: wrap; }
+    .footer-links a { color: #888; text-decoration: none; }
+    .footer-links a::after { content: '•'; margin: 0 8px; }
+    .footer-links a:last-child::after { content: ''; }
+
+    @media(max-width: 768px) { .wrapper { flex-direction: column; } .divider { width: 100%; height: 1px; } } 
+  </style>
+</head>
+<body>
+
+<div class="wrapper">
+  <div class="left">
+    <div style="font-size:3.5rem;margin-bottom:15px;">✨</div>
+    <h1>SosyalTrend</h1>
+    <p>Trendleri yakalamak ve topluluğa katılmak için hemen aramıza katılın.</p>
+  </div>
+
+  <div class="divider"></div>
+
+  <div id="loginCard" class="card active">
+    <h1>🔑 Giriş Yap</h1>
+    <p class="subtitle">Bilgilerinizi girerek devam edin</p>
+    <form id="loginForm">
+        <input id="loginEmail" type="email" placeholder="E‑posta Adresi" required autocomplete="username" />
+        <input id="loginPassword" type="password" placeholder="Şifre" required autocomplete="current-password" />
+        <div class="forgot-container">
+          <span class="forgot-link" onclick="toggleAuth('forgot')">Şifremi Unuttum?</span>
+        </div>
+        <button type="submit">Giriş Yap</button>
+    </form>
+    <p id="loginMsg" class="authMsg"></p>
+    <span class="toggle-link" onclick="toggleAuth('register')">Hesabınız yok mu? Kayıt Olun</span>
+  </div>
+
+  <div id="registerCard" class="card">
+    <h1>💾 Kayıt Ol</h1>
+    <p class="subtitle">Ücretsiz hesabınızı hemen oluşturun</p>
+    <form id="registerForm">
+        <input id="regName" type="text" placeholder="Ad Soyad" required />
+        <input id="regUsername" type="text" placeholder="Kullanıcı Adı" required />
+        <input id="regEmail" type="email" placeholder="E‑posta Adresi" required autocomplete="email" />
+        <input id="regPassword" type="password" placeholder="Şifre (en az 6 karakter)" required autocomplete="new-password" />
+        <button type="submit">Hesabımı Oluştur</button>
+    </form>
+    <p id="regMsg" class="authMsg"></p>
+    <span class="toggle-link" onclick="toggleAuth('login')">Zaten hesabınız var mı? Giriş Yap</span>
+  </div>
+
+  <div id="forgotCard" class="card">
+    <div style="text-align:center; font-size: 2rem; margin-bottom: 10px;">✉️</div>
+    <h1>Şifre Yenileme</h1>
+    <p class="subtitle">E-posta adresinizi girin, size bir sıfırlama bağlantısı gönderelim.</p>
+    <form id="forgotForm">
+        <input id="resetEmail" type="email" placeholder="E‑posta Adresi" required />
+        <button type="submit">Sıfırlama Bağlantısı Gönder</button>
+    </form>
+    <p id="resetMsg" class="authMsg"></p>
+    <span class="toggle-link" onclick="toggleAuth('login')">Anasayfaya dönmek istermisin? Girişe Dön</span>
+  </div>
+</div>
+
+<footer class="site-footer">
+  <div class="footer-links">
+    <a href="#">© 2026 SosyalTrend</a>
+    <a href="#">S.S.S</a>
+    <a href="#">Gizlilik Politikası</a>
+    <a href="#">Hakkımızda</a>
+    <a href="#">İletişim</a>
+  </div>
+</footer>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+  import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBegJHqlfPagx8biFyS_FnE3iXOksgfoAU",
+    authDomain: "sosyaltrend-21d21.firebaseapp.com",
+    projectId: "sosyaltrend-21d21",
+    storageBucket: "sosyaltrend-21d21.firebasestorage.app",
+    messagingSenderId: "207734473261",
+    appId: "1:207734473261:web:f31b6bf2908c6d88986ea4",
+    measurementId: "G-5T2RCQL3MB"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+
+  // --- SAYFA GEÇİŞLERİ ---
+  window.toggleAuth = (target) => {
+    const cards = document.querySelectorAll('.card');
+    const msgs = document.querySelectorAll('.authMsg');
+    
+    msgs.forEach(m => m.innerText = ""); 
+    cards.forEach(c => c.classList.remove('active')); 
+
+    if(target === 'register') document.getElementById('registerCard').classList.add('active');
+    else if(target === 'forgot') document.getElementById('forgotCard').classList.add('active');
+    else document.getElementById('loginCard').classList.add('active');
+  };
+
+  // --- GİRİŞ ---
+  document.getElementById('loginForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const email = document.getElementById('loginEmail').value.trim();
+    const pass = document.getElementById('loginPassword').value;
+    const msg = document.getElementById('loginMsg');
+
+    try {
+      showStatus(msg, "Giriş yapılıyor...", "#4f46e5");
+      await signInWithEmailAndPassword(auth, email, pass);
+      showStatus(msg, "Başarılı! Yönlendiriliyorsunuz...", "#10b981");
+      setTimeout(() => window.location.href = 'index.html', 1200);
+    } catch (err) { handleAuthError(msg, err.code); }
+  });
+
+  // --- KAYIT ---
+  document.getElementById('registerForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const email = document.getElementById('regEmail').value.trim();
+    const pass = document.getElementById('regPassword').value;
+    const msg = document.getElementById('regMsg');
+
+    if(pass.length < 6) return showStatus(msg, "Şifre en az 6 karakter olmalıdır.", "#ef4444");
+
+    try {
+      showStatus(msg, "Hesap oluşturuluyor...", "#4f46e5");
+      await createUserWithEmailAndPassword(auth, email, pass);
+      showStatus(msg, "Başarılı! Hoş geldiniz.", "#10b981");
+      setTimeout(() => window.location.href = 'index.html', 1200);
+    } catch (err) { handleAuthError(msg, err.code); }
+  });
+
+  // --- ŞİFRE SIFIRLAMA ---
+  document.getElementById('forgotForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const email = document.getElementById('resetEmail').value.trim();
+    const msg = document.getElementById('resetMsg');
+
+    try {
+      showStatus(msg, "Gönderiliyor...", "#4f46e5");
+      await sendPasswordResetEmail(auth, email);
+      showStatus(msg, "Sıfırlama bağlantısı gönderildi! E-postanızı kontrol edin.", "#10b981");
+    } catch (err) { handleAuthError(msg, err.code); }
+  });
+
+  function showStatus(el, text, color) { el.innerText = text; el.style.color = color; }
+
+  function handleAuthError(el, code) {
+    let m = "Bir hata oluştu.";
+    switch (code) {
+      case 'auth/user-not-found': m = "Kullanıcı bulunamadı."; break;
+      case 'auth/wrong-password': m = "Hatalı şifre."; break;
+      case 'auth/invalid-email': m = "Geçersiz e-posta."; break;
+      case 'auth/email-already-in-use': m = "Bu e-posta zaten kullanımda."; break;
+      case 'auth/too-many-requests': m = "Çok fazla deneme! Lütfen bekleyin."; break;
+    }
+    showStatus(el, m, "#ef4444");
+  }
+</script>
+</body>
+</html>
