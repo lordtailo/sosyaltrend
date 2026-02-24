@@ -118,39 +118,6 @@ body.dark-mode .theme-btn i{
     transition: background-color 0.2s, border-color 0.2s, color 0.1s; 
 }
 
-/* authentication container */
-.auth-container {
-    max-width: 400px;
-    margin: 80px auto;
-    padding: 30px;
-    background: var(--card-bg);
-    border-radius: 12px;
-    box-shadow: var(--shadow);
-    text-align: center;
-}
-.auth-container input {
-    width: 100%;
-    padding: 10px;
-    margin: 8px 0;
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    background: var(--input-bg);
-    color: var(--text-main);
-    box-sizing: border-box;
-}
-.auth-container button {
-    width: 100%;
-    padding: 10px;
-    background: var(--primary);
-    border: none;
-    border-radius: 6px;
-    color: #fff;
-    font-weight: 600;
-    cursor: pointer;
-}
-.auth-container a { color: var(--primary); text-decoration: none; }
-
-
 /* clickable mutual friend count */
 .mutual-info {
     cursor: pointer;
@@ -273,7 +240,7 @@ header::after {
 .timer-label { font-size: 0.6rem; text-transform: uppercase; margin-top: 4px; font-weight: 600; }
 .widget-actions { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; }
 .w-select {
-    background: white; border: none; padding: 6px 10px;
+    background: white; color: var(--text-main); border: none; padding: 6px 10px;
     border-radius: 20px; font-size: 0.75rem; cursor: pointer; outline: none;
 }
 .w-btn {
@@ -294,38 +261,9 @@ header::after {
 #modal-city-title { margin: 0 0 5px 0; color: var(--accent-red); }
 #imsakiye-modal p { margin: 0 0 15px 0; font-size: 0.8rem; color: var(--text-muted); }
 .imsakiye-table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 0.85rem; }
-.imsakiye-table th { background: #1e293b; padding: 10px; border: 1px solid #ccc; position: sticky; top: 0; color: #fff; }
-.imsakiye-table td { padding: 8px; border: 1px solid #ccc; text-align: center; }
-/* tüm satırlar aynı arka plan rengine sahip olsun */
-.imsakiye-table tr { background: #fafafa; }
-/* iç tablo varsa miras alsın */
-.imsakiye-table td > table { background: inherit; }
-
-/* dark-mode eşleştirmeleri */
-body.dark-mode .imsakiye-table thead,
-body.dark-mode .imsakiye-table th {
-    background: #1e293b; /* same as light mode header */
-    color: #f1f5f9;
-    border: 1px solid #475569;
-}
-body.dark-mode .imsakiye-table tr {
-    background: #334155;
-}
-body.dark-mode .imsakiye-table td {
-    border: 1px solid #475569;
-}
-
-/* dark mode adjustments for imsakiye */
-body.dark-mode .imsakiye-table th {
-    background: #334155;
-    border-bottom-color: #475569;
-}
-body.dark-mode .imsakiye-table td {
-    border-bottom-color: #475569;
-}
-body.dark-mode .imsakiye-table tr:nth-child(even) {
-    background: #1e293b;
-}
+.imsakiye-table th { background: #f1f1f1; padding: 10px; border-bottom: 2px solid #ddd; position: sticky; top: 0; }
+.imsakiye-table td { padding: 8px; border-bottom: 1px solid #eee; text-align: center; }
+.imsakiye-table tr:nth-child(even) { background: #fafafa; }
 .close-modal { position: absolute; top: 10px; right: 15px; font-size: 1.5rem; cursor: pointer; color: var(--text-main); font-weight: bold; }
 
 /* job icons */
@@ -711,6 +649,14 @@ margin-top: 15px; border-top: 1px solid var(--border); padding-top: 15px; }
 .comment-del-btn { background:none; border:none; color:#ef4444; cursor:pointer; opacity:0.6; transition:0.2s; font-size:0.75rem; }
 .comment-del-btn:hover { opacity:1; }
 
+/* Poll display styling */
+.poll-question { font-weight:700; margin-bottom:10px; }
+.poll-options { display:flex; flex-wrap:wrap; gap:8px; }
+.poll-options button { padding:6px 12px; border-radius:8px; border:1px solid var(--primary); background:var(--input-bg); cursor:pointer; }
+.poll-options button:disabled { opacity:0.6; cursor:default; }
+
+/* share modal poll button icon spacing */
+#share-poll .fa-poll { margin-right:6px; }
 
 /* Replies and comment structure enhancements */
 .comment-reply {

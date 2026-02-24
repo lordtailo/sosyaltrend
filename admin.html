@@ -84,8 +84,9 @@
 </main>
 
 <script type="module">
+    // Firebase importları ve config aynı kalıyor
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getFirestore, collection, getDocs, addDoc, serverTimestamp, query, orderBy, limit, deleteDoc, doc, onSnapshot, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getFirestore, collection, getDocs, addDoc, serverTimestamp, query, orderBy, limit, deleteDoc, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
     const firebaseConfig = {
@@ -117,91 +118,76 @@
     });
 
     async function initAdmin() {
-        try {
-            // 1. Verileri Çek
-            const postsSnap = await getDocs(collection(db, "posts"));
-            const usersSnap = await getDocs(collection(db, "users"));
-            
-            document.getElementById('stat-posts').innerText = postsSnap.size;
-            document.getElementById('stat-users').innerText = usersSnap.size;
-
-            const tbody = document.getElementById('user-list-body');
-            tbody.innerHTML = "";
-
-            // 2. İsimleri garantiye almak için bir eşleştirme objesi oluştur
-            let userMap = {};
-            
-            // Önce kullanıcılar tablosundaki mevcut verileri al
-            usersSnap.forEach(uDoc => {
-                const u = uDoc.data();
-                userMap[u.username] = {
-                    id: uDoc.id,
-                    name: u.name,
-                    avatar: u.avatarSeed,
-                    role: u.role || 'user'
-                };
-            });
-
-            // 3. Tabloyu Oluştur
-            Object.keys(userMap).forEach(uname => {
-                const userData = userMap[uname];
-                
-                // KRİTİK DÜZELTME: Eğer name alanı boş/undefined ise kullanıcı adını göster
-                // Admin'in ismi nasıl görünüyorsa aynı mantığı buraya kurduk.
-                const finalName = (userData.name && userData.name !== "İsimsiz") ? userData.name : uname;
-                
-                // AVATAR DÜZELTME: Eğer avatarSeed yoksa, ismi kullanarak otomatik avatar oluştur
-                const finalAvatar = userData.avatar || uname || "1";
-
-                const isThisAdmin = uname === ADMIN_EMAIL.split('@')[0] || userData.role === 'admin';
-
-                tbody.innerHTML += `
-                    <tr class="user-row">
-                        <td style="display:flex; align-items:center; gap:10px;">
-                            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=${finalAvatar}" 
-                                 style="width:38px; height:38px; border-radius:50%; background:#f1f1f1; border:1px solid #ddd;"
-                                 onerror="this.src='https://api.dicebear.com/7.x/avataaars/svg?seed=fallback'">
-                            <b style="font-size: 0.95rem;">${finalName}</b>
-                        </td>
-                        <td><span style="color:var(--primary); font-weight:500;">@${uname}</span></td>
-                        <td>
-                            <span class="badge ${isThisAdmin ? 'badge-admin' : 'badge-user'}">
-                                ${isThisAdmin ? 'Admin' : 'Üye'}
-                            </span>
-                        </td>
-                        <td>
-                            <div style="display:flex; gap:5px;">
-                                <button class="action-btn" style="background:rgba(99,102,241,0.1); color:var(--primary);" 
-                                    onclick="toggleAdminRole('${userData.id}', '${userData.role}')">
-                                    <i class="fa-solid fa-shield-halved"></i> Yetki
-                                </button>
-                                <button class="action-btn btn-delete" onclick="deleteUserAccount('${userData.id}')">
-                                    <i class="fa-solid fa-trash-can"></i> Sil
-                                </button>
-                            </div>
-                        </td>
-                    </tr>`;
-            });
-        } catch (e) { 
-            console.error("Yükleme hatası:", e); 
-        }
+        loadStats();
+        loadUsersFromPosts();
         loadAllPosts();
     }
 
-    // --- Fonksiyonlar ---
-    window.toggleAdminRole = async (userId, currentRole) => {
-        const newRole = currentRole === 'admin' ? 'user' : 'admin';
-        if(confirm("Kullanıcı rolü güncellensin mi?")) {
-            await updateDoc(doc(db, "users", userId), { role: newRole });
-            initAdmin();
-        }
-    };
+    // GÜNCELLENMİŞ İSTATİSTİK FONKSİYONU
+    async function loadStats() {
+        try {
+            // Sadece posts koleksiyonunu çekiyoruz
+            const posts = await getDocs(query(collection(db, "posts"), limit(500)));
+            
+            document.getElementById('stat-posts').innerText = posts.size;
 
-    window.deleteUserAccount = async (userId) => {
-        if(confirm("Kullanıcıyı silmek istediğinize emin misiniz?")) {
-            await deleteDoc(doc(db, "users", userId));
-            initAdmin();
+            const uniqueUsers = new Set();
+            posts.forEach(doc => {
+                const data = doc.data();
+                if(data.username) uniqueUsers.add(data.username);
+            });
+            document.getElementById('stat-users').innerText = uniqueUsers.size;
+        } catch (e) { 
+            console.error("Stats error:", e); 
         }
+    }
+
+    // Kullanıcıları postlardan çekme mantığı (Aynı kaldı)
+    async function loadUsersFromPosts() {
+        try {
+            const q = query(collection(db, "posts"), limit(100));
+            const postsSnap = await getDocs(q);
+            const users = {};
+            
+            postsSnap.forEach(d => {
+                const data = d.data();
+                if(data.username && !data.username.startsWith('page_')) {
+                    users[data.username] = { name: data.name || "İsimsiz", avatar: data.avatarSeed || "1" };
+                }
+            });
+
+            const tbody = document.getElementById('user-list-body');
+            tbody.innerHTML = "";
+            Object.keys(users).forEach(username => {
+                const u = users[username];
+                const isUserAdmin = username === ADMIN_EMAIL.split('@')[0];
+                tbody.innerHTML += `
+                    <tr class="user-row">
+                        <td><img src="https://api.dicebear.com/7.x/avataaars/svg?seed=${u.avatar}"><b>${u.name}</b></td>
+                        <td>@${username}</td>
+                        <td><span class="badge ${isUserAdmin ? 'badge-admin' : 'badge-user'}">${isUserAdmin ? 'Admin' : 'Üye'}</span></td>
+                        <td><button class="action-btn btn-delete" onclick="alert('Yakında!')">Engelle</button></td>
+                    </tr>`;
+            });
+        } catch (e) { console.error("User list error:", e); }
+    }
+
+    // Duyuru Gönderme (Aynı kaldı)
+    document.getElementById('broadcastBtn').onclick = async () => {
+        const content = document.getElementById('adminNoticeInput').value.trim();
+        if(!content) return;
+        try {
+            await addDoc(collection(db, "posts"), {
+                name: "Sistem Duyurusu",
+                username: "official_system",
+                avatarSeed: "admin-shield",
+                content: content,
+                timestamp: serverTimestamp(),
+                likes: [], savedBy: [], comments: []
+            });
+            alert("Duyuru yayınlandı!");
+            document.getElementById('adminNoticeInput').value = "";
+        } catch (e) { console.error(e); }
     };
 
     window.switchTab = (tabId) => {
@@ -211,6 +197,7 @@
         if(event) event.target.classList.add('active');
     };
 
+    // İçerik Denetimi (Aynı kaldı)
     async function loadAllPosts() {
         const q = query(collection(db, "posts"), orderBy("timestamp", "desc"), limit(20));
         onSnapshot(q, (snap) => {
@@ -218,9 +205,10 @@
             container.innerHTML = "";
             snap.forEach(d => {
                 const p = d.data();
+                const contentText = p.content ? p.content.substring(0, 100) : "İçerik yok";
                 container.innerHTML += `
                     <div class="glass-card" style="padding:15px; margin-bottom:10px; display:flex; border-left: 4px solid var(--primary); justify-content:space-between; align-items:center;">
-                        <div><small>@${p.username}</small><p style="margin:5px 0;">${p.content ? p.content.substring(0, 100) : "..."}</p></div>
+                        <div><small>@${p.username}</small><p style="margin:5px 0;">${contentText}...</p></div>
                         <button class="action-btn btn-delete" onclick="deletePostAdmin('${d.id}')">Sil</button>
                     </div>`;
             });
@@ -228,23 +216,11 @@
     }
 
     window.deletePostAdmin = async (id) => {
-        if(confirm("Silinsin mi?")) await deleteDoc(doc(db, "posts", id));
-    };
-
-    document.getElementById('broadcastBtn').onclick = async () => {
-        const content = document.getElementById('adminNoticeInput').value.trim();
-        if(!content) return;
-        await addDoc(collection(db, "posts"), {
-            name: "Sistem Duyurusu",
-            username: "official_system",
-            avatarSeed: "admin-shield",
-            content: content,
-            timestamp: serverTimestamp(),
-            likes: [], savedBy: [], comments: []
-        });
-        alert("Duyuru yayınlandı!");
-        document.getElementById('adminNoticeInput').value = "";
-    };
+        if(confirm("Silinsin mi?")) {
+            await deleteDoc(doc(db, "posts", id));
+            alert("Silindi.");
+        }
+    }
 </script>
 
 <div data-include="partials/right-aside.html"></div>
@@ -272,3 +248,4 @@
 
 </body>
 </html>
+
