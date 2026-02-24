@@ -63,7 +63,7 @@ function updateCommentCount(postId) {
     const counter = document.getElementById(`charcount-${postId}`);
     if (!input || !counter) return;
     const len = input.value.length;
-    counter.textContent = `${len}/200`;
+    counter.textContent = `${len}/500`;
 }
 
 // Track length for main post box (share)
@@ -72,7 +72,7 @@ function updatePostCount() {
     const counter = document.getElementById('post-charcount');
     if (!input || !counter) return;
     const len = input.value.length;
-    counter.textContent = `${len}/280`;
+    counter.textContent = `${len}/500`;
 }
 
 // Request card'ı sil
