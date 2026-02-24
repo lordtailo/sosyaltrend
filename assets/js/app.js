@@ -2057,6 +2057,7 @@ async function loadVisitorProfile() {
                     <p>${visitorDisplayName} henüz gönderi paylaşmamış.</p>
                 </div>`;
             } else {
+                const t = translations[currentLang];
                 visitorPosts.forEach(post => {
                     const avatarUrl = getAvatarUrl(post.avatarSeed, 'user');
                     const contentWithLinks = (post.content || "").replace(/(#[\wığüşöçİĞÜŞÖÇ]+)/g, '<span class="hashtag-link" onclick="searchTrend(\'$1\')">$1</span>');
@@ -2068,6 +2069,7 @@ async function loadVisitorProfile() {
                     ` : "";
                     
                     const isLiked = post.likes?.includes(user.username);
+                    const isSaved = Array.isArray(post.savedBy) && post.savedBy.includes(user.username) || Array.isArray(post.saved) && post.saved.includes(user.username);
                     
                     const postHtml = `
                         <div class="glass-card post" style="position: relative;">
@@ -2089,7 +2091,44 @@ async function loadVisitorProfile() {
                                 <button class="tool-btn" onclick="likePost('${post.id}', ${isLiked})" style="gap:5px; color:${isLiked ? '#ef4444' : ''}">
                                     <i class="${isLiked ? 'fa-solid' : 'fa-regular'} fa-heart"></i><span>${post.likes?.length || 0}</span>
                                 </button>
-                                <button class="tool-btn" style="gap:5px;"><i class="fa-regular fa-comment"></i><span>${post.comments?.length || 0}</span></button>
+                                <button class="tool-btn" onclick="toggleCommentSection('${post.id}')" style="gap:5px;"><i class="fa-regular fa-comment"></i><span>${post.comments?.length || 0}</span></button>
+                                <button class="tool-btn" onclick="toggleBookmark('${post.id}', ${isSaved})" style="color:${isSaved ? '#f59e0b' : ''}"><i class="${isSaved ? 'fa-solid' : 'fa-regular'} fa-bookmark"></i></button>
+                                <button class="tool-btn" onclick="window.openShareMenu('${post.id}')" style="gap:5px; margin-left:auto;"><i class="fa-solid fa-share"></i></button>
+                            </div>
+                            <div id="comments-${post.id}" class="comment-area" style="display:none;">
+                                <div id="list-${post.id}">
+                                    ${(post.comments || []).map(c => `
+                                        <div class="comment-item" style="flex-direction: column; align-items: flex-start; gap: 5px;">
+                                            <div style="display: flex; align-items: center; width: 100%; gap: 10px;">
+                                                <img src="${getAvatarUrl(c.avatarUrl || c.avatarSeed || 'assets/img/strendsaydamv2.png', 'user')}" style="width: 24px; height: 24px; border-radius: 50%; cursor:pointer;" onclick="${c.username === user.username ? "navigateTo('profil')" : `location.href='profil.html?id=${encodeURIComponent(c.username)}'`}">
+                                                <div style="flex: 1;">
+                                                    <span class="comment-meta" style="cursor:pointer;" onclick="${c.username === user.username ? "navigateTo('profil')" : `location.href='profil.html?id=${encodeURIComponent(c.username)}'`}">${c.displayName}</span> 
+                                                    <span style="font-size: 0.8rem;">${c.text}</span>
+                                                    ${c.isEdited ? `<small style="font-size: 0.65rem; color: var(--text-muted); margin-left: 4px;">(düzenlendi)</small>` : ''}
+                                                </div>
+                                                <div class="comment-actions" style="display: flex; gap: 5px;">
+                                                  ${(c.username === user.username) ? `
+                                                      <button onclick="openEditModal('${post.id}', \`${c.text.replace(/`/g, '\\`').replace(/"/g, '&quot;').replace(/\n/g, '\\n')}\`, 'comment', ${c.time})" style="background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:0.75rem;">
+                                                          <i class="fa-solid fa-pen"></i>
+                                                      </button>
+                                                  ` : ''}
+                                                  ${(c.username === user.username || user.isAdmin) ? `
+                                                      <button class="comment-del-btn" onclick="deleteComment('${post.id}', ${c.time}, '${c.text.replace(/'/g, "\\'")}')">
+                                                          <i class="fa-solid fa-trash-can"></i>
+                                                      </button>
+                                                  ` : ''}
+                                                </div>
+                                            </div>
+                                            <button class="reply-btn" onclick="addReply('${post.id}', ${c.time})" style="background:none; border:none; color:var(--text-muted); font-size:0.7rem; cursor:pointer; margin-top:5px; font-weight:bold;">Yanıtla</button>
+                                        </div>`).join('')}
+                                </div>
+                                <div style="display:flex; flex-direction:column; gap:4px; margin-top:10px;">
+                                    <div style="display:flex; gap:8px;">
+                                        <input type="text" id="input-${post.id}" placeholder="${t.commentPlaceholder}" oninput="updateCommentCount('${post.id}')" maxlength="200" style="flex:1; padding:8px 12px; border-radius:10px; border:1px solid var(--border); outline:none; background: var(--input-bg); color: var(--text-main);">
+                                        <button onclick="addComment('${post.id}')" style="background:var(--primary); color:white; border:none; padding:0 15px; border-radius:10px; cursor:pointer;">${t.sendComment}</button>
+                                    </div>
+                                    <span id="charcount-${post.id}" style="font-size:0.7rem; color:var(--text-muted); text-align:right;">0/200</span>
+                                </div>
                             </div>
                         </div>
                     `;
