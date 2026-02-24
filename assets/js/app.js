@@ -1531,12 +1531,12 @@ window.loadPostsFeed = (showAll = false) => {
                     isSaved = p.savedBy?.includes(user.username);
               console.log(' post meta', { username: p.username, type: p.type, question: p.question });
               // simplified rendering using shared helper; exit before old HTML code
-              const postHtmlBase = renderPostHtml({ ...p, id: d.id });
-              const postHtmlForFeed = postHtmlBase.replace('<div class="glass-card post"', `<div id="post-${d.id}" class="glass-card post"`);
-              if(feed) feedHtml += postHtmlForFeed;
-              if(p.username === user.username && myPosts) myPostsHtml += postHtmlBase;
-              if(isLiked && myLikes) likesHtml += postHtmlBase;
-              if(isSaved && bookItems) bookHtml += postHtmlBase;
+              const renderedHtml = renderPostHtml({ ...p, id: d.id });
+              const renderedHtmlForFeed = renderedHtml.replace('<div class="glass-card post"', `<div id="post-${d.id}" class="glass-card post"`);
+              if(feed) feedHtml += renderedHtmlForFeed;
+              if(p.username === user.username && myPosts) myPostsHtml += renderedHtml;
+              if(isLiked && myLikes) likesHtml += renderedHtml;
+              if(isSaved && bookItems) bookHtml += renderedHtml;
               if (window.populateLikersPreview) {
                   setTimeout(() => { window.populateLikersPreview(d.id, p.likes || []); }, 0);
               }
