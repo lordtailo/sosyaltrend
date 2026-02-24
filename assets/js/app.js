@@ -1507,7 +1507,8 @@ window.loadPostsFeed = (showAll = false) => {
                 bookItems = document.getElementById('bookmark-items'), 
                 t = translations[currentLang];
           // debug: snapshot summary
-          try { console.log('loadPostsFeed snapshot:', { size: snap.size, ids: snap.docs.map(d=>d.id) }); } catch(e) { console.log('snapshot log failed', e); }
+          // debug: snapshot summary removed
+
           // accumulate HTML so we can replace in one shot and avoid flicker
           let feedHtml = '';
           let myPostsHtml = '';
@@ -1523,13 +1524,12 @@ window.loadPostsFeed = (showAll = false) => {
       }
       snap.forEach(d => {
           try {
-              console.log('rendering post', d.id);
               const p = d.data(), 
                     isPage = p.username?.startsWith('page_') || p.username === 'official_system', 
                     isMine = p.username === user.username || p.adminUser === user.username, 
                     isLiked = p.likes?.includes(user.username), 
-                    isSaved = p.savedBy?.includes(user.username);
-              console.log(' post meta', { username: p.username, type: p.type, question: p.question });
+                    isSaved = p.savedBy?.includes(user.username); // removed verbose debug
+
                   
               const avatarUrl = getAvatarUrl(p.avatarUrl || p.avatarSeed || "assets/img/strendsaydamv2.png", isPage ? 'page' : 'user');
               const contentWithLinks = (p.content || "").replace(/(#[\wığüşöçİĞÜŞÖÇ]+)/g, '<span class="hashtag-link" onclick="searchTrend(\'$1\')">$1</span>');
@@ -2101,7 +2101,8 @@ async function loadVisitorProfile() {
         
         // Showing visitor profile posts
     } catch (err) {
-        console.error("Ziyaretçi profili yüklenirken hata:", err);
+        console.error("Ziyaretçi profili yüklenirken hata:", err); // corrected encoding
+
     } finally {
         // Hata olsa bile, eğer ziyaretçi profiliyse arkadaş butonu görüntülensin
         const addFriendBtn = document.getElementById('addFriendBtn');
@@ -2683,7 +2684,8 @@ function applyFriendSearch() {
     const searchInput = document.getElementById('friendSearch');
     if (!searchInput) return;
     const q = searchInput.value.trim().toLowerCase();
-    console.log('applyFriendSearch called with q="' + q + '"');
+    // friend search called
+
     document.querySelectorAll('#friends-list .friend-card').forEach(card => {
         card.style.display = card.dataset.search && card.dataset.search.includes(q) ? '' : 'none';
     });
@@ -2821,7 +2823,8 @@ async function loadFriendsList(userRef, isOwnProfile = true) {
                 `;
                 // attach searchable text
                 friendCard.dataset.search = ((friendData.displayName || '') + ' ' + friendData.username).toLowerCase();
-                console.log('added friend card search:', friendCard.dataset.search);
+                // added friend card search
+
                 
                 // only need to bind mutual click, propagation no longer matters
                 if (mutualCount > 0) {
@@ -3576,7 +3579,8 @@ async function cancelFriendRequest(targetUid, targetUsername) {
 
 // Cancel helper for suggestion buttons
 async function cancelFriendRequestToUid(targetUid, targetUsername) {
-    console.log('cancelFriendRequestToUid invoked', targetUid, targetUsername);
+    // cancelFriendRequestToUid invoked
+
     if (!auth.currentUser) return;
     try {
         const currentUserRef = doc(db, "users", auth.currentUser.uid);
@@ -3656,16 +3660,19 @@ if (pollBtn) {
 
 // Poll creation helper
 async function openPollCreator() {
-    console.log('openPollCreator called');
+    // openPollCreator
+
     if (!auth.currentUser) { alert('Lütfen giriş yapın'); return; }
     const question = prompt('Anket sorusu nedir?');
     if (!question) {
-        console.log('poll cancelled: no question');
+        // poll cancelled, missing question
+
         return;
     }
     const opts = prompt('Seçenekleri virgülle ayırarak girin (örn: Evet,Hayır)');
     if (!opts) {
-        console.log('poll cancelled: no options');
+        // poll cancelled, missing options
+
         return;
     }
     const options = opts.split(',').map(o => ({ text: o.trim(), votes: 0, voters: [] })).filter(o => o.text);
@@ -3676,7 +3683,8 @@ async function openPollCreator() {
     if (postInput && postInput.value.trim()) {
         caption = postInput.value.trim();
     }
-    console.log('creating poll', { question, options, caption });
+    // creating poll
+
     try {
         const docRef = await addDoc(collection(db, 'posts'), {
             type: 'poll',
@@ -3690,11 +3698,13 @@ async function openPollCreator() {
             likes: [],
             comments: []
         });
-        console.log('poll created with id', docRef.id);
+        // poll created
+
         // verify the created document is readable immediately
         try {
             const createdSnap = await getDoc(doc(db, 'posts', docRef.id));
-            console.log('createdDoc exists:', createdSnap.exists(), 'data:', createdSnap.data());
+            // createdDoc exists check
+
         } catch (e) {
             console.warn('Could not read created doc immediately:', e);
         }
@@ -3778,7 +3788,8 @@ window.openShareMenu = function(postId) {
             modal.style.display = 'none';
         };
         document.getElementById('share-poll').onclick = function() {
-            console.log('share-poll clicked for post', postId);
+            // share-poll clicked
+
             modal.style.display = 'none';
             openPollCreator();
         };
@@ -3989,7 +4000,8 @@ function createLikersModal() {
 
 // Profil sekmelerini dolduran fonksiyon: gönderiler, beğeniler, kayıtlar
 window.loadProfileSections = async () => {
-    console.log('loadProfileSections invoked');
+    // profile sections load invoked
+
     const myPostsList = document.getElementById('my-posts-list');
     const myLikesList = document.getElementById('my-liked-list');
     const bookmarkList = document.getElementById('bookmark-items');
@@ -4073,7 +4085,8 @@ window.loadProfileSections = async () => {
             bookmarkList.innerHTML = `<div style="text-align:center;padding:30px;color:var(--text-muted);">Henüz kayıtlı gönderi yok</div>`;
         }
 
-        console.log('loadProfileSections stats', { total, mineCount, likedCount, savedCount });
+        // profile sections stats logged
+
     } catch (e) {
         console.error('loadProfileSections error', e);
     }
@@ -4085,4 +4098,5 @@ window.cancelFriendRequest = cancelFriendRequest;
 window.cancelFriendRequestToUid = cancelFriendRequestToUid;
 
 // logging for debugging cache/availability
-console.log('cancelFriendRequestToUid available on window:', typeof window.cancelFriendRequestToUid);
+// debug helper availability
+
