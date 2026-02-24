@@ -1,6 +1,6 @@
 // simple auth helpers used by auth pages
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswordResetEmail, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
 // copy your firebaseConfig from previous project
 const firebaseConfig = {
@@ -13,6 +13,22 @@ const auth = getAuth(app);
 function showError(msg) {
     alert(msg);
 }
+
+// guard: if page is within /auth and user already logged in, send to main
+// if page is outside and user not logged in, send to login
+onAuthStateChanged(auth, user => {
+    const inAuthDir = window.location.pathname.includes('/auth/');
+    if (user) {
+        if (inAuthDir) {
+            // no need to be on auth pages when already signed in
+            window.location.href = '../index.html';
+        }
+    } else {
+        if (!inAuthDir) {
+            window.location.href = 'auth/login.html';
+        }
+    }
+});
 
 function handleLogin() {
     const form = document.getElementById('loginForm');
