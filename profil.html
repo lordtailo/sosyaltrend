@@ -346,9 +346,9 @@
             requestAnimationFrame(() => {
                 if (window.loadFriendsList && window.user && window.auth?.currentUser) {
                     const params = new URLSearchParams(location.search);
-                    const visitedUsername = params.get('id');
-                    const isOwnProfile = !visitedUsername || visitedUsername === window.user.username;
-                    
+                    const visitedId = params.get('id') || params.get('uid');
+                    const isOwnProfile = !visitedId || visitedId === window.user.username || visitedId === window.auth.currentUser.uid;
+
                     // Başlık ve buton yazısını güncelle
                     const titleEl = document.getElementById('friends-tab-title');
                     const btnEl = document.getElementById('friends-tab-btn');
@@ -359,12 +359,12 @@
                         if (titleEl) titleEl.innerText = 'Ortak Arkadaşlar';
                         if (btnEl) btnEl.innerHTML = '<i class="fa-solid fa-handshake"></i> Ortak Arkadaşlar';
                     }
-                    
+
                     setTimeout(() => {
                         // clear search field each time tab opens
                         const searchInput = document.getElementById('friendSearch');
                         if (searchInput) searchInput.value = '';
-                        window.loadFriendsList(null, isOwnProfile);
+                        window.loadFriendsList(visitedId, isOwnProfile);
                         // friend search filtering - simple helper
                         if (searchInput) {
                             searchInput.oninput = () => {

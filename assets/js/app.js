@@ -2682,8 +2682,9 @@ function applyFriendSearch() {
     });
 }
 
-// Arkadaşlar listesini yükle (isOwnProfile=true ise tüm arkadaşlar, false ise ortak arkadaşlar)
-async function loadFriendsList(userRef, isOwnProfile = true) {
+// Arkadaşlar listesini yükle
+// visitedId: username or uid from URL, isOwnProfile:boolean
+async function loadFriendsList(visitedId = null, isOwnProfile = true) {
     const friendsTab = document.getElementById('friends-list');
     const noFriendsMsg = document.getElementById('no-friends-msg');
     
@@ -2699,34 +2700,45 @@ async function loadFriendsList(userRef, isOwnProfile = true) {
         let targetUserData = null;
         
         if (!isOwnProfile) {
-            // Başka birinin profili - visitedUsername'dan bulmalıyız
-            const params = new URLSearchParams(location.search);
-            const visitedUsername = params.get('id');
-            
-            if (!visitedUsername) return;
-            
-            // Firebase'de username ile kullanıcı ara
+            // başka profil gösterilecek, visitedId kullanarak doküman al
+            if (!visitedId) {
+                // param gelmemişsa hiçbir şey gösterme
+                if (noFriendsMsg) noFriendsMsg.style.display = 'block';
+                return;
+            }
+
+            // önce uid olarak oku
             try {
-                const usersRef = collection(db, 'users');
-                const q = query(usersRef, where('username', '==', visitedUsername));
-                const querySnapshot = await getDocs(q);
-                
-                if (querySnapshot.size > 0) {
-                    targetUserData = querySnapshot.docs[0].data();
-                } else {
-                    if (noFriendsMsg) noFriendsMsg.style.display = 'block';
-                    return;
+                const docRef = doc(db, 'users', visitedId);
+                const docSnap = await getDoc(docRef);
+                if (docSnap.exists()) {
+                    targetUserData = docSnap.data();
                 }
             } catch (e) {
-                console.warn('Ziyaret edilen kullanıcı bulunamadı:', e);
+                console.warn('UID ile kullanıcı aranırken hata:', e);
+            }
+
+            // uid olarak bulunamadıysa kullanıcı adı ile ara
+            if (!targetUserData) {
+                try {
+                    const usersRef = collection(db, 'users');
+                    const q = query(usersRef, where('username', '==', visitedId));
+                    const querySnapshot = await getDocs(q);
+                    if (querySnapshot.size > 0) {
+                        targetUserData = querySnapshot.docs[0].data();
+                    }
+                } catch (e) {
+                    console.warn('Kullanıcı adı ile arama sırasında hata:', e);
+                }
+            }
+
+            if (!targetUserData) {
                 if (noFriendsMsg) noFriendsMsg.style.display = 'block';
                 return;
             }
         } else {
-            // Kendi profil
-            if (!userRef && auth.currentUser) {
-                userRef = doc(db, "users", auth.currentUser.uid);
-            }
+            // kendi profili
+            const userRef = doc(db, "users", auth.currentUser.uid);
             const userDoc = await getDoc(userRef);
             if (userDoc.exists()) {
                 targetUserData = userDoc.data();
@@ -2739,15 +2751,13 @@ async function loadFriendsList(userRef, isOwnProfile = true) {
 
         // logged-in kullanıcının da arkadaş listesi (mutual hesapları için)
         let myFriends = [];
-        if (auth && auth.currentUser) {
-            try {
-                const me = await getDoc(doc(db, "users", auth.currentUser.uid));
-                if (me.exists()) {
-                    myFriends = me.data()?.friends || [];
-                }
-            } catch (e) {
-                console.warn('Kendi arkadaş listesi alınamadı:', e);
+        try {
+            const me = await getDoc(doc(db, "users", auth.currentUser.uid));
+            if (me.exists()) {
+                myFriends = me.data()?.friends || [];
             }
+        } catch (e) {
+            console.warn('Kendi arkadaş listesi alınamadı:', e);
         }
 
         // Eğer başka profil ise sadece ortak arkadaşları filtrele
@@ -2786,37 +2796,45 @@ async function loadFriendsList(userRef, isOwnProfile = true) {
                     padding: 15px;
                     border-radius: 10px;
                     text-align: center;
-                    /* no cursor:pointer; we only want avatar clickable */
                     transition: all 0.3s ease;
                 `;
-                
+
+                // link kapsayıcı
+                const link = document.createElement('a');
+                link.href = `profil.html?uid=${encodeURIComponent(friendUid)}`;
+                link.style.cssText = 'text-decoration:none; color:inherit; display:block;';
+
+                const inner = document.createElement('div');
+                inner.innerHTML = `
+                    <img src="${friendData.avatarUrl || 'assets/img/strendsaydamv2.png'}" 
+                         style="width: 80px; height: 80px; border-radius: 50%; border: 2px solid var(--primary); object-fit: cover; margin-bottom: 10px;">
+                    <h4 style="margin: 8px 0; font-size: 0.9rem; word-break: break-word;">${friendData.displayName || friendData.username}</h4>
+                    <p style="margin: 5px 0; color: var(--text-muted); font-size: 0.8rem;">@${friendData.username}</p>
+                `;
+
+                link.appendChild(inner);
+                friendCard.appendChild(link);
+
                 let mutualHtml = '';
                 if (mutualCount > 0) {
-                    // make the mutual count clickable
                     mutualHtml = `<p class="mutual-info" data-uid="${friendUid}" 
                         style="margin:4px 0 0 0; color:var(--text-muted); font-size:0.75rem; cursor:pointer;">
                         🌐 ${mutualCount} ortak arkadaş
                     </p>`;
+                    friendCard.insertAdjacentHTML('beforeend', mutualHtml);
                 }
 
-                friendCard.innerHTML = `
-                    <div>
-                        <img src="${friendData.avatarUrl || 'assets/img/strendsaydamv2.png'}" 
-                             style="width: 80px; height: 80px; border-radius: 50%; border: 2px solid var(--primary); object-fit: cover; margin-bottom: 10px; cursor:pointer;"
-                             onclick="window.location.href='profil.html?id=${encodeURIComponent(friendData.username)}'">
-                        <h4 style="margin: 8px 0; font-size: 0.9rem; word-break: break-word;">${friendData.displayName || friendData.username}</h4>
-                        <p style="margin: 5px 0; color: var(--text-muted); font-size: 0.8rem;">@${friendData.username}</p>
-                    </div>
-                    ${mutualHtml}
-                    ${isOwnProfile ? `<button onclick="removeFriend('${friendUid}')" style="background: #ef4444; color: white; border: none; padding: 6px 12px; border-radius: 8px; cursor: pointer; font-size: 0.75rem; margin-top: 10px;">
-                        <i class="fa-solid fa-trash"></i> Arkadaşlığı Sonlandır
-                    </button>` : ''}
-                `;
-                // attach searchable text
+                if (isOwnProfile) {
+                    const removeBtn = document.createElement('button');
+                    removeBtn.innerHTML = '<i class="fa-solid fa-trash"></i> Arkadaşlığı Sonlandır';
+                    removeBtn.style.cssText = 'background: #ef4444; color: white; border: none; padding: 6px 12px; border-radius: 8px; cursor: pointer; font-size: 0.75rem; margin-top: 10px;';
+                    removeBtn.onclick = () => removeFriend(friendUid);
+                    friendCard.appendChild(removeBtn);
+                }
+
+                // searchable text
                 friendCard.dataset.search = ((friendData.displayName || '') + ' ' + friendData.username).toLowerCase();
-                console.log('added friend card search:', friendCard.dataset.search);
-                
-                // only need to bind mutual click, propagation no longer matters
+
                 if (mutualCount > 0) {
                     const mutualEl = friendCard.querySelector('.mutual-info');
                     if (mutualEl) {
@@ -2826,19 +2844,15 @@ async function loadFriendsList(userRef, isOwnProfile = true) {
                     }
                 }
 
-                // store searchable text as data attribute (name+username)
-                friendCard.dataset.search = ((friendData.displayName || '') + ' ' + friendData.username).toLowerCase();
-                
                 friendCard.addEventListener('mouseenter', () => {
                     friendCard.style.transform = 'translateY(-5px)';
                     friendCard.style.boxShadow = 'var(--shadow)';
                 });
-                
                 friendCard.addEventListener('mouseleave', () => {
                     friendCard.style.transform = 'translateY(0)';
                     friendCard.style.boxShadow = 'none';
                 });
-                
+
                 friendsTab.appendChild(friendCard);
             }
         }
