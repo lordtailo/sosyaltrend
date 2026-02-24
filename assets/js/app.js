@@ -1826,6 +1826,19 @@ window.toggleVisitorSimulation = () => {
 
 // Ziyaretçi Profili Göster
 async function loadVisitorProfile() {
+    // ensure header/footer visible and up-to-date when visiting someone else's profile
+    const hpl = document.getElementById('header-placeholder');
+    const fpl = document.getElementById('footer-placeholder');
+    if (hpl) {
+        hpl.style.display = 'block';
+        // reload component in case previous navigation removed it
+        if (typeof loadComponent === 'function') loadComponent('header-placeholder', 'partials/header.html');
+    }
+    if (fpl) {
+        fpl.style.display = 'block';
+        if (typeof loadComponent === 'function') loadComponent('footer-placeholder', 'partials/footer.html');
+    }
+
     const params = new URLSearchParams(location.search);
     const visitedId = params.get('id') || params.get('uid');
     let visitedUsername = null;
@@ -1959,6 +1972,13 @@ async function loadVisitorProfile() {
         const profileAvatar = document.getElementById('profilePageAvatar');
         if (profileAvatar) {
             profileAvatar.src = visitorAvatar || getAvatarUrl("strendsaydamv2", 'user');
+        }
+
+        // preload friends list for this profile (may be own or other)
+        const finalVisitedId = visitedId || visitedUsername; // uid preferred
+        const finalIsOwn = !visitedUsername || visitedUsername === user.username || (auth.currentUser && visitedId === auth.currentUser.uid);
+        if (typeof window.loadFriendsList === 'function') {
+            window.loadFriendsList(finalVisitedId, finalIsOwn);
         }
 
         // "Arkadaş Olarak Ekle" butonunu göster/güncelle
