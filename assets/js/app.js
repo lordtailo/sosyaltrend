@@ -1316,6 +1316,83 @@ function formatTime(timestamp) {
     } catch(e) { return "..."; }
 }
 
+function renderPostHtml(p) {
+    const isPage = p.username?.startsWith('page_') || p.username === 'official_system';
+    const isMine = p.username === user.username || p.adminUser === user.username;
+    const isLiked = p.likes?.includes(user.username);
+    const isSaved = Array.isArray(p.savedBy) && p.savedBy.includes(user.username) || Array.isArray(p.saved) && p.saved.includes(user.username);
+    const avatarUrl = getAvatarUrl(p.avatarUrl || p.avatarSeed || 'assets/img/strendsaydamv2.png', isPage ? 'page' : 'user');
+    const contentWithLinks = (p.content || "").replace(/(#[\wığüşöçİĞÜŞÖÇ]+)/g, '<span class="hashtag-link" onclick="searchTrend(\'$1\')">$1</span>');
+    const postImageHtml = p.image ? `
+        <div class="post-image-wrapper" style="margin: 12px auto; border-radius: 12px; overflow: hidden; background: rgb(0, 0, 0); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; transition:0.3s ease-in-out; max-height: 103%; max-width: 50%; height: auto; width: 100%;">
+            <img src="${p.image}" loading="lazy" style="width: 100%; height: 100%; object-fit: cover; cursor: zoom-in;" onclick="toggleImageExpand(this)" alt="Post görseli">
+        </div>
+    ` : "";
+    const t = translations[currentLang];
+
+    let html = `
+        <div class="glass-card post" style="position: relative;${p.username === 'official_system' ? 'border: 2px solid var(--primary); background: rgba(99, 102, 241, 0.05);' : ''}">
+            <div style="position: absolute; top: 15px; right: 15px; display:flex; gap:8px;">
+                ${(isMine || user.isAdmin) ? `
+                    <button onclick="openEditModal('${p.id}', \`${p.content.replace(/`/g,'\\`').replace(/"/g,'&quot;').replace(/\n/g,'\\n')}\`, 'post')" style="background:none;border:none;color:var(--text-muted);cursor:pointer;">
+                        <i class="fa-solid fa-pen"></i>
+                    </button>
+                    <button class="post-delete-btn" style="position:static;" onclick="deletePost('${p.id}')">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+                ` : ''}
+            </div>
+            <div style="display:flex; gap:10px; margin-bottom:10px;">
+                <img src="${avatarUrl}" class="${isPage ? 'page-avatar' : 'user-avatar'}" style="cursor:pointer;" onclick="${isMine ? "navigateTo('profil')" : `location.href='profil.html?id=${encodeURIComponent(p.username)}'`}">
+                <div>
+                    <div style="font-weight:700; display:flex; align-items:center; gap:5px; cursor:pointer;" onclick="${isMine ? "navigateTo('profil')" : `location.href='profil.html?id=${encodeURIComponent(p.username)}'`}">
+                        ${p.name} ${isPage ? '<i class="fa-solid fa-circle-check" style="color:var(--primary); font-size:0.7rem;"></i>' : ''}
+                        <span class="post-time">• ${formatTime(p.timestamp)}</span>
+                        ${p.isEdited ? `<span style="font-size:0.6rem;color:var(--text-muted);font-weight:normal;">(düzenlendi)</span>` : ''}
+                    </div>
+                    <div style="font-size:0.75rem; color:var(--text-muted); cursor:pointer;" onclick="${isMine ? "navigateTo('profil')" : `location.href='profil.html?id=${encodeURIComponent(p.username)}'`}">@${p.username}</div>
+                </div>
+            </div>
+            <p style="white-space: pre-wrap; margin-bottom:10px;">${contentWithLinks}</p>
+            ${postImageHtml}
+            <div id="likers-${p.id}" style="display:flex; align-items:center; gap:8px; margin-bottom:10px; min-height:28px;"></div>
+            <div style="display:flex; gap:12px;">
+                <button class="tool-btn" onclick="likePost('${p.id}', ${isLiked})" style="gap:5px; color:${isLiked ? '#ef4444' : ''}"><i class="${isLiked ? 'fa-solid' : 'fa-regular'} fa-heart"></i><span>${p.likes?.length || 0}</span></button>
+                <button class="tool-btn" onclick="toggleCommentSection('${p.id}')" style="gap:5px;"><i class="fa-regular fa-comment"></i><span>${p.comments?.length || 0}</span></button>
+                <button class="tool-btn" onclick="toggleBookmark('${p.id}', ${isSaved})" style="color:${isSaved ? '#f59e0b' : ''}"><i class="${isSaved ? 'fa-solid' : 'fa-regular'} fa-bookmark"></i></button>
+                <button class="tool-btn" onclick="window.openShareMenu('${p.id}')" style="gap:5px; margin-left:auto;"><i class="fa-solid fa-share"></i></button>
+            </div>
+            <div id="comments-${p.id}" class="comment-area" style="display:none;">
+                <div id="list-${p.id}">
+                    ${(p.comments || []).map(c => `
+                        <div class="comment-item" style="flex-direction:column; align-items:flex-start; gap:5px;">
+                            <div style="display:flex; align-items:center; width:100%; gap:10px;">
+                                <img src="${getAvatarUrl(c.avatarUrl || c.avatarSeed || 'assets/img/strendsaydamv2.png','user')}" style="width:24px;height:24px;border-radius:50%;cursor:pointer;" onclick="${c.username===user.username?"navigateTo('profil')":`location.href='profil.html?id=${encodeURIComponent(c.username)}'`}">
+                                <div style="flex:1;">
+                                    <span class=\"comment-meta\" style=\"cursor:pointer;\" onclick=\"${c.username===user.username?\"navigateTo('profil')\":`location.href='profil.html?id=${encodeURIComponent(c.username)}'`}\">${c.displayName}</span>
+                                    <span style=\"font-size:0.8rem;\">${c.text}</span>
+                                    ${c.isEdited?`<small style=\"font-size:0.65rem;color:var(--text-muted);margin-left:4px;\">(düzenlendi)</small>`:''}
+                                </div>
+                                <div class=\"comment-actions\" style=\"display:flex; gap:5px;\">
+                                  ${(c.username===user.username)?`<button onclick=\"openEditModal('${p.id}', \\\`${c.text.replace(/`/g,'\\\\`').replace(/"/g,'&quot;').replace(/\n/g,'\\\\n')}\\\`, 'comment', ${c.time})\" style=\"background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:0.75rem;\"><i class=\"fa-solid fa-pen\"></i></button>`:''}
+                                  ${(c.username===user.username||user.isAdmin)?`<button class=\"comment-del-btn\" onclick=\"deleteComment('${p.id}', ${c.time}, '${c.text.replace(/'/g,\\"\\\\'\\")}')\"><i class=\"fa-solid fa-trash-can\"></i></button>`:''}
+                                </div>
+                            </div>
+                            <button class=\"reply-btn\" onclick=\"addReply('${p.id}', ${c.time})\" style=\"background:none;border:none;color:var(--text-muted);font-size:0.7rem;cursor:pointer;margin-top:5px;font-weight:bold;\">Yanıtla</button>
+                        </div>`).join('')}
+                </div>
+                <div style="display:flex; flex-direction:column; gap:4px; margin-top:10px;">
+                    <div style="display:flex; gap:8px;">
+                        <input type="text" id="input-${p.id}" placeholder="${t.commentPlaceholder}" oninput="updateCommentCount('${p.id}')" maxlength="200" style="flex:1; padding:8px 12px; border-radius:10px; border:1px solid var(--border); outline:none; background: var(--input-bg); color: var(--text-main);">
+                        <button onclick="addComment('${p.id}')" style="background:var(--primary); color:white; border:none; padding:0 15px; border-radius:10px; cursor:pointer;">${t.sendComment}</button>
+                    </div>
+                    <span id="charcount-${p.id}" style="font-size:0.7rem; color:var(--text-muted); text-align:right;">0/200</span>
+                </div>
+            </div>
+        </div>\n`;
+    return html;
+}
+
 /* --- SEARCH SON --- */
     
 window.likePost = async (id, isLiked) => {
@@ -4072,6 +4149,7 @@ window.loadProfileSections = async () => {
         const snap = await getDocs(q);
 
         let total=0, mineCount=0, likedCount=0, savedCount=0;
+        const t = translations[currentLang];
 
         snap.forEach(d => {
             total++;
@@ -4085,28 +4163,7 @@ window.loadProfileSections = async () => {
             if (isSaved) savedCount++;
 
             // basic post html (kept simple to avoid relying on other helpers)
-            const postHtml = `
-                <div class="glass-card post" style="position: relative; margin-bottom:12px;">
-                    <div style="display:flex; gap:10px; margin-bottom:10px; align-items:center;">
-                        <img src="${getAvatarUrl(p.avatarUrl||p.avatarSeed||'assets/img/strendsaydamv2.png','user')}" class="user-avatar" style="width:44px;height:44px;border-radius:50%;cursor:pointer;" onclick="location.href='profil.html?id=${encodeURIComponent(p.username)}'">
-                        <div>
-                            <div style="font-weight:700; display:flex; align-items:center; gap:8px; cursor:pointer;" onclick="location.href='profil.html?id=${encodeURIComponent(p.username)}'">
-                                ${p.name||p.displayName||p.username}
-                                <span class="post-time" style="font-size:0.8rem;color:var(--text-muted);">• ${formatTime ? formatTime(p.timestamp) : ''}</span>
-                            </div>
-                            <div style="font-size:0.75rem; color:var(--text-muted);">@${p.username}</div>
-                        </div>
-                    </div>
-<p style="white-space: pre-wrap; margin-bottom:10px;">
-  ${(p.content || '').replace(/(#[a-zA-Z0-9ığüşöçİĞÜŞÖÇ]+)/g, '<span class="hashtag-link" onclick="searchTrend(\'$1\')">$1</span>')}
-</p>                    ${p.image ? `<div style="margin:12px 0;"><img src="${p.image}" style="width:100%;border-radius:8px;object-fit:cover;"></div>` : ''}
-                    <div style="display:flex; gap:12px; align-items:center;">
-                        <div style="display:flex; gap:8px; align-items:center; color:${isLiked? '#ef4444':''}"><i class="${isLiked? 'fa-solid' : 'fa-regular'} fa-heart"></i> <span>${Array.isArray(p.likes)? p.likes.length:0}</span></div>
-                        <div style="display:flex; gap:8px; align-items:center;"><i class="fa-regular fa-comment"></i> <span>${Array.isArray(p.comments)? p.comments.length:0}</span></div>
-                        <div style="display:flex; gap:8px; align-items:center; color:${isSaved? '#f59e0b':''}"><i class="${isSaved? 'fa-solid' : 'fa-regular'} fa-bookmark"></i></div>
-                    </div>
-                </div>
-            `;
+            const postHtml = renderPostHtml({ ...p, id: d.id });
 
             if (isMine && myPostsList) myPostsList.innerHTML += postHtml;
             if (isLiked && myLikesList) myLikesList.innerHTML += postHtml;
