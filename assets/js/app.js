@@ -2088,10 +2088,17 @@ window.loadProfileSections = async () => {
     if (bookmarkList) bookmarkList.innerHTML = '';
 
     try {
+        // also attempt to load friends list in case this is own profile or other
+        const params = new URLSearchParams(location.search);
+        const visitedId = params.get('id') || params.get('uid');
+        const isOwnProfile = !visitedId || visitedId === uname || (auth.currentUser && visitedId === auth.currentUser.uid);
+        if (typeof window.loadFriendsList === 'function') {
+            window.loadFriendsList(visitedId, isOwnProfile);
+        }
+
         const q = query(collection(db, 'posts'), orderBy('timestamp','desc'));
         const snap = await getDocs(q);
         let total=0, mineCount=0, likedCount=0, savedCount=0;
-        snap.forEach(d => {
             total++;
             const p = d.data();
             const isMine = p.username === uname || p.adminUser === uname;
@@ -2768,22 +2775,30 @@ async function loadFriendsList(visitedId = null, isOwnProfile = true) {
     console.log('loadFriendsList called', { visitedId, isOwnProfile });
     const friendsTab = document.getElementById('friends-list');
     const noFriendsMsg = document.getElementById('no-friends-msg');
-    
+
+    // clear previous state immediately (prevents stale "Henüz arkadaş yok" messages)
+    if (friendsTab) friendsTab.innerHTML = '';
+    if (noFriendsMsg) noFriendsMsg.style.display = 'none';
+
     // ensure search input has handler every time we load list
     const searchInput = document.getElementById('friendSearch');
     if (searchInput) {
+        // clear any leftover filter text
+        searchInput.value = '';
         searchInput.oninput = applyFriendSearch;
     }
 
-    if (!friendsTab || !auth || !auth.currentUser) return;
+    if (!friendsTab || !auth || !auth.currentUser) {
+        console.warn('loadFriendsList aborted - missing elements or auth state');
+        return;
+    }
 
     try {
         let targetUserData = null;
-        
+
         if (!isOwnProfile) {
             // başka profil gösterilecek, visitedId kullanarak doküman al
             if (!visitedId) {
-                // param gelmemişsa hiçbir şey gösterme
                 if (noFriendsMsg) noFriendsMsg.style.display = 'block';
                 return;
             }
@@ -2825,10 +2840,10 @@ async function loadFriendsList(visitedId = null, isOwnProfile = true) {
                 targetUserData = userDoc.data();
             }
         }
-        
+
         if (!targetUserData) return;
         console.log('targetUserData for friends list', targetUserData);
-        const friends = targetUserData.friends || [];
+        const friends = Array.isArray(targetUserData.friends) ? targetUserData.friends : [];
         console.log('friends array length', friends.length, friends);
 
         // logged-in kullanıcının da arkadaş listesi (mutual hesapları için)
@@ -2836,7 +2851,7 @@ async function loadFriendsList(visitedId = null, isOwnProfile = true) {
         try {
             const me = await getDoc(doc(db, "users", auth.currentUser.uid));
             if (me.exists()) {
-                myFriends = me.data()?.friends || [];
+                myFriends = Array.isArray(me.data()?.friends) ? me.data().friends : [];
             }
         } catch (e) {
             console.warn('Kendi arkadaş listesi alınamadı:', e);
@@ -2849,99 +2864,136 @@ async function loadFriendsList(visitedId = null, isOwnProfile = true) {
         }
 
         if (displayFriends.length === 0) {
-            friendsTab.innerHTML = '';
-            noFriendsMsg.style.display = 'block';
+            if (noFriendsMsg) noFriendsMsg.style.display = 'block';
             return;
         }
 
-        noFriendsMsg.style.display = 'none';
-        friendsTab.innerHTML = '';
-
-        // Her arkadaşın bilgisini çek
-        for (const friendUid of displayFriends) {
-            const friendRef = doc(db, "users", friendUid);
-            const friendDoc = await getDoc(friendRef);
-            
-            if (friendDoc.exists()) {
-                const friendData = friendDoc.data();
-
-                // mutual friends sayısını hesapla
-                let mutualCount = 0;
-                if (myFriends.length && friendData.friends) {
-                    mutualCount = friendData.friends.filter(f => myFriends.includes(f)).length;
-                }
-
-                const friendCard = document.createElement('div');
-                friendCard.className = 'friend-card';
-                friendCard.style.cssText = `
-                    background: var(--input-bg);
-                    padding: 15px;
-                    border-radius: 10px;
-                    text-align: center;
-                    transition: all 0.3s ease;
-                `;
-
-                // link kapsayıcı
-                const link = document.createElement('a');
-                link.href = `profil.html?uid=${encodeURIComponent(friendUid)}`;
-                link.style.cssText = 'text-decoration:none; color:inherit; display:block;';
-
-                const inner = document.createElement('div');
-                inner.innerHTML = `
-                    <img src="${friendData.avatarUrl || 'assets/img/strendsaydamv2.png'}" 
-                         style="width: 80px; height: 80px; border-radius: 50%; border: 2px solid var(--primary); object-fit: cover; margin-bottom: 10px;">
-                    <h4 style="margin: 8px 0; font-size: 0.9rem; word-break: break-word;">${friendData.displayName || friendData.username}</h4>
-                    <p style="margin: 5px 0; color: var(--text-muted); font-size: 0.8rem;">@${friendData.username}</p>
-                `;
-
-                link.appendChild(inner);
-                friendCard.appendChild(link);
-
-                let mutualHtml = '';
-                if (mutualCount > 0) {
-                    mutualHtml = `<p class="mutual-info" data-uid="${friendUid}" 
-                        style="margin:4px 0 0 0; color:var(--text-muted); font-size:0.75rem; cursor:pointer;">
-                        🌐 ${mutualCount} ortak arkadaş
-                    </p>`;
-                    friendCard.insertAdjacentHTML('beforeend', mutualHtml);
-                }
-
-                if (isOwnProfile) {
-                    const removeBtn = document.createElement('button');
-                    removeBtn.innerHTML = '<i class="fa-solid fa-trash"></i> Arkadaşlığı Sonlandır';
-                    removeBtn.style.cssText = 'background: #ef4444; color: white; border: none; padding: 6px 12px; border-radius: 8px; cursor: pointer; font-size: 0.75rem; margin-top: 10px;';
-                    removeBtn.onclick = () => removeFriend(friendUid);
-                    friendCard.appendChild(removeBtn);
-                }
-
-                // searchable text
-                friendCard.dataset.search = ((friendData.displayName || '') + ' ' + friendData.username).toLowerCase();
-
-                if (mutualCount > 0) {
-                    const mutualEl = friendCard.querySelector('.mutual-info');
-                    if (mutualEl) {
-                        mutualEl.addEventListener('click', () => {
-                            showMutuals(friendUid);
-                        });
+        // resolve each identifier to a doc and uid (handle usernames stored previously)
+        const resolved = [];
+        for (const fid of displayFriends) {
+            let uid = fid;
+            let friendDoc = null;
+            try {
+                const ref = doc(db, "users", uid);
+                const snap = await getDoc(ref);
+                if (snap.exists()) friendDoc = snap;
+            } catch (e) {
+                console.warn('Error fetching friend by uid', uid, e);
+            }
+            if (!friendDoc) {
+                // attempt username lookup
+                try {
+                    const q = query(collection(db, "users"), where('username', '==', uid), );
+                    const qs = await getDocs(q);
+                    if (qs.size > 0) {
+                        friendDoc = qs.docs[0];
+                        uid = friendDoc.id;
                     }
+                } catch (e) {
+                    console.warn('Error fetching friend by username', uid, e);
                 }
-
-                friendCard.addEventListener('mouseenter', () => {
-                    friendCard.style.transform = 'translateY(-5px)';
-                    friendCard.style.boxShadow = 'var(--shadow)';
-                });
-                friendCard.addEventListener('mouseleave', () => {
-                    friendCard.style.transform = 'translateY(0)';
-                    friendCard.style.boxShadow = 'none';
-                });
-
-                friendsTab.appendChild(friendCard);
+            }
+            if (friendDoc && friendDoc.exists()) {
+                resolved.push({ uid, data: friendDoc.data() });
+            } else {
+                console.warn('Could not resolve friend identifier', fid);
             }
         }
-        // once all friend cards are appended, apply current search filter
+
+        if (resolved.length === 0) {
+            if (noFriendsMsg) noFriendsMsg.style.display = 'block';
+            return;
+        }
+
+        // if we are on our own profile and some uids were usernames, update DB
+        if (isOwnProfile) {
+            const newList = resolved.map(f => f.uid);
+            if (JSON.stringify(newList) !== JSON.stringify(friends)) {
+                try {
+                    await updateDoc(doc(db, "users", auth.currentUser.uid), { friends: newList });
+                    console.log('Converted friend list to uid format');
+                } catch (e) {
+                    console.warn('Failed updating friend uids list', e);
+                }
+            }
+        }
+
+        // build cards
+        friendsTab.innerHTML = '';
+        for (const friendObj of resolved) {
+            const friendUid = friendObj.uid;
+            const friendData = friendObj.data;
+
+            let mutualCount = 0;
+            if (myFriends.length && friendData.friends) {
+                mutualCount = friendData.friends.filter(f => myFriends.includes(f)).length;
+            }
+
+            const friendCard = document.createElement('div');
+            friendCard.className = 'friend-card';
+            friendCard.style.cssText = `
+                background: var(--input-bg);
+                padding: 15px;
+                border-radius: 10px;
+                text-align: center;
+                transition: all 0.3s ease;
+            `;
+
+            const link = document.createElement('a');
+            link.href = `profil.html?uid=${encodeURIComponent(friendUid)}`;
+            link.style.cssText = 'text-decoration:none; color:inherit; display:block;';
+
+            const inner = document.createElement('div');
+            inner.innerHTML = `
+                <img src="${friendData.avatarUrl || 'assets/img/strendsaydamv2.png'}" 
+                     style="width: 80px; height: 80px; border-radius: 50%; border: 2px solid var(--primary); object-fit: cover; margin-bottom: 10px;">
+                <h4 style="margin: 8px 0; font-size: 0.9rem; word-break: break-word;">${friendData.displayName || friendData.username}</h4>
+                <p style="margin: 5px 0; color: var(--text-muted); font-size: 0.8rem;">@${friendData.username}</p>
+            `;
+
+            link.appendChild(inner);
+            friendCard.appendChild(link);
+
+            if (mutualCount > 0) {
+                const mutualHtml = `<p class="mutual-info" data-uid="${friendUid}" 
+                    style="margin:4px 0 0 0; color:var(--text-muted); font-size:0.75rem; cursor:pointer;">
+                    🌐 ${mutualCount} ortak arkadaş
+                </p>`;
+                friendCard.insertAdjacentHTML('beforeend', mutualHtml);
+                const mutualEl = friendCard.querySelector('.mutual-info');
+                if (mutualEl) {
+                    mutualEl.addEventListener('click', () => {
+                        showMutuals(friendUid);
+                    });
+                }
+            }
+
+            if (isOwnProfile) {
+                const removeBtn = document.createElement('button');
+                removeBtn.innerHTML = '<i class="fa-solid fa-trash"></i> Arkadaşlığı Sonlandır';
+                removeBtn.style.cssText = 'background: #ef4444; color: white; border: none; padding: 6px 12px; border-radius: 8px; cursor: pointer; font-size: 0.75rem; margin-top: 10px;';
+                removeBtn.onclick = () => removeFriend(friendUid);
+                friendCard.appendChild(removeBtn);
+            }
+
+            friendCard.dataset.search = ((friendData.displayName || '') + ' ' + friendData.username).toLowerCase();
+
+            friendCard.addEventListener('mouseenter', () => {
+                friendCard.style.transform = 'translateY(-5px)';
+                friendCard.style.boxShadow = 'var(--shadow)';
+            });
+            friendCard.addEventListener('mouseleave', () => {
+                friendCard.style.transform = 'translateY(0)';
+                friendCard.style.boxShadow = 'none';
+            });
+
+            friendsTab.appendChild(friendCard);
+        }
+
         applyFriendSearch();
     } catch (error) {
         console.error("Arkadaşlar listesi yükleme hatası:", error);
+        if (noFriendsMsg) noFriendsMsg.style.display = 'block';
     }
 }
 
@@ -2963,7 +3015,8 @@ async function removeFriend(friendUid) {
         await updateDoc(currentUserRef, { friends: userFriends });
         await updateDoc(friendRef, { friends: friendFriends });
 
-        loadFriendsList(currentUserRef);
+        // refresh our own friends list after removal
+        loadFriendsList(null, true);
         alert('Arkadaşlık sonlandırıldı');
     } catch (error) {
         console.error("Arkadaşlık sonlandırma hatası:", error);
