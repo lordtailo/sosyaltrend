@@ -57,6 +57,41 @@ function disableButton(btn, text) {
     }
 }
 
+// resolve username from URL parameters (id or uid)
+async function resolveUsernameFromParams() {
+    const params = new URLSearchParams(location.search);
+    const id = params.get('id');
+    const uid = params.get('uid');
+    if (id) return id;
+    if (uid) {
+        try {
+            const snap = await getDoc(doc(db, 'users', uid));
+            if (snap.exists()) return snap.data().username || null;
+        } catch (e) {
+            console.warn('Failed to resolve username from uid', e);
+        }
+    }
+    return null;
+}
+
+// resolve uid from URL parameters (uid or id)
+async function resolveUidFromParams() {
+    const params = new URLSearchParams(location.search);
+    const uid = params.get('uid');
+    if (uid) return uid;
+    const id = params.get('id');
+    if (id) {
+        try {
+            const q = query(collection(db, 'users'), where('username', '==', id));
+            const snaps = await getDocs(q);
+            if (!snaps.empty) return snaps.docs[0].id;
+        } catch (e) {
+            console.warn('Failed to resolve uid from username', e);
+        }
+    }
+    return null;
+}
+
 // Update character counter below comment input
 function updateCommentCount(postId) {
     const input = document.getElementById(`input-${postId}`);
@@ -1062,8 +1097,8 @@ function getAvatarUrl(avatarUrlOrSeed, type = 'user') {
         // only show indicator when on own profile
         let showInd = isPrivate;
         const params = new URLSearchParams(location.search);
-        const visitedUsername = params.get('id');
-        if (visitedUsername && visitedUsername !== user.username) {
+        const visitedId = params.get('id') || params.get('uid');
+        if (visitedId && visitedId !== user.username && visitedId !== auth.currentUser.uid) {
             showInd = false;
         }
         sPi.style.display = showInd ? 'block' : 'none';
@@ -1073,8 +1108,8 @@ function getAvatarUrl(avatarUrlOrSeed, type = 'user') {
         // only show banner when viewing own profile
         let showBanner = isPrivate;
         const params = new URLSearchParams(location.search);
-        const visitedUsername = params.get('id');
-        if (visitedUsername && visitedUsername !== user.username) {
+        const visitedId = params.get('id') || params.get('uid');
+        if (visitedId && visitedId !== user.username && visitedId !== auth.currentUser.uid) {
             showBanner = false;
         }
         pBanner.style.display = showBanner ? 'block' : 'none';
@@ -1792,83 +1827,80 @@ window.toggleVisitorSimulation = () => {
 // Ziyaretçi Profili Göster
 async function loadVisitorProfile() {
     const params = new URLSearchParams(location.search);
-    let visitedUsername = params.get('id');
+    const visitedId = params.get('id') || params.get('uid');
+    let visitedUsername = null;
+    let visitedUid = null;
+
+    // determine username and uid
+    if (params.get('uid')) {
+        visitedUid = params.get('uid');
+        try {
+            const snap = await getDoc(doc(db, 'users', visitedUid));
+            if (snap.exists()) visitedUsername = snap.data().username;
+        } catch (e) {
+            console.warn('Failed to resolve username from uid in visitor profile', e);
+        }
+    }
+    if (!visitedUsername && params.get('id')) {
+        visitedUsername = params.get('id');
+    }
+
     const simulate = isSimulatingVisitor();
     if (simulate && (!visitedUsername || visitedUsername === user.username)) {
-        // force visitor state on own profile
         visitedUsername = '__simulate__';
     }
-    
-    // Ziyaretçi modu değilse çık (kendi profili)
-    if (!visitedUsername || visitedUsername === user.username) {
-        // Kendi profili - button'ları düzenle
+
+    // own profile? treat separately
+    if (!visitedUsername || visitedUsername === user.username || (auth.currentUser && visitedId === auth.currentUser.uid)) {
         const editBtn = document.getElementById('editProfileBtn');
         const addFriendBtn = document.getElementById('addFriendBtn');
         const settingsBtn = document.getElementById('settingsBtn');
         if (editBtn) editBtn.style.display = 'inline-block';
         if (addFriendBtn) addFriendBtn.style.display = 'none';
         if (settingsBtn) settingsBtn.style.display = 'inline-block';
-        // Own profile buttons updated
         return;
     }
-    
-    // Ziyaretçi modu etkinleştir
-    
-    // localStorage'a ziyaretçinin username'ini kaydet
-    localStorage.setItem('visiting_username', visitedUsername);
-    
-    // Profil düzenle butonunu gizle
+
+    if (visitedUsername) {
+        localStorage.setItem('visiting_username', visitedUsername);
+    }
+
+    // prep UI for visitor
     const editBtn = document.getElementById('editProfileBtn');
     const settingsBtn = document.getElementById('settingsBtn');
-    if (editBtn) {
-        editBtn.style.display = 'none';
-    }
-    if (settingsBtn) {
-        settingsBtn.style.display = 'none';
-    }
+    if (editBtn) editBtn.style.display = 'none';
+    if (settingsBtn) settingsBtn.style.display = 'none';
     const settingsMenu = document.getElementById('profileSettingsMenu');
     if (settingsMenu) settingsMenu.classList.remove('visible');
-    
-    // Arkadaş Olarak Ekle butonunu HEMEN göster
+
     const addFriendBtn = document.getElementById('addFriendBtn');
     if (addFriendBtn) {
         addFriendBtn.style.display = 'inline-block';
         addFriendBtn.style.visibility = 'visible';
-        // Add friend button shown
-    } else {
-        // Add friend button not found in HTML
     }
-    
-    // Profil düzenle formunu gizle
+
     const editSection = document.getElementById('editProfileSection');
     if (editSection) editSection.style.display = 'none';
-    
-    // Beğendiklerim ve Kaydedilenler sekmelerini gizle
+
     const tabButtons = document.querySelectorAll('.tab-btn');
     tabButtons.forEach((btn, idx) => {
-        if (idx === 1 || idx === 2) { // 1 = Beğendiklerim, 2 = Kaydedilenler
-            btn.style.display = 'none';
-        }
+        if (idx === 1 || idx === 2) btn.style.display = 'none';
     });
-    
-    // Ilgili tab içeriklerini gizle
     const likedTab = document.getElementById('my-likes-tab');
     const savesTab = document.getElementById('my-saves-tab');
     if (likedTab) likedTab.style.display = 'none';
     if (savesTab) savesTab.style.display = 'none';
-    
+
     try {
-        // Firestore'dan başka kullanıcının postlarını çek
         const q = query(collection(db, "posts"), orderBy("timestamp", "desc"));
         const snap = await getDocs(q);
-        
+
         let visitorDisplayName = visitedUsername;
         let visitorAvatar = null;
         let visitorPosts = [];
-        let visitorUid = null;
-        let visitedData = null;
+        let visitorData = null;
         let isFriend = false;
-        
+
         snap.forEach(doc => {
             const p = doc.data();
             if (p.username === visitedUsername) {
@@ -1876,22 +1908,34 @@ async function loadVisitorProfile() {
             }
         });
 
-        // Ziyaretçi kullanıcının UID'ini bul
-        const userQuery = query(collection(db, "users"), where("username", "==", visitedUsername));
-        const userSnap = await getDocs(userQuery);
-        if (!userSnap.empty) {
-            visitorUid = userSnap.docs[0].id;
-            visitedData = userSnap.docs[0].data();
-            // Visitor UID found
+        // resolve visitedUid/data if missing
+        if (!visitedUid && visitedUsername && visitedUsername !== '__simulate__') {
+            try {
+                const userQuery = query(collection(db, 'users'), where('username', '==', visitedUsername));
+                const userSnap = await getDocs(userQuery);
+                if (!userSnap.empty) {
+                    visitedUid = userSnap.docs[0].id;
+                    visitorData = userSnap.docs[0].data();
+                }
+            } catch (e) {
+                console.warn('Error resolving uid from username', e);
+            }
+        } else if (visitedUid && !visitorData) {
+            try {
+                const snap2 = await getDoc(doc(db, 'users', visitedUid));
+                if (snap2.exists()) visitorData = snap2.data();
+            } catch (e) {
+                console.warn('Error fetching visitorData by uid', e);
+            }
+        }
 
-            // set display name & avatar from the user record (fall back to defaults)
-            visitorDisplayName = visitedData.displayName || visitedData.name || visitedUsername;
-            visitorAvatar = getAvatarUrl(visitedData.avatarUrl || visitedData.avatar || "strendsaydamv2.png", 'user');
+        if (visitorData) {
+            visitorDisplayName = visitorData.displayName || visitorData.name || visitedUsername;
+            visitorAvatar = getAvatarUrl(visitorData.avatarUrl || visitorData.avatar || "strendsaydamv2.png", 'user');
 
-            // gizlilik kontrolü: profil gizliyse ve ziyaretçi arkadaş değilse içerik göstermeyelim
-            if (visitedData.isPrivate) {
-                if (auth.currentUser && visitedData.friends && Array.isArray(visitedData.friends)) {
-                    isFriend = visitedData.friends.includes(auth.currentUser.uid);
+            if (visitorData.isPrivate) {
+                if (auth.currentUser && visitorData.friends && Array.isArray(visitorData.friends)) {
+                    isFriend = visitorData.friends.includes(auth.currentUser.uid);
                 }
                 if (!isFriend) {
                     const container = document.getElementById('main-content');
@@ -1902,24 +1946,18 @@ async function loadVisitorProfile() {
                             <p>${msg}</p>
                         </div>`;
                     }
-                    return; // skip rest of visitor loading
+                    return;
                 }
             }
-
-        } else {
-            // Visitor UID not found
         }
-        
-        // Profil başlığını güncelle
+
+        // update profile header
         const profileName = document.getElementById('profilePageName');
         if (profileName) profileName.innerText = visitorDisplayName;
-        
         const profileHandle = document.getElementById('profilePageHandle');
         if (profileHandle) profileHandle.innerText = `@${visitedUsername}`;
-        
         const profileAvatar = document.getElementById('profilePageAvatar');
         if (profileAvatar) {
-            // use avatar that we determined above (already includes fallback)
             profileAvatar.src = visitorAvatar || getAvatarUrl("strendsaydamv2", 'user');
         }
 
@@ -2461,32 +2499,54 @@ document.addEventListener('click', (e) => {
 // ====== ARKADAŞ SİSTEMİ ======
 // Arkadaş isteği gönder - DÜZELTİLDİ
 async function sendFriendRequest() {
-    // Send friend request
     if (!auth.currentUser) {
         alert('Lütfen giriş yapın');
         return;
     }
 
     const params = new URLSearchParams(location.search);
-    const targetUsername = params.get('id') || localStorage.getItem('visiting_username');
-    
-    // user nesnesinin (giriş yapan kişi) mevcut olduğunu kontrol edelim
-    if (!targetUsername || (typeof user !== 'undefined' && targetUsername === user.username)) {
+    let targetUsername = params.get('id') || localStorage.getItem('visiting_username');
+    let targetUid = params.get('uid') || null;
+
+    // if we only received uid, resolve username for UI check
+    if (!targetUsername && targetUid) {
+        try {
+            const snap = await getDoc(doc(db, 'users', targetUid));
+            if (snap.exists()) {
+                targetUsername = snap.data().username;
+            }
+        } catch (e) {
+            console.warn('could not resolve username for uid', e);
+        }
+    }
+
+    if (!targetUid && targetUsername) {
+        // lookup uid by username
+        const q = query(collection(db, "users"), where("username", "==", targetUsername));
+        const querySnapshot = await getDocs(q);
+        if (!querySnapshot.empty) {
+            targetUid = querySnapshot.docs[0].id;
+        }
+    }
+
+    if (!targetUid) {
+        alert('Kullanıcı bulunamadı');
+        return;
+    }
+
+    if (targetUsername && (typeof user !== 'undefined' && targetUsername === user.username)) {
         alert('Kendine arkadaş isteği gönderemezsin');
         return;
     }
 
     try {
-        // Hedef kullanıcıyı kullanıcı adına göre bul
-        const targetQuery = await getDocs(query(collection(db, "users"), where("username", "==", targetUsername)));
-        
-        if (targetQuery.empty) {
+        const targetRef = doc(db, "users", targetUid);
+        const targetDoc = await getDoc(targetRef);
+        if (!targetDoc.exists()) {
             alert('Kullanıcı bulunamadı');
             return;
         }
-
-        const targetUid = targetQuery.docs[0].id;
-        const targetUserData = targetQuery.docs[0].data();
+        const targetUserData = targetDoc.data();
         const currentUserRef = doc(db, "users", auth.currentUser.uid);
         const targetUserRef = doc(db, "users", targetUid);
 
@@ -2685,6 +2745,7 @@ function applyFriendSearch() {
 // Arkadaşlar listesini yükle
 // visitedId: username or uid from URL, isOwnProfile:boolean
 async function loadFriendsList(visitedId = null, isOwnProfile = true) {
+    console.log('loadFriendsList called', { visitedId, isOwnProfile });
     const friendsTab = document.getElementById('friends-list');
     const noFriendsMsg = document.getElementById('no-friends-msg');
     
@@ -2746,8 +2807,9 @@ async function loadFriendsList(visitedId = null, isOwnProfile = true) {
         }
         
         if (!targetUserData) return;
-        
+        console.log('targetUserData for friends list', targetUserData);
         const friends = targetUserData.friends || [];
+        console.log('friends array length', friends.length, friends);
 
         // logged-in kullanıcının da arkadaş listesi (mutual hesapları için)
         let myFriends = [];
