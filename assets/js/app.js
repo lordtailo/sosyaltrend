@@ -642,8 +642,8 @@ window.handleFileSelect = async (input) => {
     const file = input.files[0];
     if (!file || !auth.currentUser) return;
 
-    if (file.size > 300 * 1024 * 1024) {
-        alert("Dosya 300MB'dan küçük olmalıdır!");
+    if (file.size > 1000 * 1024 * 1024) {
+        alert("Dosya 1000MB'dan küçük olmalıdır!");
         input.value = "";
         return;
     }
@@ -834,8 +834,8 @@ if (imageInput) {
         const file = e.target.files[0];
         if (file) {
             // Base64 dönüşümü yapılırken boyut kontrolü kritik
-            if (file.size > 300 * 1024 * 1024) { 
-                alert("Lütfen 300MB'dan küçük bir fotoğraf seçin.");
+            if (file.size > 1000 * 1024 * 1024) { 
+                alert("Lütfen 1000MB'dan küçük bir fotoğraf seçin.");
                 this.value = "";
                 return;
             }
