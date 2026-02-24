@@ -85,7 +85,7 @@
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getFirestore, collection, getDocs, getDoc, addDoc, serverTimestamp, query, orderBy, limit, deleteDoc, doc, onSnapshot, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getFirestore, collection, getDocs, addDoc, serverTimestamp, query, orderBy, limit, deleteDoc, doc, onSnapshot, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
     const firebaseConfig = {
@@ -100,38 +100,19 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
     const auth = getAuth(app);
-    // determine admin rights by looking up the Firestore user record
-    // (similar logic to assets/js/app.js)
+    const ADMIN_EMAIL = "officialfthuzun@gmail.com";
+
     let isAdminInitialized = false;
 
-    onAuthStateChanged(auth, async (user) => {
-        if (!user) {
-            // not logged in at all
+    onAuthStateChanged(auth, (user) => {
+        if (!user || user.email !== ADMIN_EMAIL) {
             alert("Yetkisiz Erişim!");
             window.location.href = "index.html";
-            return;
-        }
-
-        try {
-            const userRef = doc(db, "users", user.uid);
-            const userSnap = await getDoc(userRef);
-            const userData = userSnap.exists() ? userSnap.data() : {};
-            const allowed = userData.role === 'admin';
-
-            if (!allowed) {
-                alert("Yetkisiz Erişim!");
-                window.location.href = "index.html";
-                return;
-            }
-
+        } else {
             if (!isAdminInitialized) {
                 initAdmin();
                 isAdminInitialized = true;
             }
-        } catch (e) {
-            console.error('Admin yetki kontrol hatası:', e);
-            alert("Yetkisiz Erişim!");
-            window.location.href = "index.html";
         }
     });
 
@@ -172,8 +153,7 @@
                 // AVATAR DÜZELTME: Eğer avatarSeed yoksa, ismi kullanarak otomatik avatar oluştur
                 const finalAvatar = userData.avatar || uname || "1";
 
-                // userData.role will be 'admin' for authorized admins
-                const isThisAdmin = userData.role === 'admin';
+                const isThisAdmin = uname === ADMIN_EMAIL.split('@')[0] || userData.role === 'admin';
 
                 tbody.innerHTML += `
                     <tr class="user-row">
