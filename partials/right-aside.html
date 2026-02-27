@@ -1,4 +1,15 @@
 <aside class="right-panel">
+    <!-- search form above clock -->
+    <div class="glass-card" style="margin-bottom:12px; padding:12px;">
+        <form action="search.html" method="GET" style="display:flex; gap:8px; align-items:center;">
+            <div class="search-wrapper" style="flex:1;">
+                <input type="text" name="q" id="globalSearch" placeholder="Ara...">
+            </div>
+            <button type="button" id="mainSearchBtn" style="background: var(--primary); color: white; border: none; padding: 8px 18px; border-radius: 50px; font-weight: 700; cursor: pointer; display:flex; align-items:center; gap:8px;">
+                Ara <i class="fa-solid fa-magnifying-glass"></i>
+            </button>
+        </form>
+    </div>
     <div class="glass-card widget-clock">
       <div class="analog-clock">
         <div class="hand hour-hand" id="hourHand"></div>

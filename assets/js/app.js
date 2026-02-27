@@ -73,6 +73,14 @@ function updatePostCount() {
     counter.textContent = `${len}/500`;
 }
 
+// tüm yerlerde kullanılabilecek genel yardımcı: HTML entitelerini çözerek
+// gerçek karakter (örneğin emoji) haline getirir.
+function decodeEntities(str) {
+    const txt = document.createElement('textarea');
+    txt.innerHTML = str;
+    return txt.value;
+}
+
 // Request card'ı sil
 function removeRequestCard(uid) {
     const card = document.getElementById(`friend-request-${uid}`);
@@ -1569,7 +1577,9 @@ window.loadPostsFeed = (showAll = false) => {
               console.log(' post meta', { username: p.username, type: p.type, question: p.question });
                   
               const avatarUrl = getAvatarUrl(p.avatarUrl || p.avatarSeed || "assets/img/strendsaydamv2.png", isPage ? 'page' : 'user');
-              const contentWithLinks = (p.content || "").replace(/(#[\wığüşöçİĞÜŞÖÇ]+)/g, '<span class="hashtag-link" onclick="searchTrend(\'$1\')">$1</span>');
+              // içerikte varsa HTML entite formundaki emojileri çöz
+              const decoded = (p.content || "");
+              const contentWithLinks = decoded.replace(/(#[\wığüşöçİĞÜŞÖÇ]+)/g, '<span class="hashtag-link" onclick="searchTrend(\'$1\')">$1</span>');
               // Profil linki: Kendi profili ise 'profil', başkasıysa 'profil.html?id=username'
               const profileLink = isMine ? "javascript:navigateTo('profil')" : `profil.html?id=${encodeURIComponent(p.username)}`;
               const targetNav = isMine ? 'profil' : (isPage ? 'pages' : 'feed');
@@ -2075,7 +2085,10 @@ async function loadVisitorProfile() {
             } else {
                 visitorPosts.forEach(post => {
                     const avatarUrl = getAvatarUrl(post.avatarSeed, 'user');
-                    const contentWithLinks = (post.content || "").replace(/(#[\wığüşöçİĞÜŞÖÇ]+)/g, '<span class="hashtag-link" onclick="searchTrend(\'$1\')">$1</span>');
+                    // Gelen içerikte HTML-entity olarak girilmiş emojiler olabilir,
+                    // decodeEntities kullanarak bunları dönüştürelim.
+                    const decodedPost = decodeEntities ? decodeEntities(post.content || "") : (post.content || "");
+                    const contentWithLinks = decodedPost.replace(/(#[\wığüşöçİĞÜŞÖÇ]+)/g, '<span class="hashtag-link" onclick="searchTrend(\'$1\')">$1</span>');
                     
                     const postImageHtml = post.image ? `
                         <div class="post-image-wrapper" style="margin: 12px auto; border-radius: 12px; overflow: hidden; background: rgb(0, 0, 0); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; max-height: 103%; max-width: 50%; height: auto; width: 100%;">
@@ -2167,7 +2180,7 @@ window.loadProfileSections = async (showAllPosts = false, showAllLikes = false, 
                             <div style="font-size:0.75rem; color:var(--text-muted); cursor:pointer;" onclick="location.href='profil.html?id=${encodeURIComponent(p.username)}'">@${p.username}</div>
                         </div>
                     </div>
-                    <p style="white-space: pre-wrap; margin-bottom:10px;">${(p.content||"").replace(/(#[\wığüşöçİĞÜŞÖÇ]+)/g,'<span class="hashtag-link" onclick="searchTrend(\'$1\')">$1</span>')}</p>
+                            <p style="white-space: pre-wrap; margin-bottom:10px;">${decodeEntities ? decodeEntities(p.content||"") .replace(/(#[\wığüşöçİĞÜŞÖÇ]+)/g,'<span class="hashtag-link" onclick="searchTrend(\'$1\')">$1</span>') : (p.content||"").replace(/(#[\wığüşöçİĞÜŞÖÇ]+)/g,'<span class="hashtag-link" onclick="searchTrend(\'$1\')">$1</span>')}</p>
                     ${p.image ? `
                     <div class="post-image-wrapper" style="
                         margin: 12px auto;
@@ -2391,7 +2404,7 @@ window.openEditModal = function(postId, content, type = 'post', commentTime = nu
         else if(type === 'comment') title.innerText = "Yorumu Düzenle";
         else if(type === 'reply') title.innerText = "Yanıtı Düzenle";
         
-        input.value = content;
+        input.value = (typeof decodeEntities === 'function' && content) ? decodeEntities(content) : (content || '');
         modal.style.display = 'flex';
     }
 };
@@ -2530,6 +2543,10 @@ document.addEventListener('DOMContentLoaded', () => {
 /* ============================ */
 
 /* EMOJİ KODU */
+// Gönderi oluşturma alanındaki emoji picker dinamiğe taşındı ve kodlar
+// düzgün şekilde çözümlenecek hâle getirildi. Böylece hem HTML içinde
+// yanlışlıkla entite yazıldığında (&#128512; gibi) hem de normal yazımda
+// kullanıcıya daima gerçek emoji karakteri giriliyor.
 document.addEventListener('DOMContentLoaded', () => {
     const emojiToggle = document.getElementById('emojiToggle');
     const emojiPicker = document.getElementById('emojiPicker');
@@ -2537,18 +2554,47 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (!emojiToggle || !emojiPicker || !postInput) return;
 
-    emojiToggle.addEventListener('click', (e) => {
+    // Listeyi burada tutuyoruz; ileride ekleme/çıkarma kolay olsun.
+    const postEmojis = [
+        '😊','😁','😂','🤣','😡','😠','😭','❤️','💚','💙','💔','💘','💗','💝',
+        '👍','👎','🙌','🙏','✨','📺','🎞️','🔒','🔥','🚀','🎉','💯','😇','🍏',
+        '🍎','🍌','🍐','🍇','🍳','🍔','🚗','🚕','🚌','🚑','🚒','🚢','✈️'
+    ];
+
+    // Helper: HTML entitelerini metne çevirir
+    const decodeEntities = str => {
+        const txt = document.createElement('textarea');
+        txt.innerHTML = str;
+        return txt.value;
+    };
+
+    // picker içeriğini (varsa önceden yazılmış) yenileyelim
+    emojiPicker.innerHTML = '';
+    postEmojis.forEach(e => {
+        const span = document.createElement('span');
+        span.textContent = e;
+        span.style.cursor = 'pointer';
+        emojiPicker.appendChild(span);
+    });
+
+    emojiToggle.addEventListener('click', e => {
         e.stopPropagation();
         emojiPicker.style.display =
             emojiPicker.style.display === 'grid' ? 'none' : 'grid';
     });
 
-    emojiPicker.querySelectorAll('span').forEach(emoji => {
-        emoji.addEventListener('click', () => {
-            postInput.value += emoji.textContent;
+    // tek bir listener, delegation kullanarak span'lara tıkı yönet
+    emojiPicker.addEventListener('click', evt => {
+        const target = evt.target;
+        if (target && target.tagName === 'SPAN') {
+            let val = target.textContent || target.innerText || '';
+            if (val.includes('&#')) {
+                val = decodeEntities(val);
+            }
+            postInput.value += val;
             emojiPicker.style.display = 'none';
             postInput.focus();
-        });
+        }
     });
 
     document.addEventListener('click', () => {

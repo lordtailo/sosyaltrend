@@ -346,7 +346,7 @@ body.dark-mode .imsakiye-table tr:nth-child(even) {
 .search-wrapper { position: relative; width: 100%; max-width: 450px; }
 .search-wrapper input {
     width: 100%;
-    padding: 12px 15px 12px 45px;
+    padding: 12px 15px 12px 15px;
     border-radius: 25px;
     border: 2px solid var(--border);
     background: var(--input-bg);
