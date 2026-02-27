@@ -1324,7 +1324,18 @@ function formatTime(timestamp) {
 
 /* --- SEARCH SON --- */
     
-window.likePost = async (id, isLiked) => {
+window.likePost = async (id, isLiked, btn) => {
+    // optimistic UI toggle
+    if(btn) {
+        const icon = btn.querySelector('i');
+        const countSpan = btn.querySelector('span');
+        if(icon) icon.className = isLiked ? 'fa-regular fa-heart' : 'fa-solid fa-heart';
+        if(countSpan) {
+            const current = parseInt(countSpan.textContent) || 0;
+            countSpan.textContent = isLiked ? current - 1 : current + 1;
+        }
+        btn.style.color = isLiked ? '' : '#ef4444';
+    }
     try {
         const ref = doc(db, "posts", id);
         // önce gönderiyi oku (sahibi için bildirim göndermek üzere)
@@ -1333,6 +1344,7 @@ window.likePost = async (id, isLiked) => {
         const post = snap.data();
 
         const addingLike = !isLiked;
+        // note: UI already adjusted above
         await updateDoc(ref, { likes: addingLike ? arrayUnion(user.username) : arrayRemove(user.username) });
 
         // Eğer beğenen kişi gönderi sahibi değilse ve beğenme ekleniyorsa bildirim gönder
@@ -1621,7 +1633,7 @@ window.loadPostsFeed = (showAll = false) => {
         <div id="likers-${d.id}" style="display:flex; align-items:center; gap:8px; margin-bottom:10px; min-height:28px;"></div>
 
         <div style="display:flex; gap:12px;">
-              <button class="tool-btn" onclick="likePost('${d.id}', ${isLiked})" style="gap:5px; color:${isLiked ? '#ef4444' : ''}"><i class="${isLiked ? 'fa-solid' : 'fa-regular'} fa-heart"></i><span>${p.likes?.length || 0}</span></button>
+              <button class="tool-btn" onclick="likePost('${d.id}', ${isLiked}, this)" style="gap:5px; color:${isLiked ? '#ef4444' : ''}"><i class="${isLiked ? 'fa-solid' : 'fa-regular'} fa-heart"></i><span>${p.likes?.length || 0}</span></button>
               <button class="tool-btn" onclick="toggleCommentSection('${d.id}')" style="gap:5px;"><i class="fa-regular fa-comment"></i><span>${p.comments?.length || 0}</span></button>
               <button class="tool-btn" onclick="toggleBookmark('${d.id}', ${isSaved})" style="color:${isSaved ? '#f59e0b' : ''}"><i class="${isSaved ? 'fa-solid' : 'fa-regular'} fa-bookmark"></i></button>
               <button class="tool-btn" onclick="window.openShareMenu('${d.id}')" style="gap:5px; margin-left:auto;"><i class="fa-solid fa-share"></i></button>
@@ -2090,7 +2102,7 @@ async function loadVisitorProfile() {
                             ${postImageHtml}
                             
                             <div style="display:flex; gap:12px;">
-                                <button class="tool-btn" onclick="likePost('${post.id}', ${isLiked})" style="gap:5px; color:${isLiked ? '#ef4444' : ''}">
+                                <button class="tool-btn" onclick="likePost('${post.id}', ${isLiked}, this)" style="gap:5px; color:${isLiked ? '#ef4444' : ''}">
                                     <i class="${isLiked ? 'fa-solid' : 'fa-regular'} fa-heart"></i><span>${post.likes?.length || 0}</span>
                                 </button>
                                 <button class="tool-btn" style="gap:5px;"><i class="fa-regular fa-comment"></i><span>${post.comments?.length || 0}</span></button>
@@ -2186,7 +2198,7 @@ window.loadProfileSections = async (showAllPosts = false, showAllLikes = false, 
                     </div>
                     ` : ''}
                     <div style="display:flex; gap:12px;">
-                        <button class="tool-btn" onclick="likePost('${d.id}', ${isLiked})" style="gap:5px; color:${isLiked?'#ef4444':''}"><i class="${isLiked?'fa-solid':'fa-regular'} fa-heart"></i><span>${p.likes?.length||0}</span></button>
+                        <button class="tool-btn" onclick="likePost('${d.id}', ${isLiked}, this)" style="gap:5px; color:${isLiked?'#ef4444':''}"><i class="${isLiked?'fa-solid':'fa-regular'} fa-heart"></i><span>${p.likes?.length||0}</span></button>
                         <button class="tool-btn" style="gap:5px;"><i class="fa-regular fa-comment"></i><span>${p.comments?.length||0}</span></button>
                         <button class="tool-btn" onclick="toggleBookmark('${d.id}', ${isSaved})" style="color:${isSaved ? '#f59e0b' : ''}"><i class="${isSaved ? 'fa-solid' : 'fa-regular'} fa-bookmark"></i></button>
                     </div>
@@ -2228,9 +2240,16 @@ window.loadProfileSections = async (showAllPosts = false, showAllLikes = false, 
 
         // BEĞENİLER
         if (myLikesList && myLikesAll.length > 0) {
+            // add clear button at top
+            const clearLikesDiv = document.createElement('div');
+            clearLikesDiv.style.textAlign = 'right';
+            clearLikesDiv.style.marginBottom = '8px';
+            clearLikesDiv.innerHTML = `<button onclick="clearAllLikes()" style="background:#ef4444; color:#fff; border:none; padding:6px 12px; border-radius:6px; cursor:pointer; font-size:0.8rem;">Beğenileri Kaldır</button>`;
+            myLikesList.appendChild(clearLikesDiv);
+
             let likesToShow = showAllLikes ? myLikesAll.length : 7;
             let likesHtml = myLikesAll.slice(0, likesToShow).join('');
-            myLikesList.innerHTML = likesHtml;
+            myLikesList.innerHTML += likesHtml;
             
             if (myLikesAll.length > 7 && !showAllLikes) {
                 const btn = document.createElement('div');
@@ -2256,9 +2275,16 @@ window.loadProfileSections = async (showAllPosts = false, showAllLikes = false, 
 
         // KAYITLAR
         if (bookmarkList && mySavesAll.length > 0) {
+            // add clear button for saves
+            const clearSavesDiv = document.createElement('div');
+            clearSavesDiv.style.textAlign = 'right';
+            clearSavesDiv.style.marginBottom = '8px';
+            clearSavesDiv.innerHTML = `<button onclick="clearAllSaves()" style="background:#ef4444; color:#fff; border:none; padding:6px 12px; border-radius:6px; cursor:pointer; font-size:0.8rem;">Kayıtları Kaldır</button>`;
+            bookmarkList.appendChild(clearSavesDiv);
+
             let savesToShow = showAllSaves ? mySavesAll.length : 7;
             let savesHtml = mySavesAll.slice(0, savesToShow).join('');
-            bookmarkList.innerHTML = savesHtml;
+            bookmarkList.innerHTML += savesHtml;
             
             if (mySavesAll.length > 7 && !showAllSaves) {
                 const btn = document.createElement('div');
@@ -2284,6 +2310,40 @@ window.loadProfileSections = async (showAllPosts = false, showAllLikes = false, 
         
     } catch(e) {
         console.error('loadProfileSections error', e);
+    }
+};
+
+// remove all likes usually used by clear button
+window.clearAllLikes = async function() {
+    if (!user || !user.username) return;
+    const uname = user.username;
+    try {
+        const q = query(collection(db, 'posts'), where('likes', 'array-contains', uname));
+        const snap = await getDocs(q);
+        snap.forEach(async d => {
+            await updateDoc(doc(db, 'posts', d.id), { likes: arrayRemove(uname) });
+        });
+        alert('Beğeniler kaldırıldı');
+        window.loadProfileSections(false, false, false);
+    } catch(e) {
+        console.error('clearAllLikes error', e);
+    }
+};
+
+// remove all saved posts
+window.clearAllSaves = async function() {
+    if (!user || !user.username) return;
+    const uname = user.username;
+    try {
+        const q = query(collection(db, 'posts'), where('savedBy', 'array-contains', uname));
+        const snap = await getDocs(q);
+        snap.forEach(async d => {
+            await updateDoc(doc(db, 'posts', d.id), { savedBy: arrayRemove(uname) });
+        });
+        alert('Kayıtlar kaldırıldı');
+        window.loadProfileSections(false, false, false);
+    } catch(e) {
+        console.error('clearAllSaves error', e);
     }
 };
 
