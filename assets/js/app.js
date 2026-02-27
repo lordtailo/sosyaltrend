@@ -4312,15 +4312,22 @@ function initChatWidget() {
             </div>
         </div>
         <div class="chat-widget-input">
+            <button id="chat-attach-btn" onclick="document.getElementById('chat-attachment-input').click()" title="Resim ekle" class="attach-btn">
+                <i class="fa-solid fa-paperclip"></i>
+            </button>
             <input 
                 type="text" 
                 id="chat-widget-input" 
                 placeholder="Mesaj yaz..."
                 onkeypress="handleChatKeypress(event)"
             >
+            <button id="chat-emoji-btn" onclick="window.toggleEmojiPicker()" title="Emoji ekle" class="emoji-btn">
+                <i class="fa-solid fa-face-smile"></i>
+            </button>
             <button onclick="sendChatMessage()" id="chat-send-btn">
                 <i class="fa-solid fa-paper-plane"></i>
             </button>
+            <input type="file" id="chat-attachment-input" accept="image/*,audio/*" style="display:none;" onchange="window.handleChatAttachment(event)">
         </div>
     `;
     
@@ -4328,7 +4335,7 @@ function initChatWidget() {
     if (!document.querySelector('link[href*="chat-widget.css"]')) {
         const cssLink = document.createElement('link');
         cssLink.rel = 'stylesheet';
-        cssLink.href = 'assets/css/chat-widget.css';
+        cssLink.href = 'assets/css/chat-widget.css?v=20260240';
         document.head.appendChild(cssLink);
     }
     
@@ -4372,8 +4379,8 @@ function initChatListsPanel() {
                 onkeypress="handleNewUserKeypress(event)"
                 style="flex:1;"
             >
-            <button id="chat-start-btn" onclick="startChatWithUsername()" style="padding:8px 12px; background:var(--secondary); color:var(--text); border:none; border-radius:6px; cursor:pointer; font-size:0.85rem;" title="Sohbete Başla">
-                <i class="fa-solid fa-comment"></i>
+            <button id="chat-start-btn" onclick="startChatWithUsername()" style="display:flex; align-items:center; gap:4px; padding:8px 12px; background:var(--primary); color:white; border:none; border-radius:6px; cursor:pointer; font-size:0.85rem;" title="Sohbete Başla">
+                <i class="fa-solid fa-paper-plane"></i><span>Sohbete Başla</span>
             </button>
             <button id="chat-add-friend-btn" onclick="addFriendFromChat()" style="padding:8px 12px; background:var(--primary); color:white; border:none; border-radius:6px; cursor:pointer; font-size:0.85rem;" title="Arkadaş ekle">
                 <i class="fa-solid fa-user-plus"></i>
@@ -4657,12 +4664,30 @@ function loadChatMessages(conversationId) {
             
             const messageEl = document.createElement('div');
             messageEl.className = `chat-message ${isOwn ? 'own' : ''}`;
+            
+            let controlsHtml = '';
+            if (isOwn) {
+                const safeText = msg.text.replace(/"/g, '&quot;');
+                controlsHtml = `
+                    <div class="chat-msg-controls">
+                        <button class="chat-msg-edit" data-id="${msgDoc.id}" data-text="${safeText}" onclick="window.startEditMessage(this.dataset.id, this.dataset.text)" title="Düzenle"><i class="fa-solid fa-pen"></i></button>
+                        <button class="chat-msg-delete" onclick="window.deleteMessage('${msgDoc.id}')" title="Sil"><i class="fa-solid fa-trash"></i></button>
+                    </div>
+                `;
+            }
+            
             messageEl.innerHTML = `
                 <img src="${msg.senderAvatar || 'assets/img/strendsaydamv2.png'}" class="chat-message-avatar" alt="">
                 <div class="chat-message-content">
                     <div style="font-size: 0.8rem; font-weight: 600; color: var(--text-muted); padding: 0 5px;">${escapeHtml(msg.senderName || 'Kullanıcı')}</div>
-                    <div class="chat-message-bubble">${escapeHtml(msg.text)}</div>
-                    <div class="chat-message-time">${formatChatTime(msg.createdAt)}</div>
+                    <div class="chat-message-bubble">
+                        ${msg.attachmentUrl ? (msg.attachmentType && msg.attachmentType.startsWith('image/') ? `<img src="${msg.attachmentUrl}" onclick="window.showImageModal('${msg.attachmentUrl}')" style="max-width:200px; display:block; margin-bottom:5px; border-radius:8px; cursor:zoom-in;">` : `<audio controls src="${msg.attachmentUrl}" style="max-width:200px; display:block; margin-bottom:5px;"></audio>`) : ''}
+                        ${escapeHtml(msg.text)}
+                    </div>
+                    <div class="chat-meta">
+                        <div class="chat-message-time">${formatChatTime(msg.createdAt)}</div>
+                        ${controlsHtml}
+                    </div>
                 </div>
             `;
             
@@ -4683,6 +4708,10 @@ function loadChatMessages(conversationId) {
 }
 
 // Send chat message
+let chatAttachmentData = null;
+let chatAttachmentType = null;
+let emojiPickerOpen = false;
+
 window.sendChatMessage = async function() {
     if (!currentConversationId || !auth.currentUser) {
         console.error('Sohbet hazır değil:', { currentConversationId, currentUser: auth.currentUser?.uid });
@@ -4698,7 +4727,8 @@ window.sendChatMessage = async function() {
     
     const text = inputEl.value.trim();
     
-    if (!text) {
+    // allow send if there's either text or an attachment
+    if (!text && !chatAttachmentData) {
         return;
     }
     
@@ -4718,6 +4748,25 @@ window.sendChatMessage = async function() {
             createdAt: serverTimestamp()
         };
         
+        // upload attachment if present
+        if (chatAttachmentData) {
+            try {
+                const resp = await fetch(chatAttachmentData);
+                const blob = await resp.blob();
+                const ext = chatAttachmentType && chatAttachmentType.split('/')[0];
+                const storagePath = `chat_attachments/${currentConversationId}/${Date.now()}.${ext}`;
+                const storageRef = ref(storage, storagePath);
+                await uploadBytes(storageRef, blob);
+                const url = await getDownloadURL(storageRef);
+                messageData.attachmentUrl = url;
+                messageData.attachmentType = chatAttachmentType;
+            } catch (e) {
+                console.error('Attachment upload error', e);
+            }
+            chatAttachmentData = null;
+            chatAttachmentType = null;
+            window.clearAttachmentPreview && window.clearAttachmentPreview();
+        }
         console.log('Mesaj gönderiliyor:', messageData, 'Conversation:', currentConversationId);
         
         await addDoc(
@@ -4958,10 +5007,179 @@ function loadStoredChatNotifications() {
     }
 }
 
+// --- emoji helper functions ---
+
+window.toggleEmojiPicker = function() {
+    console.log('toggleEmojiPicker fired, open state', emojiPickerOpen);
+    if (emojiPickerOpen) {
+        window.closeEmojiPicker();
+    } else {
+        window.openEmojiPicker();
+    }
+}
+
+window.openEmojiPicker = function() {
+    console.log('openEmojiPicker called');
+    if (document.getElementById('emoji-picker')) return;
+    const picker = document.createElement('div');
+    picker.id = 'emoji-picker';
+    picker.style.position = 'fixed';
+    picker.style.width = '220px';
+    picker.style.background = 'var(--card-bg)';
+    picker.style.border = '1px solid var(--border)';
+    picker.style.borderRadius = '12px';
+    picker.style.padding = '10px';
+    picker.style.boxShadow = '0 4px 20px rgba(0,0,0,0.15)';
+    picker.style.display = 'grid';
+    picker.style.gridTemplateColumns = 'repeat(auto-fill, 30px)';
+    picker.style.gridAutoRows = '30px';
+    picker.style.gap = '8px';
+    picker.style.zIndex = 10010;
+    // always show above widget
+    picker.style.bottom = '140px';
+    picker.style.right = '20px';
+    const emojis = ['😊','😂','😢','😍','👍','🎉','❤️','😮','😡','😎','😋','🤔','🙏','😉','😴','😇','🤩','🥳','😤','🙌'];
+    emojis.forEach(e => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.textContent = e;
+        btn.style.fontSize = '1.4rem';
+        btn.style.lineHeight = '1';
+        btn.style.padding = '4px';
+        btn.style.background = 'none';
+        btn.style.border = 'none';
+        btn.style.cursor = 'pointer';
+        btn.onclick = () => {
+            const input = document.getElementById('chat-widget-input');
+            if (input) {
+                input.value += e;
+                input.focus();
+            }
+        };
+        picker.appendChild(btn);
+    });
+    document.body.appendChild(picker);
+    emojiPickerOpen = true;
+    document.addEventListener('click', emojiPickerOutsideHandler);
+}
+
+window.closeEmojiPicker = function() {
+    const p = document.getElementById('emoji-picker');
+    if (p && p.parentNode) p.parentNode.removeChild(p);
+    emojiPickerOpen = false;
+    document.removeEventListener('click', emojiPickerOutsideHandler);
+}
+
+function emojiPickerOutsideHandler(e) {
+    if (!e.target.closest('#emoji-picker') && e.target.id !== 'chat-emoji-btn' && !e.target.closest('#chat-emoji-btn')) {
+        window.closeEmojiPicker();
+    }
+}
+
+// display a full‑screen overlay with the clicked chat image
+window.showImageModal = function(url) {
+    if (document.getElementById('image-modal')) return;
+    const overlay = document.createElement('div');
+    overlay.id = 'image-modal';
+    overlay.addEventListener('click', () => {
+        document.body.removeChild(overlay);
+    });
+    const img = document.createElement('img');
+    img.src = url;
+    overlay.appendChild(img);
+    document.body.appendChild(overlay);
+}
+
+
 // Show message notification
 function showMessageNotification(senderId, senderName, messageText) {
     saveChatNotification(senderId, { senderId, senderName, messageText });
     renderChatNotification(senderId, senderName, messageText);
+}
+
+// --- message editing / deletion helpers ---
+
+let currentEditingMessageId = null;
+
+window.startEditMessage = function(messageId, currentText) {
+    const input = document.getElementById('chat-widget-input');
+    if (input) {
+        input.value = currentText;
+        input.focus();
+        currentEditingMessageId = messageId;
+        const sendBtn = document.getElementById('chat-send-btn');
+        if (sendBtn) sendBtn.innerHTML = '<i class="fa-solid fa-check"></i>';
+    }
+}
+
+window.deleteMessage = async function(messageId) {
+    if (!currentConversationId || !auth.currentUser) return;
+    if (!confirm('Mesajı gerçekten silmek istiyor musunuz?')) return;
+    try {
+        await deleteDoc(doc(db, 'conversations', currentConversationId, 'messages', messageId));
+    } catch (e) {
+        console.error('Mesaj silme hatası', e);
+    }
+}
+
+// --- attachment helpers ---
+
+window.handleChatAttachment = function(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    console.log('Attachment selected', file.type, file.name, file.size);
+    // allow images and audio
+    if (!file.type.startsWith('image/') && !file.type.startsWith('audio/')) {
+        alert('Sadece görsel veya ses dosyası yükleyebilirsiniz');
+        return;
+    }
+    chatAttachmentType = file.type;
+    const reader = new FileReader();
+    reader.onload = () => {
+        chatAttachmentData = reader.result;
+        window.showAttachmentPreview(chatAttachmentData, file.type);
+    };
+    reader.readAsDataURL(file);
+    event.target.value = '';
+}
+
+window.showAttachmentPreview = function(src, type) {
+    let prev = document.getElementById('chat-attachment-preview');
+    if (!prev) {
+        prev = document.createElement('div');
+        prev.id = 'chat-attachment-preview';
+        prev.style.padding = '5px';
+        prev.style.maxHeight = '100px';
+        prev.style.overflow = 'hidden';
+        prev.style.cursor = 'pointer';
+        prev.title = 'Kaldırmak için tıklayın';
+        if (type && type.startsWith('image/')) {
+            const img = document.createElement('img');
+            img.style.maxHeight = '80px';
+            img.style.borderRadius = '8px';
+            prev.appendChild(img);
+        } else if (type && type.startsWith('audio/')) {
+            const aud = document.createElement('audio');
+            aud.controls = true;
+            aud.style.maxWidth = '120px';
+            prev.appendChild(aud);
+        }
+        prev.onclick = () => {
+            chatAttachmentData = null;
+            window.clearAttachmentPreview();
+        };
+        const chatInput = document.querySelector('.chat-widget-input');
+        if (chatInput && chatInput.parentNode) {
+            chatInput.parentNode.insertBefore(prev, chatInput);
+        }
+    }
+    if (prev.querySelector('img')) prev.querySelector('img').src = src;
+    if (prev.querySelector('audio')) prev.querySelector('audio').src = src;
+}
+
+window.clearAttachmentPreview = function() {
+    const prev = document.getElementById('chat-attachment-preview');
+    if (prev && prev.parentNode) prev.parentNode.removeChild(prev);
 }
 
 // Initialize chat widget when page loads

@@ -143,6 +143,31 @@
     margin-top: 2px;
 }
 
+.chat-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 5px 2px 5px;
+}
+
+.chat-msg-controls {
+    display: flex;
+    gap: 6px;
+}
+
+.chat-msg-controls button {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    cursor: pointer;
+    padding: 2px;
+}
+
+.chat-msg-controls button:hover {
+    color: var(--primary);
+}
+
 .chat-widget-input {
     padding: 12px;
     border-top: 1px solid var(--border);
@@ -181,6 +206,55 @@
     height: 40px;
 }
 
+.chat-widget-input .emoji-btn,
+.chat-widget-input .attach-btn {
+    padding: 10px;
+    background: var(--primary);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 1.2rem;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.chat-widget-input .emoji-btn:hover,
+.chat-widget-input .attach-btn:hover {
+    background: #8b5cf6;
+    transform: scale(1.05);
+}
+    cursor: pointer;
+    font-size: 1.2rem;
+}
+
+#chat-attachment-preview {
+    margin-bottom: 4px;
+}
+
+/* emoji picker container styling */
+#emoji-picker {
+    width: 220px;
+    max-width: 90%;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+/* emojis themselves black */
+#emoji-picker button {
+    color: var(--text);
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+}
+#emoji-picker button:hover {
+    background: var(--primary);
+    color: white;
+}
 .chat-widget-input button:hover {
     background: #8b5cf6;
     transform: scale(1.05);
@@ -386,10 +460,13 @@
     border-color: var(--primary);
 }
 
-/* start chat button style */
+/* start chat button style (match add friend button) */
 .chat-lists-footer #chat-start-btn {
-    background: var(--secondary);
-    color: var(--text);
+    background: var(--primary);
+    color: white;
+    display: flex;
+    align-items: center;
+    gap: 4px;
 }
 .chat-lists-footer #chat-start-btn:hover {
     background: var(--secondary-dark, #ccc);
@@ -503,4 +580,25 @@
         transform: translateY(0);
         opacity: 1;
     }
+}
+
+/* image preview modal styles */
+#image-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10020;
+}
+#image-modal img {
+    max-width: 90%;
+    max-height: 90%;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.5);
+    cursor: zoom-out;
 }
