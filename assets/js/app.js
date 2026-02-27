@@ -2142,7 +2142,8 @@ async function loadVisitorProfile() {
 
 // For profile page: load own posts/likes/bookmarks separately
 window.loadProfileSections = async (showAllPosts = false, showAllLikes = false, showAllSaves = false) => {
-    console.log('loadProfileSections invoked', { showAllPosts, showAllLikes, showAllSaves });
+    // console.log removed
+
     if (!auth.currentUser) {
         console.warn('loadProfileSections: no auth user');
         return;
@@ -2967,7 +2968,8 @@ function applyFriendSearch() {
     const searchInput = document.getElementById('friendSearch');
     if (!searchInput) return;
     const q = searchInput.value.trim().toLowerCase();
-    console.log('applyFriendSearch called with q="' + q + '"');
+    // debug log removed
+
     document.querySelectorAll('#friends-list .friend-card').forEach(card => {
         card.style.display = card.dataset.search && card.dataset.search.includes(q) ? '' : 'none';
     });
@@ -3105,7 +3107,8 @@ async function loadFriendsList(userRef, isOwnProfile = true) {
                 `;
                 // attach searchable text
                 friendCard.dataset.search = ((friendData.displayName || '') + ' ' + friendData.username).toLowerCase();
-                console.log('added friend card search:', friendCard.dataset.search);
+                // removed debug
+
                 
                 // only need to bind mutual click, propagation no longer matters
                 if (mutualCount > 0) {
@@ -4073,7 +4076,8 @@ async function cancelFriendRequest(targetUid, targetUsername) {
 
 // Cancel helper for suggestion buttons
 async function cancelFriendRequestToUid(targetUid, targetUsername) {
-    console.log('cancelFriendRequestToUid invoked', targetUid, targetUsername);
+    // removed debug
+
     if (!auth.currentUser) return;
     try {
         const currentUserRef = doc(db, "users", auth.currentUser.uid);
@@ -4382,7 +4386,8 @@ window.cancelFriendRequest = cancelFriendRequest;
 window.cancelFriendRequestToUid = cancelFriendRequestToUid;
 
 // logging for debugging cache/availability
-console.log('cancelFriendRequestToUid available on window:', typeof window.cancelFriendRequestToUid);
+// debug removed
+
 
 
 // ========================
@@ -4844,7 +4849,8 @@ window.sendChatMessage = async function() {
     try {
         const currentUserId = auth.currentUser.uid;
         
-        console.log('User data:', { displayName: user.displayName, username: user.username, avatarUrl: user.avatarUrl });
+        // user data log removed
+
         
         const messageData = {
             senderId: currentUserId,
@@ -4873,14 +4879,16 @@ window.sendChatMessage = async function() {
             chatAttachmentType = null;
             window.clearAttachmentPreview && window.clearAttachmentPreview();
         }
-        console.log('Mesaj gönderiliyor:', messageData, 'Conversation:', currentConversationId);
+        // message send log removed
+
         
         await addDoc(
             collection(db, 'conversations', currentConversationId, 'messages'),
             messageData
         );
         
-        console.log('Mesaj başarıyla gönderildi');
+        // message sent log removed
+
         
         // Update last message
         await updateDoc(doc(db, 'conversations', currentConversationId), {
@@ -4939,7 +4947,8 @@ function resetChatInactivityTimer() {
     clearChatInactivityTimer();
     
     chatInactivityTimer = setTimeout(() => {
-        console.log('Chat inaktif (30 dakika) - kapanıyor');
+        // inactive chat log removed
+
         window.closeChatWidget();
     }, 30 * 60 * 1000); // 30 minutes
 }
@@ -5116,7 +5125,8 @@ function loadStoredChatNotifications() {
 // --- emoji helper functions ---
 
 window.toggleEmojiPicker = function() {
-    console.log('toggleEmojiPicker fired, open state', emojiPickerOpen);
+    // removed debug
+
     if (emojiPickerOpen) {
         window.closeEmojiPicker();
     } else {
@@ -5125,7 +5135,8 @@ window.toggleEmojiPicker = function() {
 }
 
 window.openEmojiPicker = function() {
-    console.log('openEmojiPicker called');
+    // removed debug
+
     if (document.getElementById('emoji-picker')) return;
     const picker = document.createElement('div');
     picker.id = 'emoji-picker';
@@ -5233,7 +5244,8 @@ window.deleteMessage = async function(messageId) {
 window.handleChatAttachment = function(event) {
     const file = event.target.files[0];
     if (!file) return;
-    console.log('Attachment selected', file.type, file.name, file.size);
+    // removed debug
+
     // allow images and audio
     if (!file.type.startsWith('image/') && !file.type.startsWith('audio/')) {
         alert('Sadece görsel veya ses dosyası yükleyebilirsiniz');
