@@ -2244,7 +2244,7 @@ window.loadProfileSections = async (showAllPosts = false, showAllLikes = false, 
             const clearLikesDiv = document.createElement('div');
             clearLikesDiv.style.textAlign = 'right';
             clearLikesDiv.style.marginBottom = '8px';
-            clearLikesDiv.innerHTML = `<button onclick="clearAllLikes()" style="background:#ef4444; color:#fff; border:none; padding:6px 12px; border-radius:6px; cursor:pointer; font-size:0.8rem;">Beğenileri Kaldır</button>`;
+            clearLikesDiv.innerHTML = `<button onclick="clearAllLikes()" style="background:#ef4444; color:#fff; border:none; padding:6px 12px; border-radius:6px; cursor:pointer; font-size:0.8rem;">Beğenilerin Hepsini Kaldır</button>`;
             myLikesList.appendChild(clearLikesDiv);
 
             let likesToShow = showAllLikes ? myLikesAll.length : 7;
@@ -2279,7 +2279,7 @@ window.loadProfileSections = async (showAllPosts = false, showAllLikes = false, 
             const clearSavesDiv = document.createElement('div');
             clearSavesDiv.style.textAlign = 'right';
             clearSavesDiv.style.marginBottom = '8px';
-            clearSavesDiv.innerHTML = `<button onclick="clearAllSaves()" style="background:#ef4444; color:#fff; border:none; padding:6px 12px; border-radius:6px; cursor:pointer; font-size:0.8rem;">Kayıtları Kaldır</button>`;
+            clearSavesDiv.innerHTML = `<button onclick="clearAllSaves()" style="background:#ef4444; color:#fff; border:none; padding:6px 12px; border-radius:6px; cursor:pointer; font-size:0.8rem;">Kayıtların Hepsini Kaldır</button>`;
             bookmarkList.appendChild(clearSavesDiv);
 
             let savesToShow = showAllSaves ? mySavesAll.length : 7;
