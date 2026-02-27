@@ -6,6 +6,7 @@
   <title>SosyaLTrend • Sosyal Ağ - Profiliniz</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="stylesheet" href="assets/css/style.css">
+  <link rel="stylesheet" href="assets/css/chat-widget.css">
   <link rel="icon" type="image/x-icon" href="assets/img/strendsaydamv2.ico">
   <style>
     /* Taşıma Sorunu İçin Genel Düzeltme */
@@ -418,9 +419,13 @@ window.handleProfileAction = function() {
     const currentUser = (typeof auth !== 'undefined') ? auth.currentUser : null;
 
     if (currentUser && (targetId === currentUser.uid || targetId === currentUser.displayName)) {
-        window.location.href = "mesajlar.html";
+        // Kendi profili - mesajlaşmaya gerek yok
+        return;
     } else {
-        window.location.href = "mesajlar.html?start=" + encodeURIComponent(targetId);
+        // Başka bir kullanıcının profili - chat widget'ı aç
+        if (typeof openChatWithUser === 'function') {
+            openChatWithUser(targetId, targetId);
+        }
     }
 };
 
@@ -468,6 +473,5 @@ setTimeout(() => {
 
 }, 1000);
 </script>
-
 </body>
 </html>

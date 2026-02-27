@@ -4005,16 +4005,18 @@ function handleProfileAction() {
   const viewedUserId = new URLSearchParams(window.location.search).get('uid'); // Profiline bakılan kişinin ID'si
 
   if (!currentUser) {
-    window.location.href = 'giris.html';
+    window.location.href = 'login.html';
     return;
   }
 
   if (viewedUserId === currentUser.uid) {
-    // KENDİ PROFİLİNDEYSE: Direkt mesajlar sayfasına git
-    window.location.href = 'mesajlar.html';
+    // KENDİ PROFİLİNDEYSE: Hiçbir şey yapma
+    return;
   } else {
-    // BAŞKASININ PROFİLİNDEYSE: Mesajlar sayfasına o kullanıcının ID'sini parametre olarak gönder
-    window.location.href = `mesajlar.html?start=${viewedUserId}`;
+    // BAŞKASININ PROFİLİNDEYSE: Chat widget'ı aç
+    if (typeof openChatWithUser === 'function') {
+      openChatWithUser(viewedUserId, viewedUserId);
+    }
   }
 }
 
@@ -4275,3 +4277,678 @@ window.cancelFriendRequestToUid = cancelFriendRequestToUid;
 
 // logging for debugging cache/availability
 console.log('cancelFriendRequestToUid available on window:', typeof window.cancelFriendRequestToUid);
+
+
+// ========================
+// CHAT WIDGET FUNCTIONALITY
+// ========================
+
+let currentChatUserId = null;
+let currentChatUsername = null;
+let currentConversationId = null;
+let chatInactivityTimer = null;
+let messagesUnsubscribe = null;
+let typingUnsubscribe = null;
+
+// Initialize chat widget container
+function initChatWidget() {
+    // Check if widget already exists
+    if (document.getElementById('chat-widget-container')) return;
+    
+    const chatWidget = document.createElement('div');
+    chatWidget.id = 'chat-widget-container';
+    chatWidget.className = 'chat-widget-container';
+    chatWidget.innerHTML = `
+        <div class="chat-widget-header">
+            <h3 id="chat-widget-title">Sohbet</h3>
+            <button class="close-btn" onclick="closeChatWidget()">
+                <i class="fa-solid fa-times"></i>
+            </button>
+        </div>
+        <div class="chat-widget-messages" id="chat-widget-messages">
+            <div class="chat-empty">
+                <i class="fa-regular fa-comment"></i>
+                <p>Henüz mesaj yok</p>
+            </div>
+        </div>
+        <div class="chat-widget-input">
+            <input 
+                type="text" 
+                id="chat-widget-input" 
+                placeholder="Mesaj yaz..."
+                onkeypress="handleChatKeypress(event)"
+            >
+            <button onclick="sendChatMessage()" id="chat-send-btn">
+                <i class="fa-solid fa-paper-plane"></i>
+            </button>
+        </div>
+    `;
+    
+    // Add CSS link if not already added
+    if (!document.querySelector('link[href*="chat-widget.css"]')) {
+        const cssLink = document.createElement('link');
+        cssLink.rel = 'stylesheet';
+        cssLink.href = 'assets/css/chat-widget.css';
+        document.head.appendChild(cssLink);
+    }
+    
+    document.body.appendChild(chatWidget);
+}
+
+// Initialize chat lists panel
+function initChatListsPanel() {
+    if (document.getElementById('chat-lists-panel')) return;
+    
+    const chatListsPanel = document.createElement('div');
+    chatListsPanel.id = 'chat-lists-panel';
+    chatListsPanel.className = 'chat-lists-panel';
+    chatListsPanel.innerHTML = `
+        <div class="chat-lists-header">
+            <h3>Sohbet Et</h3>
+            <button class="close-btn" onclick="closeChatsList()">
+                <i class="fa-solid fa-times"></i>
+            </button>
+        </div>
+        <div class="chat-lists-search">
+            <input 
+                type="text" 
+                id="chat-friends-search" 
+                placeholder="Arkadaş ara..."
+                oninput="filterChatFriends(this.value)"
+            >
+        </div>
+        <div class="chat-lists-title" style="padding:10px 12px; font-weight:600; color:var(--text);">Arkadaşlarım</div>
+        <div class="chat-lists-content" id="chat-friends-list">
+            <div class="chat-lists-empty">
+                <i class="fa-solid fa-spinner"></i>
+                <p>Arkadaşlar yükleniyor...</p>
+            </div>
+        </div>
+        <div class="chat-lists-footer" style="display:flex; gap:8px; align-items:center;">
+            <input 
+                type="text" 
+                id="chat-new-user-input" 
+                placeholder="Mesaj göndermek istediğiniz kullanıcı adını yazınız..."
+                onkeypress="handleNewUserKeypress(event)"
+                style="flex:1;"
+            >
+            <button id="chat-add-friend-btn" onclick="addFriendFromChat()" style="padding:8px 12px; background:var(--primary); color:white; border:none; border-radius:6px; cursor:pointer; font-size:0.85rem;" title="Arkadaş ekle">
+                <i class="fa-solid fa-user-plus"></i>
+            </button>
+        </div>
+    `;
+    
+    document.body.appendChild(chatListsPanel);
+}
+
+// Open chat friends list
+window.openChatsList = async function() {
+    if (!auth.currentUser) {
+        alert('Lütfen giriş yapın');
+        return;
+    }
+    
+    if (!document.getElementById('chat-lists-panel')) {
+        initChatListsPanel();
+    }
+    
+    const panel = document.getElementById('chat-lists-panel');
+    panel.classList.add('active');
+    
+    loadChatFriends();
+}
+
+// Close chat lists
+window.closeChatsList = function() {
+    const panel = document.getElementById('chat-lists-panel');
+    if (panel) {
+        panel.classList.remove('active');
+    }
+}
+
+// Load friends for chat
+async function loadChatFriends() {
+    const friendsList = document.getElementById('chat-friends-list');
+    if (!friendsList) return;
+    
+    try {
+        const currentUserId = auth.currentUser.uid;
+        const userRef = doc(db, 'users', currentUserId);
+        const userSnap = await getDoc(userRef);
+        
+        if (!userSnap.exists()) {
+            friendsList.innerHTML = '<div class="chat-lists-empty"><i class="fa-solid fa-user-slash"></i><p>Arkadaş bulunamadı</p></div>';
+            return;
+        }
+        
+        const userData = userSnap.data();
+        const friendsIds = userData.friends || [];
+        
+        if (friendsIds.length === 0) {
+            friendsList.innerHTML = '<div class="chat-lists-empty"><i class="fa-solid fa-user-plus"></i><p>Henüz arkadaşınız yok</p></div>';
+            return;
+        }
+        
+        // Get friend details
+        let friendsHtml = '';
+        for (const friendId of friendsIds) {
+            try {
+                const friendRef = doc(db, 'users', friendId);
+                const friendSnap = await getDoc(friendRef);
+                
+                if (friendSnap.exists()) {
+                    const friendData = friendSnap.data();
+                    const avatarUrl = getAvatarUrl(friendData.avatarUrl || 'assets/img/strendsaydamv2.png', 'user');
+                    const displayName = friendData.displayName || friendData.username || friendId;
+                    const username = friendData.username || 'user';
+                    
+                    friendsHtml += `
+                        <div class="chat-friend-item" onclick="openChatWithFriend('${friendId}', '${displayName}', '${username}')">
+                            <img src="${avatarUrl}" class="chat-friend-avatar" alt="">
+                            <div class="chat-friend-info">
+                                <p class="chat-friend-name">${escapeHtml(displayName)}</p>
+                                <p class="chat-friend-username">@${escapeHtml(username)}</p>
+                            </div>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Arkadaş yüklenirken hata:', error);
+            }
+        }
+        
+        friendsList.innerHTML = friendsHtml || '<div class="chat-lists-empty"><i class="fa-solid fa-circle-exclamation"></i><p>Arkadaş yüklenemedi</p></div>';
+        
+    } catch (error) {
+        console.error('Arkadaşlar yüklenirken hata:', error);
+        friendsList.innerHTML = '<div class="chat-lists-empty"><i class="fa-solid fa-circle-exclamation"></i><p>Arkadaşlar yüklenemedi</p></div>';
+    }
+}
+
+// Filter friends
+window.filterChatFriends = function(query) {
+    const items = document.querySelectorAll('.chat-friend-item');
+    const searchQuery = query.toLowerCase();
+    
+    items.forEach(item => {
+        const name = item.querySelector('.chat-friend-name')?.textContent.toLowerCase() || '';
+        const username = item.querySelector('.chat-friend-username')?.textContent.toLowerCase() || '';
+        
+        if (name.includes(searchQuery) || username.includes(searchQuery)) {
+            item.style.display = 'flex';
+        } else {
+            item.style.display = 'none';
+        }
+    });
+}
+
+// Open chat with friend from list
+window.openChatWithFriend = async function(friendId, displayName, username) {
+    await openChatWithUser(friendId, displayName);
+    window.closeChatsList();
+}
+
+// Handle new user input
+window.handleNewUserKeypress = async function(event) {
+    if (event.key === 'Enter') {
+        const input = document.getElementById('chat-new-user-input');
+        const username = input.value.trim();
+        
+        if (!username) return;
+        
+        try {
+            // Find user by username
+            const userQuery = query(collection(db, 'users'), where('username', '==', username));
+            const userSnap = await getDocs(userQuery);
+            
+            if (userSnap.empty) {
+                alert('Kullanıcı bulunamadı');
+                return;
+            }
+            
+            const userId = userSnap.docs[0].id;
+            const userData = userSnap.docs[0].data();
+            const displayName = userData.displayName || username;
+            
+            await openChatWithUser(userId, displayName);
+            input.value = '';
+            window.closeChatsList();
+            
+        } catch (error) {
+            console.error('Kullanıcı açılırken hata:', error);
+            alert('Kullanıcı açılırken bir hata oluştu');
+        }
+    }
+}
+
+// Add friend button handler for chat input
+window.addFriendFromChat = async function() {
+    const input = document.getElementById('chat-new-user-input');
+    let username = input.value.trim();
+    if (!username) return;
+    if (username.startsWith('@')) username = username.slice(1);
+    try {
+        const userQuery = query(collection(db,'users'), where('username','==',username));
+        const userSnap = await getDocs(userQuery);
+        if (userSnap.empty) {
+            alert('Kullanıcı bulunamadı');
+            return;
+        }
+        const userId = userSnap.docs[0].id;
+        await sendFriendRequestToUid(userId, username);
+        input.value = '';
+        alert('Arkadaşlık isteği gönderildi.');
+    } catch(e) {
+        console.error('Arkadaş isteği gönderirken hata:', e);
+        alert('İstek gönderilemedi: ' + (e.message || ''));        
+    }
+}
+
+// Open chat with a user
+window.openChatWithUser = async function(userId, displayName) {
+    if (!auth.currentUser) {
+        alert('Lütfen giriş yapın');
+        return;
+    }
+    
+    // Initialize widget if needed
+    if (!document.getElementById('chat-widget-container')) {
+        initChatWidget();
+    }
+    
+    // If userId looks like username (not UID), find the actual UID from Firestore
+    let actualUserId = userId;
+    if (!userId.includes('aS9d') && userId.length < 20) { // Simple check if it looks like username
+        try {
+            const userQuery = query(collection(db, 'users'), where('username', '==', userId));
+            const userSnap = await getDocs(userQuery);
+            if (!userSnap.empty) {
+                actualUserId = userSnap.docs[0].id; // Get the actual UID
+                displayName = userSnap.docs[0].data().displayName || userId;
+            }
+        } catch (error) {
+            console.warn('Username to UID conversion failed:', error);
+        }
+    }
+    
+    currentChatUserId = actualUserId;
+    currentChatUsername = displayName || userId;
+    
+    try {
+        // Create or get conversation
+        const currentUserId = auth.currentUser.uid;
+        const conversationId = [currentUserId, actualUserId].sort().join('_');
+        
+        const convRef = doc(db, 'conversations', conversationId);
+        const convSnap = await getDoc(convRef);
+        
+        if (!convSnap.exists()) {
+            // Create new conversation
+            await setDoc(convRef, {
+                participants: [currentUserId, actualUserId],
+                lastMessage: '',
+                lastMessageAt: serverTimestamp(),
+                lastSenderId: '',
+                unreadCount: {
+                    [currentUserId]: 0,
+                    [actualUserId]: 0
+                },
+                createdAt: serverTimestamp()
+            });
+        }
+        
+        currentConversationId = conversationId;
+        
+        // Update widget header
+        const titleEl = document.getElementById('chat-widget-title');
+        if (titleEl) {
+            titleEl.textContent = currentChatUsername;
+        }
+        
+        // Show widget
+        const widgetEl = document.getElementById('chat-widget-container');
+        widgetEl.classList.add('active');
+        
+        // Load messages
+        loadChatMessages(conversationId);
+        
+        // Reset inactivity timer
+        resetChatInactivityTimer();
+        
+    } catch (error) {
+        console.error('Chat açılırken hata:', error);
+        alert('Sohbet açılırken bir hata oluştu');
+    }
+}
+
+// Load messages for current conversation
+function loadChatMessages(conversationId) {
+    const messagesContainer = document.getElementById('chat-widget-messages');
+    
+    // Unsubscribe from previous listener
+    if (messagesUnsubscribe) {
+        messagesUnsubscribe();
+    }
+    
+    const q = query(
+        collection(db, 'conversations', conversationId, 'messages'),
+        orderBy('createdAt', 'asc'),
+        limit(50)
+    );
+    
+    messagesUnsubscribe = onSnapshot(q, (snapshot) => {
+        if (snapshot.empty) {
+            messagesContainer.innerHTML = `
+                <div class="chat-empty">
+                    <i class="fa-regular fa-comment"></i>
+                    <p>Henüz mesaj yok</p>
+                </div>
+            `;
+            return;
+        }
+        
+        messagesContainer.innerHTML = '';
+        
+        snapshot.forEach(msgDoc => {
+            const msg = msgDoc.data();
+            const isOwn = msg.senderId === auth.currentUser.uid;
+            
+            const messageEl = document.createElement('div');
+            messageEl.className = `chat-message ${isOwn ? 'own' : ''}`;
+            messageEl.innerHTML = `
+                <img src="${msg.senderAvatar || 'assets/img/strendsaydamv2.png'}" class="chat-message-avatar" alt="">
+                <div class="chat-message-content">
+                    <div style="font-size: 0.8rem; font-weight: 600; color: var(--text-muted); padding: 0 5px;">${escapeHtml(msg.senderName || 'Kullanıcı')}</div>
+                    <div class="chat-message-bubble">${escapeHtml(msg.text)}</div>
+                    <div class="chat-message-time">${formatChatTime(msg.createdAt)}</div>
+                </div>
+            `;
+            
+            messagesContainer.appendChild(messageEl);
+        });
+        
+        // Scroll to bottom
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        
+        // Mark as read
+        updateDoc(doc(db, 'conversations', conversationId), {
+            [`unreadCount.${auth.currentUser.uid}`]: 0
+        }).catch(() => {});
+        
+    }, (error) => {
+        console.error('Mesajlar yüklenirken hata:', error);
+    });
+}
+
+// Send chat message
+window.sendChatMessage = async function() {
+    if (!currentConversationId || !auth.currentUser) {
+        console.error('Sohbet hazır değil:', { currentConversationId, currentUser: auth.currentUser?.uid });
+        alert('Lütfen önce bir kullanıcıyı seçin');
+        return;
+    }
+    
+    const inputEl = document.getElementById('chat-widget-input');
+    if (!inputEl) {
+        console.error('Input element bulunamadı');
+        return;
+    }
+    
+    const text = inputEl.value.trim();
+    
+    if (!text) {
+        return;
+    }
+    
+    const sendBtn = document.getElementById('chat-send-btn');
+    if (sendBtn) sendBtn.disabled = true;
+    
+    try {
+        const currentUserId = auth.currentUser.uid;
+        
+        console.log('User data:', { displayName: user.displayName, username: user.username, avatarUrl: user.avatarUrl });
+        
+        const messageData = {
+            senderId: currentUserId,
+            senderName: user.displayName || user.username || 'Anonim',
+            senderAvatar: user.avatarUrl || 'assets/img/strendsaydamv2.png',
+            text: text,
+            createdAt: serverTimestamp()
+        };
+        
+        console.log('Mesaj gönderiliyor:', messageData, 'Conversation:', currentConversationId);
+        
+        await addDoc(
+            collection(db, 'conversations', currentConversationId, 'messages'),
+            messageData
+        );
+        
+        console.log('Mesaj başarıyla gönderildi');
+        
+        // Update last message
+        await updateDoc(doc(db, 'conversations', currentConversationId), {
+            lastMessage: text,
+            lastMessageAt: serverTimestamp(),
+            lastSenderId: currentUserId
+        });
+        
+        inputEl.value = '';
+        
+        // Reset inactivity timer
+        resetChatInactivityTimer();
+        
+    } catch (error) {
+        console.error('Mesaj gönderirken hata:', error);
+        alert('Mesaj gönderilemedi: ' + error.message);
+    } finally {
+        if (sendBtn) sendBtn.disabled = false;
+    }
+}
+
+// Handle Enter key in input
+window.handleChatKeypress = function(event) {
+    if (event.key === 'Enter' && !event.shiftKey) {
+        event.preventDefault();
+        sendChatMessage();
+    }
+}
+
+// Close chat widget
+window.closeChatWidget = function() {
+    const widgetEl = document.getElementById('chat-widget-container');
+    if (widgetEl) {
+        widgetEl.classList.remove('active');
+    }
+    
+    currentChatUserId = null;
+    currentChatUsername = null;
+    currentConversationId = null;
+    
+    if (messagesUnsubscribe) {
+        messagesUnsubscribe();
+        messagesUnsubscribe = null;
+    }
+    
+    if (typingUnsubscribe) {
+        typingUnsubscribe();
+        typingUnsubscribe = null;
+    }
+    
+    clearChatInactivityTimer();
+};
+
+// Reset inactivity timer (30 minutes)
+function resetChatInactivityTimer() {
+    clearChatInactivityTimer();
+    
+    chatInactivityTimer = setTimeout(() => {
+        console.log('Chat inaktif (30 dakika) - kapanıyor');
+        window.closeChatWidget();
+    }, 30 * 60 * 1000); // 30 minutes
+}
+
+// Clear inactivity timer
+function clearChatInactivityTimer() {
+    if (chatInactivityTimer) {
+        clearTimeout(chatInactivityTimer);
+        chatInactivityTimer = null;
+    }
+}
+
+// Escape HTML special characters
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// Format timestamp to readable time for chat
+function formatChatTime(timestamp) {
+    if (!timestamp) return '';
+    
+    let date;
+    if (timestamp.seconds) {
+        date = new Date(timestamp.seconds * 1000);
+    } else if (timestamp instanceof Date) {
+        date = timestamp;
+    } else if (typeof timestamp === 'number') {
+        date = new Date(timestamp);
+    } else {
+        return '';
+    }
+    
+    const now = new Date();
+    const diff = now - date;
+    const minutes = Math.floor(diff / 60000);
+    const hours = Math.floor(diff / 3600000);
+    const days = Math.floor(diff / 86400000);
+    
+    if (minutes < 1) return 'Az önce';
+    if (minutes < 60) return `${minutes}d önce`;
+    if (hours < 24) return `${hours}s önce`;
+    if (days < 7) return `${days}g önce`;
+    
+    return date.toLocaleDateString('tr-TR', { month: 'short', day: 'numeric' });
+}
+
+// Listen for incoming messages
+// keep track of last message id we notified for each conversation
+const lastNotifiedMessage = {};
+// conversations for which we've already processed the initial snapshot
+const initializedConversations = new Set();
+
+function listenForIncomingMessages() {
+    if (!auth.currentUser) return;
+    
+    const currentUserId = auth.currentUser.uid;
+    
+    // Get all conversations for current user
+    const conversationsQuery = query(
+        collection(db, 'conversations'),
+        where('participants', 'array-contains', currentUserId)
+    );
+    
+    onSnapshot(conversationsQuery, (snapshot) => {
+        snapshot.forEach((convDoc) => {
+            const convData = convDoc.data();
+            const conversationId = convDoc.id;
+            
+            // Listen to messages in this conversation
+            const messagesQuery = query(
+                collection(db, 'conversations', conversationId, 'messages'),
+                orderBy('createdAt', 'desc'),
+                limit(1)
+            );
+            
+            onSnapshot(messagesQuery, (msgSnapshot) => {
+                if (!msgSnapshot.empty) {
+                    const msgDoc = msgSnapshot.docs[0];
+                    const lastMsg = msgDoc.data();
+
+                    // skip notification for the very first message snapshot when conversation is initialized
+                    if (!initializedConversations.has(conversationId)) {
+                        initializedConversations.add(conversationId);
+                        // record last message so future changes are compared
+                        lastNotifiedMessage[conversationId] = msgDoc.id;
+                        return;
+                    }
+                    
+                    // ignore if we've already notified for this exact message
+                    if (lastNotifiedMessage[conversationId] === msgDoc.id) {
+                        return;
+                    }
+                    
+                    // mark as seen
+                    lastNotifiedMessage[conversationId] = msgDoc.id;
+                    
+                    // Eğer bu mesaj başkası tarafından gönderildiyse ve widget açık değilse bildir
+                    if (lastMsg.senderId !== currentUserId) {
+                        const isCurrentChatOpen = currentConversationId === conversationId;
+                        
+                        if (!isCurrentChatOpen) {
+                            // Diğer katılımcıyı bul
+                            const otherId = convData.participants.find(id => id !== currentUserId);
+                            
+                            // Bildirim göster
+                            showMessageNotification(otherId, lastMsg.senderName || 'Bilinmeyen Kullanıcı', lastMsg.text);
+                        }
+                    }
+                }
+            });
+        });
+    });
+}
+
+// Show message notification
+function showMessageNotification(senderId, senderName, messageText) {
+    // Check if notification already exists for this user
+    if (document.getElementById(`notif-${senderId}`)) {
+        return;
+    }
+    
+    const notifDiv = document.createElement('div');
+    notifDiv.id = `notif-${senderId}`;
+    notifDiv.className = 'chat-notification-badge';
+    notifDiv.innerHTML = `
+        <i class="fa-solid fa-envelope"></i>
+        <span>${senderName} size mesaj gönderdi</span>
+    `;
+    notifDiv.onclick = async () => {
+        // mark conversation read before opening
+        try {
+            const currentUserId = auth.currentUser.uid;
+            const convId = [currentUserId, senderId].sort().join('_');
+            await updateDoc(doc(db, 'conversations', convId), {
+                [`unreadCount.${currentUserId}`]: 0
+            });
+        } catch (e) {
+            console.warn('Bildirim tıklanırken okunma işareti atamada hata:', e);
+        }
+        openChatWithUser(senderId, senderName);
+        notifDiv.remove();
+    };
+    
+    document.body.appendChild(notifDiv);
+    
+    // Auto remove after 30 seconds only if still not clicked
+    setTimeout(() => {
+        if (notifDiv.parentNode) {
+            notifDiv.remove();
+        }
+    }, 30000);
+}
+
+// Initialize chat widget when page loads
+document.addEventListener('DOMContentLoaded', () => {
+    initChatWidget();
+    initChatListsPanel();
+});
+
+// Start listening for messages when user is authenticated
+onAuthStateChanged(auth, (authUser) => {
+    if (authUser) {
+        setTimeout(() => {
+            listenForIncomingMessages();
+        }, 2000);
+    }
+});
