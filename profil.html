@@ -278,8 +278,10 @@
       <div class="glass-card" style="padding:20px;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap: wrap; gap: 10px;">
           <h3 style="margin:0; font-size:0.95rem; font-weight:800;">Bildirimler</h3>
-          <div>
+          <div style="display:flex; gap:8px; flex-wrap:wrap;">
             <button id="markAllNotifsBtn" onclick="markAllNotificationsRead()" style="background:var(--primary); color:#fff; border:none; padding:8px 12px; border-radius:8px; font-weight:700; cursor:pointer; font-size: 0.8rem;">Tümünü Okundu Yap</button>
+            <button id="restoreNotifsBtn" onclick="showRestoreModal()" style="background:#8b5cf6; color:#fff; border:none; padding:8px 12px; border-radius:8px; font-weight:700; cursor:pointer; font-size: 0.8rem;"><i class="fa-solid fa-history"></i> Geri Al</button>
+            <button id="deleteAllNotifsBtn" onclick="deleteAllNotifications()" style="background:#ef4444; color:#fff; border:none; padding:8px 12px; border-radius:8px; font-weight:700; cursor:pointer; font-size: 0.8rem;"><i class="fa-solid fa-trash"></i> Tümünü Sil</button>
           </div>
         </div>
         <div id="profile-notifications-list" style="display:flex; flex-direction:column; gap:10px; min-height:120px;"></div>
@@ -437,11 +439,33 @@ window.addEventListener('load', () => {
 <script>
 // After app.js loads, populate profile sections directly
 setTimeout(() => {
-    if (typeof window.loadProfileSections === 'function') {
-        window.loadProfileSections();
-    } else {
-        console.warn('loadProfileSections not ready');
+  if (typeof window.loadProfileSections === 'function') {
+    window.loadProfileSections();
+  } else {
+    console.warn('loadProfileSections not ready');
+  }
+
+  // Eğer URL'de hash varsa ilgili sekmeyi aç (örn. #my-notifs-tab)
+  try {
+    const h = window.location.hash || '';
+    if (h) {
+      const tabName = h.replace('#', '');
+      const tabBtn = document.querySelector(`.tab-btn[onclick*="${tabName}"]`);
+      if (tabBtn) {
+        // Önce doğrudan click dene, işe yaramazsa openTab ile sentetik event gönder
+        setTimeout(() => {
+          try {
+            tabBtn.click();
+          } catch (e) {
+            try { openTab({ currentTarget: tabBtn }, tabName); } catch (err) { console.warn('tab open failed', err); }
+          }
+          // ekstra güvenlik: eğer click didn't trigger, call openTab anyway
+          try { openTab({ currentTarget: tabBtn }, tabName); } catch (err) { /* ignore */ }
+        }, 200);
+      }
     }
+  } catch (e) { console.warn('Hash tab opener error:', e); }
+
 }, 1000);
 </script>
 

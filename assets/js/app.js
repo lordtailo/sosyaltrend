@@ -2116,8 +2116,8 @@ async function loadVisitorProfile() {
 }
 
 // For profile page: load own posts/likes/bookmarks separately
-window.loadProfileSections = async () => {
-    console.log('loadProfileSections invoked');
+window.loadProfileSections = async (showAllPosts = false, showAllLikes = false, showAllSaves = false) => {
+    console.log('loadProfileSections invoked', { showAllPosts, showAllLikes, showAllSaves });
     if (!auth.currentUser) {
         console.warn('loadProfileSections: no auth user');
         return;
@@ -2126,7 +2126,7 @@ window.loadProfileSections = async () => {
     const myPostsList = document.getElementById('my-posts-list');
     const myLikesList = document.getElementById('my-liked-list');
     const bookmarkList = document.getElementById('bookmark-items');
-    console.log('profile lists elements', { myPostsList, myLikesList, bookmarkList });
+    
     if (myPostsList) myPostsList.innerHTML = '';
     if (myLikesList) myLikesList.innerHTML = '';
     if (bookmarkList) bookmarkList.innerHTML = '';
@@ -2134,16 +2134,15 @@ window.loadProfileSections = async () => {
     try {
         const q = query(collection(db, 'posts'), orderBy('timestamp','desc'));
         const snap = await getDocs(q);
-        let total=0, mineCount=0, likedCount=0, savedCount=0;
+        
+        let myPostsAll = [], myLikesAll = [], mySavesAll = [];
+        
         snap.forEach(d => {
-            total++;
             const p = d.data();
             const isMine = p.username === uname || p.adminUser === uname;
             const isLiked = p.likes?.includes(uname);
             const isSaved = p.savedBy?.includes(uname);
-            if(isMine) mineCount++;
-            if(isLiked) likedCount++;
-            if(isSaved) savedCount++;
+            
             const postHtml = `
                 <div class="glass-card post" style="position: relative;">
                     <div style="display:flex; gap:10px; margin-bottom:10px;">
@@ -2193,14 +2192,98 @@ window.loadProfileSections = async () => {
                     </div>
                 </div>
             `;
-            if (isMine && myPostsList) myPostsList.innerHTML += postHtml;
-            if (isLiked && myLikesList) myLikesList.innerHTML += postHtml;
-            if (isSaved && bookmarkList) bookmarkList.innerHTML += postHtml;
+            
+            if (isMine) myPostsAll.push(postHtml);
+            if (isLiked) myLikesAll.push(postHtml);
+            if (isSaved) mySavesAll.push(postHtml);
         });
+
+        // GÖNDERİLER
+        if (myPostsList && myPostsAll.length > 0) {
+            let postsToShow = showAllPosts ? myPostsAll.length : 7;
+            let postsHtml = myPostsAll.slice(0, postsToShow).join('');
+            myPostsList.innerHTML = postsHtml;
+            
+            if (myPostsAll.length > 7 && !showAllPosts) {
+                const btn = document.createElement('div');
+                btn.style.cssText = `text-align: center; padding: 20px; margin-top: 15px;`;
+                btn.innerHTML = `
+                    <button onclick="window.loadProfileSections(true, false, false);" style="
+                        background: linear-gradient(135deg, var(--primary), #8b5cf6);
+                        color: white;
+                        border: none;
+                        padding: 12px 30px;
+                        border-radius: 50px;
+                        font-weight: 700;
+                        cursor: pointer;
+                        font-size: 0.95rem;
+                        transition: all 0.3s ease;
+                    " onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+                        <i class="fa-solid fa-ellipsis"></i> Diğer Gönderiler
+                    </button>
+                `;
+                myPostsList.appendChild(btn);
+            }
+        }
+
+        // BEĞENİLER
+        if (myLikesList && myLikesAll.length > 0) {
+            let likesToShow = showAllLikes ? myLikesAll.length : 7;
+            let likesHtml = myLikesAll.slice(0, likesToShow).join('');
+            myLikesList.innerHTML = likesHtml;
+            
+            if (myLikesAll.length > 7 && !showAllLikes) {
+                const btn = document.createElement('div');
+                btn.style.cssText = `text-align: center; padding: 20px; margin-top: 15px;`;
+                btn.innerHTML = `
+                    <button onclick="window.loadProfileSections(false, true, false);" style="
+                        background: linear-gradient(135deg, var(--primary), #8b5cf6);
+                        color: white;
+                        border: none;
+                        padding: 12px 30px;
+                        border-radius: 50px;
+                        font-weight: 700;
+                        cursor: pointer;
+                        font-size: 0.95rem;
+                        transition: all 0.3s ease;
+                    " onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+                        <i class="fa-solid fa-ellipsis"></i> Diğer Gönderiler
+                    </button>
+                `;
+                myLikesList.appendChild(btn);
+            }
+        }
+
+        // KAYITLAR
+        if (bookmarkList && mySavesAll.length > 0) {
+            let savesToShow = showAllSaves ? mySavesAll.length : 7;
+            let savesHtml = mySavesAll.slice(0, savesToShow).join('');
+            bookmarkList.innerHTML = savesHtml;
+            
+            if (mySavesAll.length > 7 && !showAllSaves) {
+                const btn = document.createElement('div');
+                btn.style.cssText = `text-align: center; padding: 20px; margin-top: 15px;`;
+                btn.innerHTML = `
+                    <button onclick="window.loadProfileSections(false, false, true);" style="
+                        background: linear-gradient(135deg, var(--primary), #8b5cf6);
+                        color: white;
+                        border: none;
+                        padding: 12px 30px;
+                        border-radius: 50px;
+                        font-weight: 700;
+                        cursor: pointer;
+                        font-size: 0.95rem;
+                        transition: all 0.3s ease;
+                    " onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+                        <i class="fa-solid fa-ellipsis"></i> Diğer Gönderiler
+                    </button>
+                `;
+                bookmarkList.appendChild(btn);
+            }
+        }
+        
     } catch(e) {
         console.error('loadProfileSections error', e);
-    } finally {
-        console.log('loadProfileSections stats', { total, mineCount, likedCount, savedCount });
     }
 };
 
@@ -3256,6 +3339,11 @@ async function loadNotifications(userData) {
                 ${detail ? `<p style="margin:4px 0 0 0; font-size:0.7rem; color:var(--text-muted); font-style:italic;">${detail}</p>` : ''}
                 <p style="margin:4px 0 0 0; font-size:0.7rem; color:var(--text-muted);">${timeStr}</p>
             </div>
+            <div style="display:flex; flex-direction:column; gap:6px; align-items:flex-end;">
+                <button class="notif-read-btn" style="background:var(--primary); color:#fff; border:none; padding:6px 10px; border-radius:8px; font-size:0.75rem; font-weight:700; cursor:pointer;">Okundu</button>
+                <button class="notif-hide-btn" style="background:#ef4444; color:#fff; border:none; padding:6px 10px; border-radius:8px; font-size:0.75rem; font-weight:700; cursor:pointer;">Sil</button>
+                ${n.postId ? `<button class="notif-go-btn" style="background:transparent; border:1px solid var(--border); color:var(--text-main); padding:6px 10px; border-radius:8px; font-size:0.75rem; font-weight:700; cursor:pointer;">Gönderiye Git</button>` : ''}
+            </div>
         `;
 
         nDiv.addEventListener('mouseenter', () => { nDiv.style.boxShadow = 'var(--shadow)'; nDiv.style.transform = 'translateY(-2px)'; });
@@ -3275,15 +3363,74 @@ async function loadNotifications(userData) {
                     }
                 }
             }
-            // Eğer gönderi id'si varsa git
+            // Eğer gönderi id'si varsa gönderiye git, yoksa profil bildirimler sekmesine git
             if (n.postId) {
                 const dropdown = document.getElementById('notificationsDropdown');
                 if (dropdown) dropdown.style.display = 'none';
                 window.location.href = `index.html#post-${n.postId}`;
+            } else {
+                const dropdown = document.getElementById('notificationsDropdown');
+                if (dropdown) dropdown.style.display = 'none';
+                // Açık profilden farklı bir sayfadaysak profil sayfasına git
+                if (!window.location.pathname.endsWith('profil.html')) {
+                    window.location.href = 'profil.html#my-notifs-tab';
+                } else {
+                    // Eğer zaten profil sayfasındaysak, açılacak sekmeyi ayarla
+                    const tabBtn = document.querySelector(".tab-btn[onclick*='my-notifs-tab']");
+                    if (tabBtn) tabBtn.click();
+                }
             }
         };
 
         requestsList.appendChild(nDiv);
+
+        // Header için Okundu ve Sil butonlarını bağla (sadece dropdown'dan kaldıracak şekilde)
+        const readBtn = nDiv.querySelector('.notif-read-btn');
+        const hideBtn = nDiv.querySelector('.notif-hide-btn');
+        const goBtn = nDiv.querySelector('.notif-go-btn');
+
+        if (readBtn) {
+            readBtn.onclick = async (e) => {
+                e.stopPropagation();
+                try {
+                    // Mark as read in DB
+                    await markNotificationRead(n);
+                } catch (err) {
+                    console.error('header read button error', err);
+                }
+                // Remove from dropdown immediately
+                nDiv.remove();
+                // update badge
+                const countBadge = document.getElementById('requestCountBadge');
+                const current = parseInt((countBadge && countBadge.textContent) || '0') || 0;
+                updateNotificationBadge(Math.max(0, current - 1));
+            };
+        }
+
+        if (hideBtn) {
+            hideBtn.onclick = async (e) => {
+                e.stopPropagation();
+                try {
+                    // Delete permanently from DB
+                    await deleteNotification(n);
+                } catch (err) {
+                    console.error('header delete button error', err);
+                }
+                nDiv.remove();
+                const countBadge = document.getElementById('requestCountBadge');
+                const current = parseInt((countBadge && countBadge.textContent) || '0') || 0;
+                updateNotificationBadge(Math.max(0, current - 1));
+            };
+        }
+
+        if (goBtn) {
+            goBtn.onclick = (e) => {
+                e.stopPropagation();
+                const dropdown = document.getElementById('notificationsDropdown');
+                if (dropdown) dropdown.style.display = 'none';
+                window.location.href = `index.html#post-${n.postId}`;
+            };
+        }
     }
 
     // Eğer daha fazla bildirim varsa "Tümünü Göster" butonu ekle
@@ -3444,6 +3591,7 @@ async function loadProfileNotifications() {
                 </div>
                 <div style="display:flex; flex-direction:column; gap:6px; align-items:flex-end;">
                     ${!n.read ? `<button style="background:var(--primary); color:#fff; border:none; padding:6px 12px; border-radius:8px; font-size:0.75rem; font-weight:700; cursor:pointer;">Okundu</button>` : `<div style="font-size:0.75rem; color:var(--text-muted); font-weight:600;">✓ Okundu</div>`}
+                    <button style="background:#ef4444; color:#fff; border:none; padding:6px 12px; border-radius:8px; font-size:0.75rem; font-weight:700; cursor:pointer;">Sil</button>
                     ${n.postId ? `<button style="background:transparent; border:1px solid var(--border); color:var(--text-main); padding:6px 10px; border-radius:8px; font-size:0.75rem; font-weight:700; cursor:pointer;">Gönderiye Git</button>` : ''}
                 </div>
             `;
@@ -3451,24 +3599,77 @@ async function loadProfileNotifications() {
             nDiv.addEventListener('mouseenter', () => { if (!n.read) nDiv.style.boxShadow = 'var(--shadow)'; });
             nDiv.addEventListener('mouseleave', () => { nDiv.style.boxShadow = 'none'; });
 
-            // Tıklamayla okundu yap
+            list.appendChild(nDiv);
+
+            // Sil butonu seçicisi - tüm butonları kontrol et ve "Sil" yazanı bul
+            const buttons = nDiv.querySelectorAll('button');
+            for (const btn of buttons) {
+                if (btn.textContent.trim() === 'Sil') {
+                    btn.onclick = async (e) => {
+                        e.stopPropagation();
+                        await deleteNotification(n);
+                        loadProfileNotifications();
+                    };
+                }
+                if (btn.textContent.trim() === 'Gönderiye Git') {
+                    btn.onclick = (e) => {
+                        e.stopPropagation();
+                        window.location.href = `index.html#post-${n.postId}`;
+                    };
+                }
+                if (btn.textContent.trim() === 'Okundu') {
+                    btn.onclick = async (e) => {
+                        e.stopPropagation();
+                        if (!n.read) {
+                            await markNotificationRead(n);
+                            setTimeout(() => loadProfileNotifications(), 100);
+                        }
+                    };
+                }
+            }
+
             nDiv.onclick = async (e) => {
-                e.stopPropagation();
-                if (!n.read) {
-                    await markNotificationRead(n);
-                    // UI yenileme için short delay
-                    setTimeout(() => loadProfileNotifications(), 100);
-                } else if (n.postId) {
-                    // Zaten okundu, direkt gönderi sayfasına git
-                    window.location.href = `index.html#post-${n.postId}`;
+                if (!e.target.closest('button')) {
+                    if (!n.read) {
+                        await markNotificationRead(n);
+                        setTimeout(() => loadProfileNotifications(), 100);
+                    } else if (n.postId) {
+                        window.location.href = `index.html#post-${n.postId}`;
+                    }
                 }
             };
-
-            list.appendChild(nDiv);
         }
 
     } catch (e) {
         console.error('loadProfileNotifications hatası:', e);
+    }
+}
+
+// Silinen bildirimleri yönetmek için helper
+function saveDeletedNotification(notif) {
+    const key = 'deletedNotifications_' + auth.currentUser.uid;
+    const deleted = JSON.parse(localStorage.getItem(key)) || [];
+    deleted.push({
+        ...notif,
+        deletedAt: Date.now()
+    });
+    localStorage.setItem(key, JSON.stringify(deleted));
+}
+
+// Tek bir bildirimi sil
+async function deleteNotification(targetNotif) {
+    if (!auth.currentUser) return;
+    try {
+        saveDeletedNotification(targetNotif);
+        const userRef = doc(db, 'users', auth.currentUser.uid);
+        const userSnap = await getDoc(userRef);
+        if (!userSnap.exists()) return;
+        const notifs = Array.isArray(userSnap.data().notifications) ? userSnap.data().notifications : [];
+
+        const updated = notifs.filter(n => !_isSameNotification(n, targetNotif));
+        await updateDoc(userRef, { notifications: updated });
+    } catch (e) {
+        console.error('deleteNotification hata:', e);
     }
 }
 
@@ -3495,6 +3696,96 @@ async function markNotificationRead(targetNotif) {
     }
 }
 
+// Tüm bildirimleri sil
+async function deleteAllNotifications() {
+    if (!auth.currentUser) return;
+    try {
+        const userRef = doc(db, 'users', auth.currentUser.uid);
+        const userSnap = await getDoc(userRef);
+        if (userSnap.exists()) {
+            const notifs = Array.isArray(userSnap.data().notifications) ? userSnap.data().notifications : [];
+            notifs.forEach(n => saveDeletedNotification(n));
+        }
+        await updateDoc(userRef, { notifications: [] });
+        loadProfileNotifications();
+    } catch (e) {
+        console.error('deleteAllNotifications hata:', e);
+    }
+}
+
+// Geri al modalını göster
+function showRestoreModal() {
+    if (!auth.currentUser) return;
+    const key = 'deletedNotifications_' + auth.currentUser.uid;
+    const deleted = JSON.parse(localStorage.getItem(key)) || [];
+    const now = Date.now();
+    const tenMin = deleted.filter(n => now - n.deletedAt < 10 * 60 * 1000);
+    const oneHour = deleted.filter(n => now - n.deletedAt < 60 * 60 * 1000);
+    const oneDay = deleted.filter(n => now - n.deletedAt < 24 * 60 * 60 * 1000);
+
+    let modal = document.getElementById('restoreModal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'restoreModal';
+        modal.style.cssText = `position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:5000; display:flex; align-items:center; justify-content:center;`;
+        document.body.appendChild(modal);
+    }
+
+    modal.innerHTML = `
+        <div class="glass-card" style="width:90%; max-width:400px; padding:20px; border-radius:12px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                <h3 style="margin:0; font-weight:800;">Silinen Bildirimleri Geri Al</h3>
+                <button onclick="document.getElementById('restoreModal').style.display='none'" style="background:none; border:none; font-size:1.5rem; cursor:pointer;">&times;</button>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:10px;">
+                <button onclick="restoreNotifications(${JSON.stringify(tenMin).replace(/"/g, '&quot;')})" style="background:var(--primary); color:#fff; border:none; padding:10px; border-radius:8px; font-weight:700; cursor:pointer; text-align:left; ${tenMin.length === 0 ? 'opacity:0.5; cursor:not-allowed;' : ''}"
+                ${tenMin.length === 0 ? 'disabled' : ''}>
+                    <i class="fa-solid fa-clock"></i> Son 10 Dakika (${tenMin.length})
+                </button>
+                <button onclick="restoreNotifications(${JSON.stringify(oneHour).replace(/"/g, '&quot;')})" style="background:var(--primary); color:#fff; border:none; padding:10px; border-radius:8px; font-weight:700; cursor:pointer; text-align:left; ${oneHour.length === 0 ? 'opacity:0.5; cursor:not-allowed;' : ''}"
+                ${oneHour.length === 0 ? 'disabled' : ''}>
+                    <i class="fa-solid fa-hourglass-half"></i> Son 1 Saat (${oneHour.length})
+                </button>
+                <button onclick="restoreNotifications(${JSON.stringify(oneDay).replace(/"/g, '&quot;')})" style="background:var(--primary); color:#fff; border:none; padding:10px; border-radius:8px; font-weight:700; cursor:pointer; text-align:left; ${oneDay.length === 0 ? 'opacity:0.5; cursor:not-allowed;' : ''}"
+                ${oneDay.length === 0 ? 'disabled' : ''}>
+                    <i class="fa-solid fa-calendar-days"></i> Son 1 Gün (${oneDay.length})
+                </button>
+            </div>
+        </div>
+    `;
+    modal.style.display = 'flex';
+    modal.onclick = (e) => {
+        if (e.target === modal) modal.style.display = 'none';
+    };
+}
+
+// Bildirimleri geri al
+async function restoreNotifications(notificationsToRestore) {
+    if (!auth.currentUser || !notificationsToRestore || notificationsToRestore.length === 0) return;
+    try {
+        const userRef = doc(db, 'users', auth.currentUser.uid);
+        const userSnap = await getDoc(userRef);
+        if (!userSnap.exists()) return;
+        const notifs = Array.isArray(userSnap.data().notifications) ? userSnap.data().notifications : [];
+        
+        const cleanedRestore = notificationsToRestore.map(({ deletedAt, ...n }) => n);
+        const combined = [...notifs, ...cleanedRestore];
+        
+        await updateDoc(userRef, { notifications: combined });
+        
+        // Silinen listeden sil
+        const key = 'deletedNotifications_' + auth.currentUser.uid;
+        const deleted = JSON.parse(localStorage.getItem(key)) || [];
+        const restored = deleted.filter(d => !notificationsToRestore.find(r => _isSameNotification(r, d)));
+        localStorage.setItem(key, JSON.stringify(restored));
+        
+        document.getElementById('restoreModal').style.display = 'none';
+        loadProfileNotifications();
+    } catch (e) {
+        console.error('restoreNotifications hata:', e);
+    }
+}
+
 // Tüm bildirimleri okundu yap
 async function markAllNotificationsRead() {
     if (!auth.currentUser) return;
@@ -3515,7 +3806,11 @@ async function markAllNotificationsRead() {
 
 window.loadProfileNotifications = loadProfileNotifications;
 window.markNotificationRead = markNotificationRead;
+window.deleteNotification = deleteNotification;
+window.deleteAllNotifications = deleteAllNotifications;
 window.markAllNotificationsRead = markAllNotificationsRead;
+window.showRestoreModal = showRestoreModal;
+window.restoreNotifications = restoreNotifications;
 
 // Fonksiyonu window nesnesine bağlayarak HTML'den erişilebilir yapıyoruz
 window.toggleNotifications = function() {
@@ -3523,7 +3818,8 @@ window.toggleNotifications = function() {
     if (dropdown) {
         // Mevcut durumu kontrol et ve tersine çevir
         if (dropdown.style.display === 'none' || dropdown.style.display === '') {
-            dropdown.style.display = 'block';
+            dropdown.style.display = 'flex';
+            dropdown.style.flexDirection = 'column';
             // Dropdown açılırken bildirimleri yenile (okunmuş olanlar kaybolur)
             if (auth.currentUser) {
                 const userRef = doc(db, 'users', auth.currentUser.uid);
