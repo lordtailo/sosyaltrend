@@ -4375,7 +4375,7 @@ function initChatListsPanel() {
             <input 
                 type="text" 
                 id="chat-new-user-input" 
-                placeholder="Kullanıcı adını yazınız..."
+                placeholder="Herhangi bir kullanıcı adı yaz.."
                 onkeypress="handleNewUserKeypress(event)"
                 style="flex:1;"
             >
