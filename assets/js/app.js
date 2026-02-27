@@ -4372,6 +4372,9 @@ function initChatListsPanel() {
                 onkeypress="handleNewUserKeypress(event)"
                 style="flex:1;"
             >
+            <button id="chat-start-btn" onclick="startChatWithUsername()" style="padding:8px 12px; background:var(--secondary); color:var(--text); border:none; border-radius:6px; cursor:pointer; font-size:0.85rem;" title="Sohbete Başla">
+                <i class="fa-solid fa-comment"></i>
+            </button>
             <button id="chat-add-friend-btn" onclick="addFriendFromChat()" style="padding:8px 12px; background:var(--primary); color:white; border:none; border-radius:6px; cursor:pointer; font-size:0.85rem;" title="Arkadaş ekle">
                 <i class="fa-solid fa-user-plus"></i>
             </button>
@@ -4488,36 +4491,35 @@ window.openChatWithFriend = async function(friendId, displayName, username) {
     window.closeChatsList();
 }
 
+// helper to start chat by username
+window.startChatWithUsername = async function() {
+    const input = document.getElementById('chat-new-user-input');
+    const username = input.value.trim();
+    if (!username) return;
+    try {
+        const userQuery = query(collection(db, 'users'), where('username', '==', username));
+        const userSnap = await getDocs(userQuery);
+        if (userSnap.empty) {
+            alert('Kullanıcı bulunamadı');
+            return;
+        }
+        const userId = userSnap.docs[0].id;
+        const userData = userSnap.docs[0].data();
+        const displayName = userData.displayName || username;
+        await openChatWithUser(userId, displayName);
+        input.value = '';
+        window.closeChatsList();
+    } catch (error) {
+        console.error('Kullanıcı açılırken hata:', error);
+        alert('Kullanıcı açılırken bir hata oluştu');
+    }
+}
+
 // Handle new user input
 window.handleNewUserKeypress = async function(event) {
     if (event.key === 'Enter') {
-        const input = document.getElementById('chat-new-user-input');
-        const username = input.value.trim();
-        
-        if (!username) return;
-        
-        try {
-            // Find user by username
-            const userQuery = query(collection(db, 'users'), where('username', '==', username));
-            const userSnap = await getDocs(userQuery);
-            
-            if (userSnap.empty) {
-                alert('Kullanıcı bulunamadı');
-                return;
-            }
-            
-            const userId = userSnap.docs[0].id;
-            const userData = userSnap.docs[0].data();
-            const displayName = userData.displayName || username;
-            
-            await openChatWithUser(userId, displayName);
-            input.value = '';
-            window.closeChatsList();
-            
-        } catch (error) {
-            console.error('Kullanıcı açılırken hata:', error);
-            alert('Kullanıcı açılırken bir hata oluştu');
-        }
+        event.preventDefault();
+        window.startChatWithUsername();
     }
 }
 

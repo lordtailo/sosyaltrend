@@ -386,6 +386,14 @@
     border-color: var(--primary);
 }
 
+/* start chat button style */
+.chat-lists-footer #chat-start-btn {
+    background: var(--secondary);
+    color: var(--text);
+}
+.chat-lists-footer #chat-start-btn:hover {
+    background: var(--secondary-dark, #ccc);
+}
 .chat-lists-content {
     flex: 1;
     overflow-y: auto;
