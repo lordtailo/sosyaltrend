@@ -4899,13 +4899,25 @@ function listenForIncomingMessages() {
     });
 }
 
-// Show message notification
-function showMessageNotification(senderId, senderName, messageText) {
-    // Check if notification already exists for this user
-    if (document.getElementById(`notif-${senderId}`)) {
-        return;
+// Helpers for persistent chat notifications
+function saveChatNotification(senderId, data) {
+    try {
+        localStorage.setItem('chatNotif_' + senderId, JSON.stringify(data));
+    } catch (e) {
+        console.warn('notification storage failed', e);
     }
-    
+}
+
+function removeChatNotification(senderId) {
+    try {
+        localStorage.removeItem('chatNotif_' + senderId);
+    } catch (e) {}
+    const el = document.getElementById('notif-' + senderId);
+    if (el) el.remove();
+}
+
+function renderChatNotification(senderId, senderName, messageText) {
+    if (document.getElementById(`notif-${senderId}`)) return;
     const notifDiv = document.createElement('div');
     notifDiv.id = `notif-${senderId}`;
     notifDiv.className = 'chat-notification-badge';
@@ -4914,7 +4926,6 @@ function showMessageNotification(senderId, senderName, messageText) {
         <span>${senderName} size mesaj gönderdi</span>
     `;
     notifDiv.onclick = async () => {
-        // mark conversation read before opening
         try {
             const currentUserId = auth.currentUser.uid;
             const convId = [currentUserId, senderId].sort().join('_');
@@ -4925,23 +4936,37 @@ function showMessageNotification(senderId, senderName, messageText) {
             console.warn('Bildirim tıklanırken okunma işareti atamada hata:', e);
         }
         openChatWithUser(senderId, senderName);
-        notifDiv.remove();
+        removeChatNotification(senderId);
     };
-    
     document.body.appendChild(notifDiv);
-    
-    // Auto remove after 30 seconds only if still not clicked
-    setTimeout(() => {
-        if (notifDiv.parentNode) {
-            notifDiv.remove();
+}
+
+function loadStoredChatNotifications() {
+    for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('chatNotif_')) {
+            const senderId = key.slice('chatNotif_'.length);
+            try {
+                const data = JSON.parse(localStorage.getItem(key));
+                if (data && data.senderId) {
+                    renderChatNotification(data.senderId, data.senderName, data.messageText);
+                }
+            } catch (e) {}
         }
-    }, 30000);
+    }
+}
+
+// Show message notification
+function showMessageNotification(senderId, senderName, messageText) {
+    saveChatNotification(senderId, { senderId, senderName, messageText });
+    renderChatNotification(senderId, senderName, messageText);
 }
 
 // Initialize chat widget when page loads
 document.addEventListener('DOMContentLoaded', () => {
     initChatWidget();
     initChatListsPanel();
+    loadStoredChatNotifications();
 });
 
 // Start listening for messages when user is authenticated
