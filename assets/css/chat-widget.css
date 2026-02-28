@@ -3,7 +3,6 @@
     position: fixed;
     bottom: 80px;
     right: 20px;
-    left: 15px;
     width: 380px;
     height: 500px;
     background: var(--card-bg);
@@ -91,7 +90,6 @@
     }
     to {
         opacity: 1;
-        transform: translateY(0);
     }
 }
 
@@ -229,9 +227,6 @@
     background: #8b5cf6;
     transform: scale(1.05);
 }
-    cursor: pointer;
-    font-size: 1.2rem;
-}
 
 #chat-attachment-preview {
     margin-bottom: 4px;
@@ -256,10 +251,6 @@
     background: var(--primary);
     color: white;
 }
-.chat-widget-input button:hover {
-    background: #8b5cf6;
-    transform: scale(1.05);
-}
 
 .chat-widget-input button:disabled {
     opacity: 0.6;
@@ -269,17 +260,13 @@
 
 /* Mobile responsiveness */
 @media (max-width: 768px) {
-    .chat-widget-container {
-        width: calc(100% - 20px);
-        height: 400px;
-        bottom: 60px;
-        right: 10px;
-    }
+    .chat-widget-container,
     .chat-lists-panel {
         width: calc(100% - 20px);
         height: 400px;
         bottom: 60px;
         right: 10px;
+        left: 10px;
     }
     .chat-widget-header,
     .chat-lists-header {
