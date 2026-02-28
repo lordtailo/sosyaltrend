@@ -4411,7 +4411,12 @@ function initChatWidget() {
     chatWidget.className = 'chat-widget-container';
     chatWidget.innerHTML = `
         <div class="chat-widget-header">
-            <h3 id="chat-widget-title">Sohbet</h3>
+ <div class="chat-header-left">
+            <button class="back-btn" id="chat-back-btn" onclick="backToFriendList()" title="Geri Dön">
+                <i class="fa-solid fa-arrow-left"></i>
+            </button>
+            <h3 id="chat-window-title">Sohbet</h3>
+        </div>
             <button class="close-btn" onclick="closeChatWidget()">
                 <i class="fa-solid fa-times"></i>
             </button>
@@ -4490,8 +4495,8 @@ function initChatListsPanel() {
                 onkeypress="handleNewUserKeypress(event)"
                 style="flex:1;"
             >
-            <button id="chat-start-btn" onclick="startChatWithUsername()" style="display:flex; align-items:center; gap:4px; padding:8px 12px; background:var(--primary); color:white; border:none; border-radius:6px; cursor:pointer; font-size:0.85rem;" title="Sohbete Başla">
-                <i class="fa-solid fa-paper-plane"></i><span>Sohbete Başla</span>
+            <button id="chat-start-btn" onclick="startChatWithUsername()" style="display:flex; align-items:center; gap:4px; padding:8px 12px; background:var(--primary); color:white; border:none; border-radius:6px; cursor:pointer; font-size:0.85rem;" title="Sohbete Et">
+                <i class="fa-solid fa-paper-plane"></i><span>Sohbete Et</span>
             </button>
             <button id="chat-add-friend-btn" onclick="addFriendFromChat()" style="padding:8px 12px; background:var(--primary); color:white; border:none; border-radius:6px; cursor:pointer; font-size:0.85rem;" title="Arkadaş ekle">
                 <i class="fa-solid fa-user-plus"></i>
@@ -5314,4 +5319,11 @@ onAuthStateChanged(auth, (authUser) => {
             listenForIncomingMessages();
         }, 2000);
     }
+});
+
+document.getElementById('chat-back-btn').addEventListener('click', () => {
+    // Sohbet penceresini gizle
+    document.querySelector('.chat-widget-container').classList.remove('active');
+    // Arkadaş listesini göster
+    document.querySelector('.chat-lists-panel').classList.add('active');
 });
