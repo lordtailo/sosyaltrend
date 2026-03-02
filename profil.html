@@ -251,7 +251,7 @@
     </div>
 
     <div class="profile-tabs">
-      <button class="tab-btn active" onclick="openTab(event, 'my-posts-tab')"><i class="fa-solid fa-clone"></i>Gönderiler</button>
+      <button class="tab-btn active" onclick="openTab(event, 'my-posts-tab')"><i class="fa-solid fa-clone"></i> Gönderiler</button>
       <button class="tab-btn" onclick="openTab(event, 'my-likes-tab')"><i class="fa-solid fa-heart"></i> Beğeniler</button>
       <button class="tab-btn" onclick="openTab(event, 'my-saves-tab')"><i class="fa-solid fa-bookmark"></i> Kayıtlar</button>
       <button class="tab-btn" id="friends-tab-btn" onclick="openTab(event, 'my-friends-tab')"><i class="fa-solid fa-users"></i> Arkadaşlar</button>
@@ -312,105 +312,100 @@
 <div data-include="partials/footer.html"></div>
 <script src="assets/js/include.js"></script>
 <script>
-    let currentTargetGrid = null;
-    let galleryData = JSON.parse(localStorage.getItem('userGalleryData')) || {
-        albums: [{ id: 'grid-default', name: 'Genel Galeri', photos: [] }]
-    };
-
     function openTab(evt, tabName) {
-        var i, tabcontent, tablinks;
+    var i, tabcontent, tablinks;
+    
+    // Profil sahipliği kontrolü
+    const params = new URLSearchParams(location.search);
+    const visitedUsername = params.get('id');
+    const isOwnProfile = !visitedUsername || (window.user && visitedUsername === window.user.username);
+
+    // 1. Sekme Gizlilik Kontrolü: Başkasının profilinde bu sekmeler tıklandığında içeriği temizle/engelle
+    const privateTabs = ['my-posts-tab', 'my-likes-tab', 'my-saves-tab'];
+    if (privateTabs.includes(tabName) && !isOwnProfile) {
+        // Sekmeleri gizle
         tabcontent = document.getElementsByClassName("tab-content");
         for (i = 0; i < tabcontent.length; i++) {
             tabcontent[i].style.display = "none";
             tabcontent[i].classList.remove("active");
         }
+        // Aktif buton görselini güncelle ama içeriği yükleme
         tablinks = document.getElementsByClassName("tab-btn");
         for (i = 0; i < tablinks.length; i++) {
             tablinks[i].classList.remove("active");
         }
-        document.getElementById(tabName).style.display = "block";
-        document.getElementById(tabName).classList.add("active");
         evt.currentTarget.classList.add("active");
         
-        // Ensure profile data is loaded when switching to posts/likes/saves tabs
-        if (['my-posts-tab','my-likes-tab','my-saves-tab'].includes(tabName)) {
-            requestAnimationFrame(() => {
-                if (window.loadProfileSections && typeof window.loadProfileSections === 'function') {
-                    try {
-                        window.loadProfileSections();
-                    } catch(e) {
-                        console.warn('loadProfileSections call failed:', e);
-                    }
-                }
-            });
-        }
-        
-        if (tabName === 'my-friends-tab') {
-            requestAnimationFrame(() => {
-                if (window.loadFriendsList && window.user && window.auth?.currentUser) {
-                    const params = new URLSearchParams(location.search);
-                    const visitedUsername = params.get('id');
-                    const isOwnProfile = !visitedUsername || visitedUsername === window.user.username;
-                    
-                    // Başlık ve buton yazısını güncelle
-                    const titleEl = document.getElementById('friends-tab-title');
-                    const btnEl = document.getElementById('friends-tab-btn');
-                    if (isOwnProfile) {
-                        if (titleEl) titleEl.innerText = 'Arkadaşlarım';
-                        if (btnEl) btnEl.innerHTML = '<i class="fa-solid fa-users"></i> Arkadaşlar';
-                    } else {
-                        if (titleEl) titleEl.innerText = 'Ortak Arkadaşlar';
-                        if (btnEl) btnEl.innerHTML = '<i class="fa-solid fa-handshake"></i> Ortak Arkadaşlar';
-                    }
-                    
-                    setTimeout(() => {
-                        // clear search field each time tab opens
-                        const searchInput = document.getElementById('friendSearch');
-                        if (searchInput) searchInput.value = '';
-                        window.loadFriendsList(null, isOwnProfile);
-                        // friend search filtering - simple helper
-                        if (searchInput) {
-                            searchInput.oninput = () => {
-                                // debug removed
-
-                                applyFriendSearch();
-                            };
-                        }
-                    }, 0);
-                }
-            });
-        }
-        if (tabName === 'my-notifs-tab') {
-          const params = new URLSearchParams(location.search);
-          const visitedUsername = params.get('id');
-          const isOwnProfile = !visitedUsername || visitedUsername === window.user.username;
-          if (isOwnProfile) {
-            requestAnimationFrame(() => {
-              if (window.loadProfileNotifications) setTimeout(() => window.loadProfileNotifications(), 0);
-            });
-          }
-        }
+        // İçerik kısmına gizlilik mesajı bas
+        const targetDiv = document.getElementById(tabName);
+        targetDiv.style.display = "block";
+        targetDiv.classList.add("active");
+        targetDiv.innerHTML = `<div class="glass-card" style="padding:40px; text-align:center; color:var(--text-muted);">
+                                <i class="fa-solid fa-lock" style="font-size:3rem; margin-bottom:15px; display:block;"></i>
+                                Bu içerikler sadece profil sahibine özeldir.
+                               </div>`;
+        return; // Fonksiyonu burada durdur, loadProfileSections'ı çağırma.
     }
 
-    function openGalleryUpload(gridId) {
-        currentTargetGrid = gridId;
-        document.getElementById('masterGalleryInput').click();
+    // 2. Normal Sekme Değiştirme Mantığı
+    tabcontent = document.getElementsByClassName("tab-content");
+    for (i = 0; i < tabcontent.length; i++) {
+        tabcontent[i].style.display = "none";
+        tabcontent[i].classList.remove("active");
+    }
+    tablinks = document.getElementsByClassName("tab-btn");
+    for (i = 0; i < tablinks.length; i++) {
+        tablinks[i].classList.remove("active");
+    }
+    
+    document.getElementById(tabName).style.display = "block";
+    document.getElementById(tabName).classList.add("active");
+    evt.currentTarget.classList.add("active");
+    
+    // Sadece kendi profilimizse verileri yükle
+    if (['my-posts-tab','my-likes-tab','my-saves-tab'].includes(tabName) && isOwnProfile) {
+        requestAnimationFrame(() => {
+            if (window.loadProfileSections && typeof window.loadProfileSections === 'function') {
+                try {
+                    window.loadProfileSections();
+                } catch(e) {
+                    console.warn('loadProfileSections call failed:', e);
+                }
+            }
+        });
+    }
+    
+    // Arkadaşlar Sekmesi (Her zaman çalışabilir, içinde kendi isOwnProfile kontrolü var)
+    if (tabName === 'my-friends-tab') {
+        requestAnimationFrame(() => {
+            if (window.loadFriendsList && window.user) {
+                const titleEl = document.getElementById('friends-tab-title');
+                const btnEl = document.getElementById('friends-tab-btn');
+                if (isOwnProfile) {
+                    if (titleEl) titleEl.innerText = 'Arkadaşlarım';
+                    if (btnEl) btnEl.innerHTML = '<i class="fa-solid fa-users"></i> Arkadaşlar';
+                } else {
+                    if (titleEl) titleEl.innerText = 'Ortak Arkadaşlar';
+                    if (btnEl) btnEl.innerHTML = '<i class="fa-solid fa-handshake"></i> Ortak Arkadaşlar';
+                }
+                
+                setTimeout(() => {
+                    const searchInput = document.getElementById('friendSearch');
+                    if (searchInput) searchInput.value = '';
+                    window.loadFriendsList(null, isOwnProfile);
+                }, 0);
+            }
+        });
     }
 
-    function handleImageProcessing(input) {
-        if (input.files && input.files[0] && currentTargetGrid) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const album = galleryData.albums.find(a => a.id === currentTargetGrid);
-                if(album) {
-                    album.photos.push(e.target.result);
-                    saveAndRender();
-                }
-            };
-            reader.readAsDataURL(input.files[0]);
-            input.value = ""; 
-        }
+    // Bildirimler Sekmesi (Zaten sadece isOwnProfile ise çalışıyor)
+    if (tabName === 'my-notifs-tab' && isOwnProfile) {
+        requestAnimationFrame(() => {
+            if (window.loadProfileNotifications) setTimeout(() => window.loadProfileNotifications(), 0);
+        });
     }
+}
+
 </script>
 <script>
 window.handleProfileAction = function() {
@@ -435,15 +430,25 @@ window.handleProfileAction = function() {
     }
 };
 
+// Sayfa ve modüller yüklendikten sonra gönderileri tetikle
 window.addEventListener('load', () => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const targetId = urlParams.get('id') || urlParams.get('uid');
-    const btn = document.getElementById('profileActionBtn');
-    
-    if (!targetId && btn) {
-        btn.style.opacity = "0.5";
-        btn.title = "Kullanıcı belirlenemedi";
-    }
+    // app.js'in içindeki fonksiyonların tanımlanması için kısa bir süre tanı
+    setTimeout(() => {
+        if (typeof window.loadProfileSections === 'function') {
+            // Gönderileri, beğenileri ve kayıtları yükle
+            window.loadProfileSections();
+            
+            // Eğer URL'de özel bir tab (etiket) seçili değilse 
+            // varsayılan olarak "Gönderiler" sekmesini aktif et
+            const hash = window.location.hash.replace('#', '');
+            if (!hash) {
+                const postTabBtn = document.querySelector('.tab-btn[onclick*="my-posts-tab"]');
+                if (postTabBtn) postTabBtn.click();
+            }
+        } else {
+            console.error('Hata: loadProfileSections fonksiyonu bulunamadı. app.js yolunu kontrol edin.');
+        }
+    }, 500); // 500ms bekleme süresi stabilitesini artırır
 });
 </script>
 <script type="module" src="assets/js/app.js"></script>
