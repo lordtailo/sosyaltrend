@@ -9,6 +9,8 @@
   <link rel="stylesheet" href="assets/css/style.css">
   <link rel="stylesheet" href="assets/css/chat-widget.css?v=20260240">
   <link rel="icon" type="image/x-icon" href="assets/img/strendsaydamv2.ico">
+<!-- modern mobile web app capability (replaces deprecated apple tag) -->
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#6366f1">
@@ -156,7 +158,10 @@
 
     async function updateVakitler() {
         try {
-            const res = await fetch(`https://api.aladhan.com/v1/timingsByCity?city=${selectedCity}&country=Turkey&method=13`);
+            const res = await fetch(`https://api.aladhan.com/v1/timingsByCity?city=${selectedCity}&country=Turkey&method=13`, {
+                mode: 'cors',
+                headers: { 'Accept': 'application/json' }
+            });
             const data = await res.json();
             const timings = data.data.timings;
             
@@ -201,7 +206,10 @@
         modal.style.display = "flex";
 
         try {
-            const res = await fetch(`https://api.aladhan.com/v1/calendarByCity/2026?city=${selectedCity}&country=Turkey&method=13`);
+            const res = await fetch(`https://api.aladhan.com/v1/calendarByCity/2026?city=${selectedCity}&country=Turkey&method=13`, {
+                mode: 'cors',
+                headers: { 'Accept': 'application/json' }
+            });
             const data = await res.json();
 
             let html = "";

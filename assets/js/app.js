@@ -1132,6 +1132,17 @@ function getAvatarUrl(avatarUrlOrSeed, type = 'user') {
         }
         pBanner.style.display = showBanner ? 'block' : 'none';
     }
+    
+    // Kendi profilinde bannerleri gizle
+    const params = new URLSearchParams(location.search);
+    const visitedUsername = params.get('id');
+    if (!visitedUsername || visitedUsername === user.username) {
+        const privateNoticeCard = document.getElementById('privateNoticeCard');
+        const friendViewNotice = document.getElementById('friendViewNotice');
+        if (privateNoticeCard) privateNoticeCard.style.display = 'none';
+        if (friendViewNotice) friendViewNotice.style.display = 'none';
+    }
+    
     // update simulate button label if present
     const simBtn = document.getElementById('simulateVisitorBtn');
     if (simBtn) {
@@ -1730,7 +1741,10 @@ window.loadPostsFeed = (showAll = false) => {
 
       // populate feed only
       if (snap.size > 0 && feedHtml.trim() === '') {
-          console.warn('loadPostsFeed: no HTML generated for non-empty snapshot, skipping overwrite');
+          // no HTML generated despite documents present; show fallback message
+          if (feed) {
+              feed.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-muted);">Gönderiler yüklenirken bir hata oluştu.</div>';
+          }
       } else {
           if(feed) {
               feed.innerHTML = feedHtml;
@@ -1932,6 +1946,29 @@ async function loadVisitorProfile() {
         if (editBtn) editBtn.style.display = 'inline-block';
         if (addFriendBtn) addFriendBtn.style.display = 'none';
         if (settingsBtn) settingsBtn.style.display = 'inline-block';
+        
+        // Kendi profilinde bannerleri gizle
+        const privateNoticeCard = document.getElementById('privateNoticeCard');
+        if (privateNoticeCard) privateNoticeCard.style.display = 'none';
+        const friendViewNotice = document.getElementById('friendViewNotice');
+        if (friendViewNotice) friendViewNotice.style.display = 'none';
+        
+        // Kendi profilinde tüm sekmeler açık olsun
+        const tabButtons = document.querySelectorAll('.tab-btn');
+        tabButtons.forEach((btn) => {
+            btn.style.display = 'inline-block';
+        });
+        const postsTab = document.getElementById('my-posts-tab');
+        const likesTab = document.getElementById('my-likes-tab');
+        const savesTab = document.getElementById('my-saves-tab');
+        const friendsTab = document.getElementById('my-friends-tab');
+        const notifsTab = document.getElementById('my-notifs-tab');
+        if (postsTab) postsTab.style.display = 'block';
+        if (likesTab) likesTab.style.display = 'block';
+        if (savesTab) savesTab.style.display = 'block';
+        if (friendsTab) friendsTab.style.display = 'block';
+        if (notifsTab) notifsTab.style.display = 'block';
+        
         // Own profile buttons updated
         return;
     }
@@ -1973,13 +2010,21 @@ async function loadVisitorProfile() {
         if (idx === 1 || idx === 2) { // 1 = Beğendiklerim, 2 = Kaydedilenler
             btn.style.display = 'none';
         }
+        // ayrıca gönderiler ve bildirimler sekmelerini de gizle (ziyaretçi profili)
+        if (idx === 0 || btn.getAttribute('onclick')?.includes('my-notifs-tab')) {
+            btn.style.display = 'none';
+        }
     });
     
     // Ilgili tab içeriklerini gizle
     const likedTab = document.getElementById('my-likes-tab');
     const savesTab = document.getElementById('my-saves-tab');
+    const postsTab = document.getElementById('my-posts-tab');
+    const notifsTab = document.getElementById('my-notifs-tab');
     if (likedTab) likedTab.style.display = 'none';
     if (savesTab) savesTab.style.display = 'none';
+    if (postsTab) postsTab.style.display = 'none';
+    if (notifsTab) notifsTab.style.display = 'none';
     
     try {
         // Firestore'dan başka kullanıcının postlarını çek
@@ -2018,14 +2063,29 @@ async function loadVisitorProfile() {
                     isFriend = visitedData.friends.includes(auth.currentUser.uid);
                 }
                 if (!isFriend) {
-                    const container = document.getElementById('main-content');
-                    if (container) {
-                        const msg = translations[currentLang].profileHiddenMessage || 'Bu profil gizlidir.';
-                        container.innerHTML = `<div style="border-radius:1rem; background:var(--card-bg); text-align:center; padding:40px; color:var(--text-muted);">
-                            <i class="fa-solid fa-lock" style="font-size:3rem; margin-bottom:15px;"></i>
-                            <p>${msg}</p>
-                        </div>`;
+                    // Gizli profil: profil başlığını güncelle
+                    const profileName = document.getElementById('profilePageName');
+                    if (profileName) profileName.innerText = visitorDisplayName;
+                    
+                    const profileHandle = document.getElementById('profilePageHandle');
+                    if (profileHandle) profileHandle.innerText = `@${visitedUsername}`;
+                    
+                    const profileAvatar = document.getElementById('profilePageAvatar');
+                    if (profileAvatar) {
+                        profileAvatar.src = visitorAvatar || getAvatarUrl("strendsaydamv2", 'user');
                     }
+                    
+                    // Sol üste banner göster ve arkadaşlar sekmesini kapat
+                    const privateNoticeCard = document.getElementById('privateNoticeCard');
+                    if (privateNoticeCard) {
+                        privateNoticeCard.style.display = 'block';
+                    }
+                    
+                    const friendsTab = document.getElementById('my-friends-tab');
+                    const friendsTabBtn = document.querySelector('.tab-btn[onclick*="my-friends-tab"]');
+                    if (friendsTab) friendsTab.style.display = 'none';
+                    if (friendsTabBtn) friendsTabBtn.style.display = 'none';
+                    
                     return; // skip rest of visitor loading
                 }
             }
@@ -2063,8 +2123,7 @@ async function loadVisitorProfile() {
 
         // eğer profil gizliyse ve biz arkadaşsak bazı öğeleri gizle
         if (visitedData && visitedData.isPrivate && isFriend) {
-            const profileAvatarEl = document.getElementById('profilePageAvatar');
-            if (profileAvatarEl) profileAvatarEl.style.display = 'none';
+            // avatar artık gösterilsin, sadece hareket butonlarını sakla
             const actionBtn = document.getElementById('profileActionBtn');
             if (actionBtn) actionBtn.style.display = 'none';
             const addFriendBtn = document.getElementById('addFriendBtn');
@@ -2148,7 +2207,28 @@ window.loadProfileSections = async (showAllPosts = false, showAllLikes = false, 
         console.warn('loadProfileSections: no auth user');
         return;
     }
+    
+    if (!user || !user.username) {
+        console.warn('loadProfileSections: user.username not initialized', user);
+        // Wait for user to be initialized
+        await new Promise(resolve => {
+            let attempts = 0;
+            const checkUser = setInterval(() => {
+                if (user && user.username) {
+                    clearInterval(checkUser);
+                    resolve();
+                } else if (attempts > 30) { // 3 seconds max
+                    clearInterval(checkUser);
+                    console.warn('loadProfileSections: user initialization timeout');
+                    resolve();
+                }
+                attempts++;
+            }, 100);
+        });
+    }
+    
     const uname = user.username;
+    console.log('[loadProfileSections]', 'uname:', uname, 'user:', user);
     const myPostsList = document.getElementById('my-posts-list');
     const myLikesList = document.getElementById('my-liked-list');
     const bookmarkList = document.getElementById('bookmark-items');
@@ -4415,7 +4495,7 @@ function initChatWidget() {
             <button class="back-btn" id="chat-back-btn" onclick="backToFriendList()" title="Geri Dön">
                 <i class="fa-solid fa-arrow-left"></i>
             </button>
-            <h3 id="chat-window-title">Sohbet</h3>
+            <h3 id="chat-widget-title">Sohbet</h3>
         </div>
             <button class="close-btn" onclick="closeChatWidget()">
                 <i class="fa-solid fa-times"></i>
@@ -4966,6 +5046,13 @@ function clearChatInactivityTimer() {
     }
 }
 
+// NAVIGATION FROM CHAT TO FRIEND LIST
+window.backToFriendList = function() {
+    // close current conversation widget and show the friends list panel
+    window.closeChatWidget();
+    window.openChatsList();
+};
+
 // Escape HTML special characters
 function escapeHtml(text) {
     const div = document.createElement('div');
@@ -5088,13 +5175,19 @@ function removeChatNotification(senderId) {
 }
 
 function renderChatNotification(senderId, senderName, messageText) {
-    if (document.getElementById(`notif-${senderId}`)) return;
+    if (document.getElementById(`notif-${senderId}`)) {
+        // eğer zaten varsa kaldır ve yeni yap
+        document.getElementById(`notif-${senderId}`).remove();
+    }
     const notifDiv = document.createElement('div');
     notifDiv.id = `notif-${senderId}`;
     notifDiv.className = 'chat-notification-badge';
     notifDiv.innerHTML = `
         <i class="fa-solid fa-envelope"></i>
-        <span>${senderName} size mesaj gönderdi</span>
+        <div>
+            <div style="font-weight:700;">${senderName}</div>
+            <div style="font-size:0.8rem; opacity:0.9;">${messageText.slice(0, 50)}${messageText.length > 50 ? '...' : ''}</div>
+        </div>
     `;
     notifDiv.onclick = async () => {
         try {
@@ -5110,6 +5203,13 @@ function renderChatNotification(senderId, senderName, messageText) {
         removeChatNotification(senderId);
     };
     document.body.appendChild(notifDiv);
+    
+    // 5 saniye sonra otomatik kaldır
+    setTimeout(() => {
+        if (document.getElementById(`notif-${senderId}`)) {
+            document.getElementById(`notif-${senderId}`).remove();
+        }
+    }, 5000);
 }
 
 function loadStoredChatNotifications() {
@@ -5321,9 +5421,14 @@ onAuthStateChanged(auth, (authUser) => {
     }
 });
 
-document.getElementById('chat-back-btn').addEventListener('click', () => {
-    // Sohbet penceresini gizle
-    document.querySelector('.chat-widget-container').classList.remove('active');
-    // Arkadaş listesini göster
-    document.querySelector('.chat-lists-panel').classList.add('active');
-});
+// The back button has an inline onclick attribute that calls backToFriendList().
+// Add listener only if element already exists to avoid null errors.
+const backBtnElem = document.getElementById('chat-back-btn');
+if (backBtnElem) {
+    backBtnElem.addEventListener('click', () => {
+        // Sohbet penceresini gizle
+        document.querySelector('.chat-widget-container').classList.remove('active');
+        // Arkadaş listesini göster
+        document.querySelector('.chat-lists-panel').classList.add('active');
+    });
+}

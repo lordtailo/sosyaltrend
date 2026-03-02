@@ -179,15 +179,15 @@
       <div id="selfPrivateBanner" style="position:absolute; top:10px; right:10px; background:var(--danger); padding:4px 8px; border-radius:1rem; font-size:0.75rem; color:#fff; display:none; z-index:10001;" data-i18n="privateBanner">Profiliniz Gizli</div>
 
       <!-- ziyaretçi görünümündeki gizlilik uyarı kartı (başlangıçta gizli) -->
-      <div id="privateNoticeCard" class="glass-card" style="display:none; padding:12px; margin-bottom:10px; text-align:center; font-weight:600; color:var(--text-main); background:var(--card-bg);">
+      <div id="privateNoticeCard" style="display:none; position:absolute; top:10px; left:10px; padding:8px 12px; font-size:0.8rem; font-weight:600; color:#fff; background:var(--danger); border-radius:1rem; margin:0; z-index:10001;">
         <span data-i18n="profileHiddenMessage">Bu profil gizlidir.</span>
       </div>
 
       <img id="profilePageAvatar" src="" alt="Profil Resmi" style="width: 100px; height: 100px; border-radius: 50%; border: 4px solid var(--primary); object-fit: cover;">
       <h2 id="profilePageName" style="margin-top: 15px;">...</h2>
       <p id="profilePageHandle" style="color: var(--text-muted); margin-bottom: 15px;">@... <span id="selfPrivateIndicator" style="display:none; margin-left:5px; font-size:0.8rem; color:var(--text-muted);"><i class="fa-solid fa-lock"></i> <span data-i18n="privateLabel">Gizli</span></span></p>
-      <!-- arkadaşları için not -->
-      <p id="friendViewNotice" style="display:none; font-size:0.8rem; color:var(--text-muted);" data-i18n="friendViewNote">Profil arkadaşlara açık</p>
+      <!-- arkadaşları için not - sol üste, kırmızı arka plan -->
+      <p id="friendViewNotice" style="display:none; position:absolute; top:10px; left:10px; font-size:0.8rem; color:#fff; background:var(--danger); padding:8px 12px; border-radius:1rem; font-weight:600; margin:0;" data-i18n="friendViewNote">Profil arkadaşlara açık</p>
       
       <div class="profile-actions" style="display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; position: relative;">
         <button id="editProfileBtn" onclick="toggleEditProfile()" style="background: var(--input-bg); border: 1px solid var(--border); padding: 8px 20px; border-radius: 10px; font-size: 0.8rem; font-weight: 600; cursor: pointer; color: var(--text-main);" data-i18n="editProfileBtn">Profili Düzenle</button>
@@ -381,9 +381,14 @@
             });
         }
         if (tabName === 'my-notifs-tab') {
-          requestAnimationFrame(() => {
-            if (window.loadProfileNotifications) setTimeout(() => window.loadProfileNotifications(), 0);
-          });
+          const params = new URLSearchParams(location.search);
+          const visitedUsername = params.get('id');
+          const isOwnProfile = !visitedUsername || visitedUsername === window.user.username;
+          if (isOwnProfile) {
+            requestAnimationFrame(() => {
+              if (window.loadProfileNotifications) setTimeout(() => window.loadProfileNotifications(), 0);
+            });
+          }
         }
     }
 
@@ -443,13 +448,35 @@ window.addEventListener('load', () => {
 </script>
 <script type="module" src="assets/js/app.js"></script>
 <script>
-// After app.js loads, populate profile sections directly
-setTimeout(() => {
+// After app.js loads, wait for loadVisitorProfile to complete before loading profile sections
+setTimeout(async () => {
+  // Ziyaretçi profili yüklenmesini bekle
+  if (typeof window.loadVisitorProfile === 'function') {
+    try {
+      await window.loadVisitorProfile();
+    } catch (e) {
+      console.warn('loadVisitorProfile error', e);
+    }
+  }
+  
+  // Sonra profil sekmelerini yükle
   if (typeof window.loadProfileSections === 'function') {
-    window.loadProfileSections();
+    try {
+      await window.loadProfileSections();
+      // First tab'ı otomatik click et (gönderiler)
+      setTimeout(() => {
+        const firstTab = document.querySelector('.tab-btn[onclick*="my-posts-tab"]');
+        if (firstTab && typeof firstTab.click === 'function') {
+          firstTab.click();
+        }
+      }, 100);
+    } catch (e) {
+      console.warn('loadProfileSections error', e);
+    }
   } else {
     console.warn('loadProfileSections not ready');
   }
+}, 1500);
 
   // Eğer URL'de hash varsa ilgili sekmeyi aç (örn. #my-notifs-tab)
   try {

@@ -10,7 +10,8 @@
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
     display: none;
     flex-direction: column;
-    z-index: 9999;
+    /* make sure header/menu stays on top, chat sits underneath */
+    z-index: 9000;
     border: 1px solid var(--border);
     overflow: hidden;
     animation: slideUp 0.3s ease-out;
