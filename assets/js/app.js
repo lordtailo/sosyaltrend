@@ -959,7 +959,7 @@ window.clearImagePreview = () => {
       privateLabel: "Gizli",
       privateBanner: "Profiliniz Gizli",
       profileHiddenMessage: "Bu profil gizlidir.",
-      friendViewNote: "Profil arkadaşlara açık",
+      friendViewNote: "Profil sadece arkadaşlarına açık",
       helpHeading: "Yardım Merkezi",
       helpSub: "Sıkça Sorulan Sorular",
       helpText: "SosyalTrend kullanımı hakkında merak ettiğiniz her şey burada.",
