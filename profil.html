@@ -448,58 +448,60 @@ window.addEventListener('load', () => {
 </script>
 <script type="module" src="assets/js/app.js"></script>
 <script>
-// After app.js loads, wait for loadVisitorProfile to complete before loading profile sections
-setTimeout(async () => {
-  // Ziyaretçi profili yüklenmesini bekle
-  if (typeof window.loadVisitorProfile === 'function') {
-    try {
-      await window.loadVisitorProfile();
-    } catch (e) {
-      console.warn('loadVisitorProfile error', e);
-    }
-  }
-  
-  // Sonra profil sekmelerini yükle
-  if (typeof window.loadProfileSections === 'function') {
-    try {
-      await window.loadProfileSections();
-      // First tab'ı otomatik click et (gönderiler)
-      setTimeout(() => {
-        const firstTab = document.querySelector('.tab-btn[onclick*="my-posts-tab"]');
-        if (firstTab && typeof firstTab.click === 'function') {
-          firstTab.click();
+(function() {
+    let checkInterval;
+    let attempts = 0;
+
+    function init() {
+        // Fonksiyonlar hazır mı kontrol et
+        const isReady = typeof window.loadVisitorProfile === 'function' && 
+                        typeof window.loadProfileSections === 'function';
+
+        if (isReady) {
+            clearInterval(checkInterval);
+            runProfileLogic();
+        } else if (attempts > 20) { // 10 saniye sonra denemeyi bırak (500ms * 20)
+            clearInterval(checkInterval);
+            console.error('Profil fonksiyonları yüklenemedi.');
         }
-      }, 100);
-    } catch (e) {
-      console.warn('loadProfileSections error', e);
+        attempts++;
     }
-  } else {
-    console.warn('loadProfileSections not ready');
-  }
-}, 1500);
 
-  // Eğer URL'de hash varsa ilgili sekmeyi aç (örn. #my-notifs-tab)
-  try {
-    const h = window.location.hash || '';
-    if (h) {
-      const tabName = h.replace('#', '');
-      const tabBtn = document.querySelector(`.tab-btn[onclick*="${tabName}"]`);
-      if (tabBtn) {
-        // Önce doğrudan click dene, işe yaramazsa openTab ile sentetik event gönder
-        setTimeout(() => {
-          try {
-            tabBtn.click();
-          } catch (e) {
-            try { openTab({ currentTarget: tabBtn }, tabName); } catch (err) { console.warn('tab open failed', err); }
-          }
-          // ekstra güvenlik: eğer click didn't trigger, call openTab anyway
-          try { openTab({ currentTarget: tabBtn }, tabName); } catch (err) { /* ignore */ }
-        }, 200);
-      }
+    async function runProfileLogic() {
+        try {
+            // 1. Profil bilgisini çek
+            await window.loadVisitorProfile();
+            
+            // 2. Bölümleri render et
+            await window.loadProfileSections();
+
+            // 3. Sekme Belirleme (URL Hash'i varsa o, yoksa my-posts)
+            const hash = window.location.hash.replace('#', '');
+            const defaultTabSelector = '.tab-btn[onclick*="my-posts-tab"]';
+            const hashTabSelector = hash ? `.tab-btn[onclick*="${hash}"]` : null;
+
+            // Kısa bir render beklemesi (DOM'un oluşması için)
+            setTimeout(() => {
+                const targetTab = (hashTabSelector && document.querySelector(hashTabSelector)) || 
+                                  document.querySelector(defaultTabSelector);
+
+                if (targetTab) {
+                    targetTab.click();
+                    // Eğer sadece click yetmiyorsa manuel tetikle
+                    if (hash && typeof window.openTab === 'function') {
+                        window.openTab({ currentTarget: targetTab }, hash || 'my-posts-tab');
+                    }
+                }
+            }, 200);
+
+        } catch (e) {
+            console.warn('Profil yükleme sırasında hata:', e);
+        }
     }
-  } catch (e) { console.warn('Hash tab opener error:', e); }
 
-}, 1000);
+    // Her 500ms'de bir fonksiyonlar geldi mi diye bak
+    checkInterval = setInterval(init, 500);
+})();
 </script>
 </body>
 </html>
