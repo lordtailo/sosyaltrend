@@ -4437,12 +4437,23 @@ function updateNotificationBadge(count) {
     }
 }
 
-// Profil sayfasında "Arkadaş Olarak Ekle" butonunu göster/gizle
+// Profil sayfasında "Arkadaş Olarak Ekle" ve "Sohbet Et" butonunu göster/gizle
 async function updateAddFriendButton(targetUid) {
     const addFriendBtn = document.getElementById('addFriendBtn');
     if (!addFriendBtn || !auth.currentUser) return;
 
-    // eğer profil sahibi kendimizsek butonu devre dışı bırak
+    // Sohbet Butonu Hazırlığı
+    // Eğer buton zaten varsa silip temiz bir başlangıç yapalım (veya sadece kontrol edelim)
+    let chatBtn = document.getElementById('chatWithUserBtn');
+    if (!chatBtn) {
+        chatBtn = document.createElement('button');
+        chatBtn.id = 'chatWithUserBtn';
+        chatBtn.className = 'chatWithUserBtn'; // Mevcut CSS sınıflarını kullanabilirsin
+        chatBtn.style.marginLeft = '10px';
+        addFriendBtn.parentNode.insertBefore(chatBtn, addFriendBtn.nextSibling);
+    }
+
+    // Eğer profil sahibi kendimizsek butonları düzenle
     if (targetUid === auth.currentUser.uid) {
         addFriendBtn.innerHTML = '<i class="fa-solid fa-user"></i> Bu sizsiniz';
         addFriendBtn.disabled = true;
@@ -4450,30 +4461,44 @@ async function updateAddFriendButton(targetUid) {
         addFriendBtn.style.cursor = 'default';
         addFriendBtn.style.display = 'inline-block';
         addFriendBtn.onclick = (e) => e.preventDefault();
+        
+        chatBtn.style.display = 'none'; // Kendimizle sohbet edemeyiz
         return;
     }
 
     try {
         const currentUserRef = doc(db, "users", auth.currentUser.uid);
-        const targetUserRef = doc(db, "users", targetUid);
-
         const currentUserDoc = await getDoc(currentUserRef);
-        const targetUserDoc = await getDoc(targetUserRef);
-
         const currentUserData = currentUserDoc.data() || {};
-        const targetUserData = targetUserDoc.data() || {};
 
         const friends = currentUserData.friends || [];
         const friendRequests = currentUserData.friendRequests || [];
         const sentRequests = currentUserData.sentRequests || [];
 
+        // Hedef kullanıcı bilgilerini al (Sohbet fonksiyonu için username gerekebilir)
+        const targetUserRef = doc(db, "users", targetUid);
+        const targetUserDoc = await getDoc(targetUserRef);
+        const targetUserData = targetUserDoc.data() || {};
+        const targetUsername = targetUserData.username || "Kullanıcı";
+
+        // --- SOHBET BUTONU AYARI ---
+        chatBtn.style.display = 'inline-block';
+        chatBtn.innerHTML = '<i class="fa-solid fa-comment"></i> Sohbet Et';
+        chatBtn.onclick = () => {
+            if (typeof openChatWithUser === 'function') {
+                openChatWithUser(targetUid, targetUsername);
+            } else {
+                console.error("openChatWithUser fonksiyonu bulunamadı!");
+            }
+        };
+
+        // --- ARKADAŞLIK BUTONU DURUMLARI ---
         // Zaten arkadaş mı?
         if (friends.includes(targetUid)) {
-            addFriendBtn.innerHTML = '<i class="fa-solid fa-user-check"></i> Zaten Arkadaş';
+            addFriendBtn.innerHTML = '<i class="fa-solid fa-user-check"></i> Zaten Arkadaşsınız';
             addFriendBtn.disabled = true;
             addFriendBtn.style.opacity = '0.6';
             addFriendBtn.style.cursor = 'default';
-            addFriendBtn.style.display = 'inline-block';
             addFriendBtn.onclick = (e) => e.preventDefault();
         }
         // İstek gönderdik mi?
@@ -4482,7 +4507,6 @@ async function updateAddFriendButton(targetUid) {
             addFriendBtn.disabled = false;
             addFriendBtn.style.opacity = '1';
             addFriendBtn.style.cursor = 'pointer';
-            addFriendBtn.style.display = 'inline-block';
             addFriendBtn.onclick = () => cancelFriendRequest(targetUid);
         }
         // İstek aldık mı?
@@ -4491,7 +4515,6 @@ async function updateAddFriendButton(targetUid) {
             addFriendBtn.disabled = true;
             addFriendBtn.style.opacity = '0.6';
             addFriendBtn.style.cursor = 'default';
-            addFriendBtn.style.display = 'inline-block';
             addFriendBtn.onclick = (e) => e.preventDefault();
         }
         // Normal "Arkadaş Olarak Ekle"
@@ -4500,7 +4523,6 @@ async function updateAddFriendButton(targetUid) {
             addFriendBtn.disabled = false;
             addFriendBtn.style.opacity = '1';
             addFriendBtn.style.cursor = 'pointer';
-            addFriendBtn.style.display = 'inline-block';
             addFriendBtn.onclick = () => sendFriendRequest();
         }
     } catch (error) {

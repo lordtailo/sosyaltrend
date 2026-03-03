@@ -17,6 +17,21 @@
     animation: slideUp 0.3s ease-out;
 }
 
+.chatWithUserBtn {
+    background: #3b82f6;
+    align-items: center;
+    text-align: center;
+    gap: 6px;
+    color: white;
+    border: none;
+    padding: 8px 20px;
+    border-radius: 10px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    position: relative;
+}
+
 .chat-widget-container.active {
     display: flex;
 }
