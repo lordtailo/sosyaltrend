@@ -189,7 +189,13 @@
       <!-- arkadaşları için not - sol üste, kırmızı arka plan -->
       <p id="friendViewNotice" style="display:none; position:absolute; top:10px; left:10px; font-size:0.8rem; color:#fff; background:var(--danger); padding:8px 12px; border-radius:1rem; font-weight:600; margin:0;" data-i18n="friendViewNote">Profil arkadaşlara açık</p>
       
-      <div class="profile-actions" style="grid-template-columns: repeat(3, 1fr); display: grid; gap: 10px; position: relative;">
+      <div class="profile-actions" style="
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    width: 100%;">
         <button id="editProfileBtn" onclick="toggleEditProfile()" style="background: var(--input-bg); border: 1px solid var(--border); padding: 8px 20px; border-radius: 10px; font-size: 0.8rem; font-weight: 600; cursor: pointer; color: var(--text-main);" data-i18n="editProfileBtn">Profili Düzenle</button>
         <!-- Ayarlar butonu -->
         <div style="position: relative;">
