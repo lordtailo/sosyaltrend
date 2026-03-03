@@ -45,9 +45,8 @@ const tarihteBugun = [
 
 // ===== BAKIM MODU FONKSİYONLARI =====
 window.checkAndShowMaintenanceNotice = () => {
-    // Sadece index.html'de göster
-    if (!window.location.pathname.includes('index.html')) return;
-    
+    // Do not show notice to admins
+    if (localStorage.getItem('st_isAdmin') === '1') return;
     const maintenance = JSON.parse(localStorage.getItem('stMaintenanceMode'));
     if (!maintenance || !maintenance.enabled) return;
 
@@ -79,6 +78,15 @@ window.checkAndShowMaintenanceNotice = () => {
 
     // Countdown
     const interval = setInterval(() => {
+        // if maintenance was cleared elsewhere, stop everything
+        const m2 = JSON.parse(localStorage.getItem('stMaintenanceMode'));
+        if (!m2 || !m2.enabled) {
+            clearInterval(interval);
+            const existing = document.getElementById('maintenanceNoticeContainer');
+            if (existing) existing.remove();
+            localStorage.removeItem('stMaintenanceCountdown');
+            return;
+        }
         countdown--;
         localStorage.setItem('stMaintenanceCountdown', countdown);
         const timerEl = document.getElementById('maintenanceTimer');
@@ -92,9 +100,19 @@ window.checkAndShowMaintenanceNotice = () => {
     }, 1000);
 };
 
+// react to maintenance being toggled off in another tab
+window.addEventListener('storage', (e) => {
+    if (e.key === 'stMaintenanceMode' && !e.newValue) {
+        // if an interval or notice exists, refresh to clear it
+        if (window.location.pathname.includes('index.html')) {
+            location.reload();
+        }
+    }
+});
+
 window.showMaintenanceFullScreen = () => {
-    // Sadece index.html'de göster
-    if (!window.location.pathname.includes('index.html')) return;
+    //Admins should never be forced into maintenance view
+    if (localStorage.getItem('st_isAdmin') === '1') return;
     
     // Tüm sayfayı gizle
     const appContainer = document.querySelector('.app-container');
@@ -335,6 +353,9 @@ window.showMaintenanceFullScreen = () => {
 };
 
 window.isMaintenanceActive = () => {
+    // adminlar için bakım modunu devre dışı bırak
+    if (localStorage.getItem('st_isAdmin') === '1') return false;
+
     const maintenance = JSON.parse(localStorage.getItem('stMaintenanceMode'));
     if (!maintenance || !maintenance.enabled) return false;
 
@@ -345,27 +366,25 @@ window.isMaintenanceActive = () => {
     return currentTime >= maintenance.startTime && currentTime < maintenance.endTime;
 };
 
-// Sayfa yüklendiğinde bakım modunu kontrol et
-if (typeof window.location !== 'undefined' && window.location.pathname.includes('index.html')) {
-    window.addEventListener('DOMContentLoaded', () => {
-        // Eğer bakım modu aktifse tam ekran göster
-        if (window.isMaintenanceActive()) {
+// Sayfa yüklendiğinde bakım modunu kontrol et - artık tüm sayfalarda
+window.addEventListener('DOMContentLoaded', () => {
+    if (window.isMaintenanceActive()) {
+        window.showMaintenanceFullScreen();
+    } else {
+        // Değilse countdown'u göster
+        setTimeout(() => window.checkAndShowMaintenanceNotice(), 500);
+    }
+});
+// Periyodik olarak kontrol et
+setInterval(() => {
+    if (window.isMaintenanceActive()) {
+        const overlay = document.getElementById('maintenanceOverlay');
+        if (!overlay) {
             window.showMaintenanceFullScreen();
-        } else {
-            // Değilse countdown'u göster
-            setTimeout(() => window.checkAndShowMaintenanceNotice(), 500);
         }
-    });
-    // Periyodik olarak kontrol et
-    setInterval(() => {
-        if (window.isMaintenanceActive()) {
-            const overlay = document.getElementById('maintenanceOverlay');
-            if (!overlay) {
-                window.showMaintenanceFullScreen();
-            }
-        }
-    }, 5000);
-}
+    }
+}, 5000);
+
 
 // HELPER FONKSİYONLAR
 // Button'un "disabled/pending" durumuna koy
@@ -679,8 +698,10 @@ const ADMIN_EMAIL = "officialfthuzun@gmail.com";
 localStorage.setItem('st_avatar', 'strendsaydamv2');
 
 onAuthStateChanged(auth, async (fbUser) => {
-    if (!fbUser) 
-        { window.location.href = 'login.html'; kontrolEtVeOtomatikPostAt(); } else {
+    if (!fbUser) {
+        localStorage.removeItem('st_isAdmin');
+        window.location.href = 'login.html'; kontrolEtVeOtomatikPostAt();
+    } else {
         // Kullanıcı bilgilerini güncelle
         user.username = fbUser.email.split('@')[0];
         user.displayName = localStorage.getItem('st_displayName') || fbUser.displayName || user.username;
@@ -719,6 +740,8 @@ onAuthStateChanged(auth, async (fbUser) => {
 
         // Admin Kontrolü
         user.isAdmin = fbUser.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+        // store flag for other scripts
+        localStorage.setItem('st_isAdmin', user.isAdmin ? '1' : '0');
         
         // UI Güncelleme (Profil resmi, isimler vb.)
         updateUIWithUser();
@@ -1202,7 +1225,8 @@ window.handleUrlInput = async (input) => {
   };
 
   window.logout = async () => {
-    await signOut(auth);
+    // clear admin marker on sign out
+    localStorage.removeItem('st_isAdmin');
     window.location.href = 'login.html';
   };
 

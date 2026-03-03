@@ -60,7 +60,8 @@
             <button class="tab-btn active" onclick="switchTab('announcement')">Sistem Duyurusu</button>
             <button class="tab-btn" onclick="switchTab('users')">Kullanıcı Yönetimi</button>
             <button class="tab-btn" onclick="switchTab('moderation')">İçerik Denetimi</button>
-            <button class="tab-btn" onclick="switchTab('maintenance')">Bakım Modu</button>
+            <!-- maintenance tab removed to keep mode off -->
+<!--<button class="tab-btn" onclick="switchTab('maintenance')">Bakım Modu</button>-->
         </div>
 
         <div id="section-announcement" class="admin-section active">
@@ -82,7 +83,7 @@
             <div id="admin-feed-list"></div>
         </div>
 
-        <div id="section-maintenance" class="admin-section">
+        <div id="section-maintenance" class="admin-section" style="display:none;">
             <div class="section-subtitle">Bakım Modu Ayarları</div>
             <div style="background: rgba(239, 68, 68, 0.1); border-left: 4px solid var(--danger); padding: 15px; border-radius: 8px; margin-bottom: 20px;">
                 <p style="margin: 0; color: var(--danger); font-weight: 600;">⚠️ Bakım modu etkin olduğunda kullanıcılar yeni gönderi ve etkileşim yapamayacak</p>
@@ -91,7 +92,7 @@
             <div style="display: flex; flex-direction: column; gap: 15px;">
                 <div>
                     <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-weight: 600;">
-                        <input type="checkbox" id="maintenanceToggle" onchange="toggleMaintenanceMode()">
+                        <input type="checkbox" id="maintenanceToggle" onchange="toggleMaintenanceMode()" disabled>
                         <span>Bakım Modunu Etkinleştir</span>
                     </label>
                 </div>
@@ -238,10 +239,15 @@
 
     // Bakım Modu Fonksiyonları
     function loadMaintenanceModeStatus() {
-        const maintenance = JSON.parse(localStorage.getItem('stMaintenanceMode')) || { enabled: false, startTime: '10:00', endTime: '21:00' };
-        document.getElementById('maintenanceToggle').checked = maintenance.enabled;
-        document.getElementById('maintenanceStartTime').value = maintenance.startTime || '10:00';
-        document.getElementById('maintenanceEndTime').value = maintenance.endTime || '21:00';
+        // always clear any previous maintenance setting when admin loads
+        localStorage.removeItem('stMaintenanceMode');
+        localStorage.removeItem('stMaintenanceCountdown');
+        const maintenance = { enabled: false, startTime: '10:00', endTime: '21:00' };
+        const toggle = document.getElementById('maintenanceToggle');
+        toggle.checked = false;
+        toggle.disabled = true; // prevent enabling from admin
+        document.getElementById('maintenanceStartTime').value = maintenance.startTime;
+        document.getElementById('maintenanceEndTime').value = maintenance.endTime;
         updateMaintenanceUI();
     }
 
