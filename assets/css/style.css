@@ -439,12 +439,18 @@ input:checked + .slider:before {
     transform: translateX(22px); 
 }
 
-.sidebar-container { 
-padding: 8px; }
-.sidebar-title {
-    /* ensure details summary inherits styles */
-}
 
+.sidebar-container .sidebar-title {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--primary);
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 8px;
+}
 /* submenu details styling */
 details.menu-details {
     border: none;
@@ -511,31 +517,8 @@ padding: 10px 12px; font-weight: 800; font-size: 0.85rem; color: var(--text-main
     box-shadow: 0 6px 16px rgba(0,0,0,0.15);
     margin-top: 10px;
 }
-.sidebar-stats-card .stats-header {
-    font-size: 1.05rem;
-    font-weight: 800;
-    text-align: center;
-    background: linear-gradient(90deg, #6366f1, #8b5cf6, #6366f1);
-    background-size: 200% auto;
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    margin-bottom: 16px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    position: relative;
-    animation: slideGradient 2.5s infinite;
-    letter-spacing: 0.3px;
-}
-.sidebar-stats-card .stats-header i {
-    font-size: 1.5rem;
-    background: linear-gradient(135deg, #6366f1, #8b5cf6);
-    background-clip: text;
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    animation: pulse 1.5s ease-in-out infinite;
-}
+/* previously .stats-header styles were here but headers now use .sidebar-title */
+
 .sidebar-stats-card .stat-row {
     display: flex;
     justify-content: space-between;
@@ -678,6 +661,7 @@ padding: 10px 12px; font-weight: 800; font-size: 0.85rem; color: var(--text-main
 /* big number variant */
 .sidebar-stats-card .stat-row.big {
     flex-direction: column;
+    align-items: center;
     padding: 16px 0;
     border-bottom: 1px solid var(--border);
 }
@@ -686,7 +670,6 @@ padding: 10px 12px; font-weight: 800; font-size: 0.85rem; color: var(--text-main
     font-weight: 900;
     background: linear-gradient(135deg, #6366f1, #8b5cf6, #6366f1);
     background-size: 200% auto;
-    -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     text-shadow: 0 0 20px rgba(99, 102, 241, 0.8);
     animation: countUp 1.2s ease-out, shine 2.5s infinite, slideGradient 3s infinite;
@@ -786,10 +769,12 @@ from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: tr
 
 /* GLASS CARD PREMIUM ENTEGRASYON */
 .glass-card { 
-background: var(--card-bg); border-radius: var(--radius); border: 1px solid var(--border); box-shadow: var(--shadow); overflow: hidden; margin-bottom: 24px; 
+background: var(--card-bg); 
+border-radius: var(--radius); 
+overflow: hidden; 
+margin-bottom: 24px; 
 /* Premium Efektler */
 backdrop-filter: blur(12px) saturate(180%);
--webkit-backdrop-filter: blur(12px) saturate(180%);
 box-shadow: var(--glass-shadow);
 border: 1px solid rgba(255, 255, 255, 0.1);
 transition: transform 0.3s ease, box-shadow 0.3s ease;
