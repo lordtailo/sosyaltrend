@@ -407,9 +407,7 @@ await updateDoc(currentUserRef, {
   let user = {
   displayName: "Misafir",
   avatarUrl: "assets/img/strendsaydamv2.png",
-  isAdmin: false,
-  createdAt: null,
-  username: "misafir"
+  isAdmin: false
 };
 
 // Utility: wait for a DOM selector to appear (returns element or null)
@@ -1238,21 +1236,27 @@ function getAvatarUrl(avatarUrlOrSeed, type = 'user') {
             publishBtn.title = '';
         }
     }
-    if(sJd && user.createdAt) {
-        try {
-            const joinDate = new Date(
-                (typeof user.createdAt.toDate === 'function')
-                    ? user.createdAt.toDate()
-                    : (user.createdAt.seconds * 1000 || user.createdAt)
-            ).toLocaleDateString('tr-TR', {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric'
-            });
-            sJd.innerText = `Kayıt Tarihi: ${joinDate}`;
-        } catch(e) {
-            if(sJd) sJd.innerText = 'Kayıt Tarihi: —';
+    if(sJd) {
+        console.log('sidebarJoinDate element found', { sJd, createdAt: user.createdAt });
+        if(user.createdAt) {
+            try {
+                const joinDate = new Date(user.createdAt.seconds * 1000 || user.createdAt).toLocaleDateString('tr-TR', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                });
+                sJd.innerText = `Kayıt Tarihi: ${joinDate}`;
+                console.log('Join date set:', joinDate);
+            } catch(e) {
+                console.error('Join date formatting error:', e);
+                sJd.innerText = 'Kayıt Tarihi: —';
+            }
+        } else {
+            console.warn('No createdAt in user object');
+            sJd.innerText = 'Kayıt Tarihi: —';
         }
+    } else {
+        console.warn('sidebarJoinDate element not found');
     }
 
     // Profil Sayfası Güncelleme
