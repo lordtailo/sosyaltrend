@@ -499,7 +499,7 @@ async function loadSuggestions() {
             const isIncoming = incomingRequests.some(r => r.fromUid === user.id);
             const isSelf = auth.currentUser && user.id === auth.currentUser.uid;
 
-            let btnLabel = 'Arkadaş Olarak Ekle';
+            let btnLabel = 'Arkadaş Ol';
             let btnAttrs = 'style="background: var(--primary); color: white; border: none; padding: 6px 12px; border-radius: 15px; font-size: 0.7rem; font-weight: 700; cursor: pointer;"';
             let btnOnclick = `onclick="sendFriendRequestToUid('${user.id}', '${user.username}')"`;
 
@@ -4496,7 +4496,7 @@ async function updateAddFriendButton(targetUid) {
         }
         // Normal "Arkadaş Olarak Ekle"
         else {
-            addFriendBtn.innerHTML = '<i class="fa-solid fa-user-plus"></i> Arkadaş Olarak Ekle';
+            addFriendBtn.innerHTML = '<i class="fa-solid fa-user-plus"></i> Arkadaş Ol';
             addFriendBtn.disabled = false;
             addFriendBtn.style.opacity = '1';
             addFriendBtn.style.cursor = 'pointer';
@@ -4527,7 +4527,7 @@ async function cancelFriendRequest(targetUid, targetUsername) {
         // geri butonu geri al
         const addFriendBtn = document.getElementById('addFriendBtn');
         if (addFriendBtn) {
-            addFriendBtn.innerHTML = '<i class="fa-solid fa-user-plus"></i> Arkadaş Olarak Ekle';
+            addFriendBtn.innerHTML = '<i class="fa-solid fa-user-plus"></i> Arkadaş Ol';
             addFriendBtn.disabled = false;
             addFriendBtn.style.opacity = '1';
             addFriendBtn.style.cursor = 'pointer';
@@ -4561,7 +4561,7 @@ async function cancelFriendRequestToUid(targetUid, targetUsername) {
 
         const btn = document.getElementById('addFriendBtn_sugg_' + targetUid);
         if (btn) {
-            btn.innerHTML = '<i class="fa-solid fa-user-plus"></i> Arkadaş Olarak Ekle';
+            btn.innerHTML = '<i class="fa-solid fa-user-plus"></i> Arkadaş Ol';
             btn.disabled = false;
             btn.style.opacity = '1';
             btn.style.cursor = 'pointer';

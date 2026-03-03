@@ -189,7 +189,7 @@
       <!-- arkadaşları için not - sol üste, kırmızı arka plan -->
       <p id="friendViewNotice" style="display:none; position:absolute; top:10px; left:10px; font-size:0.8rem; color:#fff; background:var(--danger); padding:8px 12px; border-radius:1rem; font-weight:600; margin:0;" data-i18n="friendViewNote">Profil arkadaşlara açık</p>
       
-      <div class="profile-actions" style="display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; position: relative;">
+      <div class="profile-actions" style="grid-template-columns: repeat(3, 1fr); display: grid; gap: 10px; position: relative;">
         <button id="editProfileBtn" onclick="toggleEditProfile()" style="background: var(--input-bg); border: 1px solid var(--border); padding: 8px 20px; border-radius: 10px; font-size: 0.8rem; font-weight: 600; cursor: pointer; color: var(--text-main);" data-i18n="editProfileBtn">Profili Düzenle</button>
         <!-- Ayarlar butonu -->
         <div style="position: relative;">
@@ -203,11 +203,11 @@
           </div>
         </div>
 <button id="profileActionBtn" onclick="handleProfileAction()" style="display:flex; align-items:center; gap:6px; background: var(--primary); color: white; border: none; padding: 8px 20px; border-radius: 10px; font-size: 0.8rem; font-weight: 600; cursor: pointer; position: relative;">
-  <i class="fa-solid fa-envelope"></i><span id="btnText">Mesaj Gönder</span>
+  <i class="fa-solid fa-envelope"></i><span id="btnText">Sohbet Et</span>
   <span id="msgBadge" style="display: none; position: absolute; top: -5px; right: -5px; background: var(--danger); color: white; border-radius: 50%; padding: 2px 6px; font-size: 0.7rem;">0</span>
 </button>        
 <button id="addFriendBtn" onclick="sendFriendRequest()" style="background: var(--primary); color: white; border: none; padding: 8px 20px; border-radius: 10px; font-size: 0.8rem; font-weight: 600; cursor: pointer;">
-          <i class="fa-solid fa-user-plus"></i> Arkadaş Olarak Ekle
+          <i class="fa-solid fa-user-plus"></i> Arkadaş Ol
         </button>
       </div>
 
