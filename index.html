@@ -79,7 +79,7 @@
     <div id="page-feed" class="page-content active">
         <div class="glass-card">
             <div style="padding: 20px;">
-                <textarea id="postInput" oninput="updatePostCount()" maxlength="500" style="width:100%; border:none; outline:none; resize:none; font-size:1.1rem; min-height:80px;" data-i18n-placeholder="postPlaceholder"></textarea>
+                <div id="postInput" contenteditable="true" oninput="updatePostCount()" style="width:100%; border:none; outline:none; resize:none; font-size:1.1rem; min-height:80px;" data-placeholder="Gönderinizi buraya yazın..." data-i18n-placeholder="postPlaceholder"></div>
                 <div style="text-align:right; font-size:0.75rem; color:var(--text-muted);" id="post-charcount">0/280</div>
                 
                 <div id="imagePreviewContainer" style="display: none; position: relative; margin-top: 10px; width: fit-content;">
@@ -120,7 +120,7 @@
             <h3 style="margin: 0;">Gönderiyi Düzenle</h3>
             <button onclick="closeEditModal()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-main);">&times;</button>
         </div>
-        <textarea id="editPostInput" style="width: 100%; min-height: 120px; border: 1px solid var(--border); border-radius: 8px; padding: 10px; background: transparent; color: var(--text-main); outline: none; resize: vertical;"></textarea>
+        <div id="editPostInput" contenteditable="true" style="width: 100%; min-height: 120px; border: 1px solid var(--border); border-radius: 8px; padding: 10px; background: transparent; color: var(--text-main); outline: none; resize: vertical;" data-placeholder="Burada düzenleyin..."></div>
         <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 15px;">
             <button onclick="closeEditModal()" style="padding: 8px 20px; border-radius: 20px; border: 1px solid var(--border); background: transparent; cursor: pointer;">İptal</button>
             <button id="saveEditBtn" style="padding: 8px 20px; border-radius: 20px; border: none; background: var(--primary); color: white; font-weight: bold; cursor: pointer;">Kaydet</button>

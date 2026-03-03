@@ -43,349 +43,6 @@ const tarihteBugun = [
     { ay: 11, gun: 5, baslik: "Tarihte Bugün", mesaj: "1934: Türk kadınına seçme ve seçilme hakkı tanındı! 🗳️" }
 ];
 
-// ===== BAKIM MODU FONKSİYONLARI =====
-window.checkAndShowMaintenanceNotice = () => {
-    // Do not show notice to admins
-    if (localStorage.getItem('st_isAdmin') === '1') return;
-    const maintenance = JSON.parse(localStorage.getItem('stMaintenanceMode'));
-    if (!maintenance || !maintenance.enabled) return;
-
-    const existing = document.getElementById('maintenanceNoticeContainer');
-    if (existing) existing.remove();
-
-    let countdown = parseInt(localStorage.getItem('stMaintenanceCountdown')) || 120;
-    
-    const noticeHtml = `
-        <div id="maintenanceNoticeContainer" style="
-            background: linear-gradient(135deg, #7c3aed, #ec4899);
-            color: white; padding: 15px 25px; border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(124, 58, 237, 0.4);
-            margin-bottom: 20px; text-align: center;
-            font-weight: 600; animation: slideDown 0.3s ease;
-        ">
-            <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
-                <i class="fa-solid fa-tools" style="font-size: 1.2rem;"></i>
-                <span>Bakım Modu: <span id="maintenanceTimer">${countdown}</span> saniye sonra aktif olacak</span>
-            </div>
-            <small style="display: block; margin-top: 5px; opacity: 0.9;">Saatler: ${maintenance.startTime} - ${maintenance.endTime}</small>
-        </div>
-    `;
-
-    const mainContent = document.getElementById('main-content');
-    if (mainContent) {
-        mainContent.insertAdjacentHTML('afterbegin', noticeHtml);
-    }
-
-    // Countdown
-    const interval = setInterval(() => {
-        // if maintenance was cleared elsewhere, stop everything
-        const m2 = JSON.parse(localStorage.getItem('stMaintenanceMode'));
-        if (!m2 || !m2.enabled) {
-            clearInterval(interval);
-            const existing = document.getElementById('maintenanceNoticeContainer');
-            if (existing) existing.remove();
-            localStorage.removeItem('stMaintenanceCountdown');
-            return;
-        }
-        countdown--;
-        localStorage.setItem('stMaintenanceCountdown', countdown);
-        const timerEl = document.getElementById('maintenanceTimer');
-        if (timerEl) timerEl.innerText = countdown;
-
-        if (countdown <= 0) {
-            clearInterval(interval);
-            localStorage.removeItem('stMaintenanceCountdown');
-            location.reload(); // Bakım modu aktif olunca sayfayı yenile
-        }
-    }, 1000);
-};
-
-// react to maintenance being toggled off in another tab
-window.addEventListener('storage', (e) => {
-    if (e.key === 'stMaintenanceMode' && !e.newValue) {
-        // if an interval or notice exists, refresh to clear it
-        if (window.location.pathname.includes('index.html')) {
-            location.reload();
-        }
-    }
-});
-
-window.showMaintenanceFullScreen = () => {
-    //Admins should never be forced into maintenance view
-    if (localStorage.getItem('st_isAdmin') === '1') return;
-    
-    // Tüm sayfayı gizle
-    const appContainer = document.querySelector('.app-container');
-    const header = document.getElementById('header-placeholder');
-    const footer = document.getElementById('footer-placeholder');
-    const topBar = document.querySelector('.top-bar');
-    
-    if (appContainer) appContainer.style.display = 'none';
-    if (header) header.style.display = 'none';
-    if (footer) footer.style.display = 'none';
-    if (topBar) topBar.style.display = 'none';
-
-    // Overlay ve bakım mesajı göster
-    const overlay = document.createElement('div');
-    overlay.id = 'maintenanceOverlay';
-    overlay.style.cssText = `
-        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-        background: linear-gradient(135deg, #0f0f1e 0%, #1a1a3f 50%, #0f0f1e 100%);
-        z-index: 10000; display: flex; align-items: center; justify-content: center;
-        flex-direction: column; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    `;
-
-    // Add animated background elements
-    overlay.innerHTML = `
-        <style>
-            @keyframes float {
-                0%, 100% { transform: translateY(0px); }
-                50% { transform: translateY(-20px); }
-            }
-            @keyframes spin {
-                0% { transform: rotate(0deg); }
-                100% { transform: rotate(360deg); }
-            }
-            @keyframes pulse-glow {
-                0%, 100% { box-shadow: 0 0 20px rgba(124, 58, 237, 0.5); }
-                50% { box-shadow: 0 0 40px rgba(124, 58, 237, 0.8), 0 0 60px rgba(236, 72, 153, 0.4); }
-            }
-            @keyframes slideIn {
-                from { opacity: 0; transform: scale(0.8); }
-                to { opacity: 1; transform: scale(1); }
-            }
-            .maintenance-bg-element {
-                position: absolute; opacity: 0.1; pointer-events: none;
-            }
-            .timer-display {
-                display: flex;
-                gap: 15px;
-                justify-content: center;
-                margin-top: 30px;
-                flex-wrap: wrap;
-            }
-            .timer-box {
-                background: rgba(124, 58, 237, 0.2);
-                border: 1px solid rgba(124, 58, 237, 0.4);
-                border-radius: 12px;
-                padding: 15px 20px;
-                min-width: 80px;
-                text-align: center;
-            }
-            .timer-number {
-                font-size: 2.2rem;
-                font-weight: 700;
-                background: linear-gradient(135deg, #7c3aed, #ec4899);
-                -webkit-background-clip: text;
-                -webkit-text-fill-color: transparent;
-                background-clip: text;
-                display: block;
-                font-variant-numeric: tabular-nums;
-            }
-            .timer-label {
-                font-size: 0.7rem;
-                opacity: 0.7;
-                text-transform: uppercase;
-                margin-top: 5px;
-                letter-spacing: 1px;
-            }
-        </style>
-        <div class="maintenance-bg-element" style="width: 400px; height: 400px; background: radial-gradient(circle, #7c3aed, transparent); top: -200px; left: -200px; border-radius: 50%;"></div>
-        <div class="maintenance-bg-element" style="width: 300px; height: 300px; background: radial-gradient(circle, #ec4899, transparent); bottom: -150px; right: -150px; border-radius: 50%;"></div>
-    `;
-
-    const maintenance = JSON.parse(localStorage.getItem('stMaintenanceMode'));
-    const message = document.createElement('div');
-    message.style.cssText = `
-        background: linear-gradient(135deg, rgba(124, 58, 237, 0.15) 0%, rgba(236, 72, 153, 0.15) 100%);
-        backdrop-filter: blur(10px);
-        border: 1px solid rgba(124, 58, 237, 0.3);
-        color: white; padding: 60px 80px; border-radius: 30px;
-        text-align: center; 
-        box-shadow: 0 20px 60px rgba(124, 58, 237, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1);
-        max-width: 700px;
-        animation: slideIn 0.5s ease-out;
-        position: relative;
-        z-index: 1;
-    `;
-    
-    message.innerHTML = `
-        <div style="margin-bottom: 30px; position: relative;">
-            <i class="fa-solid fa-tools" style="
-                font-size: 5rem; 
-                background: linear-gradient(135deg, #7c3aed, #ec4899);
-                -webkit-background-clip: text;
-                -webkit-text-fill-color: transparent;
-                background-clip: text;
-                animation: float 3s ease-in-out infinite;
-                display: inline-block;
-            "></i>
-        </div>
-        
-        <h1 style="
-            margin: 0 0 15px 0; 
-            font-size: 3.5rem;
-            font-weight: 700;
-            background: linear-gradient(135deg, #ffffff 0%, #e0e7ff 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            letter-spacing: -0.5px;
-        ">Bakım Modu</h1>
-        
-        <p style="
-            margin: 0 0 25px 0; 
-            font-size: 1.2rem; 
-            opacity: 0.9;
-            color: rgba(255, 255, 255, 0.8);
-            font-weight: 300;
-            letter-spacing: 0.5px;
-        ">Sistem şu an bakımda</p>
-        
-        <div class="timer-display">
-            <div class="timer-box">
-                <span class="timer-number" id="maintenanceHours">00</span>
-                <div class="timer-label">Saat</div>
-            </div>
-            <div class="timer-box">
-                <span class="timer-number" id="maintenanceMinutes">00</span>
-                <div class="timer-label">Dakika</div>
-            </div>
-            <div class="timer-box">
-                <span class="timer-number" id="maintenanceSeconds">00</span>
-                <div class="timer-label">Saniye</div>
-            </div>
-        </div>
-        
-        <div style="
-            background: rgba(124, 58, 237, 0.2);
-            border-radius: 15px;
-            padding: 20px;
-            margin-top: 30px;
-            margin-bottom: 25px;
-            border: 1px solid rgba(124, 58, 237, 0.3);
-        ">
-            <p style="
-                margin: 0;
-                font-size: 0.95rem;
-                opacity: 0.85;
-            ">
-                <i class="fa-solid fa-clock" style="margin-right: 8px; color: #ec4899;"></i>
-                Bakım Saatleri: <strong>${maintenance.startTime} - ${maintenance.endTime}</strong>
-            </p>
-        </div>
-        
-        <p style="
-            margin: 0; 
-            font-size: 0.9rem; 
-            opacity: 0.7;
-            font-weight: 300;
-        ">Bakım çalışması bittiğinde sistem tekrar aktif olacaktır. <br>(bu süre zarfında bakım erken biterse sistem aktif olacaktır.) <br><br>Anlayışınız için teşekkürler.</p>
-        
-        <div style="
-            margin-top: 40px;
-            display: flex;
-            gap: 12px;
-            justify-content: center;
-            flex-wrap: wrap;
-        ">
-            <div style="
-                display: inline-flex;
-                align-items: center;
-                gap: 8px;
-                padding: 10px 20px;
-                background: rgba(124, 58, 237, 0.2);
-                border-radius: 25px;
-                font-size: 0.85rem;
-                opacity: 0.8;
-            ">
-                <i class="fa-solid fa-check-circle" style="color: #10b981;"></i>
-                Düzenli Bakım
-            </div>
-            <div style="
-                display: inline-flex;
-                align-items: center;
-                gap: 8px;
-                padding: 10px 20px;
-                background: rgba(236, 72, 153, 0.2);
-                border-radius: 25px;
-                font-size: 0.85rem;
-                opacity: 0.8;
-            ">
-                <i class="fa-solid fa-shield" style="color: #f59e0b;"></i>
-                Güvenlik Güncellemesi
-            </div>
-        </div>
-    `;
-
-    overlay.appendChild(message);
-    document.body.appendChild(overlay);
-
-    // Zamanlaycı başlat
-    const updateMaintenanceTimer = () => {
-        const now = new Date();
-        const [endHour, endMin] = maintenance.endTime.split(':').map(Number);
-        
-        let endDate = new Date();
-        endDate.setHours(endHour, endMin, 0, 0);
-        
-        // Eğer zaman geçmişse yarın için ayarla
-        if (now > endDate) {
-            endDate.setDate(endDate.getDate() + 1);
-        }
-        
-        const diff = endDate - now;
-        const hours = Math.floor(diff / 3600000);
-        const minutes = Math.floor((diff % 3600000) / 60000);
-        const seconds = Math.floor((diff % 60000) / 1000);
-        
-        const hoursEl = document.getElementById('maintenanceHours');
-        const minutesEl = document.getElementById('maintenanceMinutes');
-        const secondsEl = document.getElementById('maintenanceSeconds');
-        
-        if (hoursEl) hoursEl.textContent = hours.toString().padStart(2, '0');
-        if (minutesEl) minutesEl.textContent = minutes.toString().padStart(2, '0');
-        if (secondsEl) secondsEl.textContent = seconds.toString().padStart(2, '0');
-    };
-
-    updateMaintenanceTimer();
-    setInterval(updateMaintenanceTimer, 1000);
-};
-
-window.isMaintenanceActive = () => {
-    // adminlar için bakım modunu devre dışı bırak
-    if (localStorage.getItem('st_isAdmin') === '1') return false;
-
-    const maintenance = JSON.parse(localStorage.getItem('stMaintenanceMode'));
-    if (!maintenance || !maintenance.enabled) return false;
-
-    const now = new Date();
-    const currentTime = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
-    
-    // Saatler karşılaştırması
-    return currentTime >= maintenance.startTime && currentTime < maintenance.endTime;
-};
-
-// Sayfa yüklendiğinde bakım modunu kontrol et - artık tüm sayfalarda
-window.addEventListener('DOMContentLoaded', () => {
-    if (window.isMaintenanceActive()) {
-        window.showMaintenanceFullScreen();
-    } else {
-        // Değilse countdown'u göster
-        setTimeout(() => window.checkAndShowMaintenanceNotice(), 500);
-    }
-});
-// Periyodik olarak kontrol et
-setInterval(() => {
-    if (window.isMaintenanceActive()) {
-        const overlay = document.getElementById('maintenanceOverlay');
-        if (!overlay) {
-            window.showMaintenanceFullScreen();
-        }
-    }
-}, 5000);
-
-
 // HELPER FONKSİYONLAR
 // Button'un "disabled/pending" durumuna koy
 function disableButton(btn, text) {
@@ -395,6 +52,74 @@ function disableButton(btn, text) {
         btn.style.opacity = '0.6';
         btn.style.cursor = 'default';
         btn.onclick = (e) => e.preventDefault();
+    }
+}
+
+// sidebar statistics (last user plus total count)
+async function updateSidebarStats() {
+    const totalSpan = document.getElementById('sidebarTotalUsers');
+    const recentList = document.getElementById('sidebarRecentList');
+    console.log('updateSidebarStats called', { totalSpan, recentList });
+    if (!totalSpan || !recentList) {
+        console.error('Missing elements: totalSpan=', !!totalSpan, 'recentList=', !!recentList);
+        return;
+    }
+    try {
+        const usersCol = collection(db, 'users');
+        const allSnap = await getDocs(usersCol);
+        const total = allSnap.size;
+        console.log('Total users:', total);
+        // count-up animation
+        if (totalSpan) {
+            let current = 0;
+            const step = Math.max(1, Math.floor(total / 30));
+            const interval = setInterval(() => {
+                current += step;
+                if (current >= total) {
+                    totalSpan.innerText = total;
+                    clearInterval(interval);
+                } else {
+                    totalSpan.innerText = current;
+                }
+            }, 30);
+        }
+
+        // fetch most recent 10 users
+        const latestQ = query(usersCol, orderBy('createdAt', 'desc'), limit(10));
+        const latestSnap = await getDocs(latestQ);
+        console.log('Recent users fetched:', latestSnap.size);
+        recentList.innerHTML = '';
+        if (!latestSnap.empty) {
+            latestSnap.docs.forEach((docSnap, idx) => {
+                const docData = docSnap.data();
+                const name = docData.displayName || docData.username || '—';
+                const uid = docSnap.id;
+                const avatar = docData.avatarUrl || '';
+                const item = document.createElement('div');
+                item.className = 'recent-item-avatar';
+                item.style.animationDelay = `${idx * 0.1}s`;
+                const imgEl = document.createElement('img');
+                if (avatar) {
+                    imgEl.src = avatar;
+                } else {
+                    imgEl.src = 'assets/img/strendsaydamv2.png';
+                }
+                imgEl.onerror = function() { this.style.display = 'none'; };
+                item.appendChild(imgEl);
+                const tooltip = document.createElement('div');
+                tooltip.className = 'tooltip';
+                tooltip.innerText = name;
+                item.appendChild(tooltip);
+                item.onclick = () => { window.location.href = `profil.html?uid=${uid}`; };
+                recentList.appendChild(item);
+                console.log('Added user avatar:', name);
+            });
+        } else {
+            console.warn('No recent users found');
+            recentList.innerHTML = '<div class="no-recent">Henüz kullanıcı yok</div>';
+        }
+    } catch (e) {
+        console.error('sidebar stats fetch error', e);
     }
 }
 
@@ -412,7 +137,13 @@ function updatePostCount() {
     const input = document.getElementById('postInput');
     const counter = document.getElementById('post-charcount');
     if (!input || !counter) return;
-    const len = input.value.length;
+    let text = input.innerText || input.textContent || '';
+    // enforce max length
+    if (text.length > 500) {
+        input.innerText = text.substring(0, 500);
+        text = input.innerText;
+    }
+    const len = text.length;
     counter.textContent = `${len}/500`;
 }
 
@@ -578,7 +309,12 @@ async function loadSuggestions() {
 }
 
 // Sayfa yüklendiğinde çalıştır (parçalar yüklendikten sonra)
-document.addEventListener('includesLoaded', loadComponents);
+document.addEventListener('includesLoaded', () => {
+    loadComponents();
+    // sidebar elements may not exist until includes are injected, so update UI again
+    if (typeof updateUIWithUser === 'function') updateUIWithUser();
+    if (typeof updateSidebarStats === 'function') updateSidebarStats();
+});
 
   const firebaseConfig = {
     apiKey: "AIzaSyBegJHqlfPagx8biFyS_FnE3iXOksgfoAU",
@@ -591,11 +327,6 @@ document.addEventListener('includesLoaded', loadComponents);
 
 // Hızlı UID ile arkadaş isteği gönderme (suggestions içinden çağrılır)
 async function sendFriendRequestToUid(targetUid, targetUsername) {
-    // Bakım modu kontrolü
-    if (typeof window.isMaintenanceActive === 'function' && window.isMaintenanceActive() && window.location.pathname.includes('index.html')) {
-        alert('⚠️ Sistem bakımda! Şu anda arkadaşlık isteği gönderemezsiniz.');
-        return;
-    }
 
     // sendFriendRequestToUid - hızlı arkadaş isteği
     if (!auth.currentUser) {
@@ -711,14 +442,28 @@ onAuthStateChanged(auth, async (fbUser) => {
             const userRef = doc(db, "users", fbUser.uid);
             const userDoc = await getDoc(userRef);
             
-            if (userDoc.exists() && userDoc.data().avatarUrl) {
-                // Firestore'dan gelen avatar var
-                user.avatarUrl = userDoc.data().avatarUrl;
+            if (userDoc.exists()) {
+                const data = userDoc.data();
+                // copy any relevant fields into our local user object
+                if (data.avatarUrl) {
+                    user.avatarUrl = data.avatarUrl;
+                }
+                if (data.displayName) {
+                    user.displayName = data.displayName;
+                }
+                if (data.username) {
+                    user.username = data.username;
+                }
+                if (data.createdAt) {
+                    user.createdAt = data.createdAt;
+                } else {
+                    // if existing doc somehow lacks timestamp, write one
+                    await setDoc(userRef, { createdAt: serverTimestamp() }, { merge: true });
+                    user.createdAt = { seconds: Math.floor(Date.now() / 1000) };
+                }
             } else {
-                // Varsayılan avatar
+                // User document doesn't exist yet; create with timestamp
                 user.avatarUrl = "assets/img/strendsaydamv2.png";
-                
-                // İlk kez giriş - document oluştur
                 try {
                     await setDoc(userRef, {
                         displayName: user.displayName,
@@ -727,6 +472,7 @@ onAuthStateChanged(auth, async (fbUser) => {
                         username: user.username,
                         createdAt: serverTimestamp()
                     }, { merge: true });
+                    user.createdAt = { seconds: Math.floor(Date.now() / 1000) };
                 } catch (e) {
                     // User already exists
                 }
@@ -745,6 +491,8 @@ onAuthStateChanged(auth, async (fbUser) => {
         
         // UI Güncelleme (Profil resmi, isimler vb.)
         updateUIWithUser();
+        // also update sidebar statistics such as total users and last signup
+        updateSidebarStats();
         // Ensure feed is loaded with current user context so profile tabs populate
         try { loadPostsFeed(); } catch(e) { console.warn('loadPostsFeed retry failed', e); }
         // also populate profile sections if on profile page
@@ -1391,7 +1139,14 @@ window.clearImagePreview = () => {
     });
     document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
       const key = el.getAttribute('data-i18n-placeholder');
-      if (t[key]) el.placeholder = t[key];
+      if (t[key]) {
+        if ('placeholder' in el) {
+          el.placeholder = t[key];
+        } else {
+          // for contenteditable divs we store value in data-placeholder
+          el.setAttribute('data-placeholder', t[key]);
+        }
+      }
     });
     const trBtn = document.getElementById('lang-tr');
     const enBtn = document.getElementById('lang-en');
@@ -1429,6 +1184,7 @@ function getAvatarUrl(avatarUrlOrSeed, type = 'user') {
     const sAv = document.getElementById('sidebarAvatar');
     const sDn = document.getElementById('sidebarDisplayName');
     const sUn = document.getElementById('sidebarUsername');
+    const sJd = document.getElementById('sidebarJoinDate');
 
     // Profil Sayfası
     const pAv = document.getElementById('profilePageAvatar');
@@ -1457,6 +1213,28 @@ function getAvatarUrl(avatarUrlOrSeed, type = 'user') {
     if(sAv) sAv.src = avatarUrl;
     if(sDn) sDn.innerText = user.displayName;
     if(sUn) sUn.innerText = `@${user.username}`;
+    if(sJd) {
+        console.log('sidebarJoinDate element found', { sJd, createdAt: user.createdAt });
+        if(user.createdAt) {
+            try {
+                const joinDate = new Date(user.createdAt.seconds * 1000 || user.createdAt).toLocaleDateString('tr-TR', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                });
+                sJd.innerText = `Kayıt Tarihi: ${joinDate}`;
+                console.log('Join date set:', joinDate);
+            } catch(e) {
+                console.error('Join date formatting error:', e);
+                sJd.innerText = 'Kayıt Tarihi: —';
+            }
+        } else {
+            console.warn('No createdAt in user object');
+            sJd.innerText = 'Kayıt Tarihi: —';
+        }
+    } else {
+        console.warn('sidebarJoinDate element not found');
+    }
 
     // Profil Sayfası Güncelleme
     if(pAv) pAv.src = avatarUrl;
@@ -1698,11 +1476,6 @@ function formatTime(timestamp) {
 /* --- SEARCH SON --- */
     
 window.likePost = async (id, isLiked, btn) => {
-    // Bakım modu kontrolü
-    if (typeof window.isMaintenanceActive === 'function' && window.isMaintenanceActive() && window.location.pathname.includes('index.html')) {
-        alert('⚠️ Sistem bakımda! Şu anda beğeni yapamıyorsunuz.');
-        return;
-    }
 
     // optimistic UI toggle
     if(btn) {
@@ -1744,11 +1517,6 @@ window.likePost = async (id, isLiked, btn) => {
 };
   // id: post id, isSaved: current state at render time, btn: HTML element that was clicked (optional)
   window.toggleBookmark = async (id, isSaved, btn) => {
-    // Bakım modu kontrolü
-    if (typeof window.isMaintenanceActive === 'function' && window.isMaintenanceActive() && window.location.pathname.includes('index.html')) {
-        alert('⚠️ Sistem bakımda! Şu anda kayıt yapamıyorsunuz.');
-        return;
-    }
 
     try {
         const ref = doc(db, "posts", id);
@@ -1808,11 +1576,6 @@ window.likePost = async (id, isLiked, btn) => {
     } };
   
   window.addComment = async (id) => {
-      // Bakım modu kontrolü
-      if (typeof window.isMaintenanceActive === 'function' && window.isMaintenanceActive() && window.location.pathname.includes('index.html')) {
-          alert('⚠️ Sistem bakımda! Şu anda yorum yapamıyorsunuz.');
-          return;
-      }
 
       const input = document.getElementById(`input-${id}`);
       const text = input.value.trim();
@@ -2187,13 +1950,10 @@ if (typeof updatePostCount === 'function') updatePostCount();
   const shareBtn = document.getElementById('shareBtn');
   if(shareBtn) {
   shareBtn.onclick = async () => {
-    // Bakım modu kontrolü
-    if (typeof window.isMaintenanceActive === 'function' && window.isMaintenanceActive() && window.location.pathname.includes('index.html')) {
-        alert('⚠️ Sistem bakımda! Şu anda gönderileri paylaşamazsınız. Lütfen daha sonra tekrar deneyin.');
-        return;
-    }
 
-    const val = document.getElementById('postInput').value.trim();
+    let val = document.getElementById('postInput').innerText.trim();
+    // enforce maximum length just in case
+    if (val.length > 500) val = val.substring(0, 500);
     
     // Eğer hem metin hem de resim boşsa paylaşma
     if(!val && !selectedImageBase64) return;
@@ -2213,7 +1973,7 @@ if (typeof updatePostCount === 'function') updatePostCount();
       });
       
       // Paylaşım sonrası temizlik
-      document.getElementById('postInput').value = "";
+      document.getElementById('postInput').innerText = "";
       if (typeof updatePostCount === 'function') updatePostCount();
       window.clearImagePreview(); // Önizlemeyi ve değişkeni sıfırla
     } catch (e) {
@@ -2432,9 +2192,23 @@ async function loadVisitorProfile() {
             visitorDisplayName = visitedData.displayName || visitedData.name || visitedUsername;
             visitorAvatar = getAvatarUrl(visitedData.avatarUrl || visitedData.avatar || "strendsaydamv2.png", 'user');
 
-            // determine friendship (used later even if profile isn't private)
-            if (auth.currentUser && visitedData.friends && Array.isArray(visitedData.friends)) {
-                isFriend = visitedData.friends.includes(auth.currentUser.uid);
+            // determine friendship in both directions (visitedData may drop list when user goes private)
+            if (auth.currentUser) {
+                try {
+                    const currentRef = doc(db, "users", auth.currentUser.uid);
+                    const currentSnap = await getDoc(currentRef);
+                    const currentData = currentSnap.data() || {};
+                    const currentFriends = currentData.friends || [];
+                    if (visitorUid && currentFriends.includes(visitorUid)) {
+                        isFriend = true;
+                    }
+                } catch (e) {
+                    console.warn('Could not fetch current user friends for privacy check', e);
+                }
+                // fallback: also check visitedData if available
+                if (!isFriend && visitedData && visitedData.friends && Array.isArray(visitedData.friends)) {
+                    isFriend = visitedData.friends.includes(auth.currentUser.uid);
+                }
             }
 
             // gizlilik kontrolü: profil gizliyse ve ziyaretçi arkadaş değilse içerik göstermeyelim
@@ -2462,6 +2236,9 @@ async function loadVisitorProfile() {
                     const friendsTabBtn = document.querySelector('.tab-btn[onclick*="my-friends-tab"]');
                     if (friendsTab) friendsTab.style.display = 'none';
                     if (friendsTabBtn) friendsTabBtn.style.display = 'none';
+                    // gizli profilde yabancılara sohbet yeri gösterilmesin
+                    const actionBtn = document.getElementById('profileActionBtn');
+                    if (actionBtn) actionBtn.style.display = 'none';
                     
                     return; // skip rest of visitor loading
                 }
@@ -2500,9 +2277,7 @@ async function loadVisitorProfile() {
 
         // eğer profil gizliyse ve biz arkadaşsak bazı öğeleri gizle
         if (visitedData && visitedData.isPrivate && isFriend) {
-            // avatar artık gösterilsin, sadece hareket butonlarını sakla
-            const actionBtn = document.getElementById('profileActionBtn');
-            if (actionBtn) actionBtn.style.display = 'none';
+            // arkadaşlar sohbet edebilsin, sadece arkadaş ekleme butonunu sakla
             const addFriendBtn = document.getElementById('addFriendBtn');
             if (addFriendBtn) addFriendBtn.style.display = 'none';
             const notice = document.getElementById('friendViewNotice');
@@ -2894,7 +2669,7 @@ window.openEditModal = function(postId, content, type = 'post', commentTime = nu
         else if(type === 'comment') title.innerText = "Yorumu Düzenle";
         else if(type === 'reply') title.innerText = "Yanıtı Düzenle";
         
-        input.value = (typeof decodeEntities === 'function' && content) ? decodeEntities(content) : (content || '');
+        input.innerText = (typeof decodeEntities === 'function' && content) ? decodeEntities(content) : (content || '');
         modal.style.display = 'flex';
     }
 };
@@ -2908,7 +2683,8 @@ window.closeEditModal = function() {
 
 // Ortak Kaydetme İşlemi
 document.getElementById('saveEditBtn').onclick = async () => {
-    const newContent = document.getElementById('editPostInput').value.trim();
+    let newContent = document.getElementById('editPostInput').innerText.trim();
+    if (newContent.length > 500) newContent = newContent.substring(0, 500);
     if (!newContent || !editTarget.postId) return;
 
     try {
@@ -3081,9 +2857,15 @@ document.addEventListener('DOMContentLoaded', () => {
             if (val.includes('&#')) {
                 val = decodeEntities(val);
             }
-            postInput.value += val;
+            // insert text at caret in contenteditable
+            if (document.queryCommandSupported('insertText')) {
+                document.execCommand('insertText', false, val);
+            } else {
+                postInput.innerText += val;
+            }
             emojiPicker.style.display = 'none';
             postInput.focus();
+            if (typeof updatePostCount === 'function') updatePostCount();
         }
     });
 
@@ -3315,9 +3097,7 @@ async function sendFriendRequest() {
         });
 
         // UI Güncelleme - Kullanıcı Deneyimi (UX)
-        // immediately switch to cancel state via shared helper
         await updateAddFriendButton(targetUid);
-        // also directly update button text to avoid race or caching issues
         const addFriendBtn = document.getElementById('addFriendBtn');
         if (addFriendBtn) {
             addFriendBtn.innerHTML = '<i class="fa-solid fa-hourglass-end"></i> İsteği iptal et';
@@ -4464,18 +4244,8 @@ function updateNotificationBadge(count) {
 // Profil sayfasında "Arkadaş Olarak Ekle" ve "Sohbet Et" butonunu göster/gizle
 async function updateAddFriendButton(targetUid) {
     const addFriendBtn = document.getElementById('addFriendBtn');
-    if (!addFriendBtn || !auth.currentUser) return;
-
-    // Sohbet Butonu Hazırlığı
-    // Eğer buton zaten varsa silip temiz bir başlangıç yapalım (veya sadece kontrol edelim)
-    let chatBtn = document.getElementById('chatWithUserBtn');
-    if (!chatBtn) {
-        chatBtn = document.createElement('button');
-        chatBtn.id = 'chatWithUserBtn';
-        chatBtn.className = 'chatWithUserBtn'; // Mevcut CSS sınıflarını kullanabilirsin
-        chatBtn.style.marginLeft = '10px';
-        addFriendBtn.parentNode.insertBefore(chatBtn, addFriendBtn.nextSibling);
-    }
+    const chatBtn = document.getElementById('profileActionBtn');
+    if (!addFriendBtn || !chatBtn || !auth.currentUser) return;
 
     // Eğer profil sahibi kendimizsek butonları düzenle
     if (targetUid === auth.currentUser.uid) {
@@ -4489,6 +4259,20 @@ async function updateAddFriendButton(targetUid) {
         chatBtn.style.display = 'none'; // Kendimizle sohbet edemeyiz
         return;
     }
+
+    // chat button default setup -- always visible for other users (friend or not)
+    chatBtn.style.display = 'inline-block';
+    chatBtn.style.opacity = '1';
+    chatBtn.style.cursor = 'pointer';
+    chatBtn.innerHTML = '<i class="fa-solid fa-comment"></i> Sohbet Et';
+    chatBtn.onclick = () => {
+        if (typeof openChatWithUser === 'function') {
+            openChatWithUser(targetUid, targetUid);
+        } else {
+            alert("Sohbet sistemi şu anda yüklenemedi. Lütfen sayfayı yenileyin.");
+            console.error("Critical: openChatWithUser function is missing.");
+        }
+    };
 
     try {
         const currentUserRef = doc(db, "users", auth.currentUser.uid);
@@ -4506,15 +4290,18 @@ async function updateAddFriendButton(targetUid) {
         const targetUsername = targetUserData.username || "Kullanıcı";
 
         // --- SOHBET BUTONU AYARI ---
-        chatBtn.style.display = 'inline-block';
-        chatBtn.innerHTML = '<i class="fa-solid fa-comment"></i> Sohbet Et';
-        chatBtn.onclick = () => {
-            if (typeof openChatWithUser === 'function') {
-                openChatWithUser(targetUid, targetUsername);
-            } else {
-                console.error("openChatWithUser fonksiyonu bulunamadı!");
-            }
-        };
+chatBtn.style.display = 'inline-block';
+chatBtn.innerHTML = '<i class="fa-solid fa-comment"></i> Sohbet Et';
+
+chatBtn.addEventListener('click', () => {
+    // Check if the required variables and function exist
+    if (typeof openChatWithUser === 'function') {
+        openChatWithUser(targetUid, targetUsername);
+    } else {
+        alert("Sohbet sistemi şu anda yüklenemedi. Lütfen sayfayı yenileyin.");
+        console.error("Critical: openChatWithUser function is missing.");
+    }
+});
 
         // --- ARKADAŞLIK BUTONU DURUMLARI ---
         // Zaten arkadaş mı?
