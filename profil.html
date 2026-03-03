@@ -94,7 +94,7 @@
   </style>
   <style>
     /* Profil Sekme Stilleri */
-    .profile-tabs { display: flex; gap: 10px; margin: 20px 0; border-bottom: 1px solid var(--border); padding-bottom: 10px; overflow-x: auto; white-space: nowrap; -ms-overflow-style: none; scrollbar-width: none; }
+    .profile-tabs { display: flex; gap: 10px; margin: 20px 0; padding-bottom: 10px; overflow-x: auto; white-space: nowrap; -ms-overflow-style: none; scrollbar-width: none; }
     .profile-tabs::-webkit-scrollbar { display: none; }
     .tab-btn { background: #fff; border: none; padding: 10px 20px; color: var(--text-muted); font-weight: 600; cursor: pointer; border-radius: 10px; transition: all 0.3s; display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
     .tab-btn.active { background: var(--primary); color: white; }
@@ -127,9 +127,9 @@
         .profile-actions button { width: 100%; }
         /* reduce padding on main card */
         #page-profile > .glass-card { padding: 20px 15px; }
-        /* tabs scrollable and smaller buttons */
-        .profile-tabs { gap: 5px; }
-        .tab-btn { padding: 8px 12px; font-size: 0.75rem; }
+        /* tabs: 2x2 grid layout on mobile */
+        .profile-tabs { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; white-space: normal; overflow-x: visible; }
+        .tab-btn { padding: 8px 12px; font-size: 0.75rem; width: 100%; justify-content: center; }
         /* friend search full width */
         #friendSearch { width: 100%; }
         /* friend list grid for small screens */
@@ -258,9 +258,27 @@
       <button class="tab-btn" onclick="openTab(event, 'my-notifs-tab')"><i class="fa-solid fa-bell"></i> Bildirimler</button>
     </div>
 
-    <div id="my-posts-tab" class="tab-content active"><div id="my-posts-list"></div></div>
-    <div id="my-likes-tab" class="tab-content"><div id="my-liked-list"></div></div>
-    <div id="my-saves-tab" class="tab-content"><div id="bookmark-items"></div></div>
+    <div id="my-posts-tab" class="tab-content active">
+      <div id="my-posts-list"></div>
+      <div id="no-posts-msg" style="display:none; text-align:center; color:var(--text-muted); padding:40px 20px;">
+        <i class="fa-solid fa-clone" style="font-size:3rem; margin-bottom:10px; display:block;"></i>
+        Henüz gönderi yok
+      </div>
+    </div>
+    <div id="my-likes-tab" class="tab-content">
+      <div id="my-liked-list"></div>
+      <div id="no-likes-msg" style="display:none; text-align:center; color:var(--text-muted); padding:40px 20px;">
+        <i class="fa-solid fa-heart" style="font-size:3rem; margin-bottom:10px; display:block;"></i>
+        Henüz beğendiğiniz gönderi yok
+      </div>
+    </div>
+    <div id="my-saves-tab" class="tab-content">
+      <div id="bookmark-items"></div>
+      <div id="no-saves-msg" style="display:none; text-align:center; color:var(--text-muted); padding:40px 20px;">
+        <i class="fa-solid fa-bookmark" style="font-size:3rem; margin-bottom:10px; display:block;"></i>
+        Henüz kayıtlı gönderi yok
+      </div>
+    </div>
 
     <div id="my-friends-tab" class="tab-content">
       <div class="glass-card" style="padding:20px;">
@@ -336,14 +354,11 @@
         }
         evt.currentTarget.classList.add("active");
         
-        // İçerik kısmına gizlilik mesajı bas
+        // İçerik kısmına gizlilik mesajı bas (tamamen temizle)
         const targetDiv = document.getElementById(tabName);
         targetDiv.style.display = "block";
         targetDiv.classList.add("active");
-        targetDiv.innerHTML = `<div class="glass-card" style="padding:40px; text-align:center; color:var(--text-muted);">
-                                <i class="fa-solid fa-lock" style="font-size:3rem; margin-bottom:15px; display:block;"></i>
-                                Bu içerikler sadece profil sahibine özeldir.
-                               </div>`;
+        targetDiv.innerHTML = ""; // hiçbir içerik bırakma
         return; // Fonksiyonu burada durdur, loadProfileSections'ı çağırma.
     }
 
@@ -364,10 +379,11 @@
     
     // Sadece kendi profilimizse verileri yükle
     if (['my-posts-tab','my-likes-tab','my-saves-tab'].includes(tabName) && isOwnProfile) {
+        const section = tabName === 'my-posts-tab' ? 'posts' : (tabName === 'my-likes-tab' ? 'likes' : 'saves');
         requestAnimationFrame(() => {
             if (window.loadProfileSections && typeof window.loadProfileSections === 'function') {
                 try {
-                    window.loadProfileSections();
+                    window.loadProfileSections(section);
                 } catch(e) {
                     console.warn('loadProfileSections call failed:', e);
                 }
@@ -435,12 +451,12 @@ window.addEventListener('load', () => {
     // app.js'in içindeki fonksiyonların tanımlanması için kısa bir süre tanı
     setTimeout(() => {
         if (typeof window.loadProfileSections === 'function') {
-            // Gönderileri, beğenileri ve kayıtları yükle
-            window.loadProfileSections();
-            
-            // Eğer URL'de özel bir tab (etiket) seçili değilse 
-            // varsayılan olarak "Gönderiler" sekmesini aktif et
+            // hangi sekme yüklenecek?
             const hash = window.location.hash.replace('#', '');
+            const section = hash || 'posts';
+            window.loadProfileSections(section);
+
+            // eğer hash yoksa, varsayılan olarak Gönderiler sekmesini seç
             if (!hash) {
                 const postTabBtn = document.querySelector('.tab-btn[onclick*="my-posts-tab"]');
                 if (postTabBtn) postTabBtn.click();
@@ -477,8 +493,10 @@ window.addEventListener('load', () => {
             // 1. Profil bilgisini çek
             await window.loadVisitorProfile();
             
-            // 2. Bölümleri render et
-            await window.loadProfileSections();
+            // 2. Bölümleri render et (sadece aktif sekme yüklesin)
+            const hash = window.location.hash.replace('#', '');
+            const section = hash || 'posts';
+            await window.loadProfileSections(section);
 
             // 3. Sekme Belirleme (URL Hash'i varsa o, yoksa my-posts)
             const hash = window.location.hash.replace('#', '');

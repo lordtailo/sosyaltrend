@@ -396,7 +396,7 @@ onAuthStateChanged(auth, async (fbUser) => {
         try { loadPostsFeed(); } catch(e) { console.warn('loadPostsFeed retry failed', e); }
         // also populate profile sections if on profile page
         if (typeof window.loadProfileSections === 'function') {
-            try { window.loadProfileSections(); } catch(e) { console.warn('loadProfileSections call during auth state failed', e); }
+            try { window.loadProfileSections('all'); } catch(e) { console.warn('loadProfileSections call during auth state failed', e); }
         }
         
         // Real-time kullanıcı profili listener - Avatar değişikliklerini senkronize et
@@ -1428,7 +1428,9 @@ window.likePost = async (id, isLiked, btn) => {
 
         // if we are on profile page, trigger a reload of section lists so counts update
         if (window.location.pathname.endsWith('profil.html') && typeof window.loadProfileSections === 'function') {
-            setTimeout(() => window.loadProfileSections(), 500);
+            const hash = window.location.hash.replace('#', '');
+            const section = hash || 'posts';
+            setTimeout(() => window.loadProfileSections(section), 500);
         }
     } catch (e) {
         console.error('toggleBookmark hatası:', e);
@@ -1953,21 +1955,16 @@ async function loadVisitorProfile() {
         const friendViewNotice = document.getElementById('friendViewNotice');
         if (friendViewNotice) friendViewNotice.style.display = 'none';
         
-        // Kendi profilinde tüm sekmeler açık olsun
+        // Kendi profilinde tüm sekmelerin butonlarını göster (içerik görünürlüğünü openTab ayarlasın)
         const tabButtons = document.querySelectorAll('.tab-btn');
         tabButtons.forEach((btn) => {
             btn.style.display = 'inline-block';
         });
-        const postsTab = document.getElementById('my-posts-tab');
-        const likesTab = document.getElementById('my-likes-tab');
-        const savesTab = document.getElementById('my-saves-tab');
-        const friendsTab = document.getElementById('my-friends-tab');
-        const notifsTab = document.getElementById('my-notifs-tab');
-        if (postsTab) postsTab.style.display = 'block';
-        if (likesTab) likesTab.style.display = 'block';
-        if (savesTab) savesTab.style.display = 'block';
-        if (friendsTab) friendsTab.style.display = 'block';
-        if (notifsTab) notifsTab.style.display = 'block';
+        // aktif sekmeyi tetikleyerek yalnızca onun içeriğinin görüntülenmesini sağla
+        const activeBtn = document.querySelector('.tab-btn.active');
+        if (activeBtn) {
+            activeBtn.click();
+        }
         
         // Own profile buttons updated
         return;
@@ -2057,11 +2054,13 @@ async function loadVisitorProfile() {
             visitorDisplayName = visitedData.displayName || visitedData.name || visitedUsername;
             visitorAvatar = getAvatarUrl(visitedData.avatarUrl || visitedData.avatar || "strendsaydamv2.png", 'user');
 
+            // determine friendship (used later even if profile isn't private)
+            if (auth.currentUser && visitedData.friends && Array.isArray(visitedData.friends)) {
+                isFriend = visitedData.friends.includes(auth.currentUser.uid);
+            }
+
             // gizlilik kontrolü: profil gizliyse ve ziyaretçi arkadaş değilse içerik göstermeyelim
             if (visitedData.isPrivate) {
-                if (auth.currentUser && visitedData.friends && Array.isArray(visitedData.friends)) {
-                    isFriend = visitedData.friends.includes(auth.currentUser.uid);
-                }
                 if (!isFriend) {
                     // Gizli profil: profil başlığını güncelle
                     const profileName = document.getElementById('profilePageName');
@@ -2200,7 +2199,8 @@ async function loadVisitorProfile() {
 }
 
 // For profile page: load own posts/likes/bookmarks separately
-window.loadProfileSections = async (showAllPosts = false, showAllLikes = false, showAllSaves = false) => {
+// section param determines which part(s) should be updated; 'all' (default), 'posts', 'likes', 'saves'
+window.loadProfileSections = async (section = 'all', showAllPosts = false, showAllLikes = false, showAllSaves = false) => {
     // console.log removed
 
     if (!auth.currentUser) {
@@ -2228,14 +2228,31 @@ window.loadProfileSections = async (showAllPosts = false, showAllLikes = false, 
     }
     
     const uname = user.username;
-    console.log('[loadProfileSections]', 'uname:', uname, 'user:', user);
+    console.log('[loadProfileSections]', 'section:', section, 'uname:', uname, 'user:', user);
+
+    // if a specific section is requested, ensure only its tab-content is visible
+    if (section && section !== 'all') {
+        const tabMap = { posts: 'my-posts-tab', likes: 'my-likes-tab', saves: 'my-saves-tab', friends: 'my-friends-tab', notifs: 'my-notifs-tab' };
+        const targetId = tabMap[section] || 'my-posts-tab';
+        document.querySelectorAll('.tab-content').forEach(div => {
+            if (div.id === targetId) {
+                div.style.display = 'block';
+                div.classList.add('active');
+            } else {
+                div.style.display = 'none';
+                div.classList.remove('active');
+            }
+        });
+    }
+
     const myPostsList = document.getElementById('my-posts-list');
     const myLikesList = document.getElementById('my-liked-list');
     const bookmarkList = document.getElementById('bookmark-items');
     
-    if (myPostsList) myPostsList.innerHTML = '';
-    if (myLikesList) myLikesList.innerHTML = '';
-    if (bookmarkList) bookmarkList.innerHTML = '';
+    // always clear the containers to avoid stale content
+    if (myPostsList && (section === 'all' || section === 'posts')) myPostsList.innerHTML = '';
+    if (myLikesList && (section === 'all' || section === 'likes')) myLikesList.innerHTML = '';
+    if (bookmarkList && (section === 'all' || section === 'saves')) bookmarkList.innerHTML = '';
 
     try {
         const q = query(collection(db, 'posts'), orderBy('timestamp','desc'));
@@ -2305,7 +2322,7 @@ window.loadProfileSections = async (showAllPosts = false, showAllLikes = false, 
         });
 
         // GÖNDERİLER
-        if (myPostsList && myPostsAll.length > 0) {
+        if ((section === 'all' || section === 'posts') && myPostsList && myPostsAll.length > 0) {
             let postsToShow = showAllPosts ? myPostsAll.length : 7;
             let postsHtml = myPostsAll.slice(0, postsToShow).join('');
             myPostsList.innerHTML = postsHtml;
@@ -2314,7 +2331,7 @@ window.loadProfileSections = async (showAllPosts = false, showAllLikes = false, 
                 const btn = document.createElement('div');
                 btn.style.cssText = `text-align: center; padding: 20px; margin-top: 15px;`;
                 btn.innerHTML = `
-                    <button onclick="window.loadProfileSections(true, false, false);" style="
+                    <button onclick="window.loadProfileSections('posts', true)" style="
                         background: linear-gradient(135deg, var(--primary), #8b5cf6);
                         color: white;
                         border: none;
@@ -2333,7 +2350,7 @@ window.loadProfileSections = async (showAllPosts = false, showAllLikes = false, 
         }
 
         // BEĞENİLER
-        if (myLikesList && myLikesAll.length > 0) {
+        if ((section === 'all' || section === 'likes') && myLikesList && myLikesAll.length > 0) {
             // add clear button at top
             const clearLikesDiv = document.createElement('div');
             clearLikesDiv.style.textAlign = 'right';
@@ -2349,7 +2366,7 @@ window.loadProfileSections = async (showAllPosts = false, showAllLikes = false, 
                 const btn = document.createElement('div');
                 btn.style.cssText = `text-align: center; padding: 20px; margin-top: 15px;`;
                 btn.innerHTML = `
-                    <button onclick="window.loadProfileSections(false, true, false);" style="
+                    <button onclick="window.loadProfileSections('likes', false, true)" style="
                         background: linear-gradient(135deg, var(--primary), #8b5cf6);
                         color: white;
                         border: none;
@@ -2368,7 +2385,7 @@ window.loadProfileSections = async (showAllPosts = false, showAllLikes = false, 
         }
 
         // KAYITLAR
-        if (bookmarkList && mySavesAll.length > 0) {
+        if ((section === 'all' || section === 'saves') && bookmarkList && mySavesAll.length > 0) {
             // add clear button for saves
             const clearSavesDiv = document.createElement('div');
             clearSavesDiv.style.textAlign = 'right';
@@ -2384,7 +2401,7 @@ window.loadProfileSections = async (showAllPosts = false, showAllLikes = false, 
                 const btn = document.createElement('div');
                 btn.style.cssText = `text-align: center; padding: 20px; margin-top: 15px;`;
                 btn.innerHTML = `
-                    <button onclick="window.loadProfileSections(false, false, true);" style="
+                    <button onclick="window.loadProfileSections('saves', false, false, true)" style="
                         background: linear-gradient(135deg, var(--primary), #8b5cf6);
                         color: white;
                         border: none;
@@ -2400,6 +2417,20 @@ window.loadProfileSections = async (showAllPosts = false, showAllLikes = false, 
                 `;
                 bookmarkList.appendChild(btn);
             }
+        }
+
+        // show/hide empty messages
+        const noPostsMsg = document.getElementById('no-posts-msg');
+        if (noPostsMsg && (section === 'all' || section === 'posts')) {
+            noPostsMsg.style.display = (myPostsAll.length === 0) ? 'block' : 'none';
+        }
+        const noLikesMsg = document.getElementById('no-likes-msg');
+        if (noLikesMsg && (section === 'all' || section === 'likes')) {
+            noLikesMsg.style.display = (myLikesAll.length === 0) ? 'block' : 'none';
+        }
+        const noSavesMsg = document.getElementById('no-saves-msg');
+        if (noSavesMsg && (section === 'all' || section === 'saves')) {
+            noSavesMsg.style.display = (mySavesAll.length === 0) ? 'block' : 'none';
         }
         
     } catch(e) {
@@ -2418,7 +2449,7 @@ window.clearAllLikes = async function() {
             await updateDoc(doc(db, 'posts', d.id), { likes: arrayRemove(uname) });
         });
         alert('Beğeniler kaldırıldı');
-        window.loadProfileSections(false, false, false);
+        window.loadProfileSections('all');
     } catch(e) {
         console.error('clearAllLikes error', e);
     }
@@ -2435,7 +2466,7 @@ window.clearAllSaves = async function() {
             await updateDoc(doc(db, 'posts', d.id), { savedBy: arrayRemove(uname) });
         });
         alert('Kayıtlar kaldırıldı');
-        window.loadProfileSections(false, false, false);
+        window.loadProfileSections('all');
     } catch(e) {
         console.error('clearAllSaves error', e);
     }
