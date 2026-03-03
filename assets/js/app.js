@@ -1213,6 +1213,11 @@ function getAvatarUrl(avatarUrlOrSeed, type = 'user') {
     if(sAv) sAv.src = avatarUrl;
     if(sDn) sDn.innerText = user.displayName;
     if(sUn) sUn.innerText = `@${user.username}`;
+    // show/hide blog creation link depending on auth state
+    const blogNewLink = document.getElementById('btn-blog-new');
+    if (blogNewLink) {
+        blogNewLink.style.display = auth.currentUser ? 'block' : 'none';
+    }
     if(sJd) {
         console.log('sidebarJoinDate element found', { sJd, createdAt: user.createdAt });
         if(user.createdAt) {
@@ -5624,10 +5629,83 @@ window.clearAttachmentPreview = function() {
 }
 
 // Initialize chat widget when page loads
+// also handle blog pages if present
+async function loadBlogPosts() {
+    const container = document.getElementById('blogPostsContainer');
+    if (!container) return;
+    try {
+        const q = query(collection(db, 'blogs'), orderBy('createdAt', 'desc'));
+        const snap = await getDocs(q);
+        container.innerHTML = '';
+        if (snap.empty) {
+            container.innerHTML = '<p style="color:var(--text-muted);">Henüz yayımlanmış bir blog yazısı yok.</p>';
+            return;
+        }
+        snap.forEach(doc => {
+            const data = doc.data();
+            const excerpt = (data.content || '').substring(0, 200).replace(/\n/g, ' ');
+            const postHtml = `
+                <div class="glass-card" style="padding:15px 20px; margin-bottom:20px;">
+                    <h3 style="margin-top:0;">${escapeHtml(data.title)}</h3>
+                    <p style="color:var(--text-muted); font-size:0.95rem; line-height:1.6;">${escapeHtml(excerpt)}${excerpt.length>=200?'...':''}</p>
+                    <a href="blog-post.html?id=${doc.id}" class="mini-link-btn" style="margin-top:10px; display:inline-block;">Devamını Oku →</a>
+                </div>`;
+            container.innerHTML += postHtml;
+        });
+    } catch (e) {
+        console.error('loadBlogPosts hata:', e);
+        container.innerHTML = '<p style="color:var(--text-muted);">Yazılar yüklenemedi.</p>';
+    }
+}
+
+async function publishBlogPost() {
+    const titleEl = document.getElementById('blogTitle');
+    const contentEl = document.getElementById('blogContent');
+    const status = document.getElementById('blogStatus');
+    if (!titleEl || !contentEl || !status) return;
+    if (!auth.currentUser) {
+        status.textContent = 'Lütfen giriş yapın.';
+        status.style.color = '#ef4444';
+        return;
+    }
+    const title = titleEl.value.trim();
+    const content = contentEl.value.trim();
+    if (!title || !content) {
+        status.textContent = 'Lütfen başlık ve içerik girin.';
+        status.style.color = '#ef4444';
+        return;
+    }
+    status.textContent = 'Yayınlanıyor...';
+    status.style.color = 'var(--text-muted)';
+    try {
+        await addDoc(collection(db, 'blogs'), {
+            title,
+            content,
+            authorUid: auth.currentUser.uid,
+            createdAt: serverTimestamp()
+        });
+        status.textContent = '✅ Yazınız yayına alındı.';
+        status.style.color = '#10b981';
+        titleEl.value = '';
+        contentEl.value = '';
+    } catch (e) {
+        console.error('publishBlogPost hata:', e);
+        status.textContent = '❌ Yayınlanamadı: ' + (e.message || '');
+        status.style.color = '#ef4444';
+    }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     initChatWidget();
     initChatListsPanel();
     loadStoredChatNotifications();
+    // blog page init
+    if (document.getElementById('page-blog')) {
+        loadBlogPosts();
+    }
+    if (document.getElementById('publishBlogBtn')) {
+        document.getElementById('publishBlogBtn').addEventListener('click', publishBlogPost);
+    }
 });
 
 // Start listening for messages when user is authenticated

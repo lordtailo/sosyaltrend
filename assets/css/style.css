@@ -441,8 +441,66 @@ input:checked + .slider:before {
 
 .sidebar-container { 
 padding: 8px; }
+.sidebar-title {
+    /* ensure details summary inherits styles */
+}
+
+/* submenu details styling */
+details.menu-details {
+    border: none;
+}
+details.menu-details summary {
+    list-style: none;
+    position: relative;
+}
+details.menu-details summary::-webkit-details-marker {
+    display: none;
+}
+details.menu-details summary:after {
+    content: '\f078';
+    font-family: 'Font Awesome 6 Free';
+    font-weight: 900;
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%) rotate(0deg);
+    transition: transform 0.2s;
+}
+details.menu-details[open] summary:after {
+    transform: translateY(-50%) rotate(180deg);
+}
+
+.menu-style-btn.sub-item {
+    font-size: 0.9rem;
+    padding-left: 24px;
+}
+
+/* existing rule */
 .sidebar-title { 
 padding: 10px 12px; font-weight: 800; font-size: 0.85rem; color: var(--text-main); text-transform: uppercase; letter-spacing: 0.5px; }
+
+/* blog card styling */
+.sidebar-blog-card {
+    padding: 10px 12px;
+    margin-top: 10px;
+}
+.sidebar-blog-card .sidebar-title {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--primary);
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 8px;
+}
+.sidebar-blog-card a {
+    display: block;
+    padding: 6px 0;
+    font-size: 0.9rem;
+    color: var(--text-main);
+}
 
 /* sidebar statistics card styling */
 .sidebar-stats-card {

@@ -1,20 +1,21 @@
 <aside class="right-panel">
-    <!-- search form above clock -->
-    <div class="glass-card" style="margin-bottom:12px; padding:12px;">
-        <h3 style="font-size: 0.95rem; margin: 0; font-weight: 800; color: var(--text-main);"><i class="fa-solid fa-magnifying-glass"></i> ARAMA</h3><br>
-        <form action="search.html" method="GET" style="display:flex; gap:8px; align-items:center;">
-            <div class="search-wrapper" style="flex:1;">
-                <input type="text" name="q" id="globalSearch" placeholder="Aramak istediğin şeyi yaz.">
-            </div>
-            <button type="submit" id="mainSearchBtn" style="background: var(--primary); color: white; border: none; padding: 8px 18px; border-radius: 50px; font-weight: 700; cursor: pointer; display:flex; align-items:center; gap:8px;">
-                <i class="fa-solid fa-magnifying-glass"></i> Ara
-            </button>
-        </form>
+    <div class="glass-card sidebar-container" style="margin-bottom:12px;">
+        <div class="sidebar-title"><i class="fa-solid fa-magnifying-glass"></i> Arama</div>
+        <div style="padding: 0 5px 5px 5px;">
+            <form action="search.html" method="GET" style="display:flex; gap:8px; align-items:center;">
+                <div class="search-wrapper" style="flex:1;">
+                    <input type="text" name="q" id="globalSearch" placeholder="Aramak istediğin şeyi yaz.">
+                </div>
+                <button type="submit" id="mainSearchBtn" style="background: var(--primary); color: white; border: none; padding: 8px 18px; border-radius: 50px; font-weight: 700; cursor: pointer; display:flex; align-items:center; gap:8px;">
+                    <i class="fa-solid fa-magnifying-glass"></i> Ara
+                </button>
+            </form>
+        </div>
     </div>
 
-    <!-- son 10 kullanıcı istatistikleri -->
+     <!-- son 10 kullanıcı istatistikleri -->
     <div id="sidebarStats" class="glass-card sidebar-stats-card" style="overflow: visible; margin-bottom: 12px;">
-        <div class="stats-header"><i class="fa-solid fa-sparkles"></i> En Son Kayıt Olan Kullanıcılar</div>
+<div class="sidebar-title"><i class="fa-solid fa-user-plus"></i> En Son Kayıt Olanlar</div>
         <div class="stat-row big" style="padding: 10px 0; border-bottom: 1px solid var(--border);">
             <div class="big-number" id="sidebarTotalUsers">-</div>
             <div class="label-small" style="font-size:0.75rem; color:var(--text-muted);">Toplam Kayıtlı</div>
@@ -26,12 +27,10 @@
         </div>
     </div>
 
-    <div class="glass-card" style="margin-top: 20px; padding: 15px;">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-        <h3 style="font-size: 0.95rem; margin: 0; font-weight: 800; color: var(--text-main);"><i class="fa-solid fa-user-plus"></i> ARKADAŞ ÖNERİLERİ</h3>
+    <div class="glass-card sidebar-container" style="margin-top: 20px;">
+        <div class="sidebar-title"><i class="fa-solid fa-user-group"></i> Arkadaş Önerileri</div>
+        <div id="dynamic-suggestions-list" style="display: flex; flex-direction: column; gap: 12px; padding: 5px;">
+            <div style="font-size: 0.8rem; color: var(--text-muted); text-align: center;">Yükleniyor...</div>
+        </div>
     </div>
-    <div id="dynamic-suggestions-list" style="display: flex; flex-direction: column; gap: 12px;">
-        <div style="font-size: 0.8rem; color: var(--text-muted); text-align: center;">Yükleniyor...</div>
-    </div>
-</div>
-  </aside>
+</aside>
