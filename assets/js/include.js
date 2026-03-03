@@ -1,4 +1,4 @@
-document.addEventListener('DOMContentLoaded', async () => {
+async function runIncludes() {
   const includes = Array.from(document.querySelectorAll('[data-include]'));
   await Promise.all(includes.map(async (el) => {
     const url = el.getAttribute('data-include');
@@ -25,4 +25,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // signal that all includes have been processed so other scripts can act
   document.dispatchEvent(new Event('includesLoaded'));
-});
+}
+
+// Run immediately if DOM is already ready, otherwise wait for DOMContentLoaded
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', runIncludes);
+} else {
+  runIncludes();
+}

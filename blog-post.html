@@ -19,6 +19,28 @@
 
 <div id="header-placeholder"></div>
 
+<script>
+console.log('[blog-post] Loading header...');
+fetch('partials/header.html')
+  .then(r => {
+    console.log('[blog-post] Header fetch response:', r.status);
+    return r.text();
+  })
+  .then(html => {
+    const el = document.getElementById('header-placeholder');
+    console.log('[blog-post] Header element found:', !!el, 'HTML length:', html.length);
+    if (el) {
+      el.innerHTML = html;
+      console.log('[blog-post] Header inserted successfully');
+    }
+  })
+  .catch(e => {
+    console.error('[blog-post] Header fetch error:', e);
+    // Fallback: reload page hint
+    console.warn('[blog-post] Header failed to load - refresh page');
+  });
+</script>
+
 <div class="app-container">
   <div data-include="partials/left-aside.html"></div>
 
@@ -38,6 +60,27 @@
 
 
 <div id="footer-placeholder"></div>
+
+<script>
+console.log('[blog-post] Loading footer...');
+fetch('partials/footer.html')
+  .then(r => {
+    console.log('[blog-post] Footer fetch response:', r.status);
+    return r.text();
+  })
+  .then(html => {
+    const el = document.getElementById('footer-placeholder');
+    console.log('[blog-post] Footer element found:', !!el, 'HTML length:', html.length);
+    if (el) {
+      el.innerHTML = html;
+      console.log('[blog-post] Footer inserted successfully');
+    }
+  })
+  .catch(e => {
+    console.error('[blog-post] Footer fetch error:', e);
+    console.warn('[blog-post] Footer failed to load - refresh page');
+  });
+</script>
 
 <script>
   async function loadBlogPost() {

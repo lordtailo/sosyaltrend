@@ -19,6 +19,27 @@
 
 <div id="header-placeholder"></div>
 
+<script>
+console.log('[blog] Loading header...');
+fetch('partials/header.html')
+  .then(r => {
+    console.log('[blog] Header fetch response:', r.status);
+    return r.text();
+  })
+  .then(html => {
+    const el = document.getElementById('header-placeholder');
+    console.log('[blog] Header element found:', !!el, 'HTML length:', html.length);
+    if (el) {
+      el.innerHTML = html;
+      console.log('[blog] Header inserted successfully');
+    }
+  })
+  .catch(e => {
+    console.error('[blog] Header fetch error:', e);
+    console.warn('[blog] Header failed to load - refresh page');
+  });
+</script>
+
 <div class="app-container">
   <div data-include="partials/left-aside.html"></div>
 
@@ -28,14 +49,7 @@
       <div class="glass-card" style="padding:20px;">
         <h2 style="margin-bottom:15px; color:var(--primary);">Blog Yazıları</h2>
         <div id="blogPostsContainer" style="margin-top:20px;">
-          <div class="glass-card" style="padding:15px 20px; margin-bottom:20px;">
-            <h3 style="margin-top:0;">Örnek Blog Yazısı</h3>
-            <p style="color:var(--text-muted); font-size:0.95rem; line-height:1.6;">
-              Bu bölümde blog yazılarınız listelenecek. İleride Firestore'dan çekilmiş gerçek içerikler gösterilecek.
-            </p>
-            <a href="#" class="mini-link-btn" style="margin-top:10px; display:inline-block;">Devamını Oku →</a>
-          </div>
-          <p style="color:var(--text-muted);">Henüz daha fazla yazı yok.</p>
+            <!-- posts will be injected here by loadBlogPosts() -->
         </div>
       </div>
     </div>
@@ -47,6 +61,27 @@
 
 
 <div id="footer-placeholder"></div>
+
+<script>
+console.log('[blog] Loading footer...');
+fetch('partials/footer.html')
+  .then(r => {
+    console.log('[blog] Footer fetch response:', r.status);
+    return r.text();
+  })
+  .then(html => {
+    const el = document.getElementById('footer-placeholder');
+    console.log('[blog] Footer element found:', !!el, 'HTML length:', html.length);
+    if (el) {
+      el.innerHTML = html;
+      console.log('[blog] Footer inserted successfully');
+    }
+  })
+  .catch(e => {
+    console.error('[blog] Footer fetch error:', e);
+    console.warn('[blog] Footer failed to load - refresh page');
+  });
+</script>
 
 <script src="assets/js/include.js"></script>
 <script type="module" src="assets/js/app.js"></script>

@@ -407,7 +407,9 @@ await updateDoc(currentUserRef, {
   let user = {
   displayName: "Misafir",
   avatarUrl: "assets/img/strendsaydamv2.png",
-  isAdmin: false
+  isAdmin: false,
+  createdAt: null,
+  username: "misafir"
 };
 
 // Utility: wait for a DOM selector to appear (returns element or null)
@@ -1213,32 +1215,44 @@ function getAvatarUrl(avatarUrlOrSeed, type = 'user') {
     if(sAv) sAv.src = avatarUrl;
     if(sDn) sDn.innerText = user.displayName;
     if(sUn) sUn.innerText = `@${user.username}`;
-    // show/hide blog creation link depending on auth state
+    // show/hide blog creation and my posts links depending on auth state
     const blogNewLink = document.getElementById('btn-blog-new');
+    const blogMineLink = document.getElementById('btn-blog-mine');
     if (blogNewLink) {
         blogNewLink.style.display = auth.currentUser ? 'block' : 'none';
     }
-    if(sJd) {
-        console.log('sidebarJoinDate element found', { sJd, createdAt: user.createdAt });
-        if(user.createdAt) {
-            try {
-                const joinDate = new Date(user.createdAt.seconds * 1000 || user.createdAt).toLocaleDateString('tr-TR', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
-                });
-                sJd.innerText = `Kayıt Tarihi: ${joinDate}`;
-                console.log('Join date set:', joinDate);
-            } catch(e) {
-                console.error('Join date formatting error:', e);
-                sJd.innerText = 'Kayıt Tarihi: —';
-            }
+    if (blogMineLink) {
+        blogMineLink.style.display = auth.currentUser ? 'block' : 'none';
+    }
+
+    // if we're on the create page, control the publish button state
+    const publishBtn = document.getElementById('publishBlogBtn');
+    if (publishBtn) {
+        if (!auth.currentUser) {
+            publishBtn.disabled = true;
+            publishBtn.style.opacity = '0.5';
+            publishBtn.title = 'Önce giriş yapmalısınız';
         } else {
-            console.warn('No createdAt in user object');
-            sJd.innerText = 'Kayıt Tarihi: —';
+            publishBtn.disabled = false;
+            publishBtn.style.opacity = '';
+            publishBtn.title = '';
         }
-    } else {
-        console.warn('sidebarJoinDate element not found');
+    }
+    if(sJd && user.createdAt) {
+        try {
+            const joinDate = new Date(
+                (typeof user.createdAt.toDate === 'function')
+                    ? user.createdAt.toDate()
+                    : (user.createdAt.seconds * 1000 || user.createdAt)
+            ).toLocaleDateString('tr-TR', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+            sJd.innerText = `Kayıt Tarihi: ${joinDate}`;
+        } catch(e) {
+            if(sJd) sJd.innerText = 'Kayıt Tarihi: —';
+        }
     }
 
     // Profil Sayfası Güncelleme
@@ -2976,22 +2990,41 @@ async function loadComponent(elementId, filePath) {
         
         if (element) {
             element.innerHTML = html;
-            // Component loaded successfully
-            
+            console.log(`loadComponent: loaded ${filePath} into #${elementId}`);
+
             // Bileşen yüklendikten sonra i18n (dil) fonksiyonun varsa tetikleyebilirsin
-            // if (typeof updateContent === 'function') updateContent();
+            if (typeof updateContent === 'function') updateContent();
         }
     } catch (error) {
-        console.error("Bileşen yükleme hatası:", error);
+        console.error("Bileşen yükleme hatası:", filePath, error);
     }
 }
 
 // 2. Sayfa Yüklendiğinde Başlat
-document.addEventListener("DOMContentLoaded", () => {
+function initPlaceholders() {
     // Parçaları yükle
     loadComponent("header-placeholder", "partials/header.html");
     loadComponent("footer-placeholder", "partials/footer.html");
-});
+}
+if (document.readyState === 'loading') {
+    document.addEventListener("DOMContentLoaded", initPlaceholders);
+} else {
+    initPlaceholders();
+}
+
+// Safety: if header/footer didn't render (some environments block fetch), retry once after 700ms
+setTimeout(() => {
+    const headerEl = document.getElementById('header-placeholder');
+    const footerEl = document.getElementById('footer-placeholder');
+    if (headerEl && headerEl.innerHTML.trim() === '') {
+        console.warn('header-placeholder empty after initial load — retrying');
+        loadComponent('header-placeholder', 'partials/header.html');
+    }
+    if (footerEl && footerEl.innerHTML.trim() === '') {
+        console.warn('footer-placeholder empty after initial load — retrying');
+        loadComponent('footer-placeholder', 'partials/footer.html');
+    }
+}, 700);
 
 // 3. Global Tıklama Dinleyicisi (Event Delegation)
 // Bu yöntem, elemanlar fetch ile sonradan gelse bile tıklamayı yakalar.
@@ -5659,17 +5692,24 @@ async function loadBlogPosts() {
 }
 
 async function publishBlogPost() {
+    console.log('publishBlogPost invoked');
     const titleEl = document.getElementById('blogTitle');
     const contentEl = document.getElementById('blogContent');
     const status = document.getElementById('blogStatus');
-    if (!titleEl || !contentEl || !status) return;
+    console.log('elements', { titleEl, contentEl, status });
+    if (!titleEl || !contentEl || !status) {
+        console.warn('missing elements for publish');
+        return;
+    }
     if (!auth.currentUser) {
+        console.warn('user not authenticated');
         status.textContent = 'Lütfen giriş yapın.';
         status.style.color = '#ef4444';
         return;
     }
     const title = titleEl.value.trim();
     const content = contentEl.value.trim();
+    console.log('title/content lengths', title.length, content.length);
     if (!title || !content) {
         status.textContent = 'Lütfen başlık ve içerik girin.';
         status.style.color = '#ef4444';
@@ -5688,12 +5728,21 @@ async function publishBlogPost() {
         status.style.color = '#10b981';
         titleEl.value = '';
         contentEl.value = '';
+        // redirect to "my posts" after brief pause so user sees feedback
+        setTimeout(() => {
+            window.location.href = 'blog.html?mine=1';
+        }, 1200);
+        return true;
     } catch (e) {
         console.error('publishBlogPost hata:', e);
         status.textContent = '❌ Yayınlanamadı: ' + (e.message || '');
         status.style.color = '#ef4444';
+        return false;
     }
 }
+
+// make function available globally for inline onclick
+window.publishBlogPost = publishBlogPost;
 
 document.addEventListener('DOMContentLoaded', () => {
     initChatWidget();
@@ -5703,9 +5752,31 @@ document.addEventListener('DOMContentLoaded', () => {
     if (document.getElementById('page-blog')) {
         loadBlogPosts();
     }
-    if (document.getElementById('publishBlogBtn')) {
-        document.getElementById('publishBlogBtn').addEventListener('click', publishBlogPost);
-    }
+    // schedule delayed binding in case button is added later
+    setTimeout(() => {
+        const btn = document.getElementById('publishBlogBtn');
+        console.log('DOMContentLoaded delayed check: publishBtn exists?', !!btn);
+        if (btn) btn.addEventListener('click', publishBlogPost);
+    }, 250);
+
+    // catch clicks on publish button even if listener fails
+    document.body.addEventListener('click', e => {
+        if (e.target && e.target.id === 'publishBlogBtn') {
+            console.log('body listener detected publish click');
+        }
+    });
+});
+
+// ensure publish button gets listener shortly after load
+// (includesLoaded may fire before app.js loads, so use timeout fallback)
+document.addEventListener('DOMContentLoaded', () => {
+    setTimeout(() => {
+        const pubBtn = document.getElementById('publishBlogBtn');
+        console.log('delayed bind: publishBtn exists?', !!pubBtn);
+        if (pubBtn) {
+            pubBtn.addEventListener('click', publishBlogPost);
+        }
+    }, 250);
 });
 
 // Start listening for messages when user is authenticated
@@ -5714,6 +5785,19 @@ onAuthStateChanged(auth, (authUser) => {
         setTimeout(() => {
             listenForIncomingMessages();
         }, 2000);
+    }
+    // toggle create page publish button when auth changes
+    const pubBtn = document.getElementById('publishBlogBtn');
+    if (pubBtn) {
+        if (authUser) {
+            pubBtn.disabled = false;
+            pubBtn.style.opacity = '';
+            pubBtn.title = '';
+        } else {
+            pubBtn.disabled = true;
+            pubBtn.style.opacity = '0.5';
+            pubBtn.title = 'Önce giriş yapmalısınız';
+        }
     }
 });
 

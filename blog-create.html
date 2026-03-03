@@ -19,6 +19,27 @@
 
 <div id="header-placeholder"></div>
 
+<script>
+console.log('[blog-create] Loading header...');
+fetch('partials/header.html')
+  .then(r => {
+    console.log('[blog-create] Header fetch response:', r.status);
+    return r.text();
+  })
+  .then(html => {
+    const el = document.getElementById('header-placeholder');
+    console.log('[blog-create] Header element found:', !!el, 'HTML length:', html.length);
+    if (el) {
+      el.innerHTML = html;
+      console.log('[blog-create] Header inserted successfully');
+    }
+  })
+  .catch(e => {
+    console.error('[blog-create] Header fetch error:', e);
+    console.warn('[blog-create] Header failed to load - refresh page');
+  });
+</script>
+
 <div class="app-container">
   <div data-include="partials/left-aside.html"></div>
 
@@ -34,7 +55,7 @@
           <label class="form-label" for="blogContent" style="margin-top:10px;">İçerik</label>
           <textarea id="blogContent" class="form-input" rows="8" style="resize: vertical;" placeholder="Yazınızı buraya yazın..."></textarea>
 
-          <button id="publishBlogBtn" type="button" class="form-btn" style="margin-top: 15px;">
+          <button id="publishBlogBtn" type="button" class="form-btn" style="margin-top: 15px;" onclick="publishBlogPost().catch(e=>console.error('inline click error',e));">
             <i class="fa-solid fa-paper-plane"></i> Yayınla
           </button>
           <p id="blogStatus" style="margin-top: 15px; font-weight: 600; text-align: center;"></p>
@@ -51,24 +72,27 @@
 <div id="footer-placeholder"></div>
 
 <script>
-  document.getElementById('publishBlogBtn').addEventListener('click', () => {
-    const title = document.getElementById('blogTitle').value.trim();
-    const content = document.getElementById('blogContent').value.trim();
-    const status = document.getElementById('blogStatus');
-
-    if (!title || !content) {
-      status.textContent = 'Lütfen başlık ve içerik girin.';
-      status.style.color = '#ef4444';
-      return;
+console.log('[blog-create] Loading footer...');
+fetch('partials/footer.html')
+  .then(r => {
+    console.log('[blog-create] Footer fetch response:', r.status);
+    return r.text();
+  })
+  .then(html => {
+    const el = document.getElementById('footer-placeholder');
+    console.log('[blog-create] Footer element found:', !!el, 'HTML length:', html.length);
+    if (el) {
+      el.innerHTML = html;
+      console.log('[blog-create] Footer inserted successfully');
     }
-    // burada Firestore'a kayıt logic'i eklenebilir
-    status.textContent = '✅ Yazınız kaydedildi (şimdilik sadece önizleme).';
-    status.style.color = '#10b981';
-    // form temizle
-    document.getElementById('blogTitle').value = '';
-    document.getElementById('blogContent').value = '';
+  })
+  .catch(e => {
+    console.error('[blog-create] Footer fetch error:', e);
+    console.warn('[blog-create] Footer failed to load - refresh page');
   });
 </script>
+
+
 
 <script src="assets/js/include.js"></script>
 <script type="module" src="assets/js/app.js"></script>
