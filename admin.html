@@ -60,6 +60,7 @@
             <button class="tab-btn active" onclick="switchTab('announcement')">Sistem Duyurusu</button>
             <button class="tab-btn" onclick="switchTab('users')">Kullanıcı Yönetimi</button>
             <button class="tab-btn" onclick="switchTab('moderation')">İçerik Denetimi</button>
+            <button class="tab-btn" onclick="switchTab('maintenance')">Bakım Modu</button>
         </div>
 
         <div id="section-announcement" class="admin-section active">
@@ -79,6 +80,43 @@
         <div id="section-moderation" class="admin-section">
             <div class="section-subtitle">Tüm Paylaşımları Yönet</div>
             <div id="admin-feed-list"></div>
+        </div>
+
+        <div id="section-maintenance" class="admin-section">
+            <div class="section-subtitle">Bakım Modu Ayarları</div>
+            <div style="background: rgba(239, 68, 68, 0.1); border-left: 4px solid var(--danger); padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                <p style="margin: 0; color: var(--danger); font-weight: 600;">⚠️ Bakım modu etkin olduğunda kullanıcılar yeni gönderi ve etkileşim yapamayacak</p>
+            </div>
+            
+            <div style="display: flex; flex-direction: column; gap: 15px;">
+                <div>
+                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-weight: 600;">
+                        <input type="checkbox" id="maintenanceToggle" onchange="toggleMaintenanceMode()">
+                        <span>Bakım Modunu Etkinleştir</span>
+                    </label>
+                </div>
+                
+                <div id="maintenanceSettings" style="display: none; box-sizing: border-box; border: 1px solid var(--border); padding: 15px; border-radius: 8px; background: var(--input-bg);">
+                    <div style="margin-bottom: 15px;">
+                        <label class="form-label">Bakım Başlangıç Saati</label>
+                        <input type="time" id="maintenanceStartTime" class="form-input" value="10:00" style="max-width: 200px;">
+                    </div>
+                    
+                    <div style="margin-bottom: 15px;">
+                        <label class="form-label">Bakım Bitiş Saati</label>
+                        <input type="time" id="maintenanceEndTime" class="form-input" value="21:00" style="max-width: 200px;">
+                    </div>
+                    
+                    <button onclick="saveMaintenanceSettings()" class="form-btn" style="width: auto; padding: 10px 20px;">
+                        <i class="fa-solid fa-save"></i> Bakım Ayarlarını Kaydet
+                    </button>
+                </div>
+
+                <div id="maintenanceStatus" style="display: none; background: rgba(16, 185, 129, 0.1); border: 1px solid #10b981; padding: 15px; border-radius: 8px;">
+                    <p style="margin: 0; color: #10b981; font-weight: 600;">✓ Bakım Modu Aktif</p>
+                    <p id="maintenanceStatusTime" style="margin: 5px 0; font-size: 0.9rem; color: var(--text-muted);"></p>
+                </div>
+            </div>
         </div>
     </div>
 </main>
@@ -121,6 +159,7 @@
         loadStats();
         loadUsersFromPosts();
         loadAllPosts();
+        loadMaintenanceModeStatus();
     }
 
     // GÜNCELLENMİŞ İSTATİSTİK FONKSİYONU
@@ -196,6 +235,58 @@
         document.getElementById('section-' + tabId).classList.add('active');
         if(event) event.target.classList.add('active');
     };
+
+    // Bakım Modu Fonksiyonları
+    function loadMaintenanceModeStatus() {
+        const maintenance = JSON.parse(localStorage.getItem('stMaintenanceMode')) || { enabled: false, startTime: '10:00', endTime: '21:00' };
+        document.getElementById('maintenanceToggle').checked = maintenance.enabled;
+        document.getElementById('maintenanceStartTime').value = maintenance.startTime || '10:00';
+        document.getElementById('maintenanceEndTime').value = maintenance.endTime || '21:00';
+        updateMaintenanceUI();
+    }
+
+    window.toggleMaintenanceMode = () => {
+        const enabled = document.getElementById('maintenanceToggle').checked;
+        const maintenance = JSON.parse(localStorage.getItem('stMaintenanceMode')) || { enabled: false, startTime: '10:00', endTime: '21:00' };
+        maintenance.enabled = enabled;
+        
+        if (enabled) {
+            localStorage.setItem('stMaintenanceMode', JSON.stringify(maintenance));
+            localStorage.setItem('stMaintenanceCountdown', 120); // 2 dakika countdown
+            alert('✓ Bakım modu 2 dakika içinde etkinleşecektir!');
+        } else {
+            localStorage.removeItem('stMaintenanceMode');
+            localStorage.removeItem('stMaintenanceCountdown');
+            alert('✓ Bakım modu devre dışı bırakıldı.');
+        }
+        updateMaintenanceUI();
+    };
+
+    window.saveMaintenanceSettings = () => {
+        const startTime = document.getElementById('maintenanceStartTime').value;
+        const endTime = document.getElementById('maintenanceEndTime').value;
+        const maintenance = JSON.parse(localStorage.getItem('stMaintenanceMode')) || { enabled: false };
+        maintenance.startTime = startTime;
+        maintenance.endTime = endTime;
+        localStorage.setItem('stMaintenanceMode', JSON.stringify(maintenance));
+        alert('✓ Bakım saatleri kaydedildi: ' + startTime + ' - ' + endTime);
+        updateMaintenanceUI();
+    };
+
+    function updateMaintenanceUI() {
+        const maintenance = JSON.parse(localStorage.getItem('stMaintenanceMode'));
+        const settingsDiv = document.getElementById('maintenanceSettings');
+        const statusDiv = document.getElementById('maintenanceStatus');
+        
+        if (maintenance && maintenance.enabled) {
+            settingsDiv.style.display = 'block';
+            statusDiv.style.display = 'block';
+            document.getElementById('maintenanceStatusTime').innerText = `Saatler: ${maintenance.startTime} - ${maintenance.endTime}`;
+        } else {
+            settingsDiv.style.display = maintenance ? 'block' : 'none';
+            statusDiv.style.display = 'none';
+        }
+    }
 
     // İçerik Denetimi (Aynı kaldı)
     async function loadAllPosts() {

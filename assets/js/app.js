@@ -43,6 +43,330 @@ const tarihteBugun = [
     { ay: 11, gun: 5, baslik: "Tarihte Bugün", mesaj: "1934: Türk kadınına seçme ve seçilme hakkı tanındı! 🗳️" }
 ];
 
+// ===== BAKIM MODU FONKSİYONLARI =====
+window.checkAndShowMaintenanceNotice = () => {
+    // Sadece index.html'de göster
+    if (!window.location.pathname.includes('index.html')) return;
+    
+    const maintenance = JSON.parse(localStorage.getItem('stMaintenanceMode'));
+    if (!maintenance || !maintenance.enabled) return;
+
+    const existing = document.getElementById('maintenanceNoticeContainer');
+    if (existing) existing.remove();
+
+    let countdown = parseInt(localStorage.getItem('stMaintenanceCountdown')) || 120;
+    
+    const noticeHtml = `
+        <div id="maintenanceNoticeContainer" style="
+            background: linear-gradient(135deg, #7c3aed, #ec4899);
+            color: white; padding: 15px 25px; border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(124, 58, 237, 0.4);
+            margin-bottom: 20px; text-align: center;
+            font-weight: 600; animation: slideDown 0.3s ease;
+        ">
+            <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+                <i class="fa-solid fa-tools" style="font-size: 1.2rem;"></i>
+                <span>Bakım Modu: <span id="maintenanceTimer">${countdown}</span> saniye sonra aktif olacak</span>
+            </div>
+            <small style="display: block; margin-top: 5px; opacity: 0.9;">Saatler: ${maintenance.startTime} - ${maintenance.endTime}</small>
+        </div>
+    `;
+
+    const mainContent = document.getElementById('main-content');
+    if (mainContent) {
+        mainContent.insertAdjacentHTML('afterbegin', noticeHtml);
+    }
+
+    // Countdown
+    const interval = setInterval(() => {
+        countdown--;
+        localStorage.setItem('stMaintenanceCountdown', countdown);
+        const timerEl = document.getElementById('maintenanceTimer');
+        if (timerEl) timerEl.innerText = countdown;
+
+        if (countdown <= 0) {
+            clearInterval(interval);
+            localStorage.removeItem('stMaintenanceCountdown');
+            location.reload(); // Bakım modu aktif olunca sayfayı yenile
+        }
+    }, 1000);
+};
+
+window.showMaintenanceFullScreen = () => {
+    // Sadece index.html'de göster
+    if (!window.location.pathname.includes('index.html')) return;
+    
+    // Tüm sayfayı gizle
+    const appContainer = document.querySelector('.app-container');
+    const header = document.getElementById('header-placeholder');
+    const footer = document.getElementById('footer-placeholder');
+    const topBar = document.querySelector('.top-bar');
+    
+    if (appContainer) appContainer.style.display = 'none';
+    if (header) header.style.display = 'none';
+    if (footer) footer.style.display = 'none';
+    if (topBar) topBar.style.display = 'none';
+
+    // Overlay ve bakım mesajı göster
+    const overlay = document.createElement('div');
+    overlay.id = 'maintenanceOverlay';
+    overlay.style.cssText = `
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: linear-gradient(135deg, #0f0f1e 0%, #1a1a3f 50%, #0f0f1e 100%);
+        z-index: 10000; display: flex; align-items: center; justify-content: center;
+        flex-direction: column; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    `;
+
+    // Add animated background elements
+    overlay.innerHTML = `
+        <style>
+            @keyframes float {
+                0%, 100% { transform: translateY(0px); }
+                50% { transform: translateY(-20px); }
+            }
+            @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+            }
+            @keyframes pulse-glow {
+                0%, 100% { box-shadow: 0 0 20px rgba(124, 58, 237, 0.5); }
+                50% { box-shadow: 0 0 40px rgba(124, 58, 237, 0.8), 0 0 60px rgba(236, 72, 153, 0.4); }
+            }
+            @keyframes slideIn {
+                from { opacity: 0; transform: scale(0.8); }
+                to { opacity: 1; transform: scale(1); }
+            }
+            .maintenance-bg-element {
+                position: absolute; opacity: 0.1; pointer-events: none;
+            }
+            .timer-display {
+                display: flex;
+                gap: 15px;
+                justify-content: center;
+                margin-top: 30px;
+                flex-wrap: wrap;
+            }
+            .timer-box {
+                background: rgba(124, 58, 237, 0.2);
+                border: 1px solid rgba(124, 58, 237, 0.4);
+                border-radius: 12px;
+                padding: 15px 20px;
+                min-width: 80px;
+                text-align: center;
+            }
+            .timer-number {
+                font-size: 2.2rem;
+                font-weight: 700;
+                background: linear-gradient(135deg, #7c3aed, #ec4899);
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+                background-clip: text;
+                display: block;
+                font-variant-numeric: tabular-nums;
+            }
+            .timer-label {
+                font-size: 0.7rem;
+                opacity: 0.7;
+                text-transform: uppercase;
+                margin-top: 5px;
+                letter-spacing: 1px;
+            }
+        </style>
+        <div class="maintenance-bg-element" style="width: 400px; height: 400px; background: radial-gradient(circle, #7c3aed, transparent); top: -200px; left: -200px; border-radius: 50%;"></div>
+        <div class="maintenance-bg-element" style="width: 300px; height: 300px; background: radial-gradient(circle, #ec4899, transparent); bottom: -150px; right: -150px; border-radius: 50%;"></div>
+    `;
+
+    const maintenance = JSON.parse(localStorage.getItem('stMaintenanceMode'));
+    const message = document.createElement('div');
+    message.style.cssText = `
+        background: linear-gradient(135deg, rgba(124, 58, 237, 0.15) 0%, rgba(236, 72, 153, 0.15) 100%);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(124, 58, 237, 0.3);
+        color: white; padding: 60px 80px; border-radius: 30px;
+        text-align: center; 
+        box-shadow: 0 20px 60px rgba(124, 58, 237, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        max-width: 700px;
+        animation: slideIn 0.5s ease-out;
+        position: relative;
+        z-index: 1;
+    `;
+    
+    message.innerHTML = `
+        <div style="margin-bottom: 30px; position: relative;">
+            <i class="fa-solid fa-tools" style="
+                font-size: 5rem; 
+                background: linear-gradient(135deg, #7c3aed, #ec4899);
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+                background-clip: text;
+                animation: float 3s ease-in-out infinite;
+                display: inline-block;
+            "></i>
+        </div>
+        
+        <h1 style="
+            margin: 0 0 15px 0; 
+            font-size: 3.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #ffffff 0%, #e0e7ff 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: -0.5px;
+        ">Bakım Modu</h1>
+        
+        <p style="
+            margin: 0 0 25px 0; 
+            font-size: 1.2rem; 
+            opacity: 0.9;
+            color: rgba(255, 255, 255, 0.8);
+            font-weight: 300;
+            letter-spacing: 0.5px;
+        ">Sistem şu an bakımda</p>
+        
+        <div class="timer-display">
+            <div class="timer-box">
+                <span class="timer-number" id="maintenanceHours">00</span>
+                <div class="timer-label">Saat</div>
+            </div>
+            <div class="timer-box">
+                <span class="timer-number" id="maintenanceMinutes">00</span>
+                <div class="timer-label">Dakika</div>
+            </div>
+            <div class="timer-box">
+                <span class="timer-number" id="maintenanceSeconds">00</span>
+                <div class="timer-label">Saniye</div>
+            </div>
+        </div>
+        
+        <div style="
+            background: rgba(124, 58, 237, 0.2);
+            border-radius: 15px;
+            padding: 20px;
+            margin-top: 30px;
+            margin-bottom: 25px;
+            border: 1px solid rgba(124, 58, 237, 0.3);
+        ">
+            <p style="
+                margin: 0;
+                font-size: 0.95rem;
+                opacity: 0.85;
+            ">
+                <i class="fa-solid fa-clock" style="margin-right: 8px; color: #ec4899;"></i>
+                Bakım Saatleri: <strong>${maintenance.startTime} - ${maintenance.endTime}</strong>
+            </p>
+        </div>
+        
+        <p style="
+            margin: 0; 
+            font-size: 0.9rem; 
+            opacity: 0.7;
+            font-weight: 300;
+        ">Bakım çalışması bittiğinde sistem tekrar aktif olacaktır. <br>(bu süre zarfında bakım erken biterse sistem aktif olacaktır.) <br><br>Anlayışınız için teşekkürler.</p>
+        
+        <div style="
+            margin-top: 40px;
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            flex-wrap: wrap;
+        ">
+            <div style="
+                display: inline-flex;
+                align-items: center;
+                gap: 8px;
+                padding: 10px 20px;
+                background: rgba(124, 58, 237, 0.2);
+                border-radius: 25px;
+                font-size: 0.85rem;
+                opacity: 0.8;
+            ">
+                <i class="fa-solid fa-check-circle" style="color: #10b981;"></i>
+                Düzenli Bakım
+            </div>
+            <div style="
+                display: inline-flex;
+                align-items: center;
+                gap: 8px;
+                padding: 10px 20px;
+                background: rgba(236, 72, 153, 0.2);
+                border-radius: 25px;
+                font-size: 0.85rem;
+                opacity: 0.8;
+            ">
+                <i class="fa-solid fa-shield" style="color: #f59e0b;"></i>
+                Güvenlik Güncellemesi
+            </div>
+        </div>
+    `;
+
+    overlay.appendChild(message);
+    document.body.appendChild(overlay);
+
+    // Zamanlaycı başlat
+    const updateMaintenanceTimer = () => {
+        const now = new Date();
+        const [endHour, endMin] = maintenance.endTime.split(':').map(Number);
+        
+        let endDate = new Date();
+        endDate.setHours(endHour, endMin, 0, 0);
+        
+        // Eğer zaman geçmişse yarın için ayarla
+        if (now > endDate) {
+            endDate.setDate(endDate.getDate() + 1);
+        }
+        
+        const diff = endDate - now;
+        const hours = Math.floor(diff / 3600000);
+        const minutes = Math.floor((diff % 3600000) / 60000);
+        const seconds = Math.floor((diff % 60000) / 1000);
+        
+        const hoursEl = document.getElementById('maintenanceHours');
+        const minutesEl = document.getElementById('maintenanceMinutes');
+        const secondsEl = document.getElementById('maintenanceSeconds');
+        
+        if (hoursEl) hoursEl.textContent = hours.toString().padStart(2, '0');
+        if (minutesEl) minutesEl.textContent = minutes.toString().padStart(2, '0');
+        if (secondsEl) secondsEl.textContent = seconds.toString().padStart(2, '0');
+    };
+
+    updateMaintenanceTimer();
+    setInterval(updateMaintenanceTimer, 1000);
+};
+
+window.isMaintenanceActive = () => {
+    const maintenance = JSON.parse(localStorage.getItem('stMaintenanceMode'));
+    if (!maintenance || !maintenance.enabled) return false;
+
+    const now = new Date();
+    const currentTime = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
+    
+    // Saatler karşılaştırması
+    return currentTime >= maintenance.startTime && currentTime < maintenance.endTime;
+};
+
+// Sayfa yüklendiğinde bakım modunu kontrol et
+if (typeof window.location !== 'undefined' && window.location.pathname.includes('index.html')) {
+    window.addEventListener('DOMContentLoaded', () => {
+        // Eğer bakım modu aktifse tam ekran göster
+        if (window.isMaintenanceActive()) {
+            window.showMaintenanceFullScreen();
+        } else {
+            // Değilse countdown'u göster
+            setTimeout(() => window.checkAndShowMaintenanceNotice(), 500);
+        }
+    });
+    // Periyodik olarak kontrol et
+    setInterval(() => {
+        if (window.isMaintenanceActive()) {
+            const overlay = document.getElementById('maintenanceOverlay');
+            if (!overlay) {
+                window.showMaintenanceFullScreen();
+            }
+        }
+    }, 5000);
+}
+
 // HELPER FONKSİYONLAR
 // Button'un "disabled/pending" durumuna koy
 function disableButton(btn, text) {
@@ -248,6 +572,12 @@ document.addEventListener('includesLoaded', loadComponents);
 
 // Hızlı UID ile arkadaş isteği gönderme (suggestions içinden çağrılır)
 async function sendFriendRequestToUid(targetUid, targetUsername) {
+    // Bakım modu kontrolü
+    if (typeof window.isMaintenanceActive === 'function' && window.isMaintenanceActive() && window.location.pathname.includes('index.html')) {
+        alert('⚠️ Sistem bakımda! Şu anda arkadaşlık isteği gönderemezsiniz.');
+        return;
+    }
+
     // sendFriendRequestToUid - hızlı arkadaş isteği
     if (!auth.currentUser) {
         alert('Lütfen giriş yapın');
@@ -1344,6 +1674,12 @@ function formatTime(timestamp) {
 /* --- SEARCH SON --- */
     
 window.likePost = async (id, isLiked, btn) => {
+    // Bakım modu kontrolü
+    if (typeof window.isMaintenanceActive === 'function' && window.isMaintenanceActive() && window.location.pathname.includes('index.html')) {
+        alert('⚠️ Sistem bakımda! Şu anda beğeni yapamıyorsunuz.');
+        return;
+    }
+
     // optimistic UI toggle
     if(btn) {
         const icon = btn.querySelector('i');
@@ -1384,6 +1720,12 @@ window.likePost = async (id, isLiked, btn) => {
 };
   // id: post id, isSaved: current state at render time, btn: HTML element that was clicked (optional)
   window.toggleBookmark = async (id, isSaved, btn) => {
+    // Bakım modu kontrolü
+    if (typeof window.isMaintenanceActive === 'function' && window.isMaintenanceActive() && window.location.pathname.includes('index.html')) {
+        alert('⚠️ Sistem bakımda! Şu anda kayıt yapamıyorsunuz.');
+        return;
+    }
+
     try {
         const ref = doc(db, "posts", id);
         // read post to know owner for notification
@@ -1442,6 +1784,12 @@ window.likePost = async (id, isLiked, btn) => {
     } };
   
   window.addComment = async (id) => {
+      // Bakım modu kontrolü
+      if (typeof window.isMaintenanceActive === 'function' && window.isMaintenanceActive() && window.location.pathname.includes('index.html')) {
+          alert('⚠️ Sistem bakımda! Şu anda yorum yapamıyorsunuz.');
+          return;
+      }
+
       const input = document.getElementById(`input-${id}`);
       const text = input.value.trim();
       if(!text) return;
@@ -1815,6 +2163,12 @@ if (typeof updatePostCount === 'function') updatePostCount();
   const shareBtn = document.getElementById('shareBtn');
   if(shareBtn) {
   shareBtn.onclick = async () => {
+    // Bakım modu kontrolü
+    if (typeof window.isMaintenanceActive === 'function' && window.isMaintenanceActive() && window.location.pathname.includes('index.html')) {
+        alert('⚠️ Sistem bakımda! Şu anda gönderileri paylaşamazsınız. Lütfen daha sonra tekrar deneyin.');
+        return;
+    }
+
     const val = document.getElementById('postInput').value.trim();
     
     // Eğer hem metin hem de resim boşsa paylaşma
