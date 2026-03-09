@@ -314,6 +314,21 @@ document.addEventListener('includesLoaded', () => {
     // sidebar elements may not exist until includes are injected, so update UI again
     if (typeof updateUIWithUser === 'function') updateUIWithUser();
     if (typeof updateSidebarStats === 'function') updateSidebarStats();
+
+    // Re-run blog page initialization once includes are loaded (for nav/button activation)
+    if (document.getElementById('page-blog')) {
+        const params = new URLSearchParams(window.location.search);
+        const postId = params.get('id');
+        const createMode = params.get('create') === '1';
+
+        if (postId) {
+            loadBlogPostById(postId);
+        } else if (createMode) {
+            showBlogView('create');
+        } else {
+            loadBlogPosts();
+        }
+    }
 });
 
   const firebaseConfig = {
@@ -5665,27 +5680,177 @@ window.clearAttachmentPreview = function() {
     if (prev && prev.parentNode) prev.parentNode.removeChild(prev);
 }
 
-// Initialize chat widget when page loads
-// also handle blog pages if present
+function setBlogNavActive({ all = false, mine = false, create = false }) {
+    const btnAll = document.getElementById('btn-blog-all');
+    const btnMine = document.getElementById('btn-blog-mine');
+    const btnCreate = document.getElementById('btn-blog-create');
+
+    const activeClass = 'active';
+    if (btnAll) btnAll.classList.toggle(activeClass, all);
+    if (btnMine) btnMine.classList.toggle(activeClass, mine);
+    if (btnCreate) btnCreate.classList.toggle(activeClass, create);
+}
+
+function updateCreateViewAuthState() {
+    const authNotice = document.getElementById('blogAuthNotice');
+    const pubBtn = document.getElementById('publishBlogBtn');
+    const isAuthed = auth && auth.currentUser;
+
+    const userEmail = isAuthed ? auth.currentUser.email : null;
+    const userLabel = isAuthed ? `${userEmail || 'Girişli kullanıcı'}` : null;
+
+    if (authNotice) {
+        if (isAuthed) {
+            authNotice.textContent = `✅ ${userLabel} olarak giriş yapıldı.`;
+            authNotice.style.color = 'var(--text-muted)';
+        } else {
+            authNotice.textContent = 'Yazı yayınlamak için giriş yapmalısınız.';
+            authNotice.style.color = '#ef4444';
+        }
+    }
+
+    if (pubBtn) {
+        if (isAuthed) {
+            pubBtn.disabled = false;
+            pubBtn.style.opacity = '';
+            pubBtn.title = '';
+        } else {
+            pubBtn.disabled = true;
+            pubBtn.style.opacity = '0.5';
+            pubBtn.title = 'Önce giriş yapmalısınız';
+        }
+    }
+
+    console.log('[blog] create view auth state:', {
+        isAuthed,
+        userEmail
+    });
+}
+
+function showBlogView(view, options = {}) {
+    const listView = document.getElementById('blogListView');
+    const createView = document.getElementById('blogCreateView');
+    const postView = document.getElementById('blogPostView');
+    const titleEl = document.getElementById('blogPageTitle');
+
+    const mineMode = options.mine || false;
+
+    // Clear any pending edit state when navigating away from create mode
+    if (view !== 'create') {
+        editingBlogId = null;
+    }
+
+    if (listView) listView.style.display = view === 'list' ? '' : 'none';
+    if (createView) createView.style.display = view === 'create' ? '' : 'none';
+    if (postView) postView.style.display = view === 'post' ? '' : 'none';
+
+    if (titleEl) {
+        if (view === 'create') {
+            titleEl.textContent = 'Yeni Blog Yazısı';
+        } else if (view === 'post') {
+            titleEl.textContent = 'Blog Yazısı';
+        } else {
+            titleEl.textContent = mineMode ? 'Yazılarım' : 'Blog Yazıları';
+        }
+    }
+
+    setBlogNavActive({
+        all: view === 'list' && !mineMode,
+        mine: view === 'list' && mineMode,
+        create: view === 'create'
+    });
+
+    if (view === 'create') {
+        updateCreateViewAuthState();
+
+        // If we're in create mode and not editing, reset form state
+        const titleEl = document.getElementById('blogTitle');
+        const contentEl = document.getElementById('blogContent');
+        const status = document.getElementById('blogStatus');
+        const publishBtn = document.getElementById('publishBlogBtn');
+        const pageTitle = document.getElementById('blogPageTitle');
+
+        if (!editingBlogId) {
+            if (titleEl) titleEl.value = '';
+            if (contentEl) contentEl.value = '';
+            if (status) status.textContent = '';
+            if (publishBtn) publishBtn.textContent = 'Yayınla';
+            if (pageTitle) pageTitle.textContent = 'Yeni Blog Yazısı';
+        }
+    }
+}
+
 async function loadBlogPosts() {
+    showBlogView('list', { mine: new URLSearchParams(window.location.search).get('mine') === '1' });
+
     const container = document.getElementById('blogPostsContainer');
     if (!container) return;
+
+    const params = new URLSearchParams(window.location.search);
+    const mineMode = params.get('mine') === '1';
+
+    // If user wants to view their own posts, require auth
+    if (mineMode && (!auth || !auth.currentUser)) {
+        container.innerHTML = '<p style="color:var(--text-muted);">Lütfen önce giriş yapın.</p>';
+        return;
+    }
+
     try {
-        const q = query(collection(db, 'blogs'), orderBy('createdAt', 'desc'));
-        const snap = await getDocs(q);
+        const allSnap = await getDocs(query(collection(db, 'blogs'), orderBy('createdAt', 'desc')));
         container.innerHTML = '';
-        if (snap.empty) {
-            container.innerHTML = '<p style="color:var(--text-muted);">Henüz yayımlanmış bir blog yazısı yok.</p>';
+
+        if (allSnap.empty) {
+            container.innerHTML = `<p style="color:var(--text-muted);">${mineMode ? 'Henüz kendi yazınız yok.' : 'Henüz yayımlanmış bir blog yazısı yok.'}</p>`;
             return;
         }
-        snap.forEach(doc => {
+
+        // Filter for "mine=1" (try to match both authorUid and legacy fields like author/authorUsername)
+        const filtered = allSnap.docs.filter(doc => {
+            if (!mineMode) return true;
+            const data = doc.data();
+            const uid = auth.currentUser.uid;
+            const username = (auth.currentUser.email || '').split('@')[0];
+
+            const isMine =
+                data.authorUid === uid ||
+                data.author === username ||
+                data.authorUsername === username ||
+                data.authorEmail === auth.currentUser.email;
+
+            // If this is my post but missing authorUid, patch it for future queries
+            if (isMine && !data.authorUid) {
+                updateDoc(doc.ref, { authorUid: uid }).catch(() => {});
+            }
+
+            return isMine;
+        });
+
+        if (filtered.length === 0) {
+            container.innerHTML = `<p style="color:var(--text-muted);">${mineMode ? 'Henüz kendi yazınız yok.' : 'Henüz yayımlanmış bir blog yazısı yok.'}</p>`;
+            return;
+        }
+
+        filtered.forEach(doc => {
             const data = doc.data();
             const excerpt = (data.content || '').substring(0, 200).replace(/\n/g, ' ');
+            const authorLabel = data.authorUid === (auth?.currentUser?.uid) ? ' (Siz)' : '';
+
+            const authorName = data.authorUsername || data.author || 'Anonim';
+            const avatarUrl = data.authorAvatar || 'assets/img/strendsaydamv2.png';
             const postHtml = `
                 <div class="glass-card" style="padding:15px 20px; margin-bottom:20px;">
-                    <h3 style="margin-top:0;">${escapeHtml(data.title)}</h3>
+                    <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
+                        <div style="width:34px; height:34px; border-radius:50%; overflow:hidden; background:#f0f0f0; flex-shrink:0;">
+                            <img src="${avatarUrl}" alt="avatar" style="width:100%; height:100%; object-fit:cover;" />
+                        </div>
+                        <div style="font-size:0.85rem; color:var(--text-muted);">
+                            <div style="font-weight:700;">${escapeHtml(authorName)}</div>
+                            <div style="font-size:0.75rem;">Gönderildi: ${formatTime(data.createdAt)}</div>
+                        </div>
+                    </div>
+                    <h3 style="margin-top:0;">${escapeHtml(data.title)}${authorLabel}</h3>
                     <p style="color:var(--text-muted); font-size:0.95rem; line-height:1.6;">${escapeHtml(excerpt)}${excerpt.length>=200?'...':''}</p>
-                    <a href="blog-post.html?id=${doc.id}" class="mini-link-btn" style="margin-top:10px; display:inline-block;">Devamını Oku →</a>
+                    <a href="blog.html?id=${doc.id}" class="mini-link-btn" style="margin-top:10px; display:inline-block;">Devamını Oku →</a>
                 </div>`;
             container.innerHTML += postHtml;
         });
@@ -5693,6 +5858,103 @@ async function loadBlogPosts() {
         console.error('loadBlogPosts hata:', e);
         container.innerHTML = '<p style="color:var(--text-muted);">Yazılar yüklenemedi.</p>';
     }
+}
+
+async function loadBlogPostById(id) {
+    showBlogView('post');
+
+    const titleEl = document.getElementById('blogPostTitle');
+    const contentEl = document.getElementById('blogPostContent');
+    const actionsEl = document.getElementById('blogPostActions');
+
+    if (titleEl) titleEl.textContent = 'Yükleniyor...';
+    if (contentEl) contentEl.textContent = '';
+    if (actionsEl) actionsEl.innerHTML = '';
+
+    if (!id) {
+        if (titleEl) titleEl.textContent = 'Yazı Bulunamadı';
+        return;
+    }
+
+    try {
+        const docRef = doc(db, 'blogs', id);
+        const snap = await getDoc(docRef);
+        if (!snap.exists()) {
+            if (titleEl) titleEl.textContent = 'Yazı bulunamadı';
+            if (contentEl) contentEl.textContent = '';
+            return;
+        }
+
+        const data = snap.data();
+        if (titleEl) titleEl.textContent = data.title || '';
+        if (contentEl) contentEl.textContent = data.content || '';
+
+        // show edit + delete icons for author (only one of each)
+        if (actionsEl) {
+            const alreadyRenderedFor = actionsEl.dataset.blogActionFor;
+            const isAuthor = auth.currentUser && data.authorUid === auth.currentUser.uid;
+
+            // Clear prior action buttons if switching posts or user is not author
+            if (!isAuthor || alreadyRenderedFor !== id) {
+                actionsEl.innerHTML = '';
+                delete actionsEl.dataset.blogActionFor;
+            }
+
+            if (isAuthor && alreadyRenderedFor !== id) {
+                const editBtn = document.createElement('button');
+                editBtn.className = 'blog-action-btn';
+                editBtn.title = 'Düzenle';
+                editBtn.innerHTML = '<i class="fa-solid fa-pen"></i>';
+                editBtn.onclick = () => startEditingBlogPost(id, data);
+
+                const delBtn = document.createElement('button');
+                delBtn.className = 'blog-action-btn blog-action-delete';
+                delBtn.title = 'Sil';
+                delBtn.innerHTML = '<i class="fa-solid fa-trash"></i>';
+                delBtn.onclick = async () => {
+                    if (!confirm('Bu yazıyı silmek istediğinizden emin misiniz?')) return;
+                    await deleteBlogPost(id);
+                };
+
+                actionsEl.appendChild(editBtn);
+                actionsEl.appendChild(delBtn);
+                actionsEl.dataset.blogActionFor = id;
+            }
+        }
+    } catch (e) {
+        console.error('loadBlogPostById hata:', e);
+        if (contentEl) contentEl.textContent = 'Yüklenirken hata oluştu.';
+    }
+}
+
+async function deleteBlogPost(id) {
+    try {
+        await deleteDoc(doc(db, 'blogs', id));
+        window.location.href = 'blog.html?mine=1';
+    } catch (e) {
+        console.error('deleteBlogPost hata:', e);
+        alert('Yazı silinemedi: ' + (e.message || ''));
+    }
+}
+
+let isPublishingBlogPost = false;
+let editingBlogId = null;
+
+function startEditingBlogPost(id, data) {
+    editingBlogId = id;
+    showBlogView('create');
+
+    const titleEl = document.getElementById('blogTitle');
+    const contentEl = document.getElementById('blogContent');
+    const status = document.getElementById('blogStatus');
+    const pageTitle = document.getElementById('blogPageTitle');
+    const publishBtn = document.getElementById('publishBlogBtn');
+
+    if (titleEl) titleEl.value = data.title || '';
+    if (contentEl) contentEl.value = data.content || '';
+    if (status) status.textContent = 'Düzenleme modunda. Kaydetmek için Güncelle\'ye basın.';
+    if (pageTitle) pageTitle.textContent = 'Blog Yazısını Düzenle';
+    if (publishBtn) publishBtn.textContent = 'Güncelle';
 }
 
 async function publishBlogPost() {
@@ -5705,57 +5967,144 @@ async function publishBlogPost() {
         console.warn('missing elements for publish');
         return;
     }
+
+    // Prevent double-submission (e.g. multiple event listeners / double click)
+    if (isPublishingBlogPost) {
+        console.warn('publishBlogPost already in progress, ignoring additional call.');
+        return false;
+    }
+    isPublishingBlogPost = true;
+
     if (!auth.currentUser) {
         console.warn('user not authenticated');
-        status.textContent = 'Lütfen giriş yapın.';
+        const savedName = localStorage.getItem('st_displayName');
+        status.textContent = savedName
+            ? `Görünüşe göre çıkış yapmışsınız. (${savedName})` 
+            : 'Lütfen giriş yapın.';
         status.style.color = '#ef4444';
+        isPublishingBlogPost = false;
         return;
     }
     const title = titleEl.value.trim();
     const content = contentEl.value.trim();
+    const categoryEl = document.getElementById('blogCategory');
+    const category = categoryEl ? categoryEl.value : 'Genel';
     console.log('title/content lengths', title.length, content.length);
     if (!title || !content) {
         status.textContent = 'Lütfen başlık ve içerik girin.';
         status.style.color = '#ef4444';
+        isPublishingBlogPost = false;
         return;
     }
     status.textContent = 'Yayınlanıyor...';
     status.style.color = 'var(--text-muted)';
     try {
-        await addDoc(collection(db, 'blogs'), {
-            title,
-            content,
-            authorUid: auth.currentUser.uid,
-            createdAt: serverTimestamp()
-        });
-        status.textContent = '✅ Yazınız yayına alındı.';
-        status.style.color = '#10b981';
-        titleEl.value = '';
-        contentEl.value = '';
-        // redirect to "my posts" after brief pause so user sees feedback
-        setTimeout(() => {
-            window.location.href = 'blog.html?mine=1';
-        }, 1200);
+        if (editingBlogId) {
+            // Update existing post
+            await updateDoc(doc(db, 'blogs', editingBlogId), {
+                title,
+                content,
+                updatedAt: serverTimestamp()
+            });
+            status.textContent = '✅ Yazınız güncellendi.';
+            status.style.color = '#10b981';
+            // redirect to updated post view
+            setTimeout(() => {
+                window.location.href = `blog.html?id=${editingBlogId}`;
+            }, 900);
+        } else {
+            // Create new post
+            const newDoc = await addDoc(collection(db, 'blogs'), {
+                title,
+                content,
+                category,
+                authorUid: auth.currentUser.uid,
+                authorUsername: (auth.currentUser.email || '').split('@')[0],
+                authorEmail: auth.currentUser.email,
+                createdAt: serverTimestamp()
+            });
+            status.textContent = '✅ Yazınız yayına alındı.';
+            status.style.color = '#10b981';
+            titleEl.value = '';
+            contentEl.value = '';
+            if (categoryEl) categoryEl.value = 'Genel';
+            // redirect to "my posts" after brief pause so user sees feedback
+            setTimeout(() => {
+                window.location.href = 'blog.html?mine=1';
+            }, 1200);
+        }
         return true;
     } catch (e) {
         console.error('publishBlogPost hata:', e);
         status.textContent = '❌ Yayınlanamadı: ' + (e.message || '');
         status.style.color = '#ef4444';
         return false;
+    } finally {
+        isPublishingBlogPost = false;
+        // clear edit state after attempt
+        editingBlogId = null;
     }
 }
 
 // make function available globally for inline onclick
 window.publishBlogPost = publishBlogPost;
 
+function updateBlogViewFromUrl() {
+    const params = new URLSearchParams(window.location.search);
+    const postId = params.get('id');
+    const createMode = params.get('create') === '1';
+
+    if (postId) {
+        loadBlogPostById(postId);
+        return;
+    }
+
+    if (createMode) {
+        showBlogView('create');
+        return;
+    }
+
+    // default list view (handles mine=1 internally)
+    loadBlogPosts();
+}
+
+function attachBlogNavHandlers() {
+    const navConfig = [
+        { id: 'btn-blog-all', url: 'blog.html' },
+        { id: 'btn-blog-mine', url: 'blog.html?mine=1' },
+        { id: 'btn-blog-create', url: 'blog.html?create=1' }
+    ];
+
+    navConfig.forEach(cfg => {
+        const btn = document.getElementById(cfg.id);
+        if (!btn) return;
+        btn.addEventListener('click', (event) => {
+            event.preventDefault();
+            if (window.location.pathname.endsWith('blog.html') && window.location.search === new URL(cfg.url, window.location.origin).search) {
+                // Already on same view; no need to rerun
+                return;
+            }
+            history.pushState({}, '', cfg.url);
+            updateBlogViewFromUrl();
+        });
+    });
+
+    window.addEventListener('popstate', () => {
+        updateBlogViewFromUrl();
+    });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     initChatWidget();
     initChatListsPanel();
     loadStoredChatNotifications();
+
     // blog page init
     if (document.getElementById('page-blog')) {
-        loadBlogPosts();
+        updateBlogViewFromUrl();
+        attachBlogNavHandlers();
     }
+
     // schedule delayed binding in case button is added later
     setTimeout(() => {
         const btn = document.getElementById('publishBlogBtn');
@@ -5763,10 +6112,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (btn) btn.addEventListener('click', publishBlogPost);
     }, 250);
 
-    // catch clicks on publish button even if listener fails
+    // Ensure publish button works even if listener binding didn't happen
     document.body.addEventListener('click', e => {
         if (e.target && e.target.id === 'publishBlogBtn') {
             console.log('body listener detected publish click');
+            publishBlogPost();
         }
     });
 });
@@ -5790,17 +6140,21 @@ onAuthStateChanged(auth, (authUser) => {
             listenForIncomingMessages();
         }, 2000);
     }
-    // toggle create page publish button when auth changes
-    const pubBtn = document.getElementById('publishBlogBtn');
-    if (pubBtn) {
-        if (authUser) {
-            pubBtn.disabled = false;
-            pubBtn.style.opacity = '';
-            pubBtn.title = '';
+    // Update create view UI when auth changes
+    updateCreateViewAuthState();
+
+    // If we're on the blog page, reload the appropriate view when auth changes (mine=1 filtering)
+    if (window.location.pathname.includes('blog.html')) {
+        const params = new URLSearchParams(window.location.search);
+        const postId = params.get('id');
+        const createMode = params.get('create') === '1';
+
+        if (postId) {
+            loadBlogPostById(postId);
+        } else if (createMode) {
+            showBlogView('create');
         } else {
-            pubBtn.disabled = true;
-            pubBtn.style.opacity = '0.5';
-            pubBtn.title = 'Önce giriş yapmalısınız';
+            loadBlogPosts();
         }
     }
 });
