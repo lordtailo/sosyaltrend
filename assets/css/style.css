@@ -209,6 +209,11 @@ header {
     box-sizing: border-box;
 }
 
+/* Mobile menu open buttons (hidden on desktop) */
+.side-open-btn {
+    display: none;
+}
+
 header::after { 
     content: ""; 
     position: absolute; 
@@ -1204,6 +1209,7 @@ aside, .right-panel { display: none; } }
     aside.active, .right-panel.active {
         transform: translateX(0);}
 
+    /* Mobile sidebar overlay */
     .side-overlay {
         display: none;
         position: fixed;
@@ -1216,6 +1222,21 @@ aside, .right-panel { display: none; } }
         z-index: 3000; }
     .side-overlay.active {
         display: block;}
+
+    /* Mobile sidebar open buttons */
+    .side-open-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        border: 1px solid rgba(255,255,255,0.18);
+        background: rgba(255,255,255,0.08);
+        color: var(--text-main);
+        cursor: pointer;
+        margin-right: 10px;
+    }
 }
 
 @media (max-width: 768px) {
