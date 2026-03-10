@@ -1398,16 +1398,6 @@ document.addEventListener('DOMContentLoaded', function() {
         if(globalSearchInput) globalSearchInput.value = searchQuery;
         performGlobalSearch(searchQuery);
     }
-
-    // If we arrived with compose=1, focus the feed post input (for "Yazı Yaz" link)
-    const composeParam = urlParams.get('compose');
-    if (composeParam === '1' && window.location.pathname.includes('index.html')) {
-        const postInput = document.getElementById('postInput');
-        if (postInput) {
-            postInput.focus();
-            postInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }
-    }
 });
 
 // 3. Ana Arama Fonksiyonu (Dinamik & Statik)
@@ -6815,17 +6805,6 @@ function attachBlogNavHandlers() {
 
     window.addEventListener('popstate', () => {
         updateBlogViewFromUrl();
-        updateHeaderNavActive();
-    });
-}
-
-function updateHeaderNavActive() {
-    const path = window.location.pathname.split('/').pop();
-    document.querySelectorAll('.main-nav .nav-link').forEach(a => {
-        const href = a.getAttribute('href') || '';
-        const url = new URL(href, window.location.origin);
-        const linkPath = url.pathname.split('/').pop();
-        a.classList.toggle('active', linkPath === path);
     });
 }
 
@@ -6833,9 +6812,6 @@ document.addEventListener('DOMContentLoaded', () => {
     initChatWidget();
     initChatListsPanel();
     loadStoredChatNotifications();
-
-    // set active link in header nav
-    updateHeaderNavActive();
 
     // blog page init
     if (document.getElementById('page-blog')) {

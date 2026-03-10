@@ -470,7 +470,7 @@ window.addEventListener('load', () => {
         if (typeof window.loadProfileSections === 'function') {
             // hangi sekme yüklenecek?
             const hash = window.location.hash.replace('#', '');
-            const section = (hash && hash.startsWith('my-') && hash.endsWith('-tab')) ? hash.replace(/^my-/, '').replace(/-tab$/, '') : (hash || 'posts');
+            const section = hash || 'posts';
             window.loadProfileSections(section);
 
             // eğer hash yoksa, varsayılan olarak Gönderiler sekmesini seç
