@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SosyaLTrend • Sosyal Ağ - Hobi Grupları</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="assets/css/style.css">
+  <link rel="icon" type="image/x-icon" href="assets/img/strendsaydamv2.ico">
+</head>
+<body>
+
+  <div class="top-bar">
+    <div class="top-bar-left">
+      <span id="welcomeMessage" style="opacity: 0.8;"><i class="fa-solid fa-circle-check" style="font-size: 0.6rem; animation: pulse 2s infinite;"></i> Yükleniyor...</span>
+    </div>
+    <div class="top-bar-right"><span id="topBarDateTime"><i class="fa-regular fa-clock"></i> Yükleniyor...</span></div>
+  </div>
+
+<div id="header-placeholder" data-include="partials/header.html"></div>
+
+<div class="app-container">
+  <div data-include="partials/left-aside.html"></div>
+
+  <main id="main-content">
+    <div id="page-hobiler" class="page-content active">
+      <div class="glass-card" style="padding: 20px;">
+        <h2 style="margin-top: 0; color: var(--primary);">Hobi Grupları</h2>
+        <p style="color: var(--text-muted); margin-bottom: 20px;">Kampçılık, gastronomi, teknoloji, astroloji ve el sanatları gibi alanlarda kendi topluluğunu bul ya da yeni ilgi alanları keşfet.</p>
+
+        <div class="group-create">
+          <h3>Yeni Grup Kur</h3>
+          <div class="group-create-form">
+            <input id="newGroupTitle" type="text" placeholder="Grup başlığı" />
+            <textarea id="newGroupDesc" rows="3" placeholder="Kısa açıklama..." style="resize: vertical;"></textarea>
+            <select id="newGroupCategory">
+              <option value="kamp">Kampçılık</option>
+              <option value="gastronomi">Gastronomi</option>
+              <option value="teknoloji">Teknoloji</option>
+              <option value="astroloji">Astroloji</option>
+              <option value="el-sanatlari">El Sanatları</option>
+            </select>
+            <div class="group-date-row">
+              <div>
+                <label for="newGroupStart" style="font-size:0.75rem; color:var(--text-muted);">Başlangıç (tarih + saat)</label>
+                <input id="newGroupStart" type="datetime-local" />
+              </div>
+              <div>
+                <label for="newGroupEnd" style="font-size:0.75rem; color:var(--text-muted);">Bitiş (tarih + saat)</label>
+                <input id="newGroupEnd" type="datetime-local" />
+              </div>
+            </div>
+            <button id="createGroupBtn" class="form-btn">Grup Kur</button>
+            <div id="createGroupStatus" class="text-muted" style="margin-top: 8px; font-size: 0.9rem;"></div>
+          </div>
+        </div>
+
+        <div class="group-filter">
+          <input id="groupSearch" type="text" placeholder="Grup adı veya anahtar kelime ara..." />
+          <select id="groupCategory">
+            <option value="">Tüm Kategoriler</option>
+            <option value="kamp">Kampçılık</option>
+            <option value="gastronomi">Gastronomi</option>
+            <option value="teknoloji">Teknoloji</option>
+            <option value="astroloji">Astroloji</option>
+            <option value="el-sanatlari">El Sanatları</option>
+          </select>
+          <button id="showJoined" class="form-btn" style="flex: 0 0 auto; background: var(--primary)">✓ Katıldıklarım</button>
+        </div>
+
+        <div id="groupsGrid" class="group-grid"></div>
+      </div>
+    </div>
+  </main>
+
+  <div data-include="partials/right-aside.html"></div>
+</div>
+
+<div id="footer-placeholder" data-include="partials/footer.html"></div>  
+
+
+<script src="assets/js/include.js"></script>
+<script type="module" src="assets/js/app.js"></script>
+<script type="module" src="assets/js/hobiGruplari.js"></script>
+</body>
+</html>

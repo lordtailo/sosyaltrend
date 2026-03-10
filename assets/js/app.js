@@ -1,47 +1,8 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, doc, updateDoc, setDoc, arrayUnion, arrayRemove, deleteDoc, getDoc, getDocs, limit, where, increment } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { ozelGunler, tarihteBugun, ramazanTakvimi } from "./calendarDays.js";
 import { getAuth, onAuthStateChanged, signOut, updateEmail, updatePassword, sendPasswordResetEmail, updateProfile } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
-
-/* Özel Günler ve Tarihte Bugün Veri Seti */
-const ozelGunler = [
-   // Resmi Tatiller ve Özel Günler
-{ ay: 0, gun: 1, baslik: "Yılbaşı", mesaj: "Yeni yılın tüm SosyalTrend ailesine huzur ve mutluluk getirmesini dileriz! 🎄✨" },
-{ ay: 1, gun: 14, baslik: "Sevgililer Günü", mesaj: "Sevginin paylaştıkça çoğaldığı bir gün dileriz! ❤️" },
-{ ay: 2, gun: 8, baslik: "Dünya Kadınlar Günü", mesaj: "Emeğiyle dünyayı güzelleştiren tüm kadınların günü kutlu olsun! 💐" },
-{ ay: 2, gun: 18, baslik: "Çanakkale Zaferi", mesaj: "18 Mart Çanakkale Zaferi’nin yıl dönümünde şehitlerimizi minnetle anıyoruz. 🇹🇷" },
-{ ay: 3, gun: 23, baslik: "Ulusal Egemenlik ve Çocuk Bayramı", mesaj: "23 Nisan kutlu olsun! Geleceğimiz çocuklara emanet. 🇹🇷" },
-{ ay: 4, gun: 1, baslik: "Emek ve Dayanışma Günü", mesaj: "Tüm çalışanların 1 Mayıs işçi bayramı kutlu olsun! 🛠️" },
-{ ay: 4, gun: 19, baslik: "Atatürk'ü Anma, Gençlik ve Spor Bayramı", mesaj: "19 Mayıs Atatürk'ü Anma, Gençlik ve Spor Bayramımız kutlu olsun! 🇹🇷" },
-{ ay: 6, gun: 15, baslik: "Demokrasi ve Milli Birlik Günü", mesaj: "15 Temmuz Demokrasi ve Milli Birlik Günü'nde şehitlerimizi anıyoruz." },
-{ ay: 7, gun: 30, baslik: "Zafer Bayramı", mesaj: "30 Ağustos Zafer Bayramımız kutlu olsun! 🇹🇷" },
-{ ay: 9, gun: 29, baslik: "Cumhuriyet Bayramı", mesaj: "Cumhuriyetimizin yeni yaşını gururla kutluyoruz! 29 Ekim kutlu olsun! 🇹🇷" },
-{ ay: 10, gun: 10, baslik: "Atatürk'ü Anma Günü", mesaj: "Gazi Mustafa Kemal Atatürk'ü saygı ve özlemle anıyoruz. 🖤" },
-{ ay: 11, gun: 24, baslik: "Öğretmenler Günü", mesaj: "Gelecek nesilleri yetiştiren tüm öğretmenlerimizin günü kutlu olsun! 🎓" },
-
-// 2026 Dini Günler (Diyanet İşleri Başkanlığı Resmi Takvimi)
-{ ay: 0, gun: 15, baslik: "Miraç Kandili", mesaj: "Miraç Kandiliniz mübarek olsun. 🤲" },
-{ ay: 1, gun: 2, baslik: "Berat Kandili", mesaj: "Berat Kandilimiz mübarek olsun. 🌙" },
-{ ay: 1, gun: 19, baslik: "Ramazan Başlangıcı", mesaj: "Hoş geldin Ya Şehr-i Ramazan! 🌙" },
-{ ay: 2, gun: 16, baslik: "Kadir Gecesi", mesaj: "Kadir Geceniz mübarek olsun. 🙏" },
-{ ay: 2, gun: 20, baslik: "Ramazan Bayramı (1. Gün)", mesaj: "Ramazan Bayramınız mübarek olsun! 🍬" },
-{ ay: 4, gun: 27, baslik: "Kurban Bayramı (1. Gün)", mesaj: "Kurban Bayramınız kutlu olsun. Paylaşmanın ve dayanışmanın günü! 🐑" },
-{ ay: 5, gun: 16, baslik: "Hicri Yılbaşı", mesaj: "Yeni Hicri yılın (1448) hayırlar getirmesini dileriz." },
-{ ay: 5, gun: 25, baslik: "Aşure Günü", mesaj: "Aşure Gününüz mübarek, birliğimiz daim olsun. 🥣" },
-{ ay: 7, gun: 24, baslik: "Mevlid Kandili", mesaj: "Mevlid Kandiliniz mübarek olsun. ✨" },
-{ ay: 11, gun: 10, baslik: "Üç Ayların Başlangıcı", mesaj: "Üç ayların başlangıcı hayırlara vesile olsun. 🌙" },
-{ ay: 11, gun: 14, baslik: "Regaip Kandili", mesaj: "Regaip Kandiliniz mübarek olsun. ✨"}
-];
-
-const tarihteBugun = [
-    { ay: 0, gun: 29, baslik: "Tarihte Bugün", mesaj: "1923: Mustafa Kemal Atatürk, ilk Türkiye Cumhurbaşkanı seçildi. 🗳️" },
-    { ay: 1, gun: 5, baslik: "Tarihte Bugün", mesaj: "1924: Türkiye'de ilk kadın avukat Süreyya Ağaoğlu görevine başladı. ⚖️" },
-    { ay: 2, gun: 12, baslik: "Tarihte Bugün", mesaj: "1930: Türk parasının değerini koruma kanunu kabul edildi. ₺" },
-    { ay: 3, gun: 25, baslik: "Tarihte Bugün", mesaj: "1915: Çanakkale Kara Savaşları başladı. 🛡️" },
-    { ay: 4, gun: 29, baslik: "Tarihte Bugün", mesaj: "1953: Türkiye'nin ilk yerli uçağı 'Nu.D.38' Ankara'dan İstanbul'a uçtu. ✈️" },
-    { ay: 8, gun: 9, baslik: "Tarihte Bugün", mesaj: "1928: Harf Devrimi'nin ilk adımı atıldı; yeni Türk alfabesi tanıtıldı. ✍️" },
-    { ay: 11, gun: 5, baslik: "Tarihte Bugün", mesaj: "1934: Türk kadınına seçme ve seçilme hakkı tanındı! 🗳️" }
-];
 
 // HELPER FONKSİYONLAR
 // Button'un "disabled/pending" durumuna koy
@@ -2095,7 +2056,10 @@ if (typeof updatePostCount === 'function') updatePostCount();
 /* Gündem özelliği kaldırıldı */
 
 /* MOBİLE VERSİYONDA İÇERİK AYARLAMA */
-document.addEventListener('DOMContentLoaded', () => {
+const initMobilePanelsAndCalendar = () => {
+    if (window.__mobilePanelsInitDone) return;
+    window.__mobilePanelsInitDone = true;
+
     const leftBtn = document.getElementById('leftOpenBtn');
     const rightBtn = document.getElementById('rightOpenBtn');
     const leftAside = document.querySelector('aside');
@@ -2126,7 +2090,150 @@ document.addEventListener('DOMContentLoaded', () => {
     if (leftBtn) leftBtn.onclick = toggleLeft;
     if (rightBtn) rightBtn.onclick = toggleRight;
     if (overlay) overlay.onclick = closeAll;
-});
+
+    // Sağ panelde takvim (takvim widget'ı)
+    const initRightCalendar = () => {
+        const calendarEl = document.getElementById('rightCalendar');
+        const navEl = document.getElementById('rightCalendarNav');
+        if (!calendarEl || !navEl) return;
+
+        // Özel günler (resmi, dini, hatırlatma vb.)
+        // Veriler `assets/js/calendarDays.js` içinden geliyor.
+        const buildSpecialDayMap = (year) => {
+            const map = {};
+
+                // 0) Ramazan takvimi (takvimde tüm Ramazan günlerini işaretlemek için)
+            ramazanTakvimi.forEach((gun) => {
+                const key = `${year}-${String(gun.ay + 1).padStart(2, '0')}-${String(gun.gun).padStart(2, '0')}`;
+                // "Ramazan Başlangıcı" vb. daha özel açıklamaların üzerine yazılmasın
+                if (!map[key]) map[key] = gun;
+            });
+
+            // 1) Resmi/özel/dini günler (calendarDays.js)
+            ozelGunler.forEach((gun) => {
+                const key = `${year}-${String(gun.ay + 1).padStart(2, '0')}-${String(gun.gun).padStart(2, '0')}`;
+                map[key] = gun;
+            });
+
+            // 2) Tarihte Bugün (tarihteBugun listesi)
+            // Tarih sabittir; hangi yıla bakılırsa bakılsın bu günler o günün tarihine denk gelecek
+            tarihteBugun.forEach((olay) => {
+                const key = `${year}-${String(olay.ay + 1).padStart(2, '0')}-${String(olay.gun).padStart(2, '0')}`;
+                map[key] = {
+                    baslik: olay.baslik || 'Tarihte Bugün',
+                    mesaj: olay.mesaj || '',
+                    emoji: '⏳',
+                    kaynak: 'Tarihte Bugün'
+                };
+            });
+
+            return map;
+        };
+
+        // Dini takvim hesaplaması yapılmıyor. Takvim verileri `assets/js/calendarDays.js` üzerinden geliyor.
+
+        const dayNames = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];
+        let viewDate = new Date();
+
+        const render = () => {
+            const year = viewDate.getFullYear();
+            const month = viewDate.getMonth();
+            const firstDay = new Date(year, month, 1);
+            const lastDay = new Date(year, month + 1, 0);
+            const prevLastDay = new Date(year, month, 0).getDate();
+            const startWeekday = (firstDay.getDay() + 6) % 7; // Pazartesi bazlı
+
+            const daysInMonth = lastDay.getDate();
+            const today = new Date();
+            const isToday = (d) => d.getFullYear() === today.getFullYear() && d.getMonth() === today.getMonth() && d.getDate() === today.getDate();
+
+            const monthKey = (y, m, d) => `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+            const specialDaysMap = buildSpecialDayMap(year);
+
+            let html = dayNames.map(d => `<div class="day header">${d}</div>`).join('');
+
+            for (let i = startWeekday - 1; i >= 0; i--) {
+                html += `<div class="day other-month">${prevLastDay - i}</div>`;
+            }
+
+            for (let d = 1; d <= daysInMonth; d++) {
+                const date = new Date(year, month, d);
+                const key = monthKey(year, month, d);
+                const special = specialDaysMap[key];
+                const label = special?.baslik || '';
+                const message = special?.mesaj || '';
+                const source = special?.kaynak || '';
+
+                const isSpecial = Boolean(special);
+                const emoji = special?.emoji || '';
+                const displayNumber = isSpecial ? `${emoji ? `${emoji} ` : ''}${d}` : d;
+
+                const classes = ['day', isToday(date) ? 'today' : '', isSpecial ? 'special' : ''].filter(Boolean).join(' ');
+                html += `<div class="${classes}" data-date="${key}" data-baslik="${label}" data-mesaj="${message}" data-source="${source}" title="${label}">${displayNumber}</div>`;
+            }
+
+            const totalCells = 7 * 6; // 6 satır
+            const currentCount = startWeekday + daysInMonth + 7; // +7 header için
+            const remaining = totalCells - currentCount;
+            for (let i = 1; i <= remaining; i++) {
+                html += `<div class="day other-month">${i}</div>`;
+            }
+
+            calendarEl.innerHTML = html;
+
+            // Özel güne tıklanınca bilgi göster
+            calendarEl.querySelectorAll('.day.special').forEach((el) => {
+                el.addEventListener('click', () => {
+                    const baslik = el.getAttribute('data-baslik');
+                    const mesaj = el.getAttribute('data-mesaj');
+                    const source = el.getAttribute('data-source');
+                    const dateKey = el.getAttribute('data-date');
+                    if (baslik) {
+                        let info = baslik;
+                        if (mesaj) info += `\n${mesaj}`;
+                        const sourceText = source ? `\n\nKaynak: ${source}` : '';
+                        alert(`${dateKey} — ${info}${sourceText}`);
+                    }
+                });
+            });
+
+            navEl.innerHTML = `
+                <button type="button" class="calendar-prev" aria-label="Önceki Ay">&lsaquo;</button>
+                <div class="calendar-title">${viewDate.toLocaleString('tr-TR', { month: 'long', year: 'numeric' })}</div>
+                <button type="button" class="calendar-next" aria-label="Sonraki Ay">&rsaquo;</button>
+            `;
+
+            navEl.querySelector('.calendar-prev')?.addEventListener('click', () => {
+                viewDate.setMonth(viewDate.getMonth() - 1);
+                render();
+            });
+            navEl.querySelector('.calendar-next')?.addEventListener('click', () => {
+                viewDate.setMonth(viewDate.getMonth() + 1);
+                render();
+            });
+        };
+
+        render();
+    };
+
+    initRightCalendar();
+};
+
+// Run after DOM is ready and after includes have been injected
+const runInitIfReady = () => {
+    // If includes are already loaded (or never used), init directly
+    if (window.includesLoaded || document.getElementById('rightCalendar')) {
+        initMobilePanelsAndCalendar();
+    }
+};
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', runInitIfReady);
+} else {
+    runInitIfReady();
+}
+
+document.addEventListener('includesLoaded', initMobilePanelsAndCalendar);
 /* ============================   */
 
 // visitor simulation helper
@@ -5137,6 +5244,63 @@ window.openChatWithUser = async function(userId, displayName) {
         alert('Sohbet açılırken bir hata oluştu');
     }
 }
+
+// Open group chat (hobi grubu sohbeti)
+window.openGroupChat = async function(groupId, groupName, memberIds = []) {
+    if (!auth.currentUser) {
+        alert('Lütfen giriş yapın');
+        return;
+    }
+
+    if (!document.getElementById('chat-widget-container')) {
+        initChatWidget();
+    }
+
+    const currentUserId = auth.currentUser.uid;
+    const conversationId = `group_${groupId}`;
+
+    // Ensure current user is part of participants
+    const participants = Array.from(new Set([...(memberIds || []), currentUserId]));
+
+    const convRef = doc(db, 'conversations', conversationId);
+    const convSnap = await getDoc(convRef);
+
+    if (!convSnap.exists()) {
+        const unreadCount = participants.reduce((acc, id) => ({ ...acc, [id]: 0 }), {});
+        await setDoc(convRef, {
+            participants,
+            lastMessage: '',
+            lastMessageAt: serverTimestamp(),
+            lastSenderId: '',
+            unreadCount,
+            createdAt: serverTimestamp(),
+            group: true,
+            groupId,
+            groupName: groupName || 'Hobi Grubu Sohbeti'
+        });
+    } else {
+        const existing = convSnap.data().participants || [];
+        const missing = participants.filter(id => !existing.includes(id));
+        if (missing.length) {
+            await updateDoc(convRef, { participants: [...existing, ...missing] });
+        }
+    }
+
+    currentConversationId = conversationId;
+    currentChatUserId = conversationId;
+    currentChatUsername = groupName || 'Hobi Grubu Sohbeti';
+
+    const titleEl = document.getElementById('chat-widget-title');
+    if (titleEl) {
+        titleEl.textContent = currentChatUsername;
+    }
+
+    const widgetEl = document.getElementById('chat-widget-container');
+    widgetEl.classList.add('active');
+
+    loadChatMessages(conversationId);
+    resetChatInactivityTimer();
+};
 
 // Load messages for current conversation
 function loadChatMessages(conversationId) {

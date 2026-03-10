@@ -25,6 +25,8 @@ async function runIncludes() {
 
   // signal that all includes have been processed so other scripts can act
   document.dispatchEvent(new Event('includesLoaded'));
+  // mark globally so late listeners can still act
+  window.includesLoaded = true;
 }
 
 // Run immediately if DOM is already ready, otherwise wait for DOMContentLoaded
