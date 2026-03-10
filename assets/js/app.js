@@ -5921,8 +5921,8 @@ async function renderMostReadPosts() {
                         <th>Başlık</th>
                         <th>Kategori</th>
                         <th>Gönderen</th>
-                        <th>Yorum Sayısı</th>
-                        <th>Okunma Sayısı</th>
+                        <th>Yorumlar</th>
+                        <th>Okunmalar</th>
                     </tr>
                 </thead>
                 <tbody id="mostReadBody"></tbody>
