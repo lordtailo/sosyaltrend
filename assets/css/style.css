@@ -414,6 +414,34 @@ body.dark-mode .most-read-table tr:nth-child(even) {
 
 .header-center { display: flex; justify-content: center; align-items: center; gap: 10px; }
 
+/* Main site navbar (header) */
+.main-nav {
+  display: flex;
+  gap: 18px;
+  font-size: 0.9rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.main-nav .nav-link {
+  color: var(--text-muted);
+  text-decoration: none;
+  padding: 8px 10px;
+  border-radius: 12px;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.main-nav .nav-link:hover {
+  background: rgba(99, 102, 241, 0.12);
+  color: var(--primary);
+}
+
+.main-nav .nav-link.active {
+  background: rgba(99, 102, 241, 0.16);
+  color: var(--primary);
+  font-weight: 700;
+}
+
 /* ensure header areas align properly */
 .header-left, .header-right { display: flex; align-items: center; gap: 14px; }
 .header-right { flex-wrap: nowrap; }
@@ -1469,45 +1497,6 @@ aside, .right-panel { display: none; } }
     header { top: 28px; }
     .top-bar { height: 28px; }
 
-}
-
-/* Mobile bottom navigation */
-.mobile-bottom-nav {
-  display: none;
-}
-@media (max-width: 768px) {
-  .mobile-bottom-nav {
-    display: flex;
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 58px;
-    background: var(--card-bg);
-    border-top: 1px solid var(--border);
-    z-index: 10050;
-    justify-content: space-around;
-    align-items: center;
-    padding: 0 10px;
-  }
-  .mobile-bottom-nav .mobile-nav-item {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 4px;
-    color: var(--text-muted);
-    text-decoration: none;
-    font-size: 0.7rem;
-  }
-  .mobile-bottom-nav .mobile-nav-item.active,
-  .mobile-bottom-nav .mobile-nav-item:hover {
-    color: var(--primary);
-  }
-  .mobile-bottom-nav .mobile-nav-item i {
-    font-size: 1.2rem;
-  }
-  body { padding-bottom: 118px; }
 }
 
 /* Small utility for bottom nav icon badges */

@@ -6805,6 +6805,17 @@ function attachBlogNavHandlers() {
 
     window.addEventListener('popstate', () => {
         updateBlogViewFromUrl();
+        updateHeaderNavActive();
+    });
+}
+
+function updateHeaderNavActive() {
+    const path = window.location.pathname.split('/').pop();
+    document.querySelectorAll('.main-nav .nav-link').forEach(a => {
+        const href = a.getAttribute('href') || '';
+        const url = new URL(href, window.location.origin);
+        const linkPath = url.pathname.split('/').pop();
+        a.classList.toggle('active', linkPath === path);
     });
 }
 
@@ -6813,27 +6824,14 @@ document.addEventListener('DOMContentLoaded', () => {
     initChatListsPanel();
     loadStoredChatNotifications();
 
+    // set active link in header nav
+    updateHeaderNavActive();
+
     // blog page init
     if (document.getElementById('page-blog')) {
         updateBlogViewFromUrl();
         attachBlogNavHandlers();
     }
-
-    // Update mobile bottom nav highlighting
-    const updateMobileNavActive = () => {
-        const path = window.location.pathname.split('/').pop();
-        document.querySelectorAll('.mobile-bottom-nav .mobile-nav-item').forEach(a => {
-            const href = a.getAttribute('href') || '';
-            const url = new URL(href, window.location.origin);
-            const linkPath = url.pathname.split('/').pop();
-            a.classList.toggle('active', linkPath === path);
-        });
-    };
-    updateMobileNavActive();
-
-    window.addEventListener('popstate', () => {
-        updateMobileNavActive();
-    });
 
     // schedule delayed binding in case button is added later
     setTimeout(() => {
