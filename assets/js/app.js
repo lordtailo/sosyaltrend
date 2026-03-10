@@ -6819,6 +6819,22 @@ document.addEventListener('DOMContentLoaded', () => {
         attachBlogNavHandlers();
     }
 
+    // Update mobile bottom nav highlighting
+    const updateMobileNavActive = () => {
+        const path = window.location.pathname.split('/').pop();
+        document.querySelectorAll('.mobile-bottom-nav .mobile-nav-item').forEach(a => {
+            const href = a.getAttribute('href') || '';
+            const url = new URL(href, window.location.origin);
+            const linkPath = url.pathname.split('/').pop();
+            a.classList.toggle('active', linkPath === path);
+        });
+    };
+    updateMobileNavActive();
+
+    window.addEventListener('popstate', () => {
+        updateMobileNavActive();
+    });
+
     // schedule delayed binding in case button is added later
     setTimeout(() => {
         const btn = document.getElementById('publishBlogBtn');
