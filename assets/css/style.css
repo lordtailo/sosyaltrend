@@ -308,6 +308,68 @@ body.dark-mode .imsakiye-table td {
 body.dark-mode .imsakiye-table tr:nth-child(even) {
     background: #1e293b;
 }
+
+/* Most Read (En Çok Okunanlar) Table */
+.most-read-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+    font-size: 0.9rem;
+    border: 1px solid var(--border);
+    background: var(--card-bg);
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.most-read-table th,
+.most-read-table td {
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border);
+    text-align: left;
+}
+
+.most-read-table .most-read-title th {
+    padding: 14px 16px;
+    font-size: 1rem;
+    font-weight: 700;
+    text-align: left !important;
+    border-bottom: 1px solid var(--border);
+}
+
+.most-read-table th:last-child,
+.most-read-table td:last-child {
+    text-align: right;
+}
+
+.most-read-table th {
+    background: rgba(99, 102, 241, 0.08);
+    color: var(--text-main);
+    font-weight: 700;
+}
+
+.most-read-table tr:nth-child(even) {
+    background: rgba(99, 102, 241, 0.04);
+}
+
+.most-read-table tr:hover {
+    background: rgba(99, 102, 241, 0.1);
+}
+
+/* Dark mode adjustments for Most Read */
+body.dark-mode .most-read-table {
+    background: var(--card-bg);
+    border-color: rgba(148, 163, 184, 0.4);
+}
+
+body.dark-mode .most-read-table th {
+    background: rgba(148, 163, 184, 0.12);
+    color: var(--text-main);
+}
+
+body.dark-mode .most-read-table tr:nth-child(even) {
+    background: rgba(148, 163, 184, 0.06);
+}
+
 .close-modal { position: absolute; top: 10px; right: 15px; font-size: 1.5rem; cursor: pointer; color: var(--text-main); font-weight: bold; }
 
 /* job icons */
@@ -1509,6 +1571,29 @@ aside, .right-panel { display: none; } }
 .mini-link-btn:hover {
   background: rgba(99, 102, 241, 0.2);
   transform: translateY(-1px);
+}
+
+.post-action-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.post-action-btn {
+  padding: 6px 10px;
+  font-size: 0.82rem;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.post-action-btn--danger {
+  background: rgba(239, 68, 68, 0.12);
+  color: var(--danger);
+  border-color: rgba(239, 68, 68, 0.35);
 }
 
 /* Blog post action icons (edit/delete) */

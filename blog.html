@@ -36,6 +36,12 @@
         </div>
 
         <div id="blogListView">
+          <div id="mostReadSection" style="margin-bottom: 24px;">
+            <div id="mostReadContainer" style="display:flex; flex-direction:column; gap:10px;"></div>
+          </div>
+
+          <div id="blogCategoryFilters" style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom: 18px;"></div>
+
           <div id="blogPostsContainer"></div>
         </div>
 
@@ -59,8 +65,11 @@
             <label for="blogContent" style="font-weight: 700;">İçerik</label>
             <textarea id="blogContent" class="form-input" rows="10" placeholder="Yazınız buraya..." style="width: 100%; margin-top: 8px;"></textarea>
           </div>
-          <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px;">
-            <button id="publishBlogBtn" class="form-btn" style="background: var(--primary); color: #fff;">Yayınla</button>
+          <div style="display: flex; flex-wrap: nowrap; align-items: center; gap: 12px;">
+            <button id="publishBlogBtn" class="form-btn" style="background: var(--primary); color: #fff; flex: 0 1 auto;">Yayınla</button>
+            <button id="saveDraftBtn" class="form-btn" style="background: var(--warning); color: #1f2937; display: none; flex: 0 1 auto;">Taslak Olarak Kaydet</button>
+          </div>
+          <div style="margin-top: 10px;">
             <span id="blogStatus" style="color: var(--text-muted); font-size: 0.9rem;"></span>
           </div>
         </div>
@@ -68,8 +77,41 @@
         <div id="blogPostView" style="display:none;">
           <div class="glass-card" style="padding: 20px;">
             <h2 id="blogPostTitle" style="margin-top: 0;"></h2>
+            <div id="blogPostCategory" style="color: var(--text-muted); margin-bottom: 10px; font-size: 0.9rem;"></div>
             <div id="blogPostActions" class="blog-post-actions" style="margin-bottom: 15px; display: flex; justify-content: flex-end; gap: 10px;"></div>
             <div id="blogPostContent" style="color: var(--text-main); line-height: 1.7;"></div>
+
+            <div id="blogPostShare" style="margin-top: 16px; display: flex; flex-direction: column; gap: 10px;">
+              <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center;">
+                <button id="shareBtn" class="mini-link-btn" type="button">
+                  <i class="fa-solid fa-share-nodes" style="margin-right: 6px;"></i>Paylaş
+                </button>
+                <button id="shareWhatsAppBtn" class="mini-link-btn" type="button">
+                  <i class="fa-brands fa-whatsapp" style="margin-right: 6px;"></i>WhatsApp
+                </button>
+                <button id="shareFacebookBtn" class="mini-link-btn" type="button">
+                  <i class="fa-brands fa-facebook-f" style="margin-right: 6px;"></i>Facebook
+                </button>
+                <button id="shareXBtn" class="mini-link-btn" type="button">
+                  <i class="fa-brands fa-x" style="margin-right: 6px;"></i>X
+                </button>
+                <button id="copyPostLinkBtn" class="mini-link-btn" type="button">
+                  <i class="fa-solid fa-link" style="margin-right: 6px;"></i>Linki Kopyala
+                </button>
+              </div>
+              <span id="copyStatus" style="color: var(--text-muted); font-size: 0.85rem;"></span>
+            </div>
+
+            <div id="blogPostReaders" style="margin-top: 20px;">
+              <h3 style="margin:0 0 10px 0; font-size:1.05rem;">Kimler okudu</h3>
+              <div id="blogReadersList" style="display:flex; flex-wrap:wrap; gap:8px; align-items:center;"></div>
+            </div>
+
+            <div id="blogPostComments" style="margin-top: 20px;">
+              <h3 style="margin:0 0 10px 0; font-size:1.05rem;">Yorumlar</h3>
+              <div id="blogCommentForm" style="margin-bottom: 16px;"></div>
+              <div id="blogCommentList"></div>
+            </div>
           </div>
         </div>
 

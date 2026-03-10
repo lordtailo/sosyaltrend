@@ -1,5 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, doc, updateDoc, setDoc, arrayUnion, arrayRemove, deleteDoc, getDoc, getDocs, limit, where } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, doc, updateDoc, setDoc, arrayUnion, arrayRemove, deleteDoc, getDoc, getDocs, limit, where, increment } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { getAuth, onAuthStateChanged, signOut, updateEmail, updatePassword, sendPasswordResetEmail, updateProfile } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
 
@@ -110,7 +110,8 @@ async function updateSidebarStats() {
                 tooltip.className = 'tooltip';
                 tooltip.innerText = name;
                 item.appendChild(tooltip);
-                item.onclick = () => { window.location.href = `profil.html?uid=${uid}`; };
+                const profileId = docData.username || uid;
+                item.onclick = () => { window.location.href = `profil.html?id=${encodeURIComponent(profileId)}`; };
                 recentList.appendChild(item);
                 console.log('Added user avatar:', name);
             });
@@ -424,6 +425,14 @@ await updateDoc(currentUserRef, {
   avatarUrl: "assets/img/strendsaydamv2.png",
   isAdmin: false
 };
+
+// Cache author avatars to avoid fetching multiple times
+const blogAuthorAvatarCache = {};
+
+// Track posts whose view count we've already incremented this session
+const viewedPostIds = new Set();
+// Track posts whose "okuyan" list we've already updated this session
+const readersUpdatedPostIds = new Set();
 
 // Utility: wait for a DOM selector to appear (returns element or null)
 function waitForElement(selector, timeout = 5000, interval = 200) {
@@ -1173,15 +1182,28 @@ window.clearImagePreview = () => {
   applyTranslations();
 
 function getAvatarUrl(avatarUrlOrSeed, type = 'user') {
-    // Eğer string ise kontrol et
+    // If it's a string, try to interpret it correctly
     if (avatarUrlOrSeed && typeof avatarUrlOrSeed === 'string') {
-        // HTTP/HTTPS URL'si veya Data URL (Base64)
+        // Full URLs or base64
         if (avatarUrlOrSeed.startsWith('http') || avatarUrlOrSeed.startsWith('data:')) {
             return avatarUrlOrSeed;
         }
+        // Relative assets or absolute paths
+        if (avatarUrlOrSeed.startsWith('assets/') || avatarUrlOrSeed.startsWith('/')) {
+            return avatarUrlOrSeed;
+        }
+
+        // Admin-specific icon
+        if (avatarUrlOrSeed === 'admin-shield') {
+            return "https://api.dicebear.com/7.x/bottts/svg?seed=Admin";
+        }
+
+        // Treat the value as a seed for an avatar generator
+        // (use different style depending on type)
+        const style = type === 'page' ? 'adventurer' : 'bottts';
+        return `https://api.dicebear.com/7.x/${style}/svg?seed=${encodeURIComponent(avatarUrlOrSeed)}`;
     }
-    // Admin ikon kontrolü - SADECE admin-shield için özel işlem
-    if (avatarUrlOrSeed === 'admin-shield') return "https://api.dicebear.com/7.x/bottts/svg?seed=Admin";
+
     // Default avatar
     return "assets/img/strendsaydamv2.png";
 }
@@ -1499,16 +1521,31 @@ window.searchTrend = (tag) => {
 
 // Zaman formatlama fonksiyonun (Aynen korundu)
 function formatTime(timestamp) {
-    if(!timestamp) return "...";
+    if (!timestamp) return "...";
+
+    let date;
+    if (typeof timestamp === 'number') {
+        date = new Date(timestamp);
+    } else if (timestamp instanceof Date) {
+        date = timestamp;
+    } else if (timestamp && typeof timestamp.toDate === 'function') {
+        date = timestamp.toDate();
+    } else if (timestamp && typeof timestamp.seconds === 'number') {
+        date = new Date(timestamp.seconds * 1000);
+    } else {
+        return "...";
+    }
+
     try {
-        const date = timestamp.toDate();
         const diff = Math.floor((new Date() - date) / 1000);
-        const t = currentLang === 'tr' ? {s:'sn', m:'dk', h:'sa', d:'gn'} : {s:'s', m:'m', h:'h', d:'d'};
+        const t = currentLang === 'tr' ? { s: 'sn', m: 'dk', h: 'sa', d: 'gn' } : { s: 's', m: 'm', h: 'h', d: 'd' };
         if (diff < 60) return `${diff}${t.s}`;
-        if (diff < 3600) return `${Math.floor(diff/60)}${t.m}`;
-        if (diff < 86400) return `${Math.floor(diff/3600)}${t.h}`;
-        return `${Math.floor(diff/86400)}${t.d}`;
-    } catch(e) { return "..."; }
+        if (diff < 3600) return `${Math.floor(diff / 60)}${t.m}`;
+        if (diff < 86400) return `${Math.floor(diff / 3600)}${t.h}`;
+        return `${Math.floor(diff / 86400)}${t.d}`;
+    } catch (e) {
+        return "...";
+    }
 }
 
 /* --- SEARCH SON --- */
@@ -5709,6 +5746,8 @@ function updateCreateViewAuthState() {
         }
     }
 
+    const draftBtn = document.getElementById('saveDraftBtn');
+
     if (pubBtn) {
         if (isAuthed) {
             pubBtn.disabled = false;
@@ -5721,9 +5760,19 @@ function updateCreateViewAuthState() {
         }
     }
 
+    // Only show the "Taslak Olarak Kaydet" button to the admin user
+    if (draftBtn) {
+        if (isAuthed && user.isAdmin) {
+            draftBtn.style.display = 'inline-block';
+        } else {
+            draftBtn.style.display = 'none';
+        }
+    }
+
     console.log('[blog] create view auth state:', {
         isAuthed,
-        userEmail
+        userEmail,
+        isAdmin: user.isAdmin
     });
 }
 
@@ -5780,14 +5829,184 @@ function showBlogView(view, options = {}) {
     }
 }
 
-async function loadBlogPosts() {
-    showBlogView('list', { mine: new URLSearchParams(window.location.search).get('mine') === '1' });
+const BLOG_CATEGORIES = ['Genel', 'Teknoloji', 'Yaşam', 'Haber', 'Eğitim', 'Seyahat'];
+
+function getBlogCategoryFromUrl() {
+    const params = new URLSearchParams(window.location.search);
+    const category = params.get('category');
+    if (!category) return 'Tümü';
+    return category;
+}
+
+function setBlogCategoryInUrl(category) {
+    const params = new URLSearchParams(window.location.search);
+    if (category && category !== 'Tümü') {
+        params.set('category', category);
+    } else {
+        params.delete('category');
+    }
+    const base = window.location.pathname;
+    const query = params.toString();
+    history.replaceState({}, '', query ? `${base}?${query}` : base);
+}
+
+function renderBlogCategoryFilters(selectedCategory = 'Tümü') {
+    const container = document.getElementById('blogCategoryFilters');
+    if (!container) return;
+
+    const categories = ['Tümü', ...BLOG_CATEGORIES];
+    container.innerHTML = categories.map(cat => {
+        const isActive = cat === selectedCategory;
+        return `
+            <div class="glass-card" style="padding: 12px 14px; cursor: pointer; border: 1px solid ${isActive ? 'var(--primary)' : 'var(--border)'}; background: ${isActive ? 'rgba(99, 102, 241, 0.08)' : 'var(--card-bg)'};">
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <i class="fa-solid fa-tags" style="color: ${isActive ? 'var(--primary)' : 'var(--text-muted)'};"></i>
+                    <span style="font-weight: 600;">${cat}</span>
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    container.querySelectorAll('.glass-card').forEach((card, idx) => {
+        card.onclick = () => {
+            const category = categories[idx];
+            setBlogCategoryInUrl(category);
+            loadBlogPosts({ category });
+        };
+    });
+}
+
+async function fetchAndUpdateAuthorAvatar(authorUid, postId) {
+    if (!authorUid) return;
+    if (blogAuthorAvatarCache[authorUid]) {
+        const img = document.querySelector(`img[data-post-id="${postId}"]`);
+        if (img) img.src = blogAuthorAvatarCache[authorUid];
+        return;
+    }
+
+    try {
+        const userDoc = await getDoc(doc(db, 'users', authorUid));
+        if (!userDoc.exists()) return;
+        const userData = userDoc.data();
+        const avatar = getAvatarUrl(userData.avatarUrl || userData.avatar || 'assets/img/strendsaydamv2.png', 'user');
+        blogAuthorAvatarCache[authorUid] = avatar;
+
+        const imgEls = document.querySelectorAll(`img[data-author-uid="${authorUid}"]`);
+        imgEls.forEach(img => img.src = avatar);
+    } catch (e) {
+        console.warn('author avatar fetch hatası', e);
+    }
+}
+
+async function renderMostReadPosts() {
+    const mostReadContainer = document.getElementById('mostReadContainer');
+    if (!mostReadContainer) return;
+
+    try {
+        const topSnap = await getDocs(query(collection(db, 'blogs'), orderBy('views', 'desc'), limit(7)));
+        mostReadContainer.innerHTML = '';
+        if (topSnap.empty) {
+            mostReadContainer.innerHTML = '<div style="color:var(--text-muted);">Henüz okunma verisi yok.</div>';
+            return;
+        }
+
+        // Tablo stili (başlık + satırlar) - kenarlıklar kapalı, sade görünüm
+        mostReadContainer.innerHTML = `
+            <table class="most-read-table" style="width:100%;">
+                <thead>
+                    <tr class="most-read-title">
+                        <th colspan="5">En Çok Okunanlar</th>
+                    </tr>
+                    <tr>
+                        <th>Başlık</th>
+                        <th>Kategori</th>
+                        <th>Gönderen</th>
+                        <th>Yorum Sayısı</th>
+                        <th>Okunma Sayısı</th>
+                    </tr>
+                </thead>
+                <tbody id="mostReadBody"></tbody>
+            </table>
+        `;
+
+        const tbody = document.getElementById('mostReadBody');
+        topSnap.docs.forEach(doc => {
+            const data = doc.data();
+            const title = data.title || 'Başlıksız';
+            const views = data.views || 0;
+            const category = data.category || 'Genel';
+            const author = data.authorUsername || data.author || 'Anonim';
+            const comments = Array.isArray(data.comments) ? data.comments.length : 0;
+            const postId = doc.id;
+
+            tbody.innerHTML += `
+                <tr>
+                    <td><a href="blog.html?id=${postId}" style="text-decoration:none;color:inherit;font-weight:600;">${escapeHtml(title)}</a></td>
+                    <td style="color:var(--text-muted);">${escapeHtml(category)}</td>
+                    <td style="color:var(--text-muted);">${escapeHtml(author)}</td>
+                    <td style="color:var(--text-muted);">${comments}</td>
+                    <td style="color:var(--text-muted);">${views}</td>
+                </tr>
+            `;
+        });
+    } catch (e) {
+        console.warn('Most read yüklenemedi:', e);
+    }
+}
+
+function renderMyBlogSummary(posts = []) {
+    const mostReadContainer = document.getElementById('mostReadContainer');
+    if (!mostReadContainer) return;
+
+    const user = auth.currentUser;
+    const name = user?.displayName || (user?.email || '').split('@')[0] || 'Profilim';
+    const email = user?.email || '';
+
+    const totalPosts = posts.length;
+    const mostReadPost = posts.reduce((best, doc) => {
+        const data = doc.data();
+        const views = data.views || 0;
+        if (!best || views > best.views) {
+            return { title: data.title || 'Başlıksız', views };
+        }
+        return best;
+    }, null);
+
+    mostReadContainer.innerHTML = `
+        <div style="display:flex; flex-wrap:wrap; gap:16px; margin-bottom:18px;">
+            <div class="glass-card" style="flex:1; min-width:220px; padding:16px;">
+                <h4 style="margin:0 0 10px 0;">Profilim</h4>
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <div style="width:44px; height:44px; border-radius:50%; overflow:hidden; background:#f0f0f0;">
+                        <img src="${getAvatarUrl(user?.avatarUrl || user?.photoURL || 'assets/img/strendsaydamv2.png', 'user')}" alt="avatar" style="width:100%; height:100%; object-fit:cover;" />
+                    </div>
+                    <div style="font-size:0.9rem;">
+                        <div style="font-weight:700;">${escapeHtml(name)}</div>
+                        <div style="color:var(--text-muted); font-size:0.85rem;">${escapeHtml(email)}</div>
+                    </div>
+                </div>
+            </div>
+            <div class="glass-card" style="flex:1; min-width:220px; padding:16px;">
+                <h4 style="margin:0 0 10px 0;">İstatistikler</h4>
+                <div style="display:flex; flex-direction:column; gap:8px; font-size:0.9rem;">
+                    <div>Blog yazısı sayısı: <strong>${totalPosts}</strong></div>
+                    <div>En çok okunan yazınız: <strong>${escapeHtml(mostReadPost?.title || '—')}</strong> (${mostReadPost?.views || 0})</div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+async function loadBlogPosts(options = {}) {
+    const params = new URLSearchParams(window.location.search);
+    const mineMode = params.get('mine') === '1';
+    const category = options.category || getBlogCategoryFromUrl();
+
+    showBlogView('list', { mine: mineMode });
 
     const container = document.getElementById('blogPostsContainer');
     if (!container) return;
 
-    const params = new URLSearchParams(window.location.search);
-    const mineMode = params.get('mine') === '1';
 
     // If user wants to view their own posts, require auth
     if (mineMode && (!auth || !auth.currentUser)) {
@@ -5799,60 +6018,142 @@ async function loadBlogPosts() {
         const allSnap = await getDocs(query(collection(db, 'blogs'), orderBy('createdAt', 'desc')));
         container.innerHTML = '';
 
+        // Show either the global "En Çok Okunanlar" table or the "Profilim" widget (mine view)
+        const mostReadContainer = document.getElementById('mostReadContainer');
+
+        if (!mineMode) {
+            renderMostReadPosts();
+        }
+
         if (allSnap.empty) {
             container.innerHTML = `<p style="color:var(--text-muted);">${mineMode ? 'Henüz kendi yazınız yok.' : 'Henüz yayımlanmış bir blog yazısı yok.'}</p>`;
+            if (mineMode && mostReadContainer) {
+                renderMyBlogSummary([]);
+            }
             return;
         }
 
-        // Filter for "mine=1" (try to match both authorUid and legacy fields like author/authorUsername)
+        // Filter posts (hide drafts from others unless author/admin)
         const filtered = allSnap.docs.filter(doc => {
-            if (!mineMode) return true;
             const data = doc.data();
-            const uid = auth.currentUser.uid;
-            const username = (auth.currentUser.email || '').split('@')[0];
+            const isDraft = data.status === 'draft';
+            const isLoggedIn = !!auth.currentUser;
+            const uid = auth.currentUser?.uid;
+            const username = (auth.currentUser?.email || '').split('@')[0];
 
-            const isMine =
+            const isAuthor = isLoggedIn && (
                 data.authorUid === uid ||
-                data.author === username ||
+                data.authorEmail === auth.currentUser.email ||
                 data.authorUsername === username ||
-                data.authorEmail === auth.currentUser.email;
+                data.author === username
+            );
+
+            // Hide drafts from non-authors/non-admins when not in "mine" view
+            if (!mineMode && isDraft && !user.isAdmin && !isAuthor) {
+                return false;
+            }
+
+            if (!mineMode) return true;
+
+            const isMine = isAuthor;
 
             // If this is my post but missing authorUid, patch it for future queries
-            if (isMine && !data.authorUid) {
+            if (isMine && !data.authorUid && uid) {
                 updateDoc(doc.ref, { authorUid: uid }).catch(() => {});
             }
 
             return isMine;
         });
 
+        // Show category filters
+        renderBlogCategoryFilters(category);
+
+        // Show profile/stat widget in "Yazılarım" view
+        if (mineMode) {
+            renderMyBlogSummary(filtered);
+        }
+
         if (filtered.length === 0) {
             container.innerHTML = `<p style="color:var(--text-muted);">${mineMode ? 'Henüz kendi yazınız yok.' : 'Henüz yayımlanmış bir blog yazısı yok.'}</p>`;
             return;
         }
 
-        filtered.forEach(doc => {
+        const selectedCategory = category || 'Tümü';
+        let filteredByCategory = filtered;
+        if (selectedCategory && selectedCategory !== 'Tümü') {
+            filteredByCategory = filtered.filter(doc => {
+                const data = doc.data();
+                const postCategory = (data.category || 'Genel');
+                return postCategory === selectedCategory;
+            });
+        }
+
+        if (filteredByCategory.length === 0) {
+            container.innerHTML = `<p style="color:var(--text-muted);">${mineMode ? 'Bu kategoride henüz bir yazınız yok.' : 'Bu kategoride henüz yazı yok.'}</p>`;
+            return;
+        }
+
+        filteredByCategory.forEach(doc => {
             const data = doc.data();
             const excerpt = (data.content || '').substring(0, 200).replace(/\n/g, ' ');
             const authorLabel = data.authorUid === (auth?.currentUser?.uid) ? ' (Siz)' : '';
 
             const authorName = data.authorUsername || data.author || 'Anonim';
-            const avatarUrl = data.authorAvatar || 'assets/img/strendsaydamv2.png';
+            const savedAvatar = data.authorAvatar || data.authorAvatarSeed || '';
+            const cachedAvatar = data.authorUid ? blogAuthorAvatarCache[data.authorUid] : null;
+            const avatarUrl = getAvatarUrl(cachedAvatar || savedAvatar || 'assets/img/strendsaydamv2.png', 'user');
+
+            const isAuthor = Boolean(auth.currentUser) && (
+                data.authorUid === auth.currentUser.uid ||
+                data.authorEmail === auth.currentUser.email ||
+                data.authorUsername === (auth.currentUser.email || '').split('@')[0] ||
+                data.author === (auth.currentUser.email || '').split('@')[0]
+            );
+
             const postHtml = `
                 <div class="glass-card" style="padding:15px 20px; margin-bottom:20px;">
-                    <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
-                        <div style="width:34px; height:34px; border-radius:50%; overflow:hidden; background:#f0f0f0; flex-shrink:0;">
-                            <img src="${avatarUrl}" alt="avatar" style="width:100%; height:100%; object-fit:cover;" />
+                    <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:10px;">
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <div style="width:34px; height:34px; border-radius:50%; overflow:hidden; background:#f0f0f0; flex-shrink:0;">
+                                <img src="${avatarUrl}" alt="avatar" data-post-id="${doc.id}" data-author-uid="${data.authorUid || ''}" style="width:100%; height:100%; object-fit:cover;" />
+                            </div>
+                            <div style="font-size:0.85rem; color:var(--text-muted);">
+                                <div style="font-weight:700;">${escapeHtml(authorName)}</div>
+                                <div style="font-size:0.75rem;">Gönderildi: ${formatTime(data.createdAt)}</div>
+                            </div>
                         </div>
-                        <div style="font-size:0.85rem; color:var(--text-muted);">
-                            <div style="font-weight:700;">${escapeHtml(authorName)}</div>
-                            <div style="font-size:0.75rem;">Gönderildi: ${formatTime(data.createdAt)}</div>
+                        <div style="text-align:right; font-size:0.78rem; color:var(--text-muted);">
+                            <div><i class="fa-solid fa-tag" style="margin-right:6px;"></i>Kategori: <strong>${escapeHtml(data.category || 'Genel')}</strong></div>
+                            <div><i class="fa-solid fa-eye" style="margin-right:6px;"></i>Okundu Sayısı: <strong>${data.views || 0}</strong></div>
                         </div>
                     </div>
-                    <h3 style="margin-top:0;">${escapeHtml(data.title)}${authorLabel}</h3>
-                    <p style="color:var(--text-muted); font-size:0.95rem; line-height:1.6;">${escapeHtml(excerpt)}${excerpt.length>=200?'...':''}</p>
-                    <a href="blog.html?id=${doc.id}" class="mini-link-btn" style="margin-top:10px; display:inline-block;">Devamını Oku →</a>
+                    <h3 style="margin-top:0; display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                        <i class="fa-solid fa-newspaper" style="font-size:1rem;"></i>
+                        <a href="blog.html?id=${doc.id}" style="text-decoration:none;color:inherit;">${escapeHtml((data.title || '').charAt(0).toUpperCase() + (data.title || '').slice(1))}</a>${authorLabel}
+                        ${data.status === 'draft' ? '<span style="background: rgba(245, 158, 11, 0.15); color: #92400e; padding: 2px 10px; border-radius: 999px; font-size: 0.75rem;">Taslak</span>' : ''}
+                    </h3>
+                    <p style="color:var(--text-muted); font-size:0.95rem; line-height:1.6; margin-top:10px;">${escapeHtml(excerpt)}${excerpt.length>=200?'...':''}</p>
+                    <div class="post-action-row" style="margin-top:14px;">
+                        <a href="blog.html?id=${doc.id}" class="mini-link-btn post-action-btn">
+                            <i class="fa-solid fa-arrow-right" style="font-size:0.85rem;"></i>
+                            <span>Devamını Oku</span>
+                        </a>
+                        ${isAuthor ? `
+                            <button class="mini-link-btn post-action-btn" type="button" title="Düzenle" onclick="startEditingBlogPost('${doc.id}')">
+                                <i class="fa-solid fa-pen" style="font-size:0.85rem;"></i>
+                            </button>
+                            <button class="mini-link-btn post-action-btn post-action-btn--danger" type="button" title="Sil" onclick="deleteBlogPost('${doc.id}')">
+                                <i class="fa-solid fa-trash" style="font-size:0.85rem;"></i>
+                            </button>
+                        ` : ''}
+                    </div>
                 </div>`;
             container.innerHTML += postHtml;
+
+            // If no avatar stored or it's default, try fetching the author's real avatar from user profile
+            if (data.authorUid && !savedAvatar) {
+                fetchAndUpdateAuthorAvatar(data.authorUid, doc.id);
+            }
         });
     } catch (e) {
         console.error('loadBlogPosts hata:', e);
@@ -5885,14 +6186,40 @@ async function loadBlogPostById(id) {
             return;
         }
 
+        // Increment view count (safe even if field missing)
+        // Ensure we only increment once per session per post to avoid +3 jumps on reload
+        if (!viewedPostIds.has(id)) {
+            viewedPostIds.add(id);
+            updateDoc(docRef, { views: increment(1) }).catch(() => {});
+        }
+
+        // Add current user to "okuyanlar" list (show avatars)
+        if (auth.currentUser && !readersUpdatedPostIds.has(id)) {
+            readersUpdatedPostIds.add(id);
+            const readerObj = {
+                uid: auth.currentUser.uid,
+                username: user.username || (auth.currentUser.email || '').split('@')[0],
+                displayName: user.displayName || user.username || 'Anonim',
+                avatarUrl: user.avatarUrl || 'assets/img/strendsaydamv2.png'
+            };
+            updateDoc(docRef, { readers: arrayUnion(readerObj) }).catch(() => {});
+        }
+
         const data = snap.data();
+        const categoryEl = document.getElementById('blogPostCategory');
         if (titleEl) titleEl.textContent = data.title || '';
+        if (categoryEl) categoryEl.textContent = `Kategori: ${data.category || 'Genel'}`;
         if (contentEl) contentEl.textContent = data.content || '';
 
         // show edit + delete icons for author (only one of each)
         if (actionsEl) {
             const alreadyRenderedFor = actionsEl.dataset.blogActionFor;
-            const isAuthor = auth.currentUser && data.authorUid === auth.currentUser.uid;
+            const isAuthor = Boolean(auth.currentUser) && (
+                data.authorUid === auth.currentUser.uid ||
+                data.authorEmail === auth.currentUser.email ||
+                data.authorUsername === (auth.currentUser.email || '').split('@')[0] ||
+                data.author === (auth.currentUser.email || '').split('@')[0]
+            );
 
             // Clear prior action buttons if switching posts or user is not author
             if (!isAuthor || alreadyRenderedFor !== id) {
@@ -5917,14 +6244,341 @@ async function loadBlogPostById(id) {
                 };
 
                 actionsEl.appendChild(editBtn);
+
+                // If this is a draft, allow publishing directly from the post view
+                if (data.status === 'draft') {
+                    const publishDraftBtn = document.createElement('button');
+                    publishDraftBtn.className = 'blog-action-btn';
+                    publishDraftBtn.title = 'Yayınla';
+                    publishDraftBtn.innerHTML = '<i class="fa-solid fa-upload"></i>';
+                    publishDraftBtn.onclick = async () => {
+                        await publishDraftPost(id);
+                    };
+                    actionsEl.appendChild(publishDraftBtn);
+                }
+
                 actionsEl.appendChild(delBtn);
                 actionsEl.dataset.blogActionFor = id;
             }
         }
+
+        // Setup share / copy link buttons inside blog post view
+        const copyBtn = document.getElementById('copyPostLinkBtn');
+        const shareBtn = document.getElementById('shareBtn');
+        const whatsappBtn = document.getElementById('shareWhatsAppBtn');
+        const facebookBtn = document.getElementById('shareFacebookBtn');
+        const xBtn = document.getElementById('shareXBtn');
+        const copyStatus = document.getElementById('copyStatus');
+
+        // Build a stable link that always points to this post (even if current URL has other query params)
+        const url = new URL(window.location.href);
+        url.searchParams.set('id', id);
+        url.searchParams.delete('mine');
+        url.searchParams.delete('create');
+        const postUrl = url.toString();
+
+        const shareText = (data.title || 'Bir içerik') + ' - SosyaLTrend';
+        const encodedText = encodeURIComponent(shareText);
+        const encodedUrl = encodeURIComponent(postUrl);
+
+        const showStatus = (text) => {
+            if (copyStatus) copyStatus.textContent = text;
+            setTimeout(() => {
+                if (copyStatus) copyStatus.textContent = '';
+            }, 2200);
+        };
+
+        const openPopup = (link) => {
+            window.open(link, '_blank', 'noopener,noreferrer,width=600,height=600');
+        };
+
+        if (shareBtn) {
+            shareBtn.onclick = async () => {
+                try {
+                    if (navigator.share) {
+                        await navigator.share({
+                            title: data.title || 'Blog Yazısı',
+                            text: data.title || '',
+                            url: postUrl
+                        });
+                        showStatus('Paylaşım açıldı.');
+                        return;
+                    }
+                } catch (err) {
+                    console.warn('Web Share API hata:', err);
+                }
+
+                // Fallback to opening share menu (X / Facebook / WhatsApp)
+                openPopup(`https://twitter.com/intent/tweet?text=${encodedText}&url=${encodedUrl}`);
+            };
+        }
+
+        if (whatsappBtn) {
+            whatsappBtn.onclick = () => {
+                openPopup(`https://api.whatsapp.com/send?text=${encodedText}%20${encodedUrl}`);
+            };
+        }
+
+        if (facebookBtn) {
+            facebookBtn.onclick = () => {
+                openPopup(`https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`);
+            };
+        }
+
+        if (xBtn) {
+            xBtn.onclick = () => {
+                openPopup(`https://twitter.com/intent/tweet?text=${encodedText}&url=${encodedUrl}`);
+            };
+        }
+
+        if (copyBtn) {
+            copyBtn.onclick = async () => {
+                try {
+                    if (navigator.clipboard && navigator.clipboard.writeText) {
+                        await navigator.clipboard.writeText(postUrl);
+                        showStatus('Link kopyalandı!');
+                        return;
+                    }
+
+                    // Fallback for insecure contexts (file://) or old browsers
+                    const tmp = document.createElement('textarea');
+                    tmp.value = postUrl;
+                    tmp.setAttribute('readonly', '');
+                    tmp.style.position = 'absolute';
+                    tmp.style.left = '-9999px';
+                    document.body.appendChild(tmp);
+                    tmp.select();
+                    const success = document.execCommand('copy');
+                    document.body.removeChild(tmp);
+
+                    if (success) {
+                        showStatus('Link kopyalandı!');
+                    } else {
+                        throw new Error('execCommand copy failed');
+                    }
+                } catch (err) {
+                    console.warn('Link kopyalama/ paylaşma hatası', err);
+                    showStatus('Kopyalama başarısız oldu.');
+                    // Fallback: prompt user to copy manually
+                    setTimeout(() => {
+                        window.prompt('Bu linki kopyalayın:', postUrl);
+                    }, 50);
+                }
+            };
+        }
+
+        // Render "okuyanlar" and comments sections below this post
+        renderBlogReaders(id, data.readers || []);
+        renderBlogComments(id, data.comments || []);
     } catch (e) {
         console.error('loadBlogPostById hata:', e);
         if (contentEl) contentEl.textContent = 'Yüklenirken hata oluştu.';
     }
+}
+
+function generateId() {
+    if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+        return crypto.randomUUID();
+    }
+    return 'cmt-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2);
+}
+
+async function addBlogComment(postId, text) {
+    if (!auth.currentUser) throw new Error('Giriş yapılmamış.');
+    const comment = {
+        commentId: generateId(),
+        username: user.username || (auth.currentUser.email || '').split('@')[0],
+        displayName: user.displayName || user.username || 'Anonim',
+        avatarUrl: user.avatarUrl || 'assets/img/strendsaydamv2.png',
+        text: text.trim(),
+        timestamp: Date.now()
+    };
+
+    const docRef = doc(db, 'blogs', postId);
+    const snap = await getDoc(docRef);
+    if (!snap.exists()) throw new Error('Yazı bulunamadı.');
+
+    const data = snap.data();
+    const comments = Array.isArray(data.comments) ? data.comments : [];
+
+    // If comments field exists but is not an array, reset it safely
+    if (!Array.isArray(data.comments)) {
+        await setDoc(docRef, { comments: [...comments, comment] }, { merge: true });
+    } else {
+        await updateDoc(docRef, {
+            comments: arrayUnion(comment)
+        });
+    }
+}
+
+async function deleteBlogComment(postId, commentId) {
+    try {
+        const docRef = doc(db, 'blogs', postId);
+        const snap = await getDoc(docRef);
+        if (!snap.exists()) return;
+        const data = snap.data();
+        const comment = (data.comments || []).find(c => c.commentId === commentId);
+        if (!comment) return;
+        await updateDoc(docRef, {
+            comments: arrayRemove(comment)
+        });
+    } catch (e) {
+        console.error('deleteBlogComment hata:', e);
+    }
+}
+
+function renderBlogReaders(postId, readers = []) {
+    const parent = document.getElementById('blogReadersList');
+    if (!parent) return;
+
+    const unique = [];
+    const seen = new Set();
+    (readers || []).forEach(r => {
+        if (!r || !r.uid) return;
+        if (seen.has(r.uid)) return;
+        seen.add(r.uid);
+        unique.push(r);
+    });
+
+    if (unique.length === 0) {
+        parent.innerHTML = '<span style="color:var(--text-muted); font-size:0.9rem;">Henüz kimse okumadı.</span>';
+        return;
+    }
+
+    const maxShow = 8;
+    const shown = unique.slice(0, maxShow);
+
+    parent.innerHTML = shown.map(r => {
+        const avatar = getAvatarUrl(r.avatarUrl || 'assets/img/strendsaydamv2.png', 'user');
+        const name = escapeHtml(r.displayName || r.username || 'Anonim');
+        return `
+            <div class="reader-avatar" title="${name}" style="width:32px; height:32px; border-radius:50%; overflow:hidden; border:1px solid var(--border);">
+                <img src="${avatar}" alt="${name}" style="width:100%; height:100%; object-fit:cover;" />
+            </div>
+        `;
+    }).join('');
+
+    if (unique.length > maxShow) {
+        parent.innerHTML += `<div style="display:flex; align-items:center; justify-content:center; width:32px; height:32px; border-radius:50%; border:1px solid var(--border); background: rgba(0,0,0,0.06); font-size:0.75rem; color:var(--text-muted);">+${unique.length - maxShow}</div>`;
+    }
+}
+
+function renderBlogComments(postId, comments = []) {
+    const formContainer = document.getElementById('blogCommentForm');
+    const listContainer = document.getElementById('blogCommentList');
+    if (!formContainer || !listContainer) {
+        console.warn('Yorum alanı bulunamadı (blogCommentForm/blogCommentList).');
+        return;
+    }
+
+    console.log('renderBlogComments called', { postId, commentCount: (comments || []).length });
+
+    const isLoggedIn = !!auth.currentUser;
+
+    if (!isLoggedIn) {
+        formContainer.innerHTML = '<div style="color:var(--text-muted);">Yorum yazmak için giriş yapın.</div>';
+    } else {
+        formContainer.innerHTML = `
+            <textarea id="commentInput" placeholder="Yorumunuzu yazın..." rows="3" style="width:100%; padding:10px; border:1px solid var(--border); border-radius:10px; resize:vertical;"></textarea>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:6px; gap:10px;">
+                <span id="commentCharCount" style="color:var(--text-muted); font-size:0.9rem;">0/500</span>
+                <button id="sendCommentBtn" class="mini-link-btn" type="button">Yorumu Gönder</button>
+            </div>
+        `;
+
+        const input = document.getElementById('commentInput');
+        const counter = document.getElementById('commentCharCount');
+        const sendBtn = document.getElementById('sendCommentBtn');
+
+        const updateCount = () => {
+            if (!input || !counter) return;
+            const len = input.value.length;
+            counter.textContent = `${len}/500`;
+            if (len > 500) {
+                input.value = input.value.substring(0, 500);
+            }
+        };
+
+        if (input) {
+            input.addEventListener('input', updateCount);
+        }
+
+        if (sendBtn) {
+            sendBtn.onclick = async () => {
+                if (!input) return;
+                const text = input.value.trim();
+                if (!text) return;
+
+                sendBtn.disabled = true;
+                sendBtn.innerText = 'Gönderiliyor...';
+
+                try {
+                    await addBlogComment(postId, text);
+                    input.value = '';
+                    updateCount();
+                    loadBlogPostById(postId);
+                } catch (err) {
+                    console.error('Yorum gönderme hatası:', err);
+                    alert('Yorum gönderilemedi.');
+                }
+
+                sendBtn.disabled = false;
+                sendBtn.innerText = 'Yorumu Gönder';
+            };
+        }
+    }
+
+    const sorted = (comments || []).slice().sort((a, b) => {
+        const getMs = (ts) => {
+            if (!ts) return 0;
+            if (typeof ts === 'number') return ts;
+            if (ts instanceof Date) return ts.getTime();
+            if (ts && typeof ts.toMillis === 'function') return ts.toMillis();
+            if (ts && typeof ts.seconds === 'number') return ts.seconds * 1000;
+            return 0;
+        };
+
+        return getMs(a.timestamp) - getMs(b.timestamp);
+    });
+
+    if (sorted.length === 0) {
+        listContainer.innerHTML = '<p style="color:var(--text-muted); margin:0;">Henüz yorum yok.</p>';
+        return;
+    }
+
+    listContainer.innerHTML = sorted.map(comment => {
+        const avatar = getAvatarUrl(comment.avatarUrl || 'assets/img/strendsaydamv2.png', 'user');
+        const name = escapeHtml(comment.displayName || comment.username || 'Anonim');
+        const time = formatTime(comment.timestamp);
+        const text = escapeHtml(comment.text || '');
+        const canDelete = auth.currentUser && comment.username === (user.username || '');
+
+        return `
+            <div class="comment-item" style="display:flex; gap:10px; padding:10px 0; border-bottom:1px solid var(--border);">
+                <div style="width:36px; height:36px; border-radius:50%; overflow:hidden; flex-shrink:0;">
+                    <img src="${avatar}" alt="avatar" style="width:100%; height:100%; object-fit:cover;" />
+                </div>
+                <div style="flex:1;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; font-size:0.9rem;">
+                        <div><strong>${name}</strong> <span style="color:var(--text-muted); font-size:0.8rem;">${time}</span></div>
+                        ${canDelete ? `<button class="mini-link-btn" style="padding:4px 10px;" data-comment-id="${comment.commentId}">Sil</button>` : ''}
+                    </div>
+                    <div style="margin-top:4px; white-space:pre-wrap; line-height:1.5; color:var(--text-main);">${text}</div>
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    // Attach delete handlers
+    listContainer.querySelectorAll('button[data-comment-id]').forEach(btn => {
+        btn.onclick = async () => {
+            const commentId = btn.dataset.commentId;
+            if (!commentId) return;
+            if (!confirm('Bu yorumu silmek istediğinizden emin misiniz?')) return;
+            await deleteBlogComment(postId, commentId);
+            loadBlogPostById(postId);
+        };
+    });
 }
 
 async function deleteBlogPost(id) {
@@ -5937,12 +6591,38 @@ async function deleteBlogPost(id) {
     }
 }
 
+async function publishDraftPost(id) {
+    try {
+        await updateDoc(doc(db, 'blogs', id), {
+            status: 'published',
+            publishedAt: serverTimestamp(),
+            updatedAt: serverTimestamp()
+        });
+        // reload the post view to reflect updated status
+        window.location.href = `blog.html?id=${id}`;
+    } catch (e) {
+        console.error('publishDraftPost hata:', e);
+        alert('Taslak yayına alınamadı: ' + (e.message || ''));
+    }
+}
+
 let isPublishingBlogPost = false;
 let editingBlogId = null;
 
-function startEditingBlogPost(id, data) {
+async function startEditingBlogPost(id, data) {
     editingBlogId = id;
     showBlogView('create');
+
+    // If caller did not provide post data, fetch it on demand (safe for inline onclick handlers)
+    if (!data) {
+        try {
+            const snap = await getDoc(doc(db, 'blogs', id));
+            data = snap.exists() ? snap.data() : {};
+        } catch (e) {
+            console.warn('startEditingBlogPost: veri çekilemedi', e);
+            data = {};
+        }
+    }
 
     const titleEl = document.getElementById('blogTitle');
     const contentEl = document.getElementById('blogContent');
@@ -5950,15 +6630,18 @@ function startEditingBlogPost(id, data) {
     const pageTitle = document.getElementById('blogPageTitle');
     const publishBtn = document.getElementById('publishBlogBtn');
 
+    const categoryEl = document.getElementById('blogCategory');
+
     if (titleEl) titleEl.value = data.title || '';
     if (contentEl) contentEl.value = data.content || '';
+    if (categoryEl) categoryEl.value = data.category || 'Genel';
     if (status) status.textContent = 'Düzenleme modunda. Kaydetmek için Güncelle\'ye basın.';
     if (pageTitle) pageTitle.textContent = 'Blog Yazısını Düzenle';
     if (publishBtn) publishBtn.textContent = 'Güncelle';
 }
 
-async function publishBlogPost() {
-    console.log('publishBlogPost invoked');
+async function publishBlogPost({ draft = false } = {}) {
+    console.log('publishBlogPost invoked', { draft });
     const titleEl = document.getElementById('blogTitle');
     const contentEl = document.getElementById('blogContent');
     const status = document.getElementById('blogStatus');
@@ -5996,42 +6679,59 @@ async function publishBlogPost() {
         isPublishingBlogPost = false;
         return;
     }
-    status.textContent = 'Yayınlanıyor...';
+
+    status.textContent = draft ? 'Taslak olarak kaydediliyor...' : 'Yayınlanıyor...';
     status.style.color = 'var(--text-muted)';
+
     try {
+        const dataToUpdate = {
+            title,
+            content,
+            category,
+            updatedAt: serverTimestamp(),
+            status: draft ? 'draft' : 'published'
+        };
+
         if (editingBlogId) {
             // Update existing post
-            await updateDoc(doc(db, 'blogs', editingBlogId), {
-                title,
-                content,
-                updatedAt: serverTimestamp()
-            });
-            status.textContent = '✅ Yazınız güncellendi.';
+            await updateDoc(doc(db, 'blogs', editingBlogId), dataToUpdate);
+
+            status.textContent = draft ? '✅ Taslak kaydedildi.' : '✅ Yazınız güncellendi.';
             status.style.color = '#10b981';
-            // redirect to updated post view
-            setTimeout(() => {
-                window.location.href = `blog.html?id=${editingBlogId}`;
-            }, 900);
+
+            if (!draft) {
+                // redirect to updated post view
+                setTimeout(() => {
+                    window.location.href = `blog.html?id=${editingBlogId}`;
+                }, 900);
+            }
         } else {
             // Create new post
             const newDoc = await addDoc(collection(db, 'blogs'), {
-                title,
-                content,
-                category,
+                ...dataToUpdate,
                 authorUid: auth.currentUser.uid,
                 authorUsername: (auth.currentUser.email || '').split('@')[0],
                 authorEmail: auth.currentUser.email,
+                authorAvatar: user.avatarUrl || 'assets/img/strendsaydamv2.png',
                 createdAt: serverTimestamp()
             });
-            status.textContent = '✅ Yazınız yayına alındı.';
+
+            status.textContent = draft ? '✅ Taslak kaydedildi.' : '✅ Yazınız yayına alındı.';
             status.style.color = '#10b981';
+
             titleEl.value = '';
             contentEl.value = '';
             if (categoryEl) categoryEl.value = 'Genel';
-            // redirect to "my posts" after brief pause so user sees feedback
-            setTimeout(() => {
-                window.location.href = 'blog.html?mine=1';
-            }, 1200);
+
+            if (!draft) {
+                // redirect to "my posts" after brief pause so user sees feedback
+                setTimeout(() => {
+                    window.location.href = 'blog.html?mine=1';
+                }, 1200);
+            } else {
+                // Keep editing the draft if desired
+                editingBlogId = newDoc.id;
+            }
         }
         return true;
     } catch (e) {
@@ -6041,13 +6741,20 @@ async function publishBlogPost() {
         return false;
     } finally {
         isPublishingBlogPost = false;
-        // clear edit state after attempt
-        editingBlogId = null;
+        // clear edit state after attempt only when publishing (not saving draft)
+        if (!draft) {
+            editingBlogId = null;
+        }
     }
 }
 
 // make function available globally for inline onclick
 window.publishBlogPost = publishBlogPost;
+
+async function saveBlogDraft() {
+    return publishBlogPost({ draft: true });
+}
+window.saveBlogDraft = saveBlogDraft;
 
 function updateBlogViewFromUrl() {
     const params = new URLSearchParams(window.location.search);
@@ -6069,6 +6776,11 @@ function updateBlogViewFromUrl() {
 }
 
 function attachBlogNavHandlers() {
+    const getCurrentCategoryParam = () => {
+        const category = getBlogCategoryFromUrl();
+        return category && category !== 'Tümü' ? `&category=${encodeURIComponent(category)}` : '';
+    };
+
     const navConfig = [
         { id: 'btn-blog-all', url: 'blog.html' },
         { id: 'btn-blog-mine', url: 'blog.html?mine=1' },
@@ -6080,11 +6792,13 @@ function attachBlogNavHandlers() {
         if (!btn) return;
         btn.addEventListener('click', (event) => {
             event.preventDefault();
-            if (window.location.pathname.endsWith('blog.html') && window.location.search === new URL(cfg.url, window.location.origin).search) {
+            const catParam = getCurrentCategoryParam();
+            const targetUrl = cfg.url + (cfg.url.includes('?') ? catParam : (catParam ? '?' + catParam.slice(1) : ''));
+            if (window.location.pathname.endsWith('blog.html') && window.location.search === new URL(targetUrl, window.location.origin).search) {
                 // Already on same view; no need to rerun
                 return;
             }
-            history.pushState({}, '', cfg.url);
+            history.pushState({}, '', targetUrl);
             updateBlogViewFromUrl();
         });
     });
@@ -6117,6 +6831,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.target && e.target.id === 'publishBlogBtn') {
             console.log('body listener detected publish click');
             publishBlogPost();
+        }
+        if (e.target && e.target.id === 'saveDraftBtn') {
+            console.log('body listener detected save draft click');
+            saveBlogDraft();
         }
     });
 });
@@ -6170,3 +6888,7 @@ if (backBtnElem) {
         document.querySelector('.chat-lists-panel').classList.add('active');
     });
 }
+
+// Expose blog edit/delete helpers to global scope so inline onclicks work (module scope doesn't expose them by default)
+window.startEditingBlogPost = startEditingBlogPost;
+window.deleteBlogPost = deleteBlogPost;
