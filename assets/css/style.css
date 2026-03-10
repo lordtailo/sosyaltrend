@@ -1462,8 +1462,7 @@ aside, .right-panel { display: none; } }
     .tool-btn { width: 44px; height: 44px; }
 
     /* Right panel hidden on mobile */
-    .right-panel { display: none; }
-    aside { display: none; }
+    /* Side panels are positioned off-screen by default and slide in when active */
 
     /* Floating compose button (like FB) */
     .fab-compose { position: fixed; right: 18px; bottom: 82px; width: 56px; height: 56px; border-radius: 50%; background: var(--primary); color: #fff; display:flex; align-items:center; justify-content:center; box-shadow: 0 8px 24px rgba(0,0,0,0.18); z-index: 10020; cursor: pointer; }
