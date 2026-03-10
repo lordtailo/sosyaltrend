@@ -442,6 +442,45 @@ body.dark-mode .most-read-table tr:nth-child(even) {
   font-weight: 700;
 }
 
+/* Extra dropdown in navbar */
+.nav-dropdown {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.nav-dropdown .nav-dropdown-menu {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  box-shadow: 0 10px 20px rgba(0,0,0,0.12);
+  border-radius: 12px;
+  min-width: 170px;
+  padding: 8px 0;
+  z-index: 10000;
+}
+
+.nav-dropdown:hover .nav-dropdown-menu {
+  display: block;
+}
+
+.nav-dropdown-item {
+  display: block;
+  padding: 10px 14px;
+  color: var(--text-main);
+  text-decoration: none;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+.nav-dropdown-item:hover {
+  background: rgba(99, 102, 241, 0.12);
+  color: var(--primary);
+}
+
 /* ensure header areas align properly */
 .header-left, .header-right { display: flex; align-items: center; gap: 14px; }
 .header-right { flex-wrap: nowrap; }
