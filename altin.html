@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SosyaLTrend • Altın Takip & Portföy</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="assets/css/style.css">
+  <link rel="icon" type="image/x-icon" href="assets/img/strendsaydamv2.ico">
+  <style>
+    /* Altın Sayfası Özel Stilleri */
+    .gold-card { background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border); border-radius: 15px; padding: 20px; margin-bottom: 20px; }
+    .price-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 15px; margin-top: 15px; }
+    .price-box { text-align: center; padding: 15px; border-radius: 12px; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); transition: 0.3s; }
+    .price-box:hover { border-color: #fbbf24; transform: translateY(-3px); }
+    .portfolio-hero { background: linear-gradient(135deg, #b48a2e, #fbbf24); color: #fff; padding: 25px; border-radius: 15px; text-align: center; margin-bottom: 20px; box-shadow: 0 8px 20px rgba(0,0,0,0.15); }
+    .gold-input-group { display: flex; gap: 10px; margin-top: 15px; }
+    #gold-status { font-size: 0.85rem; margin-top: 10px; text-align: center; }
+  </style>
+</head>
+<body>
+
+  <div class="top-bar">
+    <div class="top-bar-left">
+      <span id="welcomeMessage" style="opacity: 0.8;"><i class="fa-solid fa-coins" style="color:#fbbf24;"></i> Altın Piyasası Yükleniyor...</span>
+    </div>
+    <div class="top-bar-right"><span id="topBarDateTime"><i class="fa-regular fa-clock"></i> Yükleniyor...</span></div>
+  </div>
+
+<div id="header-placeholder"></div>
+
+<div class="app-container">
+  <div data-include="partials/left-aside.html"></div>
+
+  <main id="main-content">
+    <div id="page-gold" class="page-content active">
+      
+      <div class="portfolio-hero">
+        <span style="opacity: 0.9; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px;">Toplam Altın Varlığım</span>
+        <h2 id="total-val" style="font-size: 2.5rem; margin: 10px 0; font-weight: 800;">0.00 TL</h2>
+        <div id="user-gold-weight" style="background: rgba(0,0,0,0.15); display: inline-block; padding: 5px 15px; border-radius: 20px; font-weight: 600;">0.00 gr</div>
+      </div>
+
+      <div class="gold-card">
+        <h3 style="color: #fbbf24; display: flex; align-items: center; gap: 10px;">
+          <i class="fa-solid fa-chart-line"></i> Canlı Veriler
+        </h3>
+        <div class="price-grid">
+          <div class="price-box">
+            <span style="display:block; font-size: 0.75rem; opacity: 0.7;">Gram Altın</span>
+            <strong id="ga-price" style="font-size: 1.2rem; color: #fff;">--- TL</strong>
+          </div>
+          <div class="price-box">
+            <span style="display:block; font-size: 0.75rem; opacity: 0.7;">Çeyrek Altın</span>
+            <strong id="c-price" style="font-size: 1.2rem; color: #fff;">--- TL</strong>
+          </div>
+          <div class="price-box">
+            <span style="display:block; font-size: 0.75rem; opacity: 0.7;">Has Altın</span>
+            <strong id="has-price" style="font-size: 1.2rem; color: #fff;">--- TL</strong>
+          </div>
+        </div>
+      </div>
+
+      <div class="gold-card">
+        <h3 style="margin-bottom: 10px;"><i class="fa-solid fa-pen-to-square"></i> Portföyü Güncelle</h3>
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 15px;">Sahip olduğunuz toplam gram miktarını girin.</p>
+        <div class="gold-input-group">
+          <input type="number" id="new-gold-amount" class="form-input" placeholder="Örn: 10.5" step="0.01">
+          <button id="save-gold-btn" class="form-btn" style="width: auto; padding: 0 25px; background: #b48a2e;">
+            <i class="fa-solid fa-save"></i> Güncelle
+          </button>
+        </div>
+        <p id="gold-status"></p>
+      </div>
+
+    </div>
+  </main>
+
+  <div data-include="partials/right-aside.html"></div>
+</div>
+
+<div id="footer-placeholder"></div>  
+
+<script type="module">
+  import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+  const db = getFirestore();
+  const st_uid = localStorage.getItem('st_uid'); // SosyaLTrend login ID'si
+  let livePrice = 0;
+
+  // 1. Piyasa Verilerini Çekme
+  async function fetchPrices() {
+    try {
+      // Örnek API simülasyonu (Buraya gerçek API fetch'inizi ekleyebilirsiniz)
+      const basePrice = 2450 + (Math.random() * 10); 
+      livePrice = basePrice;
+
+      document.getElementById('ga-price').innerText = basePrice.toLocaleString('tr-TR', {minimumFractionDigits: 2}) + " TL";
+      document.getElementById('c-price').innerText = (basePrice * 1.63).toLocaleString('tr-TR', {maximumFractionDigits: 0}) + " TL";
+      document.getElementById('has-price').innerText = (basePrice * 0.99).toLocaleString('tr-TR', {minimumFractionDigits: 2}) + " TL";
+      
+      updateUI(); // Fiyat değişince portföyü tekrar hesapla
+    } catch (err) { console.error("Fiyat hatası:", err); }
+  }
+
+  // 2. Firebase Portföy Dinleyici
+  function initPortfolio() {
+    if (!st_uid) return;
+    onSnapshot(doc(db, "portfolios", st_uid), (docSnap) => {
+      if (docSnap.exists()) {
+        const amount = docSnap.data().goldAmount || 0;
+        localStorage.setItem('st_user_gold', amount);
+        updateUI();
+      }
+    });
+  }
+
+  // 3. UI Güncelleme (Hesaplama)
+  function updateUI() {
+    const amount = parseFloat(localStorage.getItem('st_user_gold')) || 0;
+    const total = amount * livePrice;
+
+    document.getElementById('user-gold-weight').innerText = amount.toFixed(2) + " gr Altın";
+    document.getElementById('total-val').innerText = total.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' });
+  }
+
+  // 4. Kaydetme Butonu
+  document.getElementById('save-gold-btn').onclick = async () => {
+    const input = document.getElementById('new-gold-amount');
+    const status = document.getElementById('gold-status');
+    const val = parseFloat(input.value);
+
+    if (val >= 0 && st_uid) {
+      try {
+        await setDoc(doc(db, "portfolios", st_uid), { 
+          goldAmount: val, 
+          lastUpdate: new Date() 
+        }, { merge: true });
+        
+        status.innerText = "✅ Başarıyla güncellendi!";
+        status.style.color = "#10b981";
+        input.value = "";
+      } catch (e) {
+        status.innerText = "❌ Hata oluştu!";
+        status.style.color = "#ef4444";
+      }
+    }
+  };
+
+  // Başlat
+  fetchPrices();
+  initPortfolio();
+  setInterval(fetchPrices, 30000); // 30 saniyede bir fiyat güncelle
+</script>
+
+<script src="assets/js/include.js"></script>
+<script type="module" src="assets/js/app.js"></script>
+
+</body>
+</html>
