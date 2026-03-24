@@ -3,61 +3,169 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SosyaLTrend • Altın & Portföy</title>
+  <title>SosyaLTrend • Altın Portföy Yönetimi</title>
+  
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="stylesheet" href="assets/css/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
   <style>
-    :root { --gold: #fbbf24; --tcmb: #003a70; }
-    .gold-wrapper { max-width: 500px; margin: 20px auto; font-family: 'Segoe UI', sans-serif; }
-    .gold-card { background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border); border-radius: 20px; padding: 20px; backdrop-filter: blur(10px); }
-    .hero-box { background: linear-gradient(135deg, var(--tcmb), #0056a4); color: white; padding: 25px; border-radius: 15px; text-align: center; margin-bottom: 20px; box-shadow: 0 10px 20px rgba(0,0,0,0.2); }
-    .price-row { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.1); }
-    .price-row:last-of-type { border: none; }
-    .val { font-weight: 800; color: var(--gold); font-family: 'Courier New', monospace; }
-    .input-group { display: flex; gap: 8px; margin-top: 20px; }
-    .save-btn { background: var(--gold); color: #000; border: none; padding: 10px 20px; border-radius: 10px; cursor: pointer; font-weight: bold; flex-shrink: 0; transition: 0.3s; }
-    .save-btn:hover { transform: scale(1.05); opacity: 0.9; }
-    .live-dot { height: 8px; width: 8px; background-color: #10b981; border-radius: 50%; display: inline-block; margin-right: 5px; animation: blink 1.5s infinite; }
-    @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
+    :root {
+      --bg: #0f172a;
+      --card-bg: rgba(30, 41, 59, 0.7);
+      --gold: #fbbf24;
+      --up: #10b981;
+      --down: #ef4444;
+      --text: #f8fafc;
+      --border: rgba(255, 255, 255, 0.1);
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      margin: 0;
+      padding: 20px;
+      display: flex;
+      justify-content: center;
+    }
+
+    .app-wrapper { width: 100%; max-width: 500px; }
+
+    /* Ana Kart - Toplam Varlık */
+    .hero-card {
+      background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+      border: 1px solid var(--gold);
+      border-radius: 24px;
+      padding: 30px;
+      text-align: center;
+      margin-bottom: 20px;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+      position: relative;
+    }
+
+    #profit-tag {
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      font-size: 0.75rem;
+      font-weight: bold;
+      padding: 4px 12px;
+      border-radius: 20px;
+    }
+
+    .hero-card h1 { font-size: 2.8rem; margin: 10px 0; color: var(--gold); }
+    .hero-card small { opacity: 0.6; text-transform: uppercase; letter-spacing: 1px; }
+
+    /* Fiyat Tablosu */
+    .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+    .stat-item {
+      background: var(--card-bg);
+      padding: 15px;
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      text-align: center;
+    }
+    .stat-item strong { display: block; font-size: 1.2rem; margin-top: 5px; }
+
+    /* Grafik Alanı */
+    .chart-box {
+      background: var(--card-bg);
+      border-radius: 20px;
+      padding: 20px;
+      border: 1px solid var(--border);
+      margin-bottom: 20px;
+      height: 250px;
+    }
+
+    /* Giriş Alanı */
+    .input-card {
+      background: var(--card-bg);
+      border-radius: 20px;
+      padding: 20px;
+      border: 1px solid var(--border);
+    }
+
+    .form-group { display: flex; gap: 10px; margin-top: 10px; }
+    
+    input {
+      flex: 1;
+      background: rgba(0,0,0,0.2);
+      border: 1px solid var(--border);
+      padding: 12px;
+      border-radius: 12px;
+      color: white;
+      outline: none;
+    }
+
+    button {
+      background: var(--gold);
+      color: #000;
+      border: none;
+      padding: 12px 20px;
+      border-radius: 12px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+
+    button:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(251, 191, 36, 0.3); }
+
+    .live-dot {
+      height: 8px;
+      width: 8px;
+      background: var(--up);
+      border-radius: 50%;
+      display: inline-block;
+      margin-right: 6px;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
   </style>
 </head>
 <body>
 
-<div class="gold-wrapper">
-  <div class="hero-box">
-    <small style="opacity: 0.8; text-transform: uppercase;">Toplam Portföy Değeri (TL)</small>
-    <h1 id="total-tl" style="font-size: 2.5rem; margin: 10px 0;">0,00 ₺</h1>
-    <span id="user-gram" style="background: rgba(0,0,0,0.2); padding: 4px 12px; border-radius: 20px; font-size: 0.9rem;">0.00 gr Altın</span>
+<div class="app-wrapper">
+  <div class="hero-card">
+    <div id="profit-tag" style="background: var(--up);">+0.00%</div>
+    <small>Toplam Portföy Değeri</small>
+    <h1 id="total-tl">0,00 ₺</h1>
+    <div style="font-weight: 600; opacity: 0.9;">
+      <i class="fa-solid fa-coins"></i> <span id="display-gram">0.00</span> gr Altın
+    </div>
   </div>
 
-  <div class="gold-card">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-      <h3 style="margin: 0;"><i class="fa-solid fa-building-columns"></i> Canlı Veriler</h3>
-      <span style="font-size: 0.7rem; opacity: 0.6;"><span class="live-dot"></span> TCMB GÜNCEL</span>
+  <div class="stats-grid">
+    <div class="stat-item">
+      <small><span class="live-dot"></span> Gram Alış</small>
+      <strong id="buy-price" style="color: var(--up);">---</strong>
     </div>
+    <div class="stat-item">
+      <small>Gram Satış</small>
+      <strong id="sell-price" style="color: var(--down);">---</strong>
+    </div>
+  </div>
 
-    <div class="price-row">
-      <span>TCMB Gram Altın</span>
-      <span id="tcmb-val" class="val">Yükleniyor...</span>
-    </div>
-    <div class="price-row">
-      <span>Kapalıçarşı (Serbest)</span>
-      <span id="market-val" class="val">Yükleniyor...</span>
-    </div>
+  <div class="chart-box">
+    <canvas id="liveChart"></canvas>
+  </div>
 
-    <div class="input-group">
-      <input type="number" id="gold-input" class="form-input" placeholder="Gram miktarınız..." step="0.01" style="margin:0;">
-      <button id="update-btn" class="save-btn"><i class="fa-solid fa-save"></i> Kaydet</button>
+  <div class="input-card">
+    <h4 style="margin:0;"><i class="fa-solid fa-pen-to-square"></i> Varlık Güncelle</h4>
+    <div class="form-group">
+      <input type="number" id="gram-input" placeholder="Gram miktarını girin..." step="0.01">
+      <button id="save-btn">Kaydet</button>
     </div>
-    <p id="info-msg" style="text-align: center; font-size: 0.75rem; margin-top: 10px;"></p>
+    <p id="status" style="font-size: 0.8rem; text-align: center; margin-top: 10px;"></p>
   </div>
 </div>
 
 <script type="module">
+  // Firebase SDK
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
   import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-  // Sizin Firebase Yapılandırmanız
+  // Senin Firebase Bilgilerin
   const firebaseConfig = {
     apiKey: "AIzaSyBegJHqlfPagx8biFyS_FnE3iXOksgfoAU",
     authDomain: "sosyaltrend-21d21.firebaseapp.com",
@@ -70,70 +178,116 @@
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
   const uid = localStorage.getItem('st_uid') || "global_user";
-  let liveGramPrice = 0;
+  
+  let currentGoldBuy = 0;
 
-  // 1. CANLI FİYAT ÇEKME FONKSİYONU
-  async function syncGoldPrices() {
-    try {
-      const res = await fetch('https://finans.truncgil.com/today.json');
-      const data = await res.json();
-      
-      // Metin formatındaki fiyatı sayıya çevir (Nokta ve Virgül temizliği)
-      const cleanPrice = data["Gram Altın"].Buying.replace(".", "").replace(",", ".");
-      liveGramPrice = parseFloat(cleanPrice);
-
-      // DOM Güncelleme
-      document.getElementById('tcmb-val').innerText = liveGramPrice.toLocaleString('tr-TR') + " ₺";
-      document.getElementById('market-val').innerText = (liveGramPrice * 1.018).toLocaleString('tr-TR', {maximumFractionDigits: 2}) + " ₺";
-      
-      refreshCalculation();
-    } catch (e) {
-      console.error("Fiyat çekilemedi.");
-    }
-  }
-
-  // 2. PORTFÖY HESAPLAMA
-  function refreshCalculation() {
-    const qty = parseFloat(localStorage.getItem('st_user_gold_qty')) || 0;
-    const total = qty * liveGramPrice;
-
-    document.getElementById('user-gram').innerText = qty.toFixed(2) + " gr Altın";
-    document.getElementById('total-tl').innerText = total.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' });
-  }
-
-  // 3. FIREBASE REALTIME DİNLEME
-  onSnapshot(doc(db, "portfolios", uid), (snap) => {
-    if (snap.exists()) {
-      localStorage.setItem('st_user_gold_qty', snap.data().goldAmount);
-      refreshCalculation();
+  // --- GRAFİK KURULUMU ---
+  const ctx = document.getElementById('liveChart').getContext('2d');
+  const liveChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: [],
+      datasets: [{
+        label: 'Gram Altın (TL)',
+        data: [],
+        borderColor: '#fbbf24',
+        borderWidth: 3,
+        pointRadius: 0,
+        fill: true,
+        backgroundColor: 'rgba(251, 191, 36, 0.1)',
+        tension: 0.4
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: { 
+        x: { display: false },
+        y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8' } }
+      }
     }
   });
 
-  // 4. KAYDETME BUTONU
-  document.getElementById('update-btn').onclick = async () => {
-    const val = parseFloat(document.getElementById('gold-input').value);
-    const msg = document.getElementById('info-msg');
+  // --- CANLI VERİ ÇEKME ---
+  async function fetchGoldData() {
+    try {
+      // All-Origins Proxy (CORS Hatasını Önler)
+      const res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent('https://finans.truncgil.com/today.json')}`);
+      const json = await res.json();
+      const data = JSON.parse(json.contents);
 
+      // Veri Temizleme (Metni Sayıya Çevir)
+      const buy = parseFloat(data["Gram Altın"].Buying.replace(".","").replace(",","."));
+      const sell = parseFloat(data["Gram Altın"].Selling.replace(".","").replace(",","."));
+      
+      currentGoldBuy = buy;
+
+      // UI Güncelle
+      document.getElementById('buy-price').innerText = buy.toLocaleString('tr-TR') + " ₺";
+      document.getElementById('sell-price').innerText = sell.toLocaleString('tr-TR') + " ₺";
+
+      // Grafik Güncelle
+      const timeLabel = new Date().toLocaleTimeString();
+      if(liveChart.data.labels.length > 15) {
+        liveChart.data.labels.shift();
+        liveChart.data.datasets[0].data.shift();
+      }
+      liveChart.data.labels.push(timeLabel);
+      liveChart.data.datasets[0].data.push(buy);
+      liveChart.data.update();
+
+      calculatePortfolio();
+    } catch (e) {
+      console.error("Veri çekme başarısız.");
+    }
+  }
+
+  // --- TL PORTFÖY HESAPLAMA ---
+  function calculatePortfolio() {
+    const myGram = parseFloat(localStorage.getItem('my_gold_qty')) || 0;
+    const totalTL = myGram * currentGoldBuy;
+
+    document.getElementById('display-gram').innerText = myGram.toFixed(2);
+    document.getElementById('total-tl').innerText = totalTL.toLocaleString('tr-TR', { minimumFractionDigits: 2 }) + " ₺";
+
+    // Kar/Zarar Göstergesi (Örn: Maliyet 2500 TL baz alınmıştır)
+    const cost = 2500;
+    const profit = (((currentGoldBuy - cost) / cost) * 100).toFixed(2);
+    const tag = document.getElementById('profit-tag');
+    tag.innerText = (profit > 0 ? "+" : "") + profit + "%";
+    tag.style.background = profit >= 0 ? "var(--up)" : "var(--down)";
+  }
+
+  // --- FIREBASE GERÇEK ZAMANLI DİNLEME ---
+  onSnapshot(doc(db, "portfolios", uid), (snap) => {
+    if (snap.exists()) {
+      localStorage.setItem('my_gold_qty', snap.data().goldAmount || 0);
+      calculatePortfolio();
+    }
+  });
+
+  // --- KAYDETME BUTONU ---
+  document.getElementById('save-btn').onclick = async () => {
+    const val = parseFloat(document.getElementById('gram-input').value);
+    const st = document.getElementById('status');
+    
     if (!isNaN(val) && val >= 0) {
       try {
-        await setDoc(doc(db, "portfolios", uid), {
-          goldAmount: val,
-          lastSync: new Date()
-        }, { merge: true });
-        
-        document.getElementById('gold-input').value = "";
-        msg.innerText = "✅ Portföy güncellendi!";
-        msg.style.color = "#10b981";
+        await setDoc(doc(db, "portfolios", uid), { goldAmount: val, lastUpdate: new Date() }, { merge: true });
+        document.getElementById('gram-input').value = "";
+        st.innerText = "✅ Başarıyla kaydedildi!";
+        st.style.color = "var(--up)";
       } catch (err) {
-        msg.innerText = "❌ Hata: Firebase izni yok!";
-        msg.style.color = "#ef4444";
+        st.innerText = "❌ Hata: Kaydedilemedi!";
+        st.style.color = "var(--down)";
       }
     }
   };
 
-  // İlk Çalıştırma ve Döngü
-  syncGoldPrices();
-  setInterval(syncGoldPrices, 30000); // 30 saniyede bir fiyatları tazele
+  // İlk Çalıştırma
+  fetchGoldData();
+  setInterval(fetchGoldData, 30000); // 30 saniyede bir güncelle
 </script>
 
 </body>
