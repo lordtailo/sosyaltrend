@@ -1837,19 +1837,17 @@ aside, .right-panel { display: none; } }
   text-decoration: none;
   font-weight: 600;
   font-size: 0.9rem;
-  transition: transform 0.2s ease, background 0.2s ease;
+  transition: transform 0.2s ease, background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
 }
 
-.mini-link-btn:hover {
-  background: rgba(99, 102, 241, 0.2);
-  transform: translateY(-1px);
+.mini-link-btn.active {
+  background: rgba(99, 102, 241, 0.1);
+  border-color: rgba(99, 102, 241, 0.35);
+  color: var(--primary);
 }
 
-.post-action-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  align-items: center;
+.mini-link-btn.active i {
+  color: var(--primary);
 }
 
 .post-action-btn {

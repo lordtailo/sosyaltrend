@@ -1339,6 +1339,24 @@ window.navigateTo = (pageId) => {
       window.scrollTo(0,0);
 };
 
+function setNavActiveByPath() {
+    const currentPage = window.location.pathname.split('/').pop().toLowerCase();
+    const pageNav = {
+        '': 'btn-feed',
+        'index.html': 'btn-feed',
+        'hobi-gruplari.html': 'btn-hobi'
+    };
+    const activeBtnId = pageNav[currentPage];
+    if (!activeBtnId) return;
+
+    document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+    const activeBtn = document.getElementById(activeBtnId);
+    if (activeBtn) activeBtn.classList.add('active');
+}
+
+document.addEventListener('includesLoaded', setNavActiveByPath);
+window.addEventListener('load', setNavActiveByPath);
+
 
 //* SEARCH ARAMA FONKSIYONLARI *//
 const staticDatabase = {
@@ -3155,25 +3173,62 @@ async function loadComponent(elementId, filePath) {
             element.innerHTML = html;
             console.log(`loadComponent: loaded ${filePath} into #${elementId}`);
 
-            // Bileşen yüklendikten sonra i18n (dil) fonksiyonun varsa tetikleyebilirsin
             if (typeof updateContent === 'function') updateContent();
+            if (elementId === 'header-placeholder') {
+                initHeaderInteractions();
+            }
         }
     } catch (error) {
         console.error("Bileşen yükleme hatası:", filePath, error);
     }
 }
 
+function initHeaderInteractions() {
+    const profileTrigger = document.getElementById('profileTrigger');
+    if (profileTrigger) {
+        profileTrigger.onclick = (e) => {
+            e.stopPropagation();
+            const menu = document.getElementById('dropdownMenu');
+            if (menu) menu.classList.toggle('active');
+        };
+    }
+
+    const themeBtn = document.getElementById('themeToggleBtn');
+    if (themeBtn) {
+        themeBtn.onclick = (e) => {
+            e.preventDefault();
+            window.toggleDarkMode?.();
+        };
+    }
+
+    const notificationsBtn = document.getElementById('notificationsBtn');
+    if (notificationsBtn) {
+        notificationsBtn.onclick = (e) => {
+            e.preventDefault();
+            window.toggleNotifications?.();
+        };
+    }
+}
+
 // 2. Sayfa Yüklendiğinde Başlat
 function initPlaceholders() {
-    // Parçaları yükle
-    loadComponent("header-placeholder", "partials/header.html");
-    loadComponent("footer-placeholder", "partials/footer.html");
+    const header = document.getElementById("header-placeholder");
+    const footer = document.getElementById("footer-placeholder");
+
+    if (header && header.innerHTML.trim() === "") {
+        loadComponent("header-placeholder", "partials/header.html");
+    }
+    if (footer && footer.innerHTML.trim() === "") {
+        loadComponent("footer-placeholder", "partials/footer.html");
+    }
 }
 if (document.readyState === 'loading') {
     document.addEventListener("DOMContentLoaded", initPlaceholders);
 } else {
     initPlaceholders();
 }
+
+document.addEventListener('includesLoaded', initHeaderInteractions);
 
 // Safety: if header/footer didn't render (some environments block fetch), retry once after 700ms
 setTimeout(() => {

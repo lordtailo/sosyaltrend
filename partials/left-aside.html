@@ -18,6 +18,20 @@
         </div>
     </div>
 
+    <div class="glass-card sidebar-container" style="margin-bottom:12px;">
+        <div class="sidebar-title"><i class="fa-solid fa-magnifying-glass"></i> Arama</div>
+        <div style="padding: 0 5px 5px 5px;">
+            <form action="search.html" method="GET" style="display:flex; gap:8px; align-items:center;">
+                <div class="search-wrapper" style="flex:1;">
+                    <input type="text" name="q" id="globalSearch" placeholder="Aramak istediğin şeyi yaz.">
+                </div>
+                <button type="submit" id="mainSearchBtn" style="background: var(--primary); color: white; border: none; padding: 8px 18px; border-radius: 50px; font-weight: 700; cursor: pointer; display:flex; align-items:center; gap:8px;">
+                    <i class="fa-solid fa-magnifying-glass"></i> Ara
+                </button>
+            </form>
+        </div>
+    </div>
+
     <!-- blog card separate from social menu -->
     <div class="glass-card sidebar-container">
         <div class="sidebar-title" data-i18n="menuTitle"><i class="fa-solid fa-blog"></i> Blog</div>
@@ -35,10 +49,10 @@
     <div class="glass-card sidebar-container">
         <div class="sidebar-title" data-i18n="menuTitle"><i class="fas fa-bars"></i> Sosyal Menü</div>
 
-        <a href="index.html" class="menu-style-btn nav-item active" id="btn-feed">
+        <a href="index.html" class="menu-style-btn nav-item" id="btn-feed">
             <i class="fa-solid fa-house"></i> <span data-i18n="navFeed">Anasayfa</span></a>
 
         <a href="hobi-gruplari.html" class="menu-style-btn nav-item" id="btn-hobi">
-            <i class="fa-solid fa-hands-holding-heart"></i> <span>Hobi Grupları</span></a>
+            <i class="fa-solid fa-users"></i> <span>Hobi Grupları</span></a>
     </div>
   </aside>
