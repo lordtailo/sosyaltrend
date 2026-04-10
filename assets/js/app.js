@@ -3281,7 +3281,33 @@ setTimeout(() => {
     }
 }, 700);
 
-// 3. Global Tıklama Dinleyicisi (Event Delegation)
+// 3. Mobil Yan Menü Yönetimi
+window.toggleLeftSidebar = function() {
+    const sidebar = document.querySelector('aside');
+    const overlay = document.getElementById('sideOverlay');
+    if (!sidebar) return;
+    const isActive = sidebar.classList.toggle('active');
+    if (overlay) overlay.classList.toggle('active', isActive);
+}
+
+window.toggleRightSidebar = function() {
+    const rightPanel = document.querySelector('.right-panel');
+    const overlay = document.getElementById('sideOverlay');
+    if (!rightPanel) return;
+    const isActive = rightPanel.classList.toggle('active');
+    if (overlay) overlay.classList.toggle('active', isActive);
+}
+
+window.closeSideMenus = function() {
+    const sidebar = document.querySelector('aside');
+    const rightPanel = document.querySelector('.right-panel');
+    const overlay = document.getElementById('sideOverlay');
+    if (sidebar) sidebar.classList.remove('active');
+    if (rightPanel) rightPanel.classList.remove('active');
+    if (overlay) overlay.classList.remove('active');
+}
+
+// 4. Global Tıklama Dinleyicisi (Event Delegation)
 // Bu yöntem, elemanlar fetch ile sonradan gelse bile tıklamayı yakalar.
 document.addEventListener('click', (e) => {
     const dropdownMenu = document.getElementById('dropdownMenu');
