@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>SosyaLTrend • Sosyal Ağ - Profiliniz</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="assets/fontawesome/css/all.min.css">
   <link rel="stylesheet" href="assets/css/style.css">
   <link rel="stylesheet" href="assets/css/chat-widget.css?v=20260240">
   <link rel="icon" type="image/x-icon" href="assets/img/strendsaydamv2.ico">
@@ -143,14 +143,7 @@
 </head>
 <body>
 
-  <div class="top-bar">
-    <div class="top-bar-left">
-      <span id="welcomeMessage" style="opacity: 0.8;"><i class="fa-solid fa-circle-check" style="font-size: 0.6rem; animation: pulse 2s infinite;"></i> Yükleniyor...</span>
-    </div>
-    <div class="top-bar-right"><span id="topBarDateTime"><i class="fa-regular fa-clock"></i> Yükleniyor...</span></div>
-  </div>
-
-<div id="header-placeholder"></div> 
+  <div data-include="partials/topbar.html"></div>`r`n`r`n<div id="header-placeholder"></div> 
 
 <div class="app-container">
   <aside>
@@ -163,6 +156,13 @@
         </div>
     </div>
     <div class="glass-card sidebar-container">
+        <div class="sidebar-title" data-i18n="menuTitle">Sosyal Menü</div>
+        <a href="index.html" onclick="navigateTo('feed')" class="menu-style-btn nav-item active" id="btn-feed">
+            <i class="fa-solid fa-house"></i> <span data-i18n="navFeed">Anasayfa</span>
+        </a>
+    </div>
+
+    <div class="glass-card sidebar-container">
         <div class="sidebar-title"><i class="fa-solid fa-blog"></i> Blog</div>
         <a href="blog.html" class="menu-style-btn nav-item">
             <i class="fa-solid fa-list"></i> Tüm Yazılar</a>
@@ -170,13 +170,6 @@
             <i class="fa-solid fa-user"></i> Yazılarım</a>
         <a href="blog.html?create=1" class="menu-style-btn nav-item">
             <i class="fa-solid fa-plus"></i> Yeni Yazı</a>
-    </div>
-
-    <div class="glass-card sidebar-container">
-        <div class="sidebar-title" data-i18n="menuTitle">Sosyal Menü</div>
-        <a href="index.html" onclick="navigateTo('feed')" class="menu-style-btn nav-item active" id="btn-feed">
-            <i class="fa-solid fa-house"></i> <span data-i18n="navFeed">Anasayfa</span>
-        </a>
     </div>
   </aside>
 
@@ -517,8 +510,17 @@ window.addEventListener('load', () => {
 
             // 3. Sekme Belirleme (URL Hash'i varsa o, yoksa my-posts)
             const urlHash = window.location.hash.replace('#', '');
+            const tabMap = {
+                posts: 'my-posts-tab',
+                likes: 'my-likes-tab',
+                saves: 'my-saves-tab',
+                friends: 'my-friends-tab',
+                notifs: 'my-notifs-tab',
+                'my-friends-tab': 'my-friends-tab'
+            };
+            const targetHash = tabMap[urlHash] || urlHash;
             const defaultTabSelector = '.tab-btn[onclick*="my-posts-tab"]';
-            const hashTabSelector = urlHash ? `.tab-btn[onclick*="${urlHash}"]` : null;
+            const hashTabSelector = targetHash ? `.tab-btn[onclick*="${targetHash}"]` : null;
 
             // Kısa bir render beklemesi (DOM'un oluşması için)
             setTimeout(() => {
@@ -528,8 +530,16 @@ window.addEventListener('load', () => {
                 if (targetTab) {
                     targetTab.click();
                     // Eğer sadece click yetmiyorsa manuel tetikle
-                    if (hash && typeof window.openTab === 'function') {
-                        window.openTab({ currentTarget: targetTab }, hash || 'my-posts-tab');
+                    if (targetHash && typeof window.openTab === 'function') {
+                        window.openTab({ currentTarget: targetTab }, targetHash);
+                    }
+                } else if (targetHash === 'my-friends-tab') {
+                    const fallbackBtn = document.getElementById('friends-tab-btn');
+                    if (fallbackBtn) {
+                        fallbackBtn.click();
+                        if (typeof window.openTab === 'function') {
+                            window.openTab({ currentTarget: fallbackBtn }, 'my-friends-tab');
+                        }
                     }
                 }
             }, 200);

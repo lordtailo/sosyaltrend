@@ -18,18 +18,35 @@
         </div>
     </div>
 
-    <div class="glass-card sidebar-container" style="margin-bottom:12px;">
-        <div class="sidebar-title"><i class="fa-solid fa-magnifying-glass"></i> Arama</div>
-        <div style="padding: 0 5px 5px 5px;">
-            <form action="search.html" method="GET" style="display:flex; gap:8px; align-items:center;">
-                <div class="search-wrapper" style="flex:1;">
-                    <input type="text" name="q" id="globalSearch" placeholder="Aramak istediğin şeyi yaz.">
-                </div>
-                <button type="submit" id="mainSearchBtn" style="background: var(--primary); color: white; border: none; padding: 8px 18px; border-radius: 50px; font-weight: 700; cursor: pointer; display:flex; align-items:center; gap:8px;">
-                    <i class="fa-solid fa-magnifying-glass"></i> Ara
-                </button>
-            </form>
-        </div>
+    <div class="glass-card sidebar-container">
+        <div class="sidebar-title" data-i18n="menuTitle"><i class="fas fa-bars"></i> Sosyal Menü</div>
+
+        <a href="index.html" class="menu-style-btn nav-item" id="btn-feed">
+            <i class="fa-solid fa-house"></i> <span data-i18n="navFeed">Anasayfa</span>
+        </a>
+    </div>
+
+    <div class="glass-card sidebar-container">
+        <div class="sidebar-title"><i class="fa-solid fa-user"></i> Profil</div>
+
+        <a href="profil.html" class="menu-style-btn nav-item" id="btn-profilim">
+            <i class="fa-solid fa-user"></i> Profilim
+        </a>
+        <a href="profil/gonderiler.html" class="menu-style-btn nav-item" id="btn-gonderiler">
+            <i class="fa-solid fa-feather"></i> Gönderiler
+        </a>
+        <a href="profil/begeniler.html" class="menu-style-btn nav-item" id="btn-begeniler">
+            <i class="fa-solid fa-heart"></i> Beğeniler
+        </a>
+        <a href="profil/kayitlar.html" class="menu-style-btn nav-item" id="btn-kayitlar">
+            <i class="fa-solid fa-bookmark"></i> Kayıtlar
+        </a>
+        <a href="profil/arkadaslarim.html" class="menu-style-btn nav-item" id="btn-arkadaslarim">
+            <i class="fa-solid fa-users"></i> Arkadaşlarım
+        </a>
+        <a href="profil/bildirimler.html" class="menu-style-btn nav-item" id="btn-bildirimler">
+            <i class="fa-solid fa-bell"></i> Bildirimler
+        </a>
     </div>
 
     <!-- blog card separate from social menu -->
@@ -44,15 +61,5 @@
 
         <a href="blog.html?create=1" class="menu-style-btn nav-item">
             <i class="fa-solid fa-plus"></i> Yeni Yazı</a>
-    </div>
-
-    <div class="glass-card sidebar-container">
-        <div class="sidebar-title" data-i18n="menuTitle"><i class="fas fa-bars"></i> Sosyal Menü</div>
-
-        <a href="index.html" class="menu-style-btn nav-item" id="btn-feed">
-            <i class="fa-solid fa-house"></i> <span data-i18n="navFeed">Anasayfa</span></a>
-
-        <a href="hobi-gruplari.html" class="menu-style-btn nav-item" id="btn-hobi">
-            <i class="fa-solid fa-users"></i> <span>Hobi Grupları</span></a>
     </div>
   </aside>

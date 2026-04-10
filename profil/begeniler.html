@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <base href="../">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SosyaLTrend • Profil • Beğeniler</title>
+  <link rel="stylesheet" href="assets/fontawesome/css/all.min.css">
+  <link rel="stylesheet" href="assets/css/style.css">
+  <link rel="stylesheet" href="assets/css/chat-widget.css?v=20260240">
+  <link rel="icon" type="image/x-icon" href="assets/img/strendsaydamv2.ico">
+</head>
+<body>
+  <div data-include="partials/topbar.html"></div>`r`n`r`n<div id="header-placeholder"></div>
+
+  <div class="app-container">
+    <div data-include="partials/left-aside.html"></div>
+
+    <main id="main-content">
+      <div class="glass-card">
+        <div style="display:flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;">
+          <div>
+            <h2 style="margin: 0;">Profil • Beğeniler</h2>
+            <p style="margin: 6px 0 0; color: var(--text-muted); font-size: 0.95rem;">Beğendiğiniz gönderilerin listesi.</p>
+          </div>
+          <div style="display:flex; flex-wrap: wrap; gap: 10px;">
+            <a href="gonderiler.html" class="form-btn" style="white-space: nowrap;">Gönderiler</a>
+            <a href="kayitlar.html" class="form-btn" style="white-space: nowrap;">Kayıtlar</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="glass-card" style="margin-top: 16px; padding: 20px;">
+        <div id="my-liked-list" style="display:grid; gap: 16px;"></div>
+        <div id="no-likes-msg" style="display:none; text-align:center; margin-top: 30px; color: var(--text-muted); font-size: 0.95rem;">Henüz beğenilmiş gönderi yok.</div>
+      </div>
+    </main>
+
+    <div data-include="partials/right-aside.html"></div>
+  </div>
+
+  <div id="footer-placeholder"></div>
+
+  <script src="assets/js/include.js"></script>
+  <script type="module" src="assets/js/app.js"></script>
+  <script>
+    (function() {
+      let attempts = 0;
+      const checkReady = setInterval(() => {
+        if (typeof window.loadProfileSections === 'function' && typeof window.auth !== 'undefined') {
+          clearInterval(checkReady);
+          window.loadProfileSections('likes');
+        } else if (attempts > 20) {
+          clearInterval(checkReady);
+          console.error('Profil beğeniler sayfası yüklenemedi: loadProfileSections hazır değil.');
+        }
+        attempts++;
+      }, 250);
+    })();
+  </script>
+</body>
+</html>
+
+
+
+

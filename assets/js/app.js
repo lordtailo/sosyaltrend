@@ -1341,12 +1341,29 @@ window.navigateTo = (pageId) => {
 
 function setNavActiveByPath() {
     const currentPage = window.location.pathname.split('/').pop().toLowerCase();
+    let activeBtnId = null;
+
     const pageNav = {
         '': 'btn-feed',
         'index.html': 'btn-feed',
-        'hobi-gruplari.html': 'btn-hobi'
+        'profil.html': 'btn-profilim',
+        'friends.html': 'btn-arkadaslarim',
+        'gonderiler.html': 'btn-gonderiler',
+        'begeniler.html': 'btn-begeniler',
+        'kayitlar.html': 'btn-kayitlar',
+        'arkadaslarim.html': 'btn-arkadaslarim',
+        'bildirimler.html': 'btn-bildirimler'
     };
-    const activeBtnId = pageNav[currentPage];
+
+    activeBtnId = pageNav[currentPage];
+
+    if (!activeBtnId && currentPage === 'profil.html') {
+        const hash = window.location.hash.replace('#','');
+        if (hash === 'friends' || hash === 'my-friends-tab') {
+            activeBtnId = 'btn-arkadaslarim';
+        }
+    }
+
     if (!activeBtnId) return;
 
     document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
@@ -2585,7 +2602,18 @@ window.loadProfileSections = async (section = 'all', showAllPosts = false, showA
 
     // if a specific section is requested, ensure only its tab-content is visible
     if (section && section !== 'all') {
-        const tabMap = { posts: 'my-posts-tab', likes: 'my-likes-tab', saves: 'my-saves-tab', friends: 'my-friends-tab', notifs: 'my-notifs-tab' };
+        const tabMap = {
+            posts: 'my-posts-tab',
+            likes: 'my-likes-tab',
+            saves: 'my-saves-tab',
+            friends: 'my-friends-tab',
+            notifs: 'my-notifs-tab',
+            'my-posts-tab': 'my-posts-tab',
+            'my-likes-tab': 'my-likes-tab',
+            'my-saves-tab': 'my-saves-tab',
+            'my-friends-tab': 'my-friends-tab',
+            'my-notifs-tab': 'my-notifs-tab'
+        };
         const targetId = tabMap[section] || 'my-posts-tab';
         document.querySelectorAll('.tab-content').forEach(div => {
             if (div.id === targetId) {
@@ -2986,25 +3014,27 @@ window.toggleDarkMode = () => {
   const btn = document.getElementById('themeToggleBtn');
   const isDark = document.body.classList.toggle('dark-mode');
 
-  btn.innerHTML = isDark
-    ? '<i class="fa-solid fa-sun"></i>'
-    : '<i class="fa-solid fa-moon"></i>';
+  if (btn) {
+    btn.innerHTML = isDark
+      ? '<i class="fa-solid fa-sun"></i>'
+      : '<i class="fa-solid fa-moon"></i>';
+  }
 
   localStorage.setItem('st_theme', isDark ? 'dark' : 'light');
 };
 
-document.addEventListener('DOMContentLoaded', () => {
-    // 1. Önce butonu bir değişkene atayalım
+function syncThemeButtonState() {
     const themeBtn = document.getElementById('themeToggleBtn');
+    if (!themeBtn) return;
+    const isDark = document.body.classList.contains('dark-mode');
+    themeBtn.innerHTML = isDark ? '<i class="fa-solid fa-sun"></i>' : '<i class="fa-solid fa-moon"></i>';
+}
 
+document.addEventListener('DOMContentLoaded', () => {
     if (localStorage.getItem('st_theme') === 'dark') {
         document.body.classList.add('dark-mode');
-        
-        // 2. Sadece buton varsa innerHTML değiştirmeye çalış
-        if (themeBtn) {
-            themeBtn.innerHTML = '<i class="fa-solid fa-sun"></i>';
-        }
     }
+    syncThemeButtonState();
 });
 /* ============================ */
 
@@ -3228,7 +3258,14 @@ if (document.readyState === 'loading') {
     initPlaceholders();
 }
 
-document.addEventListener('includesLoaded', initHeaderInteractions);
+document.addEventListener('includesLoaded', () => {
+    initHeaderInteractions();
+    syncThemeButtonState();
+});
+if (window.includesLoaded) {
+    initHeaderInteractions();
+    syncThemeButtonState();
+}
 
 // Safety: if header/footer didn't render (some environments block fetch), retry once after 700ms
 setTimeout(() => {
@@ -4485,9 +4522,10 @@ function updateNotificationBadge(count) {
         }
     }
     
-    if (countBadge) {
-        countBadge.textContent = count > 99 ? '99+' : count;
-    }
+    const countBadges = document.querySelectorAll('.requestCountBadge');
+    countBadges.forEach((badge) => {
+        badge.textContent = count > 99 ? '99+' : count;
+    });
     
     // Page title'a bildirim sayısı ekle
     if (count > 0) {
