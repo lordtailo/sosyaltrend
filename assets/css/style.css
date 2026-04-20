@@ -220,12 +220,14 @@ header::after {
 }
 
 /* Mobile menu open buttons (hidden on desktop) */
-.side-open-btn {
+.side-open-btn,
+.side-trigger {
     display: none;
 }
 
 @media (max-width: 768px) {
-    .side-open-btn {
+    .side-open-btn,
+    .side-trigger {
         display: inline-flex;
         align-items: center;
         justify-content: center;
@@ -1155,6 +1157,28 @@ color: var(--primary); font-weight: 600; cursor: pointer; text-decoration: none;
     border: none; color: white; padding: 10px 20px; border-radius: 12px; font-weight: 600; cursor: pointer;
 }
 #shareBtn:hover { filter: brightness(1.1); transform: scale(1.05); }
+
+.post-text-clamp {
+    max-height: calc(1.4rem * 4);
+    overflow: hidden;
+}
+
+.read-more-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    border: none;
+    background: transparent;
+    color: var(--primary);
+    cursor: pointer;
+    font-weight: 700;
+    padding: 0;
+    margin-top: 10px;
+}
+
+.read-more-btn i {
+    font-size: 0.85rem;
+}
 
 .btn-subscribe {
 background: var(--text-main); color: var(--card-bg); border: 1px solid var(--text-main); padding: 8px 16px; border-radius: 20px; font-size: 0.8rem; font-weight: 600; cursor: pointer; transition: all 0.2s; width: 100%; margin-top: 10px;}

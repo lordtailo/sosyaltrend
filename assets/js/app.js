@@ -1371,8 +1371,30 @@ function setNavActiveByPath() {
     if (activeBtn) activeBtn.classList.add('active');
 }
 
-document.addEventListener('includesLoaded', setNavActiveByPath);
-window.addEventListener('load', setNavActiveByPath);
+function fixSidebarLinks() {
+    const currentPath = window.location.pathname.replace(/\\/g, '/').toLowerCase();
+    const isProfilSubpage = currentPath.includes('/profil/');
+
+    document.querySelectorAll('.sidebar-container .nav-item').forEach((link) => {
+        const originalHref = link.dataset.href || link.getAttribute('href');
+        if (!originalHref) return;
+
+        if (isProfilSubpage && !originalHref.startsWith('../') && !originalHref.startsWith('http') && !originalHref.startsWith('#')) {
+            link.href = '../' + originalHref;
+        } else {
+            link.href = originalHref;
+        }
+    });
+}
+
+document.addEventListener('includesLoaded', () => {
+    setNavActiveByPath();
+    fixSidebarLinks();
+});
+window.addEventListener('load', () => {
+    setNavActiveByPath();
+    fixSidebarLinks();
+});
 
 
 //* SEARCH ARAMA FONKSIYONLARI *//
@@ -1751,6 +1773,20 @@ window.deleteReply = async (postId, commentTime, replyTime) => {
   };
 
 window.deletePost = async (id) => { if(confirm(translations[currentLang].confirmDelete)) await deleteDoc(doc(db, "posts", id)); }
+
+window.togglePostContent = function(postId) {
+    const preview = document.getElementById(`post-preview-${postId}`);
+    const button = document.getElementById(`toggle-${postId}`);
+    if (!preview || !button) return;
+
+    const isClamped = preview.classList.toggle('post-text-clamp');
+    if (isClamped) {
+        button.innerHTML = `<i class="fa-solid fa-chevron-down"></i> Daha fazlasını gör`;
+    } else {
+        button.innerHTML = `<i class="fa-solid fa-chevron-up"></i> Daha az göster`;
+    }
+};
+
 /* Pages feature removed */
 
 /* GÖNDERİ AYARLARI */
@@ -1857,7 +1893,10 @@ window.loadPostsFeed = (showAll = false) => {
               </div>
         </div>
         
-        <p style="white-space: pre-wrap; margin-bottom:10px;">${contentWithLinks}</p>${postImageHtml}
+        <div class="post-content-block" style="margin-bottom:12px;">
+            <p id="post-preview-${d.id}" class="post-text${decoded.length > 220 ? ' post-text-clamp' : ''}" style="white-space: pre-wrap; margin:0;">${contentWithLinks}</p>
+            ${decoded.length > 220 ? `<button id="toggle-${d.id}" class="read-more-btn" onclick="togglePostContent('${d.id}')" style="border:none; background:none; color: var(--primary); display:flex; align-items:center; gap:8px; font-weight:700; padding:0; margin-top:10px; cursor:pointer;"><i class="fa-solid fa-chevron-down"></i> Daha fazlasını gör</button>` : ''}
+        </div>${postImageHtml}
 
         <div id="likers-${d.id}" style="display:flex; align-items:center; gap:8px; margin-bottom:10px; min-height:28px;"></div>
 
@@ -2857,25 +2896,31 @@ window.clearAllSaves = async function() {
 window.navigateTo = function (page, userId = null) {
     if (!page) return;
 
+    const prefix = getPathPrefix();
     page = page.toLowerCase();
 
-    // support both Turkish and English keywords for profile
     if (page === 'profil' || page === 'profile') {
-        if (userId) {
-            location.href = `profil.html?id=${encodeURIComponent(userId)}`;
-        } else {
-            // always redirect to the actual file name (profil.html)
-            location.href = `profil.html`;
-        }
+        const hash = userId && userId.startsWith('#') ? userId : '';
+        const query = userId && !userId.startsWith('#') ? `?id=${encodeURIComponent(userId)}` : '';
+        location.href = `${prefix}profil.html${query}${hash}`;
         return;
     }
 
     if (page === 'feed' || page === 'home' || page === 'index') {
-        location.href = 'index.html';
+        location.href = `${prefix}index.html`;
         return;
     }
 
-    location.href = `${page}.html`;
+    location.href = `${prefix}${page}.html`;
+};
+
+window.navigateToProfileHash = function(hash = '') {
+    const prefix = getPathPrefix();
+    if (!hash) {
+        location.href = `${prefix}profil.html`;
+    } else {
+        location.href = `${prefix}profil.html#${hash}`;
+    }
 };
 /* ============================   */
 
@@ -3241,21 +3286,62 @@ function initHeaderInteractions() {
 }
 
 // 2. Sayfa Yüklendiğinde Başlat
+function getPathPrefix() {
+    const normalizedPath = window.location.pathname.replace(/\\/g, '/').toLowerCase();
+    return normalizedPath.includes('/profil/') ? '../' : '';
+}
+
+function getRelativePartialPath(fileName) {
+    return `${getPathPrefix()}${fileName}`;
+}
+
+function normalizeIncludedLinks() {
+    const prefix = getPathPrefix();
+    if (!prefix) return;
+
+    document.querySelectorAll('a[href]').forEach((link) => {
+        const href = link.getAttribute('href');
+        if (!href || href.startsWith('#') || href.startsWith('mailto:') || href.startsWith('http') || href.startsWith('javascript:') || href.startsWith('../')) {
+            return;
+        }
+        if (href.endsWith('.html') || href === 'index.html' || href === 'profil.html') {
+            link.setAttribute('href', prefix + href);
+        }
+    });
+
+    document.querySelectorAll('img[src]').forEach((img) => {
+        const src = img.getAttribute('src');
+        if (!src || src.startsWith('http') || src.startsWith('data:') || src.startsWith('../') || src.startsWith('/')) {
+            return;
+        }
+        if (src.startsWith('assets/')) {
+            img.setAttribute('src', prefix + src);
+        }
+    });
+}
+
 function initPlaceholders() {
     const header = document.getElementById("header-placeholder");
     const footer = document.getElementById("footer-placeholder");
+    const headerPath = getRelativePartialPath('partials/header.html');
+    const footerPath = getRelativePartialPath('partials/footer.html');
 
     if (header && header.innerHTML.trim() === "") {
-        loadComponent("header-placeholder", "partials/header.html");
+        loadComponent("header-placeholder", headerPath);
     }
     if (footer && footer.innerHTML.trim() === "") {
-        loadComponent("footer-placeholder", "partials/footer.html");
+        loadComponent("footer-placeholder", footerPath);
     }
 }
 if (document.readyState === 'loading') {
     document.addEventListener("DOMContentLoaded", initPlaceholders);
 } else {
     initPlaceholders();
+}
+
+document.addEventListener('includesLoaded', normalizeIncludedLinks);
+if (window.includesLoaded) {
+    normalizeIncludedLinks();
 }
 
 document.addEventListener('includesLoaded', () => {
@@ -3271,13 +3357,16 @@ if (window.includesLoaded) {
 setTimeout(() => {
     const headerEl = document.getElementById('header-placeholder');
     const footerEl = document.getElementById('footer-placeholder');
+    const headerPath = getRelativePartialPath('partials/header.html');
+    const footerPath = getRelativePartialPath('partials/footer.html');
+
     if (headerEl && headerEl.innerHTML.trim() === '') {
         console.warn('header-placeholder empty after initial load — retrying');
-        loadComponent('header-placeholder', 'partials/header.html');
+        loadComponent('header-placeholder', headerPath);
     }
     if (footerEl && footerEl.innerHTML.trim() === '') {
         console.warn('footer-placeholder empty after initial load — retrying');
-        loadComponent('footer-placeholder', 'partials/footer.html');
+        loadComponent('footer-placeholder', footerPath);
     }
 }, 700);
 
