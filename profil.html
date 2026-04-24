@@ -236,13 +236,13 @@
       </div>
     </div>
 
-    <div class="profile-tabs">
-      <button class="tab-btn active" onclick="openTab(event, 'my-posts-tab')"><i class="fa-solid fa-clone"></i> Gönderiler</button>
-      <button class="tab-btn" onclick="openTab(event, 'my-likes-tab')"><i class="fa-solid fa-heart"></i> Beğeniler</button>
-      <button class="tab-btn" onclick="openTab(event, 'my-saves-tab')"><i class="fa-solid fa-bookmark"></i> Kayıtlar</button>
-      <button class="tab-btn" id="friends-tab-btn" onclick="openTab(event, 'my-friends-tab')"><i class="fa-solid fa-users"></i> Arkadaşlar</button>
-      <button class="tab-btn" onclick="openTab(event, 'my-notifs-tab')"><i class="fa-solid fa-bell"></i> Bildirimler</button>
-    </div>
+    <nav class="profile-tabs" style="margin-bottom: 24px;">
+      <a class="tab-btn active" href="#posts" onclick="openTab(event, 'my-posts-tab')"><i class="fa-solid fa-feather"></i> Gönderilerim</a>
+      <a class="tab-btn" href="#likes" onclick="openTab(event, 'my-likes-tab')"><i class="fa-solid fa-heart"></i> Beğenilerim</a>
+      <a class="tab-btn" href="#saves" onclick="openTab(event, 'my-saves-tab')"><i class="fa-solid fa-bookmark"></i> Kayıtlarım</a>
+      <a class="tab-btn" id="friends-tab-btn" href="#friends" onclick="openTab(event, 'my-friends-tab')"><i class="fa-solid fa-users"></i> Arkadaşlarım</a>
+      <a class="tab-btn" href="#notifs" onclick="openTab(event, 'my-notifs-tab')"><i class="fa-solid fa-bell"></i> Bildirimler</a>
+    </nav>
 
     <div id="my-posts-tab" class="tab-content active">
       <div id="my-posts-list"></div>
@@ -318,6 +318,33 @@
 <div id="footer-placeholder"></div>
 <script src="assets/js/include.js"></script>
 <script>
+// Sayfa yüklendiğinde hash'e göre ilgili sekmeyi aç
+document.addEventListener('DOMContentLoaded', function() {
+  const hash = window.location.hash.replace('#','');
+  if (!hash) return;
+  // Hash ile sekme id eşleştirme
+  const tabMap = {
+    posts: 'my-posts-tab',
+    likes: 'my-likes-tab',
+    saves: 'my-saves-tab',
+    friends: 'my-friends-tab',
+    notifs: 'my-notifs-tab'
+  };
+  const tabId = tabMap[hash];
+  if (tabId) {
+    // İlgili sekme butonunu bul
+    const btns = document.querySelectorAll('.profile-tabs .tab-btn');
+    btns.forEach(btn => {
+      if (btn.getAttribute('href') === '#' + hash) {
+        btn.classList.add('active');
+      } else {
+        btn.classList.remove('active');
+      }
+    });
+    // Sekmeyi aç
+    openTab({currentTarget: document.querySelector('.profile-tabs .tab-btn[href="#'+hash+'"]')}, tabId);
+  }
+});
     function openTab(evt, tabName) {
     var i, tabcontent, tablinks;
     
