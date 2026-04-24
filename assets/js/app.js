@@ -1357,10 +1357,22 @@ function setNavActiveByPath() {
 
     activeBtnId = pageNav[currentPage];
 
-    if (!activeBtnId && currentPage === 'profil.html') {
+    if (currentPage === 'profil.html') {
         const hash = window.location.hash.replace('#','');
-        if (hash === 'friends' || hash === 'my-friends-tab') {
+        if (!hash) {
+            activeBtnId = 'btn-profilim';
+        } else if (hash === 'posts') {
+            activeBtnId = 'btn-gonderiler';
+        } else if (hash === 'likes') {
+            activeBtnId = 'btn-begeniler';
+        } else if (hash === 'saves') {
+            activeBtnId = 'btn-kayitlar';
+        } else if (hash === 'friends' || hash === 'my-friends-tab') {
             activeBtnId = 'btn-arkadaslarim';
+        } else if (hash === 'notifs' || hash === 'my-notifs-tab') {
+            activeBtnId = 'btn-bildirimler';
+        } else {
+            activeBtnId = 'btn-profilim';
         }
     }
 
@@ -1394,6 +1406,9 @@ document.addEventListener('includesLoaded', () => {
 window.addEventListener('load', () => {
     setNavActiveByPath();
     fixSidebarLinks();
+});
+window.addEventListener('hashchange', () => {
+    setNavActiveByPath();
 });
 
 
