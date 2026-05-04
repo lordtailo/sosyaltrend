@@ -567,8 +567,39 @@ details.menu-details[open] summary:after {
 }
 
 /* existing rule */
-.sidebar-title { 
-padding: 10px 12px; font-weight: 800; font-size: 0.85rem; color: var(--text-main); text-transform: uppercase; letter-spacing: 0.5px; }
+.sidebar-title {
+    padding: 10px 12px;
+    font-weight: 800;
+    font-size: 0.85rem;
+    color: var(--text-main);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    background: 
+        /* Transparent pattern circle 1 */
+        radial-gradient(circle at 85% 30%, rgba(99, 102, 241, 0.08) 0%, transparent 40%),
+        /* Transparent pattern circle 2 */
+        radial-gradient(circle at 90% 70%, rgba(139, 92, 246, 0.08) 0%, transparent 40%),
+        /* Transparent pattern lines */
+        linear-gradient(45deg, transparent 48%, rgba(99, 102, 241, 0.05) 49%, rgba(99, 102, 241, 0.05) 51%, transparent 52%),
+        linear-gradient(-45deg, transparent 48%, rgba(139, 92, 246, 0.05) 49%, rgba(139, 92, 246, 0.05) 51%, transparent 52%);
+    background-size: 100% 100%, 100% 100%, 80px 80px, 80px 80px;
+    background-position: 0 0, 0 0, top right, top right;
+    background-repeat: no-repeat;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    position: relative;
+    transition: all 0.3s ease;
+}
+
+.sidebar-title:hover {
+    background-image:
+        radial-gradient(circle at 85% 30%, rgba(99, 102, 241, 0.15) 0%, transparent 40%),
+        radial-gradient(circle at 90% 70%, rgba(139, 92, 246, 0.15) 0%, transparent 40%),
+        linear-gradient(45deg, transparent 48%, rgba(99, 102, 241, 0.1) 49%, rgba(99, 102, 241, 0.1) 51%, transparent 52%),
+        linear-gradient(-45deg, transparent 48%, rgba(139, 92, 246, 0.1) 49%, rgba(139, 92, 246, 0.1) 51%, transparent 52%);
+}
 
 /* Right sidebar calendar */
 .calendar-nav {
