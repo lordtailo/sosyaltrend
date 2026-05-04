@@ -2,7 +2,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
 import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, doc, updateDoc, setDoc, arrayUnion, arrayRemove, deleteDoc, getDoc, getDocs, limit, where, increment } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { ozelGunler, tarihteBugun, ramazanTakvimi } from "./calendarDays.js";
 import { getAuth, onAuthStateChanged, signOut, updateEmail, updatePassword, sendPasswordResetEmail, updateProfile } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
+import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
 
 // HELPER FONKSİYONLAR
 // Button'un "disabled/pending" durumuna koy
@@ -143,6 +143,10 @@ async function loadComponents() {
     // Paylaş modalını önceden oluştur
     createShareModal();
 }
+
+// Expose delete functions for HTML onclicks
+window.deleteVideo = deleteVideo;
+window.deleteMusic = deleteMusic;
 
 // Expose sendNotification for manual testing from console
 window.sendNotification = sendNotification;
@@ -1368,7 +1372,9 @@ function setNavActiveByPath() {
         'kayitlar.html': 'btn-kayitlar',
         'arkadaslarim.html': 'btn-arkadaslarim',
         'bildirimler.html': 'btn-bildirimler',
-        'blog.html': 'btn-tum-yazilar'
+        'blog.html': 'btn-tum-yazilar',
+        'video.html': 'btn-video',
+        'music.html': 'btn-music'
     };
 
     activeBtnId = pageNav[currentPage];
@@ -1429,13 +1435,462 @@ function fixSidebarLinks() {
     });
 }
 
+function getVideoCollection() {
+    return collection(db, 'videos');
+}
+
+function formatVideoUrl(url) {
+    if (!url) return '';
+    const trimmed = url.trim();
+    if (trimmed.includes('youtube.com/watch') || trimmed.includes('youtu.be/')) {
+        const videoIdMatch = trimmed.match(/(?:v=|youtu\.be\/)([A-Za-z0-9_-]{11})/);
+        if (videoIdMatch) {
+            return `https://www.youtube.com/embed/${videoIdMatch[1]}`;
+        }
+        return trimmed;
+    }
+    return trimmed;
+}
+
+function createVideoCard(docSnap) {
+    const data = docSnap.data();
+    const url = data.url || '';
+    const title = data.title || 'Başlıksız Video';
+    const description = data.description || '';
+    const author = data.authorDisplayName || data.authorUsername || 'Anonim';
+    const authorUid = data.authorUid;
+    const createdAt = data.createdAt?.seconds ? new Date(data.createdAt.seconds * 1000) : new Date(data.createdAt || Date.now());
+    const formattedDate = createdAt.toLocaleDateString('tr-TR', { year: 'numeric', month: 'long', day: 'numeric' });
+    const embedUrl = formatVideoUrl(url);
+    const isVideoFile = embedUrl.match(/\.(mp4|webm|ogg)(?:\?.*)?$/i);
+    const isYouTube = embedUrl.includes('youtube.com/embed/');
+    const isOwnVideo = auth.currentUser && authorUid === auth.currentUser.uid;
+
+    const cardId = `video-card-${docSnap.id}`;
+
+    return `
+        <div class="glass-card" style="padding:18px;" id="${cardId}">
+            <div style="display:flex; flex-wrap:wrap; gap:16px; align-items:flex-start;">
+                <div style="flex:1 1 320px; min-width:280px;">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+                        <h3 style="margin:0;">${escapeHtml(title)}</h3>
+                        ${isOwnVideo ? `<button onclick="deleteVideo('${docSnap.id}')" class="delete-btn" style="background: #ff4d4d; color: white; border: none; border-radius: 50%; width: 30px; height: 30px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 0.8rem;" title="Videoyu Sil"><i class="fa-solid fa-trash"></i></button>` : ''}
+                    </div>
+                    <div style="color: var(--text-muted); font-size:0.9rem; margin-bottom:12px;">${escapeHtml(author)} · ${escapeHtml(formattedDate)}</div>
+                    <p style="margin:0 0 12px 0; color:var(--text-main); line-height:1.6;">${escapeHtml(description)}</p>
+                </div>
+                <div style="flex:1 1 320px; min-width:260px;">
+                    ${isVideoFile ? `<video src="${escapeHtml(url)}" controls style="width:100%; border-radius:12px; background:#000;"></video>` : isYouTube ? `
+                        <div style="text-align: center; padding: 20px; background: var(--bg-secondary); border-radius: 12px; border: 2px dashed var(--border);">
+                            <i class="fab fa-youtube" style="font-size: 3rem; color: #ff0000; margin-bottom: 10px;"></i>
+                            <div style="font-size: 1.1rem; font-weight: 600; margin-bottom: 8px;">YouTube Videosu</div>
+                            <div style="color: var(--text-muted); margin-bottom: 15px;">Bu video YouTube'da yayınlanıyor</div>
+                            <a href="${escapeHtml(url)}" target="_blank" rel="noopener" class="mini-link-btn" style="background: #ff0000; color: white; padding: 12px 24px; border-radius: 25px; text-decoration: none; display: inline-block; font-weight: 600; transition: all 0.2s ease;">
+                                <i class="fab fa-youtube"></i> YouTube'da İzle
+                            </a>
+                        </div>
+                    ` : `<a href="${escapeHtml(url)}" target="_blank" rel="noopener" style="color: var(--primary);">Videoyu izle</a>`}
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+async function deleteVideo(docId) {
+    if (!auth.currentUser) {
+        alert('Giriş yapmalısınız.');
+        return;
+    }
+
+    if (!confirm('Bu videoyu silmek istediğinizden emin misiniz?')) {
+        return;
+    }
+
+    try {
+        const docRef = doc(db, 'videos', docId);
+        const docSnap = await getDoc(docRef);
+
+        if (!docSnap.exists()) {
+            alert('Video bulunamadı.');
+            return;
+        }
+
+        const data = docSnap.data();
+        if (data.authorUid !== auth.currentUser.uid) {
+            alert('Bu videoyu silme yetkiniz yok.');
+            return;
+        }
+
+        // Eğer Firebase Storage'da bir dosya varsa sil
+        if (data.url && data.url.includes('firebasestorage.googleapis.com')) {
+            try {
+                const storageRef = ref(storage, data.url);
+                await deleteObject(storageRef);
+            } catch (storageError) {
+                console.warn('Dosya silinirken hata:', storageError);
+            }
+        }
+
+        // Firestore'dan dokümanı sil
+        await deleteDoc(docRef);
+
+        // UI'dan kartı kaldır
+        const cardElement = document.getElementById(`video-card-${docId}`);
+        if (cardElement) {
+            cardElement.remove();
+        }
+
+        alert('Video başarıyla silindi.');
+    } catch (error) {
+        console.error('Video silme hatası:', error);
+        alert('Video silinirken hata oluştu.');
+    }
+}
+
+async function deleteMusic(docId) {
+    if (!auth.currentUser) {
+        alert('Giriş yapmalısınız.');
+        return;
+    }
+
+    if (!confirm('Bu müziği silmek istediğinizden emin misiniz?')) {
+        return;
+    }
+
+    try {
+        const docRef = doc(db, 'music', docId);
+        const docSnap = await getDoc(docRef);
+
+        if (!docSnap.exists()) {
+            alert('Müzik bulunamadı.');
+            return;
+        }
+
+        const data = docSnap.data();
+        if (data.authorUid !== auth.currentUser.uid) {
+            alert('Bu müziği silme yetkiniz yok.');
+            return;
+        }
+
+        // Eğer Firebase Storage'da bir dosya varsa sil
+        if (data.url && data.url.includes('firebasestorage.googleapis.com')) {
+            try {
+                const storageRef = ref(storage, data.url);
+                await deleteObject(storageRef);
+            } catch (storageError) {
+                console.warn('Dosya silinirken hata:', storageError);
+            }
+        }
+
+        // Firestore'dan dokümanı sil
+        await deleteDoc(docRef);
+
+        // UI'dan kartı kaldır
+        const cardElement = document.getElementById(`music-card-${docId}`);
+        if (cardElement) {
+            cardElement.remove();
+        }
+
+        alert('Müzik başarıyla silindi.');
+    } catch (error) {
+        console.error('Müzik silme hatası:', error);
+        alert('Müzik silinirken hata oluştu.');
+    }
+}
+
+async function uploadVideoFile(file) {
+    if (!auth.currentUser) {
+        throw new Error('Giriş yapmanız gerekiyor.');
+    }
+    const ext = file.name.split('.').pop();
+    const storagePath = `videos/${auth.currentUser.uid}/${Date.now()}.${ext}`;
+    const storageRef = ref(storage, storagePath);
+    const snapshot = await uploadBytes(storageRef, file);
+    return await getDownloadURL(snapshot.ref);
+}
+
+async function saveVideoMetadata(url, title, description) {
+    const videosRef = getVideoCollection();
+    await addDoc(videosRef, {
+        title,
+        description,
+        url,
+        authorUid: auth.currentUser.uid,
+        authorUsername: auth.currentUser.displayName || auth.currentUser.email || 'Anonim',
+        authorDisplayName: auth.currentUser.displayName || auth.currentUser.email || 'Anonim',
+        createdAt: serverTimestamp()
+    });
+}
+
+async function loadVideoItems() {
+    const listEl = document.getElementById('videoList');
+    const authNotice = document.getElementById('videoAuthNotice');
+    if (!listEl) return;
+
+    const q = query(getVideoCollection(), orderBy('createdAt', 'desc'));
+    onSnapshot(q, (snapshot) => {
+        if (!listEl) return;
+        listEl.innerHTML = '';
+        if (snapshot.empty) {
+            listEl.innerHTML = '<div style="color: var(--text-muted);">Henüz video eklenmemiş.</div>';
+            return;
+        }
+        snapshot.docs.forEach((docSnap) => {
+            listEl.insertAdjacentHTML('beforeend', createVideoCard(docSnap));
+        });
+    }, (error) => {
+        console.error('Video yükleme hatası:', error);
+        if (listEl) listEl.innerHTML = '<div style="color: var(--text-danger);">Videolar yüklenemedi.</div>';
+    });
+
+    if (authNotice) {
+        authNotice.style.display = auth.currentUser ? 'none' : 'block';
+    }
+}
+
+async function handleVideoSubmit() {
+    const titleEl = document.getElementById('videoTitle');
+    const descEl = document.getElementById('videoDescription');
+    const urlEl = document.getElementById('videoUrl');
+    const fileEl = document.getElementById('videoFile');
+    const statusEl = document.getElementById('videoStatus');
+
+    if (!auth.currentUser) {
+        if (statusEl) statusEl.innerText = 'Video yüklemek için giriş yapmalısınız.';
+        return;
+    }
+
+    const title = titleEl?.value.trim() || 'Başlıksız Video';
+    const description = descEl?.value.trim() || '';
+    const externalUrl = urlEl?.value.trim();
+    const file = fileEl?.files?.[0] || null;
+
+    if (!externalUrl && !file) {
+        if (statusEl) statusEl.innerText = 'Lütfen video URL veya dosya seçin.';
+        return;
+    }
+
+    try {
+        if (statusEl) {
+            statusEl.innerText = 'Yükleniyor...';
+        }
+        let url = externalUrl;
+        if (file) {
+            url = await uploadVideoFile(file);
+        }
+        if (!url) {
+            throw new Error('Video URL alınamadı.');
+        }
+        await saveVideoMetadata(url, title, description);
+        if (titleEl) titleEl.value = '';
+        if (descEl) descEl.value = '';
+        if (urlEl) urlEl.value = '';
+        if (fileEl) fileEl.value = '';
+        if (statusEl) statusEl.innerText = 'Video başarıyla yüklendi.';
+    } catch (error) {
+        console.error('Video kaydetme hatası:', error);
+        if (statusEl) statusEl.innerText = 'Video yüklenirken hata oluştu.';
+    }
+}
+
+function initVideoPage() {
+    const uploadButton = document.getElementById('videoSubmit');
+    if (uploadButton) {
+        uploadButton.addEventListener('click', (event) => {
+            event.preventDefault();
+            handleVideoSubmit();
+        });
+    }
+    loadVideoItems();
+}
+
+// Müzik fonksiyonları
+function getMusicCollection() {
+    return collection(db, 'music');
+}
+
+function formatMusicUrl(url) {
+    if (!url) return '';
+    const trimmed = url.trim();
+    if (trimmed.includes('youtube.com/watch') || trimmed.includes('youtu.be/')) {
+        const videoIdMatch = trimmed.match(/(?:v=|youtu\.be\/)([A-Za-z0-9_-]{11})/);
+        if (videoIdMatch) {
+            return `https://www.youtube.com/embed/${videoIdMatch[1]}`;
+        }
+        return trimmed;
+    }
+    return trimmed;
+}
+
+function createMusicCard(docSnap) {
+    const data = docSnap.data();
+    const url = data.url || '';
+    const title = data.title || 'Başlıksız Müzik';
+    const description = data.description || '';
+    const author = data.authorDisplayName || data.authorUsername || 'Anonim';
+    const authorUid = data.authorUid;
+    const createdAt = data.createdAt?.seconds ? new Date(data.createdAt.seconds * 1000) : new Date(data.createdAt || Date.now());
+    const formattedDate = createdAt.toLocaleDateString('tr-TR', { year: 'numeric', month: 'long', day: 'numeric' });
+    const embedUrl = formatMusicUrl(url);
+    const isAudioFile = embedUrl.match(/\.(mp3|wav|ogg|flac|m4a)(?:\?.*)?$/i);
+    const isYouTube = embedUrl.includes('youtube.com/embed/');
+    const isOwnMusic = auth.currentUser && authorUid === auth.currentUser.uid;
+
+    const cardId = `music-card-${docSnap.id}`;
+
+    return `
+        <div class="glass-card" style="padding:18px;" id="${cardId}">
+            <div style="display:flex; flex-wrap:wrap; gap:16px; align-items:flex-start;">
+                <div style="flex:1 1 320px; min-width:280px;">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+                        <h3 style="margin:0;">${escapeHtml(title)}</h3>
+                        ${isOwnMusic ? `<button onclick="deleteMusic('${docSnap.id}')" class="delete-btn" style="background: #ff4d4d; color: white; border: none; border-radius: 50%; width: 30px; height: 30px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 0.8rem;" title="Müziği Sil"><i class="fa-solid fa-trash"></i></button>` : ''}
+                    </div>
+                    <div style="color: var(--text-muted); font-size:0.9rem; margin-bottom:12px;">${escapeHtml(author)} · ${escapeHtml(formattedDate)}</div>
+                    <p style="margin:0 0 12px 0; color:var(--text-main); line-height:1.6;">${escapeHtml(description)}</p>
+                </div>
+                <div style="flex:1 1 320px; min-width:260px;">
+                    ${isAudioFile ? `<audio src="${escapeHtml(url)}" controls style="width:100%;"></audio>` : isYouTube ? `
+                        <div style="text-align: center; padding: 20px; background: var(--bg-secondary); border-radius: 12px; border: 2px dashed var(--border);">
+                            <i class="fab fa-youtube" style="font-size: 3rem; color: #ff0000; margin-bottom: 10px;"></i>
+                            <div style="font-size: 1.1rem; font-weight: 600; margin-bottom: 8px;">YouTube Müzik</div>
+                            <div style="color: var(--text-muted); margin-bottom: 15px;">Bu müzik YouTube'da yayınlanıyor</div>
+                            <a href="${escapeHtml(url)}" target="_blank" rel="noopener" class="mini-link-btn" style="background: #ff0000; color: white; padding: 12px 24px; border-radius: 25px; text-decoration: none; display: inline-block; font-weight: 600; transition: all 0.2s ease;">
+                                <i class="fab fa-youtube"></i> YouTube'da Dinle
+                            </a>
+                        </div>
+                    ` : `<a href="${escapeHtml(url)}" target="_blank" rel="noopener" style="color: var(--primary);">Müziği dinle</a>`}
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+async function uploadMusicFile(file) {
+    if (!auth.currentUser) {
+        throw new Error('Giriş yapmanız gerekiyor.');
+    }
+    const ext = file.name.split('.').pop();
+    const storagePath = `music/${auth.currentUser.uid}/${Date.now()}.${ext}`;
+    const storageRef = ref(storage, storagePath);
+    const snapshot = await uploadBytes(storageRef, file);
+    return await getDownloadURL(snapshot.ref);
+}
+
+async function saveMusicMetadata(url, title, description) {
+    const musicRef = getMusicCollection();
+    await addDoc(musicRef, {
+        title,
+        description,
+        url,
+        authorUid: auth.currentUser.uid,
+        authorUsername: auth.currentUser.displayName || auth.currentUser.email || 'Anonim',
+        authorDisplayName: auth.currentUser.displayName || auth.currentUser.email || 'Anonim',
+        createdAt: serverTimestamp()
+    });
+}
+
+async function loadMusicItems() {
+    const listEl = document.getElementById('musicList');
+    const authNotice = document.getElementById('musicAuthNotice');
+    if (!listEl) return;
+
+    const q = query(getMusicCollection(), orderBy('createdAt', 'desc'));
+    onSnapshot(q, (snapshot) => {
+        if (!listEl) return;
+        listEl.innerHTML = '';
+        if (snapshot.empty) {
+            listEl.innerHTML = '<div style="color: var(--text-muted);">Henüz müzik eklenmemiş.</div>';
+            return;
+        }
+        snapshot.docs.forEach((docSnap) => {
+            listEl.insertAdjacentHTML('beforeend', createMusicCard(docSnap));
+        });
+    }, (error) => {
+        console.error('Müzik yükleme hatası:', error);
+        if (listEl) listEl.innerHTML = '<div style="color: var(--text-danger);">Müzikler yüklenemedi.</div>';
+    });
+
+    if (authNotice) {
+        authNotice.style.display = auth.currentUser ? 'none' : 'block';
+    }
+}
+
+async function handleMusicSubmit() {
+    const titleEl = document.getElementById('musicTitle');
+    const descEl = document.getElementById('musicDescription');
+    const urlEl = document.getElementById('musicUrl');
+    const fileEl = document.getElementById('musicFile');
+    const statusEl = document.getElementById('musicStatus');
+
+    if (!auth.currentUser) {
+        if (statusEl) statusEl.innerText = 'Müzik yüklemek için giriş yapmalısınız.';
+        return;
+    }
+
+    const title = titleEl?.value.trim() || 'Başlıksız Müzik';
+    const description = descEl?.value.trim() || '';
+    const externalUrl = urlEl?.value.trim();
+    const file = fileEl?.files?.[0] || null;
+
+    if (!externalUrl && !file) {
+        if (statusEl) statusEl.innerText = 'Lütfen müzik URL veya dosya seçin.';
+        return;
+    }
+
+    try {
+        if (statusEl) {
+            statusEl.innerText = 'Yükleniyor...';
+        }
+        let url = externalUrl;
+        if (file) {
+            url = await uploadMusicFile(file);
+        }
+        if (!url) {
+            throw new Error('Müzik URL alınamadı.');
+        }
+        await saveMusicMetadata(url, title, description);
+        if (titleEl) titleEl.value = '';
+        if (descEl) descEl.value = '';
+        if (urlEl) urlEl.value = '';
+        if (fileEl) fileEl.value = '';
+        if (statusEl) statusEl.innerText = 'Müzik başarıyla yüklendi.';
+    } catch (error) {
+        console.error('Müzik kaydetme hatası:', error);
+        if (statusEl) statusEl.innerText = 'Müzik yüklenirken hata oluştu.';
+    }
+}
+
+function initMusicPage() {
+    const uploadButton = document.getElementById('musicSubmit');
+    if (uploadButton) {
+        uploadButton.addEventListener('click', (event) => {
+            event.preventDefault();
+            handleMusicSubmit();
+        });
+    }
+    loadMusicItems();
+}
+
 document.addEventListener('includesLoaded', () => {
     setNavActiveByPath();
     fixSidebarLinks();
+    if (document.getElementById('page-video')) {
+        initVideoPage();
+    }
+    if (document.getElementById('page-music')) {
+        initMusicPage();
+    }
 });
 window.addEventListener('load', () => {
     setNavActiveByPath();
     fixSidebarLinks();
+    if (document.getElementById('page-video')) {
+        initVideoPage();
+    }
+    if (document.getElementById('page-music')) {
+        initMusicPage();
+    }
 });
 window.addEventListener('hashchange', () => {
     setNavActiveByPath();

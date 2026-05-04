@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SosyaLTrend • Sosyal Ağ - Video İzle</title>
+  <link rel="stylesheet" href="assets/fontawesome/css/all.min.css">
+  <link rel="stylesheet" href="assets/css/style.css">
+  <link rel="icon" type="image/x-icon" href="assets/img/strendsaydamv2.ico">
+</head>
+<body>
+
+  <div data-include="partials/topbar.html"></div>
+  <div id="header-placeholder"></div>
+
+  <div class="app-container">
+    <div data-include="partials/left-aside.html"></div>
+
+    <main id="main-content">
+      <div id="page-video" class="page-content active">
+        <div class="glass-card" style="padding:20px;">
+          <div style="display:flex; flex-wrap:wrap; justify-content:space-between; gap:12px; align-items:flex-start; margin-bottom:18px;">
+            <div>
+              <h2 style="margin:0;">Video İzle</h2>
+              <p style="margin:8px 0 0 0; color: var(--text-muted);">Burada videolarınızı izleyebilir, yeni videolar ekleyebilir ve sistemde yayınlayabilirsiniz.</p>
+            </div>
+          </div>
+
+          <div id="videoAuthNotice" style="display:none; margin-bottom:18px; padding:14px; border-radius:14px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12); color: var(--text-muted);">
+            Video eklemek için lütfen giriş yapın.
+          </div>
+
+          <div class="glass-card" style="padding:18px; margin-bottom:20px;">
+            <h3 style="margin-top:0;">Yeni Video Ekle</h3>
+            <div style="display:grid; gap:16px;">
+              <div>
+                <label for="videoTitle" style="font-weight:700;">Video Başlığı</label>
+                <input id="videoTitle" class="form-input" type="text" placeholder="Videonuzun başlığını girin" />
+              </div>
+              <div>
+                <label for="videoDescription" style="font-weight:700;">Açıklama</label>
+                <textarea id="videoDescription" class="form-input" rows="4" placeholder="Videonuz hakkında kısa bilgi..."></textarea>
+              </div>
+              <div>
+                <label for="videoUrl" style="font-weight:700;">Video URL'si</label>
+                <input id="videoUrl" class="form-input" type="text" placeholder="YouTube veya doğrudan MP4 bağlantısı" />
+              </div>
+              <div>
+                <label for="videoFile" style="font-weight:700;">Video Dosyası Yükle</label>
+                <input id="videoFile" class="form-input" type="file" accept="video/*" />
+              </div>
+              <div style="display:flex; flex-wrap:wrap; gap:10px; align-items:center;">
+                <button id="videoSubmit" class="form-btn" style="background: var(--primary); color:#fff;">Videoyu Yükle</button>
+                <span id="videoStatus" style="color: var(--text-muted);"></span>
+              </div>
+            </div>
+          </div>
+
+          <div id="videoList" style="display:grid; gap:18px;"></div>
+        </div>
+      </div>
+    </main>
+
+    <div data-include="partials/right-aside.html"></div>
+  </div>
+
+  <div id="footer-placeholder"></div>
+
+  <script src="assets/js/include.js"></script>
+  <script type="module" src="assets/js/app.js"></script>
+</body>
+</html>
