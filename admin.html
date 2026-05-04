@@ -31,6 +31,7 @@
         .badge { padding: 4px 8px; border-radius: 12px; font-size: 0.7rem; font-weight: bold; }
         .badge-admin { background: var(--primary); color: white; }
         .badge-user { background: var(--border); color: var(--text-main); }
+        .badge-active { background: var(--success); color: white; }
         .action-btn { padding: 5px 10px; border-radius: 6px; border: none; cursor: pointer; font-size: 0.8rem; transition: 0.2s; }
         .btn-delete { background: rgba(239, 68, 68, 0.1); color: var(--danger); }
         .btn-delete:hover { background: var(--danger); color: white; }
@@ -45,12 +46,14 @@
   <div class="stat-grid">
         <div class="glass-card stat-card"><i class="fa-solid fa-signs-post"></i><h3 id="stat-posts">0</h3><p>Toplam Gönderi</p></div>
         <div class="glass-card stat-card"><i class="fa-solid fa-users-gear"></i><h3 id="stat-users">0</h3><p>Aktif Kullanıcılar</p></div>
+        <div class="glass-card stat-card"><i class="fa-solid fa-clock"></i><h3 id="stat-recent-logins">0</h3><p>24 Saat İçinde Giriş</p></div>
     </div>
 
     <div class="glass-card" style="padding: 25px;">
         <div class="admin-tabs">
             <button class="tab-btn active" onclick="switchTab('announcement')">Sistem Duyurusu</button>
             <button class="tab-btn" onclick="switchTab('users')">Aktif Kullanıcı Yönetimi</button>
+            <button class="tab-btn" onclick="switchTab('registered')">Tüm Kayıtlı Kullanıcılar</button>
             <button class="tab-btn" onclick="switchTab('moderation')">İçerik Denetimi</button>
 
         </div>
@@ -67,6 +70,22 @@
                 <thead><tr><th>Kullanıcı</th><th>Kullanıcı Adı</th><th>Rol</th><th>İşlem</th></tr></thead>
                 <tbody id="user-list-body"></tbody>
             </table>
+            
+            <div style="margin-top: 30px;">
+                <div class="section-subtitle">24 Saat İçinde Giriş Yapan Kullanıcılar</div>
+                <table class="data-table">
+                    <thead><tr><th>Kullanıcı</th><th>Kullanıcı Adı</th><th>Son Giriş</th><th>Durum</th></tr></thead>
+                    <tbody id="recent-logins-body"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="section-registered" class="admin-section">
+            <div class="section-subtitle">Tüm Kayıtlı Kullanıcılar</div>
+            <table class="data-table">
+                <thead><tr><th>Kullanıcı</th><th>Kullanıcı Adı</th><th>Email</th><th>Kayıt Tarihi</th><th>Rol</th><th>İşlem</th></tr></thead>
+                <tbody id="registered-users-body"></tbody>
+            </table>
         </div>
 
         <div id="section-moderation" class="admin-section">
@@ -79,7 +98,7 @@
 <script type="module">
     // Firebase importları ve config aynı kalıyor
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getFirestore, collection, getDocs, addDoc, serverTimestamp, query, orderBy, limit, deleteDoc, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getFirestore, collection, getDocs, getDoc, addDoc, serverTimestamp, query, orderBy, limit, deleteDoc, doc, onSnapshot, updateDoc, where } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
     const firebaseConfig = {
@@ -98,15 +117,33 @@
 
     let isAdminInitialized = false;
 
-    onAuthStateChanged(auth, (user) => {
-        if (!user || user.email !== ADMIN_EMAIL) {
+    onAuthStateChanged(auth, async (user) => {
+        if (!user) {
             alert("Yetkisiz Erişim!");
             window.location.href = "index.html";
-        } else {
+            return;
+        }
+
+        try {
+            const userRef = doc(db, "users", user.uid);
+            const userDoc = await getDoc(userRef);
+            const userData = userDoc.exists() ? userDoc.data() : null;
+            const isAdminUser = user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase() || (userData && userData.isAdmin === true);
+
+            if (!isAdminUser) {
+                alert("Yetkisiz Erişim!");
+                window.location.href = "index.html";
+                return;
+            }
+
             if (!isAdminInitialized) {
                 initAdmin();
                 isAdminInitialized = true;
             }
+        } catch (e) {
+            console.error('Admin auth check failed:', e);
+            alert("Yetkisiz Erişim!");
+            window.location.href = "index.html";
         }
     });
 
@@ -114,23 +151,89 @@
         loadStats();
         loadUsersFromPosts();
         loadAllPosts();
-
+        loadRecentLogins();
+        loadAllRegisteredUsers();
     }
+
+    async function loadAllRegisteredUsers() {
+        try {
+            const usersSnap = await getDocs(query(
+                collection(db, "users"),
+                orderBy("createdAt", "desc"),
+                limit(500)
+            ));
+
+            const tbody = document.getElementById('registered-users-body');
+            tbody.innerHTML = "";
+
+            if (usersSnap.empty) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color: var(--text-muted);">Kayıtlı kullanıcı bulunamadı</td></tr>';
+                return;
+            }
+
+            usersSnap.forEach(doc => {
+                const data = doc.data();
+                const username = data.username || (data.email ? data.email.split('@')[0] : 'Bilinmiyor');
+                const name = data.displayName || data.name || username;
+                const email = data.email || '—';
+                const registeredAt = data.createdAt ? data.createdAt.toDate().toLocaleString('tr-TR') : 'Bilinmiyor';
+                const isUserAdmin = data.isAdmin === true || email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+                const avatarSrc = data.avatarUrl && data.avatarUrl.trim() !== ''
+                    ? data.avatarUrl
+                    : `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(data.avatarSeed || username || '1')}`;
+
+                tbody.innerHTML += `
+                    <tr class="user-row">
+                        <td><img src="${avatarSrc}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;"><b>${name}</b></td>
+                        <td>@${username}</td>
+                        <td>${email}</td>
+                        <td>${registeredAt}</td>
+                        <td><span class="badge ${isUserAdmin ? 'badge-admin' : 'badge-user'}">${isUserAdmin ? 'Admin' : 'Üye'}</span></td>
+                        <td><button class="action-btn btn-delete" onclick="toggleAdminPrivilege('${doc.id}', ${isUserAdmin ? 'false' : 'true'})">${isUserAdmin ? 'Yetki Kaldır' : 'Admin Yap'}</button></td>
+                    </tr>`;
+            });
+        } catch (e) {
+            console.error('Registered users load error:', e);
+            document.getElementById('registered-users-body').innerHTML = '<tr><td colspan="6" style="text-align:center; color: var(--danger);">Veri yüklenirken hata oluştu</td></tr>';
+        }
+    }
+
+    window.toggleAdminPrivilege = async (userDocId, grant) => {
+        try {
+            const userRef = doc(db, "users", userDocId);
+            await updateDoc(userRef, { isAdmin: grant });
+            loadAllRegisteredUsers();
+            alert(grant ? "Kullanıcıya yönetici yetkisi verildi." : "Kullanıcının yönetici yetkisi kaldırıldı.");
+        } catch (e) {
+            console.error('Admin yetkisi değiştirilemedi:', e);
+            alert('Yönetici yetkisi değiştirilemedi.');
+        }
+    };
 
     // GÜNCELLENMİŞ İSTATİSTİK FONKSİYONU
     async function loadStats() {
         try {
-            // Sadece posts koleksiyonunu çekiyoruz
-            const posts = await getDocs(query(collection(db, "posts"), limit(500)));
-            
+            // Posts koleksiyonunu çekiyoruz
+            const posts = await getDocs(query(collection(db, "posts"), limit(1000)));
             document.getElementById('stat-posts').innerText = posts.size;
 
+            // Aktif kullanıcıları hesapla
             const uniqueUsers = new Set();
             posts.forEach(doc => {
                 const data = doc.data();
                 if(data.username) uniqueUsers.add(data.username);
             });
             document.getElementById('stat-users').innerText = uniqueUsers.size;
+
+            // 24 saat içinde giriş yapan kullanıcıları hesapla
+            const twentyFourHoursAgo = new Date();
+            twentyFourHoursAgo.setHours(twentyFourHoursAgo.getHours() - 24);
+            const recentUsersSnap = await getDocs(query(
+                collection(db, "users"),
+                where("lastActiveAt", ">", twentyFourHoursAgo)
+            ));
+            document.getElementById('stat-recent-logins').innerText = recentUsersSnap.size;
+
         } catch (e) { 
             console.error("Stats error:", e); 
         }
@@ -145,8 +248,12 @@
             
             postsSnap.forEach(d => {
                 const data = d.data();
-                if(data.username && !data.username.startsWith('page_')) {
-                    users[data.username] = { name: data.name || "İsimsiz", avatar: data.avatarSeed || "1" };
+                if (data.username && !data.username.startsWith('page_')) {
+                    users[data.username] = {
+                        name: data.name || "İsimsiz",
+                        avatarUrl: data.avatarUrl || null,
+                        avatarSeed: data.avatarSeed || data.username || "1"
+                    };
                 }
             });
 
@@ -154,16 +261,73 @@
             tbody.innerHTML = "";
             Object.keys(users).forEach(username => {
                 const u = users[username];
+                const avatarSrc = u.avatarUrl && u.avatarUrl.trim() !== ''
+                    ? u.avatarUrl
+                    : `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(u.avatarSeed)}`;
                 const isUserAdmin = username === ADMIN_EMAIL.split('@')[0];
                 tbody.innerHTML += `
                     <tr class="user-row">
-                        <td><img src="https://api.dicebear.com/7.x/avataaars/svg?seed=${u.avatar}"><b>${u.name}</b></td>
+                        <td><img src="${avatarSrc}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;"><b>${u.name}</b></td>
                         <td>@${username}</td>
                         <td><span class="badge ${isUserAdmin ? 'badge-admin' : 'badge-user'}">${isUserAdmin ? 'Admin' : 'Üye'}</span></td>
                         <td><button class="action-btn btn-delete" onclick="alert('Yakında!')">Engelle</button></td>
                     </tr>`;
             });
         } catch (e) { console.error("User list error:", e); }
+    }
+
+    // 24 saat içinde giriş yapan kullanıcıları yükle
+    async function loadRecentLogins() {
+        try {
+            const twentyFourHoursAgo = new Date();
+            twentyFourHoursAgo.setHours(twentyFourHoursAgo.getHours() - 24);
+            
+            const recentUsersSnap = await getDocs(query(
+                collection(db, "users"),
+                where("lastActiveAt", ">", twentyFourHoursAgo),
+                orderBy("lastActiveAt", "desc"),
+                limit(200)
+            ));
+            
+            const tbody = document.getElementById('recent-logins-body');
+            tbody.innerHTML = "";
+            
+            if (recentUsersSnap.empty) {
+                tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: var(--text-muted);">Son 24 saatte aktif kullanıcı bulunamadı</td></tr>';
+                return;
+            }
+            
+            recentUsersSnap.forEach(doc => {
+                const data = doc.data();
+                const username = data.username || (data.email ? data.email.split('@')[0] : 'Bilinmiyor');
+                const name = data.displayName || data.name || username;
+                const lastActivityTime = data.lastActiveAt ? data.lastActiveAt.toDate().toLocaleString('tr-TR') : 'Bilinmiyor';
+                const lastActiveMs = data.lastActiveAt ? data.lastActiveAt.toMillis() : null;
+                const nowMs = Date.now();
+                const timeDiff = lastActiveMs !== null ? Math.floor((nowMs - lastActiveMs) / (1000 * 60)) : null;
+                const statusText = timeDiff !== null ? 
+                    (timeDiff < 60 ? `${timeDiff} dakika önce` : `${Math.floor(timeDiff/60)} saat önce`) : 
+                    'Bilinmiyor';
+                const isCurrentlyOnline = timeDiff !== null && timeDiff >= 0 && timeDiff < 2;
+                const isUserAdmin = username === ADMIN_EMAIL.split('@')[0];
+                const avatarSrc = data.avatarUrl && data.avatarUrl.trim() !== ''
+                    ? data.avatarUrl
+                    : `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(data.avatarSeed || username || '1')}`;
+                
+                tbody.innerHTML += `
+                    <tr class="user-row">
+                        <td><img src="${avatarSrc}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;"><b>${name}</b></td>
+                        <td>@${username}</td>
+                        <td><small>${lastActivityTime}</small><br><span style="color: var(--text-muted); font-size: 0.8rem;">${statusText}</span></td>
+                        <td>
+                            <span class="badge ${isUserAdmin ? 'badge-admin' : isCurrentlyOnline ? 'badge-active' : 'badge-user'}">${isUserAdmin ? 'Admin' : isCurrentlyOnline ? 'Çevrimiçi' : 'Çevrimdışı'}</span>
+                        </td>
+                    </tr>`;
+            });
+        } catch (e) { 
+            console.error("Recent logins error:", e);
+            document.getElementById('recent-logins-body').innerHTML = '<tr><td colspan="4" style="text-align: center; color: var(--danger);">Veri yüklenirken hata oluştu</td></tr>';
+        }
     }
 
     // Duyuru Gönderme (Aynı kaldı)
@@ -189,6 +353,9 @@
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
         document.getElementById('section-' + tabId).classList.add('active');
         if(event) event.target.classList.add('active');
+        if (tabId === 'registered') {
+            loadAllRegisteredUsers();
+        }
     };
 
 

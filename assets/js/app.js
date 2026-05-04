@@ -423,12 +423,14 @@ onAuthStateChanged(auth, async (fbUser) => {
         user.displayName = localStorage.getItem('st_displayName') || fbUser.displayName || user.username;
         
         // Avatar URL'i Firestore'dan çek
+        let userData = null;
         try {
             const userRef = doc(db, "users", fbUser.uid);
             const userDoc = await getDoc(userRef);
+            userData = userDoc.exists() ? userDoc.data() : null;
             
             if (userDoc.exists()) {
-                const data = userDoc.data();
+                const data = userData;
                 // copy any relevant fields into our local user object
                 if (data.avatarUrl) {
                     user.avatarUrl = data.avatarUrl;
@@ -462,6 +464,9 @@ onAuthStateChanged(auth, async (fbUser) => {
                     // User already exists
                 }
             }
+
+            // Kullanıcının son aktif olduğu zamanı kaydet
+            await setDoc(userRef, { lastActiveAt: serverTimestamp() }, { merge: true });
                     // no privacy sync needed, revert to original behaviour
 
         } catch (err) {
@@ -470,7 +475,7 @@ onAuthStateChanged(auth, async (fbUser) => {
         }
 
         // Admin Kontrolü
-        user.isAdmin = fbUser.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+        user.isAdmin = fbUser.email.toLowerCase() === ADMIN_EMAIL.toLowerCase() || (userData && userData.isAdmin === true);
         // store flag for other scripts
         localStorage.setItem('st_isAdmin', user.isAdmin ? '1' : '0');
         
@@ -503,6 +508,14 @@ onAuthStateChanged(auth, async (fbUser) => {
                 }
                 // Bildirimleri (arkadaş istekleri + diğer bildirimler) güncelle
                 loadNotifications(userData);
+                if (typeof userData.isAdmin !== 'undefined') {
+                    const newAdminStatus = userData.isAdmin === true || fbUser.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+                    if (newAdminStatus !== user.isAdmin) {
+                        user.isAdmin = newAdminStatus;
+                        localStorage.setItem('st_isAdmin', user.isAdmin ? '1' : '0');
+                        updateUIWithUser();
+                    }
+                }
                 // isPrivate değişmişse yerelde de sakla
                 if (typeof userData.isPrivate !== 'undefined' && userData.isPrivate !== isPrivate) {
                     isPrivate = userData.isPrivate;
@@ -1340,7 +1353,9 @@ window.navigateTo = (pageId) => {
 };
 
 function setNavActiveByPath() {
-    const currentPage = window.location.pathname.split('/').pop().toLowerCase();
+    const currentPage = window.location.pathname.replace(/\\/g, '/').split('/').pop().toLowerCase();
+    const urlParams = new URLSearchParams(window.location.search);
+    console.log('setNavActiveByPath called, currentPage:', currentPage, 'search:', window.location.search);
     let activeBtnId = null;
 
     const pageNav = {
@@ -1352,7 +1367,8 @@ function setNavActiveByPath() {
         'begeniler.html': 'btn-begeniler',
         'kayitlar.html': 'btn-kayitlar',
         'arkadaslarim.html': 'btn-arkadaslarim',
-        'bildirimler.html': 'btn-bildirimler'
+        'bildirimler.html': 'btn-bildirimler',
+        'blog.html': 'btn-tum-yazilar'
     };
 
     activeBtnId = pageNav[currentPage];
@@ -1376,10 +1392,24 @@ function setNavActiveByPath() {
         }
     }
 
+    if (currentPage === 'blog.html') {
+        const mine = urlParams.get('mine');
+        const create = urlParams.get('create');
+        if (mine === '1') {
+            activeBtnId = 'btn-yazilarim';
+        } else if (create === '1') {
+            activeBtnId = 'btn-yeni-yazi';
+        } else {
+            activeBtnId = 'btn-tum-yazilar';
+        }
+    }
+
     if (!activeBtnId) return;
 
+    console.log('Active button ID:', activeBtnId);
     document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
     const activeBtn = document.getElementById(activeBtnId);
+    console.log('Active button element:', activeBtn);
     if (activeBtn) activeBtn.classList.add('active');
 }
 
