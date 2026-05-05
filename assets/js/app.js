@@ -2790,7 +2790,94 @@ const initMobilePanelsAndCalendar = () => {
         render();
     };
 
+    // Yaklaşan etkinlikleri yükle
+    const loadUpcomingEvents = () => {
+        const eventsList = document.getElementById('upcomingEventsList');
+        if (!eventsList) return;
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        // Yaklaşan 7 günün tarihlerini oluştur
+        const upcomingDates = [];
+        for (let i = 0; i < 7; i++) {
+            const date = new Date(today);
+            date.setDate(date.getDate() + i);
+            upcomingDates.push(date);
+        }
+
+        // Özel günleri kontrol et
+        let events = [];
+        upcomingDates.forEach(date => {
+            const year = date.getFullYear();
+            const month = date.getMonth();
+            const day = date.getDate();
+            const key = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+
+            // ozelGunler, ramazanTakvimi, tarihteBugun verilerini kontrol et
+            let foundEvent = null;
+
+            // Ramazan takvimi
+            if (!foundEvent) {
+                foundEvent = ramazanTakvimi.find(g => 
+                    g.ay === month && g.gun === day
+                );
+            }
+
+            // Özel günler
+            if (!foundEvent) {
+                foundEvent = ozelGunler.find(g => 
+                    g.ay === month && g.gun === day
+                );
+            }
+
+            // Tarihte bugün
+            if (!foundEvent) {
+                foundEvent = tarihteBugun.find(g => 
+                    g.ay === month && g.gun === day
+                );
+                if (foundEvent) {
+                    foundEvent.emoji = '⏳';
+                }
+            }
+
+            if (foundEvent) {
+                events.push({
+                    date: date,
+                    title: foundEvent.baslik || foundEvent.baslik || 'Etkinlik',
+                    emoji: foundEvent.emoji || '📅'
+                });
+            }
+        });
+
+        // HTML oluştur
+        const titleEl = document.getElementById('upcomingEventsTitle');
+        if (events.length === 0) {
+            if (titleEl) titleEl.innerText = 'Yaklaşan Etkinlikler';
+            eventsList.innerHTML = '<div style="font-size: 0.8rem; color: var(--text-muted); text-align: center; padding: 16px 8px;">Yaklaşan etkinlik yok</div>';
+        } else {
+            if (titleEl) titleEl.innerText = `Yaklaşan Etkinlikler (${events.length})`;
+            eventsList.innerHTML = events.map((evt, idx) => {
+                const dateStr = evt.date.toLocaleDateString('tr-TR', {
+                    month: 'short',
+                    day: 'numeric'
+                });
+                const isLast = idx === events.length - 1;
+                return `
+                    <div style="font-size: 0.8rem; padding: 10px 10px; background: rgba(99, 102, 241, 0.08); border-radius: 10px; border-left: 4px solid var(--primary); transition: all 0.2s ease; ${isLast ? 'margin-bottom: 0;' : 'margin-bottom: 4px;'}">
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                            <span style="font-size: 1.1rem;">${evt.emoji}</span>
+                            <span style="font-weight: 600; color: var(--text-main); flex: 1;">${evt.title}</span>
+                        </div>
+                        <div style="font-size: 0.7rem; color: var(--text-muted); padding-left: 20px;">${dateStr}</div>
+                    </div>
+                `;
+            }).join('');
+        }
+    };
+
     initRightCalendar();
+    loadUpcomingEvents();
 };
 
 // Run after DOM is ready and after includes have been injected

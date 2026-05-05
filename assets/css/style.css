@@ -661,10 +661,11 @@ details.menu-details[open] summary:after {
 .calendar-grid {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
-    gap: 4px;
+    gap: 6px;
+    padding: 0;
 }
 .calendar-grid .day {
-    padding: 4px 4px;
+    padding: 6px 4px;
     text-align: center;
     border-radius: 8px;
     font-size: 0.68rem;
