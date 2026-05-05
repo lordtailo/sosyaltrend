@@ -2864,7 +2864,7 @@ const initMobilePanelsAndCalendar = () => {
                 });
                 const isLast = idx === events.length - 1;
                 return `
-                    <div style="font-size: 0.8rem; padding: 10px 10px; background: rgba(99, 102, 241, 0.08); border-radius: 10px; border-left: 4px solid var(--primary); transition: all 0.2s ease; ${isLast ? 'margin-bottom: 0;' : 'margin-bottom: 4px;'}">
+                    <div style="font-size: 0.8rem; padding: 10px 10px; background: rgba(99, 102, 241, 0.08); border-radius: 10px; border-left: 4px solid var(--primary); transition: all 0.2s ease; ${isLast ? 'margin-bottom: 0;' : 'margin-bottom: 12px;'}">
                         <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
                             <span style="font-size: 1.1rem;">${evt.emoji}</span>
                             <span style="font-weight: 600; color: var(--text-main); flex: 1;">${evt.title}</span>
