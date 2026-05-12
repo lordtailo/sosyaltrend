@@ -39,6 +39,7 @@ function updatePostCount() {
     const len = text.length;
     counter.textContent = `${len}/500`;
 }
+window.updatePostCount = updatePostCount;
 
 // tüm yerlerde kullanılabilecek genel yardımcı: HTML entitelerini çözerek
 // gerçek karakter (örneğin emoji) haline getirir.
@@ -211,6 +212,7 @@ document.addEventListener('includesLoaded', () => {
     // sidebar elements may not exist until includes are injected, so update UI again
     if (typeof updateUIWithUser === 'function') updateUIWithUser();
     if (typeof updateSidebarStats === 'function') updateSidebarStats();
+    if (typeof updateChatUnreadIndicator === 'function') updateChatUnreadIndicator();
 
     // Re-run blog page initialization once includes are loaded (for nav/button activation)
     if (document.getElementById('page-blog')) {
@@ -551,6 +553,10 @@ onAuthStateChanged(auth, async (fbUser) => {
         const stbotBtn = document.getElementById('stbot-chat-btn');
         if (stbotBtn) {
             stbotBtn.style.display = user.isAdmin ? 'flex' : 'none';
+        }
+        const aiButton = document.getElementById('ai-chat-btn');
+        if (aiButton) {
+            aiButton.style.display = user.isAdmin ? 'inline-flex' : 'none';
         }
     }
     
@@ -5714,7 +5720,13 @@ function initChatWidget() {
             <button class="back-btn" id="chat-back-btn" onclick="backToFriendList()" title="Geri Dön">
                 <i class="fa-solid fa-arrow-left"></i>
             </button>
-            <h3 id="chat-widget-title">Sohbet</h3>
+            <div style="display:flex; align-items:center; gap:8px;">
+                <h3 id="chat-widget-title">Sohbet</h3>
+                <span id="chat-unread-count" class="chat-unread-badge" style="display:none;">0 yeni</span>
+            </div>
+            <a id="chat-ai-link" href="/stbot/index.html" target="_blank" style="display:none; align-items:center; gap:6px; padding:8px 12px; border:none; border-radius:999px; background: linear-gradient(135deg, var(--primary), #a78bfa); color:white; text-decoration:none; font-size:0.85rem;">
+                <i class="fa-solid fa-brain"></i> Yapay Zeka
+            </a>
         </div>
             <div style="display: flex; gap: 8px; align-items: center;">
                 <button class="close-btn" onclick="closeChatWidget()">
@@ -5757,6 +5769,14 @@ function initChatWidget() {
     }
     
     document.body.appendChild(chatWidget);
+    const aiChatLink = document.getElementById('chat-ai-link');
+    if (aiChatLink) {
+        aiChatLink.style.display = user.isAdmin ? 'inline-flex' : 'none';
+    }
+
+    if (auth.currentUser && typeof updateChatUnreadIndicator === 'function') {
+        updateChatUnreadIndicator();
+    }
 }
 
 // Initialize chat lists panel
@@ -5769,7 +5789,9 @@ function initChatListsPanel() {
     chatListsPanel.innerHTML = `
         <div class="chat-lists-header">
             <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
-                <h3 style="margin: 0;">Sohbet Et</h3>
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <h3 style="margin: 0;">Sohbet Et</h3>
+                </div>
                 <div style="display: flex; gap: 8px;">
                     <button class="close-btn" onclick="closeChatsList()">
                         <i class="fa-solid fa-times"></i>
@@ -5778,11 +5800,11 @@ function initChatListsPanel() {
             </div>
         </div>
         <div class="chat-lists-actions" style="display:flex; gap:10px; align-items:center; padding:5px 5px 0px;">
-            ${window.currentUser?.isAdmin ? `<button type="button" onclick="window.openStBotChat()" style="flex:1; padding:10px 14px; border:none; border-radius: 12px; background: linear-gradient(135deg, var(--primary), #a78bfa); color:white; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; font-weight: 600;">
-                <i class="fa-solid fa-brain"></i> Yapay Zeka
-            </button>` : ''}
             <button type="button" onclick="loadRecentChats()" style="flex:1; padding:10px 14px; border:none; border-radius: 12px; background: var(--primary); color:white; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;">
                 <i class="fa-solid fa-clock-rotate-left"></i> Son Sohbetler
+            </button>
+            <button id="chat-unread-btn" type="button" onclick="loadUnreadChats()" style="flex:1; padding:10px 14px; border:none; border-radius: 12px; background:#ef4444; color:white; cursor:pointer; display:none; align-items:center; justify-content:center; gap:8px;">
+                <i class="fa-solid fa-envelope-circle-check"></i> Okunmamış
             </button>
             <button type="button" onclick="loadChatFriends()" style="flex:1; padding:10px 14px; border:none; border-radius: 12px; background: var(--primary); color:white; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;">
                 <i class="fa-solid fa-users"></i> Arkadaşlarım
@@ -5821,6 +5843,10 @@ function initChatListsPanel() {
     `;
     
     document.body.appendChild(chatListsPanel);
+    const aiButton = document.getElementById('ai-chat-btn');
+    if (aiButton) {
+        aiButton.style.display = user.isAdmin ? 'inline-flex' : 'none';
+    }
 }
 
 // Open or close chat friends list
@@ -5852,14 +5878,14 @@ window.closeChatsList = function() {
     }
 }
 
-// Open STBot chat for admins
+// Open Yapay Zeka chat for admins
 window.openStBotChat = async function() {
     if (!auth.currentUser) {
         alert('Lütfen giriş yapın');
         return;
     }
     if (!user.isAdmin) {
-        alert('STBot yalnızca yöneticiler için erişilebilir.');
+        alert('Yapay Zeka yalnızca yöneticiler için erişilebilir.');
         return;
     }
 
@@ -5868,7 +5894,7 @@ window.openStBotChat = async function() {
     }
 
     const botId = 'stbot_internal';
-    const botDisplayName = 'STBot';
+    const botDisplayName = 'Yapay Zeka';
     const currentUserId = auth.currentUser.uid;
     const conversationId = `bot_${botId}`;
 
@@ -5933,15 +5959,15 @@ function generateStBotResponse(text) {
     const normalized = trimmed.toLowerCase();
 
     const greetings = [
-        'Merhaba, STBot burada! Hadi birlikte sorununuzu çözeyim.',
-        'Selam! Ben STBot, SosyaLTrend’in yapay zekâ destekli asistanıyım.',
+        'Merhaba, Yapay Zeka burada! Hadi birlikte sorununuzu çözeyim.',
+        'Selam! Ben Yapay Zeka, SosyaLTrend’in yöneticilere özel asistanıyım.',
         'Hoş geldiniz! Ne hakkında konuşmak istersiniz bugün?'
     ];
 
     const helpReplies = [
         'Detayları verirseniz, size daha hızlı ve akıllı bir yanıt sunabilirim.',
         'Tam olarak neye ihtiyacınız var? Sorunuza göre hızlıca yanıtlayayım.',
-        'Soruya daha fazla bilgi eklerseniz, STBot size daha özgün bir çözüm önerir.'
+        'Soruya daha fazla bilgi eklerseniz, Yapay Zeka size daha özgün bir çözüm önerir.'
     ];
 
     const trendReplies = [
@@ -5957,9 +5983,9 @@ function generateStBotResponse(text) {
     ];
 
     const aboutReplies = [
-        'Ben STBot, SosyaLTrend’in içerik ve sohbet asistanı. Platform içindeki sorulara yardımcı olurum.',
+        'Ben Yapay Zeka, SosyaLTrend’in içerik ve yönetim asistanı. Platform içindeki sorulara yardımcı olurum.',
         'Burada, platformun içinde hızlı ve özgün cevaplar vermek için tasarlandım.',
-        'STBot, kullanıcı deneyimini iyileştirmek için çalışan bir yapay zekâ sohbet arkadaşıdır.'
+        'Yapay Zeka, kullanıcı deneyimini iyileştirmek için çalışan bir sohbet arkadaşıdır.'
     ];
 
     if (!normalized) {
@@ -5988,7 +6014,7 @@ function generateStBotResponse(text) {
     const fallbackReplies = [
         'Bu konuyu daha iyi anlamak için biraz daha detay verir misiniz?',
         'Harika, bunu daha derinlemesine tartışalım. Lütfen biraz daha açıklayın.',
-        'STBot olarak bu soruya en iyi şekilde cevap vermek istiyorum; biraz daha bilgi verir misiniz?'
+        'Yapay Zeka olarak bu soruya en iyi şekilde cevap vermek istiyorum; biraz daha bilgi verir misiniz?'
     ];
 
     return chooseRandomReply(fallbackReplies);
@@ -6000,7 +6026,7 @@ async function replyFromStBot(userText) {
     try {
         await addDoc(collection(db, 'conversations', currentConversationId, 'messages'), {
             senderId: 'stbot_internal',
-            senderName: 'STBot',
+            senderName: 'Yapay Zeka',
             senderAvatar: 'assets/img/strendsaydamv2.png',
             text: botMessageText,
             createdAt: serverTimestamp()
@@ -6011,7 +6037,7 @@ async function replyFromStBot(userText) {
             lastSenderId: 'stbot_internal'
         });
     } catch (error) {
-        console.error('STBot yanıtı oluşturulurken hata:', error);
+        console.error('Yapay Zeka yanıtı oluşturulurken hata:', error);
     }
 }
 
@@ -6112,8 +6138,9 @@ window.loadRecentChats = async function() {
                 const displayName = friendData.displayName || friendData.username || otherParticipantId;
                 const username = friendData.username || 'user';
                 const lastMessage = convData.lastMessage || 'Yeni sohbet';
+                const unreadCount = convData.unreadCount?.[currentUserId] || 0;
 
-                recentChats.push({ otherParticipantId, displayName, username, avatarUrl, lastMessage });
+                recentChats.push({ otherParticipantId, displayName, username, avatarUrl, lastMessage, unreadCount });
             } catch (error) {
                 console.error('Sohbet kullanıcısı yüklenirken hata:', error);
             }
@@ -6147,6 +6174,7 @@ window.loadRecentChats = async function() {
                         <p class="chat-friend-name">${escapeHtml(chat.displayName)}</p>
                         <p class="chat-friend-lastmsg">${escapeHtml(chat.lastMessage)}</p>
                     </div>
+                    ${chat.unreadCount > 0 ? `<span class="chat-unread-pill">${chat.unreadCount}</span>` : ''}
                 </div>
             `;
         }
@@ -6181,6 +6209,130 @@ window.showMoreRecentChats = function() {
     });
     const loadMoreBtn = document.querySelector('.chat-load-more');
     if (loadMoreBtn) loadMoreBtn.remove();
+}
+
+async function updateChatUnreadIndicator() {
+    if (!auth.currentUser) return;
+    try {
+        const currentUserId = auth.currentUser.uid;
+        const conversationsQuery = query(
+            collection(db, 'conversations'),
+            where('participants', 'array-contains', currentUserId)
+        );
+        const snap = await getDocs(conversationsQuery);
+        const totalUnread = snap.docs.reduce((sum, convDoc) => {
+            const data = convDoc.data();
+            const unread = data.unreadCount?.[currentUserId] || 0;
+            return sum + (typeof unread === 'number' ? unread : 0);
+        }, 0);
+
+        const badge = document.getElementById('chat-unread-count');
+        if (badge) {
+            if (totalUnread > 0) {
+                badge.style.display = 'inline-flex';
+                badge.textContent = `${totalUnread} yeni`;
+            } else {
+                badge.style.display = 'none';
+            }
+        }
+
+        const leftBadge = document.getElementById('chat-left-unread-count');
+        if (leftBadge) {
+            if (totalUnread > 0) {
+                leftBadge.style.display = 'block';
+                leftBadge.textContent = `${totalUnread} okunmamış`;
+            } else {
+                leftBadge.style.display = 'none';
+            }
+        }
+
+        const unreadBtn = document.getElementById('chat-unread-btn');
+        if (unreadBtn) {
+            if (totalUnread > 0) {
+                unreadBtn.style.display = 'inline-flex';
+                unreadBtn.innerHTML = `<i class="fa-solid fa-envelope-circle-check"></i> Okunmamış (${totalUnread})`;
+            } else {
+                unreadBtn.style.display = 'none';
+            }
+        }
+    } catch (error) {
+        console.warn('Okunmamış mesaj göstergesi güncellenirken hata:', error);
+    }
+}
+
+window.loadUnreadChats = async function() {
+    const friendsList = document.getElementById('chat-friends-list');
+    if (!friendsList) return;
+    if (!auth.currentUser) {
+        alert('Lütfen giriş yapın');
+        return;
+    }
+
+    try {
+        const currentUserId = auth.currentUser.uid;
+        const conversationsQuery = query(
+            collection(db, 'conversations'),
+            where('participants', 'array-contains', currentUserId),
+            limit(50)
+        );
+
+        const convSnap = await getDocs(conversationsQuery);
+        const unreadDocs = convSnap.docs
+            .filter(docSnap => {
+                const data = docSnap.data();
+                return (data.unreadCount?.[currentUserId] || 0) > 0;
+            })
+            .sort((a, b) => {
+            const aTime = a.data().lastMessageAt ? a.data().lastMessageAt.toMillis?.() || a.data().lastMessageAt : 0;
+            const bTime = b.data().lastMessageAt ? b.data().lastMessageAt.toMillis?.() || b.data().lastMessageAt : 0;
+            return bTime - aTime;
+        });
+        const titleEl = document.querySelector('.chat-lists-title');
+        if (titleEl) titleEl.textContent = 'Okunmamış Mesajlar';
+
+        if (convSnap.empty) {
+            friendsList.innerHTML = '<div class="chat-lists-empty"><i class="fa-solid fa-envelope-open-text"></i><p>Okunmamış mesaj bulunmuyor</p></div>';
+            return;
+        }
+
+        let friendsHtml = '';
+        for (const docSnap of unreadDocs) {
+            const convData = docSnap.data();
+            const otherParticipantId = (convData.participants || []).find(id => id !== currentUserId);
+            if (!otherParticipantId) continue;
+
+            try {
+                const friendRef = doc(db, 'users', otherParticipantId);
+                const friendSnap = await getDoc(friendRef);
+                if (!friendSnap.exists()) continue;
+
+                const friendData = friendSnap.data();
+                const avatarUrl = getAvatarUrl(friendData.avatarUrl || 'assets/img/strendsaydamv2.png', 'user');
+                const displayName = friendData.displayName || friendData.username || otherParticipantId;
+                const username = friendData.username || 'user';
+                const lastMessage = convData.lastMessage || 'Yeni sohbet';
+                const unreadCount = convData.unreadCount?.[currentUserId] || 0;
+
+                friendsHtml += `
+                    <div class="chat-friend-item" onclick="openChatWithFriend('${otherParticipantId}', '${displayName}', '${username}')">
+                        <img src="${avatarUrl}" class="chat-friend-avatar" alt="">
+                        <div class="chat-friend-info">
+                            <p class="chat-friend-name">${escapeHtml(displayName)}</p>
+                            <p class="chat-friend-lastmsg">${escapeHtml(lastMessage)}</p>
+                        </div>
+                        <span class="chat-unread-pill">${unreadCount}</span>
+                    </div>
+                `;
+            } catch (error) {
+                console.error('Okunmamış sohbet kullanıcısı yüklenirken hata:', error);
+            }
+        }
+
+        friendsList.innerHTML = friendsHtml || '<div class="chat-lists-empty"><i class="fa-solid fa-envelope-open-text"></i><p>Okunmamış mesaj bulunmuyor</p></div>';
+    } catch (error) {
+        console.error('Okunmamış sohbetler yüklenirken hata:', error);
+        friendsList.innerHTML = '<div class="chat-lists-empty"><i class="fa-solid fa-circle-exclamation"></i><p>Okunmamış mesajlar yüklenemedi</p></div>';
+    }
 }
 
 // Filter friends
@@ -6467,6 +6619,8 @@ function loadChatMessages(conversationId) {
         updateDoc(doc(db, 'conversations', conversationId), {
             [`unreadCount.${auth.currentUser.uid}`]: 0
         }).catch(() => {});
+
+        if (typeof updateChatUnreadIndicator === 'function') updateChatUnreadIndicator();
         
     }, (error) => {
         console.error('Mesajlar yüklenirken hata:', error);
@@ -6723,7 +6877,8 @@ function listenForIncomingMessages() {
                             const otherId = convData.participants.find(id => id !== currentUserId);
                             
                             // Bildirim göster
-                            showMessageNotification(otherId, lastMsg.senderName || 'Bilinmeyen Kullanıcı', lastMsg.text);
+                            showMessageNotification(conversationId, otherId, lastMsg.senderName || 'Bilinmeyen Kullanıcı', lastMsg.text);
+                            if (typeof updateChatUnreadIndicator === 'function') updateChatUnreadIndicator();
                         }
                     }
                 }
@@ -6733,25 +6888,72 @@ function listenForIncomingMessages() {
 }
 
 // Helpers for persistent chat notifications
-function saveChatNotification(senderId, data) {
+function saveChatNotification(conversationId, senderId, data) {
     try {
-        localStorage.setItem('chatNotif_' + senderId, JSON.stringify(data));
+        const payload = { conversationId, senderId, ...data };
+        localStorage.setItem('chatNotif_' + senderId, JSON.stringify(payload));
     } catch (e) {
         console.warn('notification storage failed', e);
     }
 }
 
-function removeChatNotification(senderId) {
+function removeChatNotification(elementId) {
     try {
-        localStorage.removeItem('chatNotif_' + senderId);
+        if (elementId.startsWith('notif-')) {
+            const senderId = elementId.replace('notif-', '');
+            localStorage.removeItem('chatNotif_' + senderId);
+        }
+        if (elementId.startsWith('toast-')) {
+            const el = document.getElementById(elementId);
+            if (el && el.dataset.senderId) {
+                localStorage.removeItem('chatNotif_' + el.dataset.senderId);
+            }
+        }
     } catch (e) {}
-    const el = document.getElementById('notif-' + senderId);
+    const el = document.getElementById(elementId);
     if (el) el.remove();
 }
 
-function renderChatNotification(senderId, senderName, messageText) {
+function renderChatNotification(conversationId, senderId, senderName, messageText) {
+    const widget = document.getElementById('chat-widget-container');
+    const toastId = `toast-${conversationId}`;
+    if (widget && widget.classList.contains('active')) {
+        if (document.getElementById(toastId)) {
+            document.getElementById(toastId).remove();
+        }
+        const toastDiv = document.createElement('div');
+        toastDiv.id = toastId;
+        toastDiv.className = 'chat-widget-toast';
+        toastDiv.innerHTML = `
+            <i class="fa-solid fa-envelope"></i>
+            <div>
+                <div style="font-weight:700;">${senderName}</div>
+                <div style="font-size:0.8rem; opacity:0.9;">${messageText.slice(0, 50)}${messageText.length > 50 ? '...' : ''}</div>
+            </div>
+        `;
+        toastDiv.dataset.senderId = senderId;
+        toastDiv.onclick = async () => {
+            try {
+                const currentUserId = auth.currentUser.uid;
+                await updateDoc(doc(db, 'conversations', conversationId), {
+                    [`unreadCount.${currentUserId}`]: 0
+                });
+            } catch (e) {
+                console.warn('Bildirim tıklanırken okunma işareti atamada hata:', e);
+            }
+            openChatWithUser(senderId, senderName);
+            removeChatNotification(toastId);
+        };
+        document.body.appendChild(toastDiv);
+        setTimeout(() => {
+            if (document.getElementById(toastId)) {
+                removeChatNotification(toastId);
+            }
+        }, 5000);
+        return;
+    }
+
     if (document.getElementById(`notif-${senderId}`)) {
-        // eğer zaten varsa kaldır ve yeni yap
         document.getElementById(`notif-${senderId}`).remove();
     }
     const notifDiv = document.createElement('div');
@@ -6767,22 +6969,21 @@ function renderChatNotification(senderId, senderName, messageText) {
     notifDiv.onclick = async () => {
         try {
             const currentUserId = auth.currentUser.uid;
-            const convId = [currentUserId, senderId].sort().join('_');
-            await updateDoc(doc(db, 'conversations', convId), {
+            await updateDoc(doc(db, 'conversations', conversationId), {
                 [`unreadCount.${currentUserId}`]: 0
             });
         } catch (e) {
             console.warn('Bildirim tıklanırken okunma işareti atamada hata:', e);
         }
         openChatWithUser(senderId, senderName);
-        removeChatNotification(senderId);
+        removeChatNotification(`notif-${senderId}`);
     };
     document.body.appendChild(notifDiv);
     
     // 5 saniye sonra otomatik kaldır
     setTimeout(() => {
         if (document.getElementById(`notif-${senderId}`)) {
-            document.getElementById(`notif-${senderId}`).remove();
+            removeChatNotification(`notif-${senderId}`);
         }
     }, 5000);
 }
@@ -6791,11 +6992,10 @@ function loadStoredChatNotifications() {
     for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
         if (key && key.startsWith('chatNotif_')) {
-            const senderId = key.slice('chatNotif_'.length);
             try {
                 const data = JSON.parse(localStorage.getItem(key));
-                if (data && data.senderId) {
-                    renderChatNotification(data.senderId, data.senderName, data.messageText);
+                if (data && data.conversationId && data.senderId) {
+                    renderChatNotification(data.conversationId, data.senderId, data.senderName, data.messageText);
                 }
             } catch (e) {}
         }
@@ -6889,9 +7089,9 @@ window.showImageModal = function(url) {
 
 
 // Show message notification
-function showMessageNotification(senderId, senderName, messageText) {
-    saveChatNotification(senderId, { senderId, senderName, messageText });
-    renderChatNotification(senderId, senderName, messageText);
+function showMessageNotification(conversationId, senderId, senderName, messageText) {
+    saveChatNotification(conversationId, senderId, { senderId, senderName, messageText });
+    renderChatNotification(conversationId, senderId, senderName, messageText);
 }
 
 // --- message editing / deletion helpers ---
@@ -8119,6 +8319,9 @@ onAuthStateChanged(auth, (authUser) => {
     if (authUser) {
         setTimeout(() => {
             listenForIncomingMessages();
+            if (typeof updateChatUnreadIndicator === 'function') {
+                updateChatUnreadIndicator();
+            }
         }, 2000);
     }
     // Update create view UI when auth changes
