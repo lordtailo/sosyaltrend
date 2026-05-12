@@ -538,7 +538,7 @@ onAuthStateChanged(auth, async (fbUser) => {
         if (user.isAdmin) {
             // İstatistikleri çek
             updateAdminStats();
-            // HTML'deki butonu görünür yap
+            // HTML'deki admin butonunu görünür yap
             if (adminBtn) {
                 adminBtn.style.display = 'flex'; // Veya 'block', tasarımınıza göre
             }
@@ -547,6 +547,10 @@ onAuthStateChanged(auth, async (fbUser) => {
             if (adminBtn) {
                 adminBtn.style.display = 'none';
             }
+        }
+        const stbotBtn = document.getElementById('stbot-chat-btn');
+        if (stbotBtn) {
+            stbotBtn.style.display = user.isAdmin ? 'flex' : 'none';
         }
     }
     
@@ -5712,9 +5716,11 @@ function initChatWidget() {
             </button>
             <h3 id="chat-widget-title">Sohbet</h3>
         </div>
-            <button class="close-btn" onclick="closeChatWidget()">
-                <i class="fa-solid fa-times"></i>
-            </button>
+            <div style="display: flex; gap: 8px; align-items: center;">
+                <button class="close-btn" onclick="closeChatWidget()">
+                    <i class="fa-solid fa-times"></i>
+                </button>
+            </div>
         </div>
         <div class="chat-widget-messages" id="chat-widget-messages">
             <div class="chat-empty">
@@ -5762,12 +5768,19 @@ function initChatListsPanel() {
     chatListsPanel.className = 'chat-lists-panel';
     chatListsPanel.innerHTML = `
         <div class="chat-lists-header">
-            <h3>Sohbet Et</h3>
-            <button class="close-btn" onclick="closeChatsList()">
-                <i class="fa-solid fa-times"></i>
-            </button>
+            <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+                <h3 style="margin: 0;">Sohbet Et</h3>
+                <div style="display: flex; gap: 8px;">
+                    <button class="close-btn" onclick="closeChatsList()">
+                        <i class="fa-solid fa-times"></i>
+                    </button>
+                </div>
+            </div>
         </div>
         <div class="chat-lists-actions" style="display:flex; gap:10px; align-items:center; padding:5px 5px 0px;">
+            ${window.currentUser?.isAdmin ? `<button type="button" onclick="window.openStBotChat()" style="flex:1; padding:10px 14px; border:none; border-radius: 12px; background: linear-gradient(135deg, var(--primary), #a78bfa); color:white; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; font-weight: 600;">
+                <i class="fa-solid fa-brain"></i> Yapay Zeka
+            </button>` : ''}
             <button type="button" onclick="loadRecentChats()" style="flex:1; padding:10px 14px; border:none; border-radius: 12px; background: var(--primary); color:white; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;">
                 <i class="fa-solid fa-clock-rotate-left"></i> Son Sohbetler
             </button>
@@ -5836,6 +5849,169 @@ window.closeChatsList = function() {
     const panel = document.getElementById('chat-lists-panel');
     if (panel) {
         panel.classList.remove('active');
+    }
+}
+
+// Open STBot chat for admins
+window.openStBotChat = async function() {
+    if (!auth.currentUser) {
+        alert('Lütfen giriş yapın');
+        return;
+    }
+    if (!user.isAdmin) {
+        alert('STBot yalnızca yöneticiler için erişilebilir.');
+        return;
+    }
+
+    if (!document.getElementById('chat-widget-container')) {
+        initChatWidget();
+    }
+
+    const botId = 'stbot_internal';
+    const botDisplayName = 'STBot';
+    const currentUserId = auth.currentUser.uid;
+    const conversationId = `bot_${botId}`;
+
+    const convRef = doc(db, 'conversations', conversationId);
+    const convSnap = await getDoc(convRef);
+
+    if (!convSnap.exists()) {
+        await setDoc(convRef, {
+            participants: [currentUserId, botId],
+            lastMessage: '',
+            lastMessageAt: serverTimestamp(),
+            lastSenderId: '',
+            unreadCount: {
+                [currentUserId]: 0,
+                [botId]: 0
+            },
+            createdAt: serverTimestamp(),
+            botConversation: true,
+            botName: botDisplayName
+        });
+    }
+
+    currentConversationId = conversationId;
+    currentChatUserId = botId;
+    currentChatUsername = botDisplayName;
+
+    const titleEl = document.getElementById('chat-widget-title');
+    if (titleEl) {
+        titleEl.textContent = currentChatUsername;
+    }
+
+    const widgetEl = document.getElementById('chat-widget-container');
+    widgetEl.classList.add('active');
+
+    loadChatMessages(conversationId);
+    resetChatInactivityTimer();
+}
+
+function chooseRandomReply(choices) {
+    return choices[Math.floor(Math.random() * choices.length)];
+}
+
+function analyzeUserIntent(text) {
+    const normalized = (text || '').trim().toLowerCase();
+    
+    if (/\b(istatistik|analiz|rapor|sayı|kaç|toplam|özet)\b/.test(normalized)) return 'analytics';
+    if (/\b(moderasyon|spam|block|engelle|bildir|flag|uyarı|ceza)\b/.test(normalized)) return 'moderation';
+    if (/\b(gönderi|içerik|paylaş|yaz|blog|video|resim|medya)\b/.test(normalized)) return 'content';
+    if (/\b(kullanıcı|üye|hesap|profil|kim|kimler)\b/.test(normalized)) return 'users';
+    if (/\b(arkadaş|takip|takipçi|follower|bağlantı|network)\b/.test(normalized)) return 'social';
+    if (/\b(ayarlar|ayar|tercih|konfigürasyonu|setting|theme|koyu|aydınlık|dil)\b/.test(normalized)) return 'settings';
+    if (/\b(güvenlik|şifre|token|anahtar|SSL|https|şifrele|gizli)\b/.test(normalized)) return 'security';
+    if (/\b(hata|bug|crash|freeze|gecikme|yavaş|performans)\b/.test(normalized)) return 'performance';
+    if (/\b(merhaba|selam|naber|hoş|hey|yo|sup)\b/.test(normalized)) return 'greeting';
+    if (/\b(teşekkür|sağol|sağolasın|thanks|eyvallah)\b/.test(normalized)) return 'gratitude';
+    
+    return 'general';
+}
+
+function generateStBotResponse(text) {
+    const trimmed = (text || '').trim();
+    const normalized = trimmed.toLowerCase();
+
+    const greetings = [
+        'Merhaba, STBot burada! Hadi birlikte sorununuzu çözeyim.',
+        'Selam! Ben STBot, SosyaLTrend’in yapay zekâ destekli asistanıyım.',
+        'Hoş geldiniz! Ne hakkında konuşmak istersiniz bugün?'
+    ];
+
+    const helpReplies = [
+        'Detayları verirseniz, size daha hızlı ve akıllı bir yanıt sunabilirim.',
+        'Tam olarak neye ihtiyacınız var? Sorunuza göre hızlıca yanıtlayayım.',
+        'Soruya daha fazla bilgi eklerseniz, STBot size daha özgün bir çözüm önerir.'
+    ];
+
+    const trendReplies = [
+        'SosyaLTrend güncel trendleri takip ediyor. Hangi kategoriye göz atalım?',
+        'Trendler hakkında konuşmayı seviyorum. Hangi alanda bilgi istersiniz?',
+        'Haberler ve trendler için özel öneriler sunabilirim. Bir konu seçin lütfen.'
+    ];
+
+    const thanksReplies = [
+        'rica ederim dostum, başka bir konu var mı?',
+        'her zaman, yeni soruların için buradayım.',
+        'memnun oldum! başka bir şey için yazabilirsin.'
+    ];
+
+    const aboutReplies = [
+        'Ben STBot, SosyaLTrend’in içerik ve sohbet asistanı. Platform içindeki sorulara yardımcı olurum.',
+        'Burada, platformun içinde hızlı ve özgün cevaplar vermek için tasarlandım.',
+        'STBot, kullanıcı deneyimini iyileştirmek için çalışan bir yapay zekâ sohbet arkadaşıdır.'
+    ];
+
+    if (!normalized) {
+        return chooseRandomReply(greetings);
+    }
+    if (/\b(merhaba|selam|naber|hoşgeldin|selamlar|günaydın|iyi akşamlar)\b/.test(normalized)) {
+        return chooseRandomReply(greetings);
+    }
+    if (/\b(yardım|destek|problem|sorun|hata|çalışmıyor|takıldı|takıldım)\b/.test(normalized)) {
+        return chooseRandomReply(helpReplies);
+    }
+    if (/\b(trend|haber|güncel|popüler|tavsiye|öneri)\b/.test(normalized)) {
+        return chooseRandomReply(trendReplies);
+    }
+    if (/\b(teşekkür|sağol|sağolasın|teşekkürler|tşk)\b/.test(normalized)) {
+        return chooseRandomReply(thanksReplies);
+    }
+    if (/\b(nasıl çalışır|nasıl kullanılır|ne işe yarar|neden|ne demek)\b/.test(normalized)) {
+        return chooseRandomReply(aboutReplies);
+    }
+
+    if (normalized.endsWith('?')) {
+        return `Güzel bir soru! Şu anda ${trimmed.split(' ').slice(0, 6).join(' ')} üzerine bir yanıt hazırlıyorum...`;
+    }
+
+    const fallbackReplies = [
+        'Bu konuyu daha iyi anlamak için biraz daha detay verir misiniz?',
+        'Harika, bunu daha derinlemesine tartışalım. Lütfen biraz daha açıklayın.',
+        'STBot olarak bu soruya en iyi şekilde cevap vermek istiyorum; biraz daha bilgi verir misiniz?'
+    ];
+
+    return chooseRandomReply(fallbackReplies);
+}
+
+async function replyFromStBot(userText) {
+    if (currentChatUserId !== 'stbot_internal' || !currentConversationId) return;
+    const botMessageText = generateStBotResponse(userText);
+    try {
+        await addDoc(collection(db, 'conversations', currentConversationId, 'messages'), {
+            senderId: 'stbot_internal',
+            senderName: 'STBot',
+            senderAvatar: 'assets/img/strendsaydamv2.png',
+            text: botMessageText,
+            createdAt: serverTimestamp()
+        });
+        await updateDoc(doc(db, 'conversations', currentConversationId), {
+            lastMessage: botMessageText,
+            lastMessageAt: serverTimestamp(),
+            lastSenderId: 'stbot_internal'
+        });
+    } catch (error) {
+        console.error('STBot yanıtı oluşturulurken hata:', error);
     }
 }
 
@@ -5956,9 +6132,9 @@ window.loadRecentChats = async function() {
             const chat = recentChats[i];
             if (i === 2) {
                 friendsHtml += `
-                    <div class="chat-friend-item chat-load-more" onclick="showMoreRecentChats()" style="justify-content:center; cursor:pointer;">
-                        <div class="chat-friend-info" style="width:100%; text-align:center; padding: 14px 0;">
-                            <p class="chat-friend-name" style="margin:0;">Daha fazla yükle</p>
+                    <div class="chat-friend-item chat-load-more" onclick="showMoreRecentChats()">
+                        <div class="chat-friend-info" style="width:100%; text-align:center; padding: 8px 0;">
+                            <p class="chat-friend-name" style="margin:0; font-size:0.85rem;">Daha fazla yükle</p>
                         </div>
                     </div>
                 `;
@@ -6377,6 +6553,11 @@ window.sendChatMessage = async function() {
         });
         
         inputEl.value = '';
+        
+        // Trigger STBot reply for bot conversations
+        if (currentChatUserId === 'stbot_internal') {
+            setTimeout(() => replyFromStBot(text), 600);
+        }
         
         // Reset inactivity timer
         resetChatInactivityTimer();

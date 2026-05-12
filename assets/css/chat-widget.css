@@ -528,6 +528,21 @@
     color: white;
 }
 
+.chat-load-more {
+    padding: 8px 12px;
+    border-radius: 12px;
+    background: var(--input-bg, #fff);
+    color: var(--text-main);
+    font-size: 0.85rem;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.chat-load-more:hover {
+    background: var(--primary);
+    color: white;
+}
+
 .chat-friend-avatar {
     width: 40px;
     height: 40px;
