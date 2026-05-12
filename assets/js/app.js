@@ -5767,15 +5767,26 @@ function initChatListsPanel() {
                 <i class="fa-solid fa-times"></i>
             </button>
         </div>
+        <div class="chat-lists-actions" style="display:flex; gap:10px; align-items:center; padding:0 12px 10px;">
+            <button type="button" onclick="loadRecentChats()" style="flex:1; padding:10px 14px; border:none; border-radius: 12px; background: var(--primary); color:white; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;">
+                <i class="fa-solid fa-clock-rotate-left"></i> Son Sohbetler
+            </button>
+            <button type="button" onclick="loadChatFriends()" style="flex:1; padding:10px 14px; border:none; border-radius: 12px; background: var(--primary); color:white; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;">
+                <i class="fa-solid fa-users"></i> Arkadaşlarım
+            </button>
+            <button type="button" onclick="addFriendFromChat()" style="padding:10px 14px; border:none; border-radius: 12px; background: var(--primary); color:white; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;">
+                <i class="fa-solid fa-user-plus"></i> Arkadaş Ekle
+            </button>
+        </div>
         <div class="chat-lists-search">
             <input 
                 type="text" 
                 id="chat-friends-search" 
-                placeholder="Arkadaş ara..."
+                placeholder="Sohbet ara..."
                 oninput="filterChatFriends(this.value)"
             >
         </div>
-        <div class="chat-lists-title" style="padding:10px 12px; font-weight:600; color:var(--text);">Arkadaşlarım</div>
+        <div class="chat-lists-title" style="padding:10px 12px; font-weight:600; color:var(--text);">Son Sohbetler</div>
         <div class="chat-lists-content" id="chat-friends-list">
             <div class="chat-lists-empty">
                 <i class="fa-solid fa-spinner"></i>
@@ -5802,7 +5813,7 @@ function initChatListsPanel() {
     document.body.appendChild(chatListsPanel);
 }
 
-// Open chat friends list
+// Open or close chat friends list
 window.openChatsList = async function() {
     if (!auth.currentUser) {
         alert('Lütfen giriş yapın');
@@ -5814,9 +5825,13 @@ window.openChatsList = async function() {
     }
     
     const panel = document.getElementById('chat-lists-panel');
-    panel.classList.add('active');
+    if (panel.classList.contains('active')) {
+        panel.classList.remove('active');
+        return;
+    }
     
-    loadChatFriends();
+    panel.classList.add('active');
+    loadRecentChats();
 }
 
 // Close chat lists
@@ -5828,7 +5843,7 @@ window.closeChatsList = function() {
 }
 
 // Load friends for chat
-async function loadChatFriends() {
+window.loadChatFriends = async function() {
     const friendsList = document.getElementById('chat-friends-list');
     if (!friendsList) return;
     
@@ -5878,12 +5893,121 @@ async function loadChatFriends() {
             }
         }
         
+        const titleEl = document.querySelector('.chat-lists-title');
+        if (titleEl) titleEl.textContent = 'Arkadaşlarım';
         friendsList.innerHTML = friendsHtml || '<div class="chat-lists-empty"><i class="fa-solid fa-circle-exclamation"></i><p>Arkadaş yüklenemedi</p></div>';
         
     } catch (error) {
         console.error('Arkadaşlar yüklenirken hata:', error);
         friendsList.innerHTML = '<div class="chat-lists-empty"><i class="fa-solid fa-circle-exclamation"></i><p>Arkadaşlar yüklenemedi</p></div>';
     }
+}
+
+// Load recent chats when opening list
+window.loadRecentChats = async function() {
+    const friendsList = document.getElementById('chat-friends-list');
+    if (!friendsList) return;
+
+    try {
+        const currentUserId = auth.currentUser.uid;
+        const q = query(
+            collection(db, 'conversations'),
+            where('participants', 'array-contains', currentUserId),
+            orderBy('lastMessageAt', 'desc'),
+            limit(20)
+        );
+
+        const convSnap = await getDocs(q);
+        if (convSnap.empty) {
+            friendsList.innerHTML = '<div class="chat-lists-empty"><i class="fa-solid fa-comment-slash"></i><p>Henüz sohbetiniz yok</p></div>';
+            return;
+        }
+
+        const recentChats = [];
+        for (const docSnap of convSnap.docs) {
+            const convData = docSnap.data();
+            const otherParticipantId = (convData.participants || []).find(id => id !== currentUserId);
+            if (!otherParticipantId) continue;
+
+            try {
+                const friendRef = doc(db, 'users', otherParticipantId);
+                const friendSnap = await getDoc(friendRef);
+                if (!friendSnap.exists()) continue;
+
+                const friendData = friendSnap.data();
+                const avatarUrl = getAvatarUrl(friendData.avatarUrl || 'assets/img/strendsaydamv2.png', 'user');
+                const displayName = friendData.displayName || friendData.username || otherParticipantId;
+                const username = friendData.username || 'user';
+                const lastMessage = convData.lastMessage || 'Yeni sohbet';
+
+                recentChats.push({ otherParticipantId, displayName, username, avatarUrl, lastMessage });
+            } catch (error) {
+                console.error('Sohbet kullanıcısı yüklenirken hata:', error);
+            }
+        }
+
+        const titleEl = document.querySelector('.chat-lists-title');
+        if (titleEl) titleEl.textContent = 'Son Sohbetler';
+
+        if (recentChats.length === 0) {
+            friendsList.innerHTML = '<div class="chat-lists-empty"><i class="fa-solid fa-comment-slash"></i><p>Henüz sohbetiniz yok</p></div>';
+            return;
+        }
+
+        let friendsHtml = '';
+        for (let i = 0; i < recentChats.length; i++) {
+            const chat = recentChats[i];
+            if (i === 2) {
+                friendsHtml += `
+                    <div class="chat-friend-item chat-load-more" onclick="showMoreRecentChats()" style="justify-content:center; cursor:pointer;">
+                        <div class="chat-friend-info" style="width:100%; text-align:center; padding: 14px 0;">
+                            <p class="chat-friend-name" style="margin:0;">Daha fazla yükle</p>
+                        </div>
+                    </div>
+                `;
+                break;
+            }
+            friendsHtml += `
+                <div class="chat-friend-item" data-recent-index="${i}" onclick="openChatWithFriend('${chat.otherParticipantId}', '${chat.displayName}', '${chat.username}')">
+                    <img src="${chat.avatarUrl}" class="chat-friend-avatar" alt="">
+                    <div class="chat-friend-info">
+                        <p class="chat-friend-name">${escapeHtml(chat.displayName)}</p>
+                        <p class="chat-friend-lastmsg">${escapeHtml(chat.lastMessage)}</p>
+                    </div>
+                </div>
+            `;
+        }
+
+        friendsList.innerHTML = friendsHtml;
+        if (recentChats.length > 2) {
+            for (let i = 2; i < recentChats.length; i++) {
+                const chat = recentChats[i];
+                const hiddenItem = document.createElement('div');
+                hiddenItem.className = 'chat-friend-item hidden-recent';
+                hiddenItem.style.display = 'none';
+                hiddenItem.innerHTML = `
+                    <img src="${chat.avatarUrl}" class="chat-friend-avatar" alt="">
+                    <div class="chat-friend-info">
+                        <p class="chat-friend-name">${escapeHtml(chat.displayName)}</p>
+                        <p class="chat-friend-lastmsg">${escapeHtml(chat.lastMessage)}</p>
+                    </div>
+                `;
+                hiddenItem.onclick = () => openChatWithFriend(chat.otherParticipantId, chat.displayName, chat.username);
+                friendsList.appendChild(hiddenItem);
+            }
+        }
+    } catch (error) {
+        console.error('Sohbetler yüklenirken hata:', error);
+        friendsList.innerHTML = '<div class="chat-lists-empty"><i class="fa-solid fa-circle-exclamation"></i><p>Sohbetler yüklenemedi</p></div>';
+    }
+}
+
+window.showMoreRecentChats = function() {
+    document.querySelectorAll('.chat-friend-item.hidden-recent').forEach(item => {
+        item.style.display = 'flex';
+    });
+    const loadMoreBtn = document.querySelector('.chat-load-more');
+    if (loadMoreBtn) loadMoreBtn.remove();
 }
 
 // Filter friends
@@ -5894,8 +6018,9 @@ window.filterChatFriends = function(query) {
     items.forEach(item => {
         const name = item.querySelector('.chat-friend-name')?.textContent.toLowerCase() || '';
         const username = item.querySelector('.chat-friend-username')?.textContent.toLowerCase() || '';
+        const lastmsg = item.querySelector('.chat-friend-lastmsg')?.textContent.toLowerCase() || '';
         
-        if (name.includes(searchQuery) || username.includes(searchQuery)) {
+        if (name.includes(searchQuery) || username.includes(searchQuery) || lastmsg.includes(searchQuery)) {
             item.style.display = 'flex';
         } else {
             item.style.display = 'none';
