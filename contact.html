@@ -5,6 +5,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>SosyaLTrend • Sosyal Ağ - İletişim</title>
+  <meta name="description" content="SosyaLTrend ile iletişime geçin. Görüş, öneri ve şikayetlerinizi bize iletebilirsiniz.">
   <link rel="stylesheet" href="assets/fontawesome/css/all.min.css">
   <link rel="stylesheet" href="assets/css/style.css">
   <link rel="icon" type="image/x-icon" href="assets/img/strendsaydamv2.ico">
@@ -34,7 +35,8 @@
                id="contactSubject" 
                name="subject" 
                class="form-input" 
-               placeholder="Mesajınızın konusu...">
+               placeholder="Mesajınızın konusu..."
+               required>
 
         <label class="form-label" for="contactMessage">Mesajınız</label>
         <textarea id="contactMessage" 
@@ -42,7 +44,8 @@
                   class="form-input" 
                   rows="5" 
                   placeholder="Buraya yazın..." 
-                  style="resize: none;"></textarea>
+                  style="resize: none;"
+                  required></textarea>
 
         <button id="sendMessageBtn" type="button" class="form-btn" style="margin-top: 10px;">
           <i class="fa-solid fa-paper-plane"></i> Gönder

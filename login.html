@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SosyalTrend • Sosyal Ağ - Giriş Yap & Kayıt Ol!</title>
+  <meta name="description" content="SosyaLTrend'e giriş yapın veya yeni hesap oluşturun. Ücretsiz sosyal ağ platformu.">
   <link rel="icon" type="image/x-icon" href="assets/img/strendsaydamv2.ico">
 
   <style>
@@ -74,11 +75,12 @@
     
     .divider { width: 1px; background: rgba(0,0,0,.1); } 
 
-    footer.site-footer { width: 100%; padding: 20px 30px; font-size: .8rem; color: #888; margin-top: 20px; text-align: center; }
+    footer.site-footer { width: 100%; padding: 20px 30px; font-size: .8rem; color: #888; margin-top: 40px; text-align: center; }
     .footer-links { display: flex; gap: 10px; align-items: center; justify-content: center; flex-wrap: wrap; }
     .footer-links a { color: #888; text-decoration: none; }
     .footer-links a::after { content: '•'; margin: 0 8px; }
     .footer-links a:last-child::after { content: ''; }
+    .footer-links span { color: #888; }
 
     @media(max-width: 768px) { .wrapper { flex-direction: column; } .divider { width: 100%; height: 1px; } } 
   </style>
@@ -135,16 +137,6 @@
     <span class="toggle-link" onclick="toggleAuth('login')">Anasayfaya dönmek istermisin? Girişe Dön</span>
   </div>
 </div>
-
-<footer class="site-footer">
-  <div class="footer-links">
-    <a href="#">© 2026 SosyalTrend</a>
-    <a href="#">S.S.S</a>
-    <a href="#">Gizlilik Politikası</a>
-    <a href="#">Hakkımızda</a>
-    <a href="#">İletişim</a>
-  </div>
-</footer>
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
@@ -235,5 +227,16 @@
     showStatus(el, m, "#ef4444");
   }
 </script>
+
+<footer class="site-footer">
+  <div class="footer-links">
+    <span>© 2026 SosyalTrend</span>
+    <a href="yardim.html">S.S.S</a>
+    <a href="yardim.html">Gizlilik Politikası</a>
+    <a href="hakkimizda.html">Hakkımızda</a>
+    <a href="contact.html">İletişim</a>
+  </div>
+</footer>
+
 </body>
 </html>

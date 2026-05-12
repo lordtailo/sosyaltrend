@@ -16,75 +16,6 @@ function disableButton(btn, text) {
     }
 }
 
-// sidebar statistics (last user plus total count)
-async function updateSidebarStats() {
-    const totalSpan = document.getElementById('sidebarTotalUsers');
-    const recentList = document.getElementById('sidebarRecentList');
-    console.log('updateSidebarStats called', { totalSpan, recentList });
-    if (!totalSpan || !recentList) {
-        console.error('Missing elements: totalSpan=', !!totalSpan, 'recentList=', !!recentList);
-        return;
-    }
-    try {
-        const usersCol = collection(db, 'users');
-        const allSnap = await getDocs(usersCol);
-        const total = allSnap.size;
-        console.log('Total users:', total);
-        // count-up animation
-        if (totalSpan) {
-            let current = 0;
-            const step = Math.max(1, Math.floor(total / 30));
-            const interval = setInterval(() => {
-                current += step;
-                if (current >= total) {
-                    totalSpan.innerText = total;
-                    clearInterval(interval);
-                } else {
-                    totalSpan.innerText = current;
-                }
-            }, 30);
-        }
-
-        // fetch most recent 10 users
-        const latestQ = query(usersCol, orderBy('createdAt', 'desc'), limit(10));
-        const latestSnap = await getDocs(latestQ);
-        console.log('Recent users fetched:', latestSnap.size);
-        recentList.innerHTML = '';
-        if (!latestSnap.empty) {
-            latestSnap.docs.forEach((docSnap, idx) => {
-                const docData = docSnap.data();
-                const name = docData.displayName || docData.username || '—';
-                const uid = docSnap.id;
-                const avatar = docData.avatarUrl || '';
-                const item = document.createElement('div');
-                item.className = 'recent-item-avatar';
-                item.style.animationDelay = `${idx * 0.1}s`;
-                const imgEl = document.createElement('img');
-                if (avatar) {
-                    imgEl.src = avatar;
-                } else {
-                    imgEl.src = 'assets/img/strendsaydamv2.png';
-                }
-                imgEl.onerror = function() { this.style.display = 'none'; };
-                item.appendChild(imgEl);
-                const tooltip = document.createElement('div');
-                tooltip.className = 'tooltip';
-                tooltip.innerText = name;
-                item.appendChild(tooltip);
-                const profileId = docData.username || uid;
-                item.onclick = () => { window.location.href = `profil.html?id=${encodeURIComponent(profileId)}`; };
-                recentList.appendChild(item);
-                console.log('Added user avatar:', name);
-            });
-        } else {
-            console.warn('No recent users found');
-            recentList.innerHTML = '<div class="no-recent">Henüz kullanıcı yok</div>';
-        }
-    } catch (e) {
-        console.error('sidebar stats fetch error', e);
-    }
-}
-
 // Update character counter below comment input
 function updateCommentCount(postId) {
     const input = document.getElementById(`input-${postId}`);
@@ -303,7 +234,8 @@ document.addEventListener('includesLoaded', () => {
     projectId: "sosyaltrend-21d21",
     storageBucket: "sosyaltrend-21d21.firebasestorage.app",
     messagingSenderId: "207734473261",
-    appId: "1:207734473261:web:f31b6bf2908c6d88986ea4"
+    appId: "1:207734473261:web:f31b6bf2908c6d88986ea4",
+    measurementId: "G-5T2RCQL3MB"
   };
 
 // Hızlı UID ile arkadaş isteği gönderme (suggestions içinden çağrılır)
@@ -384,6 +316,75 @@ await updateDoc(currentUserRef, {
   const db = getFirestore(app);
   const auth = getAuth(app);
   const storage = getStorage(app);
+
+  // sidebar statistics (last user plus total count)
+  async function updateSidebarStats() {
+      const totalSpan = document.getElementById('sidebarTotalUsers');
+      const recentList = document.getElementById('sidebarRecentList');
+      console.log('updateSidebarStats called', { totalSpan, recentList });
+      if (!totalSpan || !recentList) {
+          console.error('Missing elements: totalSpan=', !!totalSpan, 'recentList=', !!recentList);
+          return;
+      }
+      try {
+          const usersCol = collection(db, 'users');
+          const allSnap = await getDocs(usersCol);
+          const total = allSnap.size;
+          console.log('Total users:', total);
+          // count-up animation
+          if (totalSpan) {
+              let current = 0;
+              const step = Math.max(1, Math.floor(total / 30));
+              const interval = setInterval(() => {
+                  current += step;
+                  if (current >= total) {
+                      totalSpan.innerText = total;
+                      clearInterval(interval);
+                  } else {
+                      totalSpan.innerText = current;
+                  }
+              }, 30);
+          }
+
+          // fetch most recent 10 users
+          const latestQ = query(usersCol, orderBy('createdAt', 'desc'), limit(10));
+          const latestSnap = await getDocs(latestQ);
+          console.log('Recent users fetched:', latestSnap.size);
+          recentList.innerHTML = '';
+          if (!latestSnap.empty) {
+              latestSnap.docs.forEach((docSnap, idx) => {
+                  const docData = docSnap.data();
+                  const name = docData.displayName || docData.username || '—';
+                  const uid = docSnap.id;
+                  const avatar = docData.avatarUrl || '';
+                  const item = document.createElement('div');
+                  item.className = 'recent-item-avatar';
+                  item.style.animationDelay = `${idx * 0.1}s`;
+                  const imgEl = document.createElement('img');
+                  if (avatar) {
+                      imgEl.src = avatar;
+                  } else {
+                      imgEl.src = 'assets/img/strendsaydamv2.png';
+                  }
+                  imgEl.onerror = function() { this.style.display = 'none'; };
+                  item.appendChild(imgEl);
+                  const tooltip = document.createElement('div');
+                  tooltip.className = 'tooltip';
+                  tooltip.innerText = name;
+                  item.appendChild(tooltip);
+                  const profileId = docData.username || uid;
+                  item.onclick = () => { window.location.href = `profil.html?id=${encodeURIComponent(profileId)}`; };
+                  recentList.appendChild(item);
+                  console.log('Added user avatar:', name);
+              });
+          } else {
+              console.warn('No recent users found');
+              recentList.innerHTML = '<div class="no-recent">Henüz kullanıcı yok</div>';
+          }
+      } catch (e) {
+          console.error('sidebar stats fetch error', e);
+      }
+  }
 
   let user = {
   displayName: "Misafir",

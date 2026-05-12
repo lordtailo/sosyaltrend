@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>SosyaLTrend • Sosyal Ağ - Admin</title>
+  <meta name="description" content="SosyaLTrend yönetim paneli. Kullanıcı yönetimi ve sistem ayarları.">
   <link rel="stylesheet" href="assets/fontawesome/css/all.min.css">
   <link rel="stylesheet" href="assets/css/style.css">
   <link rel="icon" type="image/x-icon" href="assets/img/strendsaydamv2.ico">
@@ -107,7 +108,8 @@
         projectId: "sosyaltrend-21d21",
         storageBucket: "sosyaltrend-21d21.firebasestorage.app",
         messagingSenderId: "207734473261",
-        appId: "1:207734473261:web:f31b6bf2908c6d88986ea4"
+        appId: "1:207734473261:web:f31b6bf2908c6d88986ea4",
+        measurementId: "G-5T2RCQL3MB"
     };
 
     const app = initializeApp(firebaseConfig);
@@ -184,7 +186,7 @@
 
                 tbody.innerHTML += `
                     <tr class="user-row">
-                        <td><img src="${avatarSrc}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;"><b>${name}</b></td>
+                        <td><img src="${avatarSrc}" alt="${name} avatar" style="width:32px;height:32px;border-radius:50%;object-fit:cover;"><b>${name}</b></td>
                         <td>@${username}</td>
                         <td>${email}</td>
                         <td>${registeredAt}</td>
@@ -267,7 +269,7 @@
                 const isUserAdmin = username === ADMIN_EMAIL.split('@')[0];
                 tbody.innerHTML += `
                     <tr class="user-row">
-                        <td><img src="${avatarSrc}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;"><b>${u.name}</b></td>
+                        <td><img src="${avatarSrc}" alt="${u.name} avatar" style="width:32px;height:32px;border-radius:50%;object-fit:cover;"><b>${u.name}</b></td>
                         <td>@${username}</td>
                         <td><span class="badge ${isUserAdmin ? 'badge-admin' : 'badge-user'}">${isUserAdmin ? 'Admin' : 'Üye'}</span></td>
                         <td><button class="action-btn btn-delete" onclick="alert('Yakında!')">Engelle</button></td>
@@ -316,7 +318,7 @@
                 
                 tbody.innerHTML += `
                     <tr class="user-row">
-                        <td><img src="${avatarSrc}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;"><b>${name}</b></td>
+                        <td><img src="${avatarSrc}" alt="${name} avatar" style="width:32px;height:32px;border-radius:50%;object-fit:cover;"><b>${name}</b></td>
                         <td>@${username}</td>
                         <td><small>${lastActivityTime}</small><br><span style="color: var(--text-muted); font-size: 0.8rem;">${statusText}</span></td>
                         <td>

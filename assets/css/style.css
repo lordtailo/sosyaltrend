@@ -2005,3 +2005,58 @@ aside, .right-panel { display: none; } }
   border-color: rgba(239, 68, 68, 0.6);
   color: #ef4444;
 }
+
+/* Yardım Merkezi Stilleri */
+.category-btn {
+    padding: 8px 16px;
+    border: 1px solid var(--border);
+    background: transparent;
+    border-radius: 20px;
+    cursor: pointer;
+    color: var(--text-main);
+    transition: background 0.2s ease, color 0.2s ease;
+}
+
+.category-btn.active {
+    background: var(--primary);
+    color: white;
+}
+
+.faq-item {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-bottom: 10px;
+    overflow: hidden;
+}
+
+.faq-question {
+    padding: 15px;
+    cursor: pointer;
+    background: var(--card-bg);
+    font-weight: bold;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.faq-question::after {
+    content: '+';
+    font-size: 1.2em;
+    transition: transform 0.2s ease;
+}
+
+.faq-item.active .faq-question::after {
+    content: '-';
+    transform: rotate(180deg);
+}
+
+.faq-answer {
+    display: none;
+    padding: 15px;
+    background: var(--bg);
+    border-top: 1px solid var(--border);
+}
+
+.faq-item.active .faq-answer {
+    display: block;
+}

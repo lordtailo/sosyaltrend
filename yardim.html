@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>SosyaLTrend • Sosyal Ağ - Yardım</title>
+  <meta name="description" content="SosyaLTrend kullanım kılavuzu. Sık sorulan sorular ve yardım merkezi.">
   <link rel="stylesheet" href="assets/fontawesome/css/all.min.css">
   <link rel="stylesheet" href="assets/css/style.css">
   <link rel="icon" type="image/x-icon" href="assets/img/strendsaydamv2.ico">
@@ -23,8 +24,89 @@
             <h2 style="margin-bottom: 20px;" data-i18n="helpHeading">Yardım Merkezi</h2>
             <div class="section-subtitle" data-i18n="helpSub">Sıkça Sorulan Sorular</div>
             <p style="color:var(--text-muted); margin-bottom:15px;" data-i18n="helpText">SosyalTrend kullanımı hakkında merak ettiğiniz her şey burada.</p>
-            <div class="comment-item"><b>Hesabımı nasıl gizlerim?</b><br>Ayarlar sekmesinden 'Gizli Profil' seçeneğini aktif edebilirsiniz.</div>
-            <div class="comment-item"><b>Sayfa nasıl oluşturulur?</b><br>Sayfalar menüsüne giderek kendi topluluğunuzu hemen kurabilirsiniz.</div>
+            
+            <!-- Arama Kutusu -->
+            <input type="text" id="help-search" placeholder="Arama yapın..." style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--input-bg); color: var(--text-main); margin-bottom: 20px;">
+            
+            <!-- Kategoriler -->
+            <div class="help-categories" style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;">
+                <button class="category-btn active" data-category="all">Tümü</button>
+                <button class="category-btn" data-category="general">Genel</button>
+                <button class="category-btn" data-category="account">Hesap</button>
+                <button class="category-btn" data-category="security">Güvenlik</button>
+            </div>
+            
+            <!-- SSS Bölümü -->
+            <div class="faq-section">
+                <div class="faq-item" data-category="account">
+                    <div class="faq-question">Hesabımı nasıl gizlerim?</div>
+                    <div class="faq-answer">Ayarlar sekmesinden 'Gizli Profil' seçeneğini aktif edebilirsiniz.</div>
+                </div>
+                <div class="faq-item" data-category="account">
+                    <div class="faq-question">Şifremi nasıl değiştiririm?</div>
+                    <div class="faq-answer">Profil ayarlarından 'Şifre Değiştir' bölümüne giderek yeni şifrenizi belirleyebilirsiniz.</div>
+                </div>
+                <div class="faq-item" data-category="general">
+                    <div class="faq-question">SosyalTrend nedir?</div>
+                    <div class="faq-answer">SosyalTrend, kullanıcıların trendleri takip ettiği ve topluluklar oluşturduğu bir sosyal platformdur.</div>
+                </div>
+                <div class="faq-item" data-category="security">
+                    <div class="faq-question">Hesabımı nasıl güvende tutarım?</div>
+                    <div class="faq-answer">Güçlü bir şifre kullanın, iki faktörlü kimlik doğrulamasını etkinleştirin ve şüpheli aktiviteleri bildirin.</div>
+                </div>
+                <div class="faq-item" data-category="general">
+                    <div class="faq-question">Uygulamayı nasıl kullanırım?</div>
+                    <div class="faq-answer">Ana sayfadan trendleri görüntüleyebilir, yorum yapabilir ve kendi sayfalarınızı oluşturabilirsiniz.</div>
+                </div>
+                <div class="faq-item" data-category="account">
+                    <div class="faq-question">Profil fotoğrafımı nasıl değiştiririm?</div>
+                    <div class="faq-answer">Profil ayarlarından 'Fotoğraf Yükle' butonuna tıklayarak yeni fotoğrafınızı seçebilirsiniz.</div>
+                </div>
+                <div class="faq-item" data-category="security">
+                    <div class="faq-question">Şüpheli bir hesap nasıl bildiririm?</div>
+                    <div class="faq-answer">Hesabın profil sayfasından 'Bildir' butonuna tıklayarak destek ekibimize iletebilirsiniz.</div>
+                </div>
+                <div class="faq-item" data-category="general">
+                    <div class="faq-question">Gönderi nasıl paylaşılır?</div>
+                    <div class="faq-answer">Ana sayfadaki paylaşım kutusuna metninizi yazın ve 'Paylaş' butonuna tıklayın. Resim veya video ekleyebilirsiniz.</div>
+                </div>
+                <div class="faq-item" data-category="general">
+                    <div class="faq-question">Yorum nasıl yapılır?</div>
+                    <div class="faq-answer">Herhangi bir gönderinin altında bulunan yorum kutusuna yazarak 'Gönder' butonuna tıklayın.</div>
+                </div>
+                <div class="faq-item" data-category="general">
+                    <div class="faq-question">Beğeni nasıl verilir?</div>
+                    <div class="faq-answer">Gönderinin altında bulunan kalp ikonuna tıklayarak beğeniyi aktif edebilirsiniz.</div>
+                </div>
+                <div class="faq-item" data-category="account">
+                    <div class="faq-question">Arkadaş nasıl eklenir?</div>
+                    <div class="faq-answer">Kullanıcının profil sayfasından 'Takip Et' butonuna tıklayarak arkadaşlık isteği gönderebilirsiniz.</div>
+                </div>
+                <div class="faq-item" data-category="account">
+                    <div class="faq-question">Bildirimler nasıl yönetilir?</div>
+                    <div class="faq-answer">Ayarlar bölümünden 'Bildirimler' sekmesine giderek hangi bildirimleri almak istediğinizi seçebilirsiniz.</div>
+                </div>
+                <div class="faq-item" data-category="general">
+                    <div class="faq-question">Karanlık mod nasıl açılır?</div>
+                    <div class="faq-answer">Sağ üst köşedeki ayarlar menüsünden 'Karanlık Mod' seçeneğini aktif edin.</div>
+                </div>
+                <div class="faq-item" data-category="account">
+                    <div class="faq-question">Dil ayarları nasıl değiştirilir?</div>
+                    <div class="faq-answer">Ayarlar sayfasından 'Dil' bölümüne giderek tercih ettiğiniz dili seçebilirsiniz.</div>
+                </div>
+                <div class="faq-item" data-category="account">
+                    <div class="faq-question">Hesap nasıl silinir?</div>
+                    <div class="faq-answer">Ayarlar bölümünden 'Hesabı Sil' seçeneğine tıklayın. Bu işlem geri alınamaz, lütfen dikkatli olun.</div>
+                </div>
+                <div class="faq-item" data-category="security">
+                    <div class="faq-question">Veri gizliliği politikası nedir?</div>
+                    <div class="faq-answer">Verileriniz güvenli bir şekilde saklanır ve üçüncü taraflarla paylaşılmaz. Daha fazla bilgi için Gizlilik Politikası sayfamızı ziyaret edin.</div>
+                </div>
+                <div class="faq-item" data-category="general">
+                    <div class="faq-question">Teknik destek nasıl alınır?</div>
+                    <div class="faq-answer">İletişim sayfasından destek talebi gönderebilir veya canlı sohbet özelliğini kullanabilirsiniz.</div>
+                </div>
+            </div>
         </div>
     </div>
   </main>
@@ -51,6 +133,55 @@
 
 <script src="assets/js/include.js"></script>
 <script type="module" src="assets/js/app.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Akordeon işlevi
+    const faqQuestions = document.querySelectorAll('.faq-question');
+    faqQuestions.forEach(question => {
+        question.addEventListener('click', function() {
+            const item = this.parentElement;
+            item.classList.toggle('active');
+        });
+    });
+
+    // Kategori filtreleme
+    const categoryBtns = document.querySelectorAll('.category-btn');
+    const faqItems = document.querySelectorAll('.faq-item');
+
+    categoryBtns.forEach(btn => {
+        btn.addEventListener('click', function() {
+            // Aktif buton değiştir
+            document.querySelector('.category-btn.active').classList.remove('active');
+            this.classList.add('active');
+
+            const category = this.getAttribute('data-category');
+            faqItems.forEach(item => {
+                if (category === 'all' || item.getAttribute('data-category') === category) {
+                    item.style.display = 'block';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        });
+    });
+
+    // Arama işlevi
+    const searchInput = document.getElementById('help-search');
+    searchInput.addEventListener('input', function() {
+        const query = this.value.toLowerCase();
+        faqItems.forEach(item => {
+            const question = item.querySelector('.faq-question').textContent.toLowerCase();
+            const answer = item.querySelector('.faq-answer').textContent.toLowerCase();
+            if (question.includes(query) || answer.includes(query)) {
+                item.style.display = 'block';
+            } else {
+                item.style.display = 'none';
+            }
+        });
+    });
+});
+</script>
 
 </body>
 </html>
