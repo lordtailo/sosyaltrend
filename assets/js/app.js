@@ -5767,15 +5767,12 @@ function initChatListsPanel() {
                 <i class="fa-solid fa-times"></i>
             </button>
         </div>
-        <div class="chat-lists-actions" style="display:flex; gap:10px; align-items:center; padding:0 12px 10px;">
+        <div class="chat-lists-actions" style="display:flex; gap:10px; align-items:center; padding:5px 5px 0px;">
             <button type="button" onclick="loadRecentChats()" style="flex:1; padding:10px 14px; border:none; border-radius: 12px; background: var(--primary); color:white; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;">
                 <i class="fa-solid fa-clock-rotate-left"></i> Son Sohbetler
             </button>
             <button type="button" onclick="loadChatFriends()" style="flex:1; padding:10px 14px; border:none; border-radius: 12px; background: var(--primary); color:white; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;">
                 <i class="fa-solid fa-users"></i> Arkadaşlarım
-            </button>
-            <button type="button" onclick="addFriendFromChat()" style="padding:10px 14px; border:none; border-radius: 12px; background: var(--primary); color:white; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;">
-                <i class="fa-solid fa-user-plus"></i> Arkadaş Ekle
             </button>
         </div>
         <div class="chat-lists-search">
