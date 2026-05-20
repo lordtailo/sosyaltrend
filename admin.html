@@ -24,8 +24,13 @@
         .admin-tabs { display: flex; gap: 15px; margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 10px; }
         .tab-btn { background: none; border: none; color: var(--text-muted); padding: 8px 16px; cursor: pointer; font-weight: 600; transition: 0.3s; }
         .tab-btn.active { color: var(--primary); border-bottom: 2px solid var(--primary); }
+        .admin-subtabs { display: flex; gap: 12px; margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 10px; }
+        .subtab-btn { background: none; border: none; color: var(--text-muted); padding: 8px 14px; cursor: pointer; font-weight: 600; transition: 0.3s; }
+        .subtab-btn.active { color: var(--primary); border-bottom: 2px solid var(--primary); }
         .admin-section { display: none; }
         .admin-section.active { display: block; }
+        .admin-subsection { display: none; }
+        .admin-subsection.active { display: block; }
         .data-table { width: 100%; border-collapse: collapse; margin-top: 15px; }
         .data-table th, .data-table td { padding: 12px; text-align: left; border-bottom: 1px solid var(--border); }
         .user-row img { width: 32px; height: 32px; border-radius: 50%; vertical-align: middle; margin-right: 10px; }
@@ -56,7 +61,6 @@
             <button class="tab-btn" onclick="switchTab('users')">Aktif Kullanıcı Yönetimi</button>
             <button class="tab-btn" onclick="switchTab('registered')">Tüm Kayıtlı Kullanıcılar</button>
             <button class="tab-btn" onclick="switchTab('moderation')">İçerik Denetimi</button>
-
         </div>
 
         <div id="section-announcement" class="admin-section active">
@@ -66,17 +70,33 @@
         </div>
 
         <div id="section-users" class="admin-section">
-            <div class="section-subtitle">Aktif Kullanıcı Veritabanı (Etkileşime Göre)</div>
-            <table class="data-table">
-                <thead><tr><th>Kullanıcı</th><th>Kullanıcı Adı</th><th>Rol</th><th>İşlem</th></tr></thead>
-                <tbody id="user-list-body"></tbody>
-            </table>
-            
-            <div style="margin-top: 30px;">
+            <div class="admin-subtabs">
+                <button class="subtab-btn active" onclick="switchUserSubtab('active')">Aktif Kullanıcı Veritabanı</button>
+                <button class="subtab-btn" onclick="switchUserSubtab('recent')">24 Saat İçinde Giriş Yapan Kullanıcılar</button>
+                <button class="subtab-btn" onclick="switchUserSubtab('loginTimes')">En Son Ne Zaman Girdiler</button>
+            </div>
+
+            <div id="subsection-active" class="admin-subsection active">
+                <div class="section-subtitle">Aktif Kullanıcı Veritabanı (Etkileşime Göre)</div>
+                <table class="data-table">
+                    <thead><tr><th>Kullanıcı</th><th>Kullanıcı Adı</th><th>Rol</th><th>İşlem</th></tr></thead>
+                    <tbody id="user-list-body"></tbody>
+                </table>
+            </div>
+
+            <div id="subsection-recent" class="admin-subsection">
                 <div class="section-subtitle">24 Saat İçinde Giriş Yapan Kullanıcılar</div>
                 <table class="data-table">
                     <thead><tr><th>Kullanıcı</th><th>Kullanıcı Adı</th><th>Son Giriş</th><th>Durum</th></tr></thead>
                     <tbody id="recent-logins-body"></tbody>
+                </table>
+            </div>
+
+            <div id="subsection-loginTimes" class="admin-subsection">
+                <div class="section-subtitle">En Son Ne Zaman Girdiler</div>
+                <table class="data-table">
+                    <thead><tr><th>Kullanıcı</th><th>Kullanıcı Adı</th><th>Son Giriş</th><th>Kullanıcı Sil</th></tr></thead>
+                    <tbody id="last-login-times-body"></tbody>
                 </table>
             </div>
         </div>
@@ -154,6 +174,7 @@
         loadUsersFromPosts();
         loadAllPosts();
         loadRecentLogins();
+        loadLoginTimes();
         loadAllRegisteredUsers();
     }
 
@@ -209,6 +230,18 @@
         } catch (e) {
             console.error('Admin yetkisi değiştirilemedi:', e);
             alert('Yönetici yetkisi değiştirilemedi.');
+        }
+    };
+
+    window.deleteUserFromLoginTimes = async (userDocId) => {
+        if (!confirm('Bu kullanıcıyı veritabanından silmek istediğinizden emin misiniz?')) return;
+        try {
+            await deleteDoc(doc(db, "users", userDocId));
+            loadLoginTimes();
+            alert('Kullanıcı veritabanından silindi.');
+        } catch (e) {
+            console.error('Kullanıcı silme hatası:', e);
+            alert('Kullanıcı silinirken hata oluştu.');
         }
     };
 
@@ -332,6 +365,46 @@
         }
     }
 
+    async function loadLoginTimes() {
+        try {
+            const loginTimesSnap = await getDocs(query(
+                collection(db, "users"),
+                orderBy("lastActiveAt", "desc"),
+                limit(200)
+            ));
+
+            const tbody = document.getElementById('last-login-times-body');
+            tbody.innerHTML = '';
+
+            if (loginTimesSnap.empty) {
+                tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: var(--text-muted);">Giriş verisi bulunamadı</td></tr>';
+                return;
+            }
+
+            loginTimesSnap.forEach(doc => {
+                const data = doc.data();
+                const username = data.username || (data.email ? data.email.split('@')[0] : 'Bilinmiyor');
+                const name = data.displayName || data.name || username;
+                const lastActivityTime = data.lastActiveAt ? data.lastActiveAt.toDate().toLocaleString('tr-TR') : 'Bilinmiyor';
+                const isUserAdmin = data.isAdmin === true || data.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase() || username === ADMIN_EMAIL.split('@')[0];
+                const avatarSrc = data.avatarUrl && data.avatarUrl.trim() !== ''
+                    ? data.avatarUrl
+                    : `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(data.avatarSeed || username || '1')}`;
+
+                tbody.innerHTML += `
+                    <tr class="user-row">
+                        <td><img src="${avatarSrc}" alt="${name} avatar" style="width:32px;height:32px;border-radius:50%;object-fit:cover;"><b>${name}</b></td>
+                        <td>@${username}</td>
+                        <td>${lastActivityTime}</td>
+                        <td><button class="action-btn btn-delete" ${isUserAdmin ? 'disabled' : ''} onclick="deleteUserFromLoginTimes('${doc.id}')">${isUserAdmin ? 'Silinemez' : 'Kullanıcı Sil'}</button></td>
+                    </tr>`;
+            });
+        } catch (e) {
+            console.error('Login times error:', e);
+            document.getElementById('last-login-times-body').innerHTML = '<tr><td colspan="4" style="text-align: center; color: var(--danger);">Veri yüklenirken hata oluştu</td></tr>';
+        }
+    }
+
     // Duyuru Gönderme (Aynı kaldı)
     document.getElementById('broadcastBtn').onclick = async () => {
         const content = document.getElementById('adminNoticeInput').value.trim();
@@ -357,6 +430,17 @@
         if(event) event.target.classList.add('active');
         if (tabId === 'registered') {
             loadAllRegisteredUsers();
+        }
+    };
+
+    window.switchUserSubtab = (subtabId) => {
+        document.querySelectorAll('.admin-subsection').forEach(s => s.classList.remove('active'));
+        document.querySelectorAll('.subtab-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById('subsection-' + subtabId).classList.add('active');
+        const btn = document.querySelector(`.subtab-btn[onclick="switchUserSubtab('${subtabId}')"]`);
+        if (btn) btn.classList.add('active');
+        if (subtabId === 'loginTimes') {
+            loadLoginTimes();
         }
     };
 

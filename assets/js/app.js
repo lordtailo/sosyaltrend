@@ -552,11 +552,11 @@ onAuthStateChanged(auth, async (fbUser) => {
         }
         const stbotBtn = document.getElementById('stbot-chat-btn');
         if (stbotBtn) {
-            stbotBtn.style.display = user.isAdmin ? 'flex' : 'none';
+            stbotBtn.style.display = auth.currentUser ? 'flex' : 'none';
         }
         const aiButton = document.getElementById('ai-chat-btn');
         if (aiButton) {
-            aiButton.style.display = user.isAdmin ? 'inline-flex' : 'none';
+            aiButton.style.display = auth.currentUser ? 'inline-flex' : 'none';
         }
     }
     
@@ -1262,27 +1262,25 @@ function getAvatarUrl(avatarUrlOrSeed, type = 'user') {
             publishBtn.title = '';
         }
     }
-    if(sJd) {
-        console.log('sidebarJoinDate element found', { sJd, createdAt: user.createdAt });
-        if(user.createdAt) {
+    if (sJd) {
+        const createdAt = user.createdAt;
+        if (createdAt) {
             try {
-                const joinDate = new Date(user.createdAt.seconds * 1000 || user.createdAt).toLocaleDateString('tr-TR', {
+                const createdAtDate = createdAt.toDate ? createdAt.toDate() :
+                    (createdAt.seconds != null ? new Date(createdAt.seconds * 1000) : new Date(createdAt));
+                const joinDate = createdAtDate.toLocaleDateString('tr-TR', {
                     year: 'numeric',
                     month: 'long',
                     day: 'numeric'
                 });
                 sJd.innerText = `Kayıt Tarihi: ${joinDate}`;
-                console.log('Join date set:', joinDate);
-            } catch(e) {
+            } catch (e) {
                 console.error('Join date formatting error:', e);
                 sJd.innerText = 'Kayıt Tarihi: —';
             }
         } else {
-            console.warn('No createdAt in user object');
             sJd.innerText = 'Kayıt Tarihi: —';
         }
-    } else {
-        console.warn('sidebarJoinDate element not found');
     }
 
     // Profil Sayfası Güncelleme
@@ -5724,9 +5722,14 @@ function initChatWidget() {
                 <h3 id="chat-widget-title">Sohbet</h3>
                 <span id="chat-unread-count" class="chat-unread-badge" style="display:none;">0 yeni</span>
             </div>
-            <a id="chat-ai-link" href="/stbot/index.html" target="_blank" style="display:none; align-items:center; gap:6px; padding:8px 12px; border:none; border-radius:999px; background: linear-gradient(135deg, var(--primary), #a78bfa); color:white; text-decoration:none; font-size:0.85rem;">
-                <i class="fa-solid fa-brain"></i> Yapay Zeka
-            </a>
+            <div style="display:flex; align-items:center; gap:8px;">
+                <button id="chat-clear-btn" type="button" onclick="window.clearChatHistory()" style="display:none; align-items:center; gap:6px; padding:8px 12px; border:none; border-radius:999px; background: linear-gradient(90deg,#ef4444,#fb7185); color:white; font-size:0.85rem; cursor:pointer;">
+                    <i class="fa-solid fa-trash-can"></i> Geçmişi Sil
+                </button>
+                <a id="chat-ai-link" href="/stbot/index.html" target="_blank" style="display:none; align-items:center; gap:6px; padding:8px 12px; border:none; border-radius:999px; background: linear-gradient(135deg, var(--primary), #a78bfa); color:white; text-decoration:none; font-size:0.85rem;">
+                    <i class="fa-solid fa-brain"></i> Yapay Zeka
+                </a>
+            </div>
         </div>
             <div style="display: flex; gap: 8px; align-items: center;">
                 <button class="close-btn" onclick="closeChatWidget()">
@@ -5884,19 +5887,15 @@ window.openStBotChat = async function() {
         alert('Lütfen giriş yapın');
         return;
     }
-    if (!user.isAdmin) {
-        alert('Yapay Zeka yalnızca yöneticiler için erişilebilir.');
-        return;
-    }
 
     if (!document.getElementById('chat-widget-container')) {
         initChatWidget();
     }
 
     const botId = 'stbot_internal';
-    const botDisplayName = 'Yapay Zeka';
+    const botDisplayName = user.isAdmin ? 'Yapay Zeka' : 'Yapay Zeka Asistanı';
     const currentUserId = auth.currentUser.uid;
-    const conversationId = `bot_${botId}`;
+    const conversationId = `bot_${currentUserId}_${botId}`;
 
     const convRef = doc(db, 'conversations', conversationId);
     const convSnap = await getDoc(convRef);
@@ -5924,6 +5923,11 @@ window.openStBotChat = async function() {
     const titleEl = document.getElementById('chat-widget-title');
     if (titleEl) {
         titleEl.textContent = currentChatUsername;
+    }
+
+    const clearButton = document.getElementById('chat-clear-btn');
+    if (clearButton) {
+        clearButton.style.display = 'inline-flex';
     }
 
     const widgetEl = document.getElementById('chat-widget-container');
@@ -6022,7 +6026,7 @@ function generateStBotResponse(text) {
 
 async function replyFromStBot(userText) {
     if (currentChatUserId !== 'stbot_internal' || !currentConversationId) return;
-    const botMessageText = generateStBotResponse(userText);
+    const botMessageText = await generateStBotResponseAsync(userText);
     try {
         await addDoc(collection(db, 'conversations', currentConversationId, 'messages'), {
             senderId: 'stbot_internal',
@@ -6039,6 +6043,43 @@ async function replyFromStBot(userText) {
     } catch (error) {
         console.error('Yapay Zeka yanıtı oluşturulurken hata:', error);
     }
+}
+
+// Yükle mathjs dinamik olarak gerektiğinde
+function loadMathJsIfNeeded() {
+    return new Promise((resolve, reject) => {
+        if (window.math) return resolve(window.math);
+        const s = document.createElement('script');
+        s.src = 'https://cdn.jsdelivr.net/npm/mathjs@11.8.0/lib/browser/math.min.js';
+        s.onload = () => resolve(window.math);
+        s.onerror = (e) => reject(e);
+        document.head.appendChild(s);
+    });
+}
+
+// Asenkron cevap üretici: matematiksel ifadeleri hesaplayabilir
+async function generateStBotResponseAsync(text) {
+    const trimmed = (text || '').trim();
+    const normalized = trimmed.toLowerCase();
+
+    // Basit matematik sorgusu belirleme: içerikte sayı ve operatör varsa veya "hesapla/kac" kelimeleri
+    const looksLikeMath = /[0-9\d].*|\b(hesapla|kaç|kaçtır|topla|çarp|böl|çıkar|çıkart|karekök|karekök|üs|kuvvet|log)\b/i;
+    const containsOperators = /[\d\.]+\s*[\+\-\*\/%\^]\s*[\d\.\(\)]/;
+
+    if (looksLikeMath.test(normalized) && containsOperators.test(trimmed)) {
+        try {
+            await loadMathJsIfNeeded();
+            // math.evaluate daha karmaşık ifadeleri de çözer
+            const result = window.math.evaluate(trimmed);
+            return `Sonuç: ${result}`;
+        } catch (e) {
+            console.error('Math evaluation error:', e);
+            return 'Matematiksel ifadeyi değerlendirirken bir hata oluştu. Lütfen ifadeyi kontrol edin.';
+        }
+    }
+
+    // Diğer durumlarda mevcut senkron jeneratörü kullan
+    return generateStBotResponse(text);
 }
 
 // Load friends for chat
@@ -6478,6 +6519,11 @@ window.openChatWithUser = async function(userId, displayName) {
         // Show widget
         const widgetEl = document.getElementById('chat-widget-container');
         widgetEl.classList.add('active');
+
+        const clearButton = document.getElementById('chat-clear-btn');
+        if (clearButton) {
+            clearButton.style.display = 'inline-flex';
+        }
         
         // Load messages
         loadChatMessages(conversationId);
@@ -6543,6 +6589,11 @@ window.openGroupChat = async function(groupId, groupName, memberIds = []) {
 
     const widgetEl = document.getElementById('chat-widget-container');
     widgetEl.classList.add('active');
+
+    const clearButton = document.getElementById('chat-clear-btn');
+    if (clearButton) {
+        clearButton.style.display = 'inline-flex';
+    }
 
     loadChatMessages(conversationId);
     resetChatInactivityTimer();
@@ -6737,6 +6788,11 @@ window.closeChatWidget = function() {
     const widgetEl = document.getElementById('chat-widget-container');
     if (widgetEl) {
         widgetEl.classList.remove('active');
+    }
+
+    const clearButton = document.getElementById('chat-clear-btn');
+    if (clearButton) {
+        clearButton.style.display = 'none';
     }
     
     currentChatUserId = null;
@@ -7116,6 +7172,52 @@ window.deleteMessage = async function(messageId) {
         await deleteDoc(doc(db, 'conversations', currentConversationId, 'messages', messageId));
     } catch (e) {
         console.error('Mesaj silme hatası', e);
+    }
+}
+
+window.clearChatHistory = async function() {
+    if (!currentConversationId || !auth.currentUser) {
+        alert('Önce bir sohbet seçin.');
+        return;
+    }
+
+    if (!confirm('Sohbet geçmişini tamamen silmek istediğinize emin misiniz?')) {
+        return;
+    }
+
+    const messagesContainer = document.getElementById('chat-widget-messages');
+    const clearButton = document.getElementById('chat-clear-btn');
+    if (clearButton) clearButton.disabled = true;
+
+    try {
+        const messagesQuery = query(collection(db, 'conversations', currentConversationId, 'messages'));
+        const snapshot = await getDocs(messagesQuery);
+
+        const deletePromises = [];
+        snapshot.forEach((docSnap) => {
+            deletePromises.push(deleteDoc(doc(db, 'conversations', currentConversationId, 'messages', docSnap.id)));
+        });
+
+        await Promise.all(deletePromises);
+        await updateDoc(doc(db, 'conversations', currentConversationId), {
+            lastMessage: '',
+            lastMessageAt: serverTimestamp(),
+            lastSenderId: ''
+        });
+
+        if (messagesContainer) {
+            messagesContainer.innerHTML = `
+                <div class="chat-empty">
+                    <i class="fa-regular fa-comment"></i>
+                    <p>Sohbet geçmişi silindi.</p>
+                </div>
+            `;
+        }
+    } catch (e) {
+        console.error('Sohbet geçmişi silme hatası', e);
+        alert('Sohbet geçmişi silinirken bir hata oluştu.');
+    } finally {
+        if (clearButton) clearButton.disabled = false;
     }
 }
 
