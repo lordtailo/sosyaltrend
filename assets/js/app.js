@@ -74,11 +74,119 @@ async function loadComponents() {
     
     // Paylaş modalını önceden oluştur
     createShareModal();
+    loadPollWidget();
 }
 
 // Expose delete functions for HTML onclicks
 window.deleteVideo = deleteVideo;
 window.deleteMusic = deleteMusic;
+
+let pollWidgetUnsubscribe = null;
+
+window.loadPollWidget = function() {
+    const container = document.getElementById('poll-widget-content');
+    if (!container) return;
+    if (pollWidgetUnsubscribe) pollWidgetUnsubscribe();
+
+    const pollQuery = query(collection(db, 'polls'), orderBy('createdAt', 'desc'), limit(10));
+    pollWidgetUnsubscribe = onSnapshot(pollQuery, (snap) => {
+        const polls = [];
+        snap.forEach(docSnap => {
+            const data = docSnap.data();
+            if (!data) return;
+            const expiresAt = data.expiresAt?.toDate ? data.expiresAt.toDate() : new Date(data.expiresAt);
+            polls.push({ id: docSnap.id, ...data, expiresAt });
+        });
+
+        const now = new Date();
+        const activePoll = polls.find(p => p.expiresAt > now) || polls[0] || null;
+        if (!activePoll) {
+            container.innerHTML = '<div style="color: var(--text-muted);">Henüz anket yok.</div>';
+            return;
+        }
+
+        const pollExpired = activePoll.expiresAt <= now;
+        const totalVotes = Object.values(activePoll.counts || {}).reduce((sum, count) => sum + (count || 0), 0);
+        const userVoted = auth.currentUser && (activePoll.voters || []).some(v => v.uid === auth.currentUser.uid);
+        const canVote = !pollExpired && auth.currentUser && !userVoted;
+        const optionButtons = (activePoll.options || []).map(opt => {
+            const count = activePoll.counts?.[opt.id] || 0;
+            const percent = totalVotes ? Math.round((count / totalVotes) * 100) : 0;
+            return `
+                <div style="margin-bottom: 12px;">
+                    <div style="display:flex; justify-content:space-between; gap:10px; align-items:center; font-size:0.95rem;">
+                        <span>${escapeHtml(opt.label)}</span>
+                        <span>${count} oy</span>
+                    </div>
+                    <div style="height: 10px; background: var(--border); border-radius: 999px; overflow:hidden; margin-top:6px;">
+                        <div style="width: ${percent}%; height:100%; background: linear-gradient(135deg, var(--primary), #8b5cf6);"></div>
+                    </div>
+                    ${canVote ? `<button onclick="votePoll('${activePoll.id}', '${opt.id}')" style="margin-top:10px; width:100%; background: var(--primary); color:white; border:none; border-radius:12px; padding:10px; cursor:pointer;">Oy ver</button>` : ''}
+                </div>`;
+        }).join('');
+
+        const votersHtml = (activePoll.voters || []).slice(0, 12).map(v => `<span style="display:inline-flex; margin:2px 4px; padding:6px 10px; border-radius:999px; border:1px solid var(--border); background: rgba(99,102,241,0.08);">${escapeHtml(v.displayName || v.username || 'Anonim')}</span>`).join('') || '<div style="color: var(--text-muted);">Henüz oy kullanan yok.</div>';
+
+        container.innerHTML = `
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px; margin-bottom: 10px;">
+                <div>
+                    <strong style="font-size:0.95rem;">${escapeHtml(activePoll.question)}</strong>
+                    <div style="font-size:0.8rem; color: var(--text-muted); margin-top:4px;">${pollExpired ? 'Anket süresi doldu' : `Bitiş: ${activePoll.expiresAt.toLocaleString('tr-TR')}`}</div>
+                </div>
+                <div style="font-size:0.8rem; color: var(--text-muted);">${totalVotes} oy</div>
+            </div>
+            <div>${optionButtons}</div>
+            <div style="font-size:0.85rem; color: var(--text-muted); margin-top: 8px;">Oy kullananlar:</div>
+            <div style="margin-top: 8px; display:flex; flex-wrap:wrap; gap:4px;">${votersHtml}</div>
+            ${!auth.currentUser ? '<div style="margin-top:10px; color:var(--danger); font-size:0.9rem;">Oy vermek için giriş yapın.</div>' : ''}
+            ${auth.currentUser && userVoted && !pollExpired ? '<div style="margin-top:10px; color:var(--success); font-size:0.9rem;">Oyunuz kaydedildi. Sonuçları görebilirsiniz.</div>' : ''}
+        `;
+    }, (error) => {
+        console.error('Poll widget snapshot error:', error);
+        const containerErr = document.getElementById('poll-widget-content');
+        if (containerErr) containerErr.innerHTML = '<div style="color: var(--danger);">Anketler yüklenemedi.</div>';
+    });
+};
+
+window.votePoll = async function(pollId, optionId) {
+    if (!auth.currentUser) {
+        alert('Oy kullanmak için giriş yapın.');
+        return;
+    }
+    try {
+        const pollRef = doc(db, 'polls', pollId);
+        const pollDoc = await getDoc(pollRef);
+        if (!pollDoc.exists()) {
+            alert('Anket bulunamadı.');
+            return;
+        }
+        const poll = pollDoc.data();
+        const expiresAt = poll.expiresAt?.toDate ? poll.expiresAt.toDate() : new Date(poll.expiresAt);
+        if (expiresAt <= new Date()) {
+            alert('Anket süresi dolmuş.');
+            return;
+        }
+        if ((poll.voters || []).some(v => v.uid === auth.currentUser.uid)) {
+            alert('Bu ankete zaten oy verdiniz.');
+            return;
+        }
+        const voter = {
+            uid: auth.currentUser.uid,
+            username: user.username,
+            displayName: user.displayName,
+            optionId,
+            votedAt: new Date()
+        };
+        await updateDoc(pollRef, {
+            [`counts.${optionId}`]: increment(1),
+            voters: arrayUnion(voter)
+        });
+        loadPollWidget();
+    } catch (error) {
+        console.error('Oy verme hatası:', error);
+        alert('Oyunuz kaydedilemedi. Lütfen tekrar deneyin.');
+    }
+};
 
 // Expose sendNotification for manual testing from console
 window.sendNotification = sendNotification;
@@ -490,6 +598,7 @@ onAuthStateChanged(auth, async (fbUser) => {
         updateUIWithUser();
         // also update sidebar statistics such as total users and last signup
         updateSidebarStats();
+        loadPollWidget();
         // Ensure feed is loaded with current user context so profile tabs populate
         try { loadPostsFeed(); } catch(e) { console.warn('loadPostsFeed retry failed', e); }
         // also populate profile sections if on profile page

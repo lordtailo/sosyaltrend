@@ -61,6 +61,7 @@
             <button class="tab-btn" onclick="switchTab('users')">Aktif Kullanıcı Yönetimi</button>
             <button class="tab-btn" onclick="switchTab('registered')">Tüm Kayıtlı Kullanıcılar</button>
             <button class="tab-btn" onclick="switchTab('moderation')">İçerik Denetimi</button>
+            <button class="tab-btn" onclick="switchTab('polls')">Anket Yönetimi</button>
         </div>
 
         <div id="section-announcement" class="admin-section active">
@@ -109,6 +110,32 @@
             </table>
         </div>
 
+        <div id="section-polls" class="admin-section">
+            <div class="section-subtitle">Yeni Anket Oluştur</div>
+            <div style="display:grid; gap:12px; margin-bottom:20px;">
+                <input id="pollQuestion" class="form-input" placeholder="Anket sorusunu yazın..." style="width:100%; padding:12px; border-radius:12px; border:1px solid var(--border); background:transparent; color:var(--text-main);">
+                <div style="display:grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap:10px;">
+                    <input id="pollOption1" class="form-input" placeholder="Seçenek 1" style="padding:12px; border-radius:12px; border:1px solid var(--border); background:transparent; color:var(--text-main);">
+                    <input id="pollOption2" class="form-input" placeholder="Seçenek 2" style="padding:12px; border-radius:12px; border:1px solid var(--border); background:transparent; color:var(--text-main);">
+                    <input id="pollOption3" class="form-input" placeholder="Seçenek 3 (isteğe bağlı)" style="padding:12px; border-radius:12px; border:1px solid var(--border); background:transparent; color:var(--text-main);">
+                    <input id="pollOption4" class="form-input" placeholder="Seçenek 4 (isteğe bağlı)" style="padding:12px; border-radius:12px; border:1px solid var(--border); background:transparent; color:var(--text-main);">
+                </div>
+                <div style="display:flex; flex-wrap:wrap; gap:10px; align-items:center;">
+                    <div style="display:flex; gap:8px; align-items:center;">
+                        <label for="pollDays" style="font-size:0.9rem; color:var(--text-muted);">Süre:</label>
+                        <input id="pollDays" type="number" min="0" max="30" value="0" style="width:80px; padding:10px; border-radius:12px; border:1px solid var(--border); background:transparent; color:var(--text-main);" placeholder="Gün">
+                        <span style="font-size:0.9rem; color:var(--text-muted);">gün</span>
+                        <input id="pollHours" type="number" min="1" max="168" value="24" style="width:80px; padding:10px; border-radius:12px; border:1px solid var(--border); background:transparent; color:var(--text-main);" placeholder="Saat">
+                        <span style="font-size:0.9rem; color:var(--text-muted);">saat</span>
+                    </div>
+                    <button id="createPollBtn" class="form-btn" style="width:auto; padding:12px 24px;">Anket Oluştur</button>
+                </div>
+                <div style="font-size:0.85rem; color:var(--text-muted);">Oluşturduğunuz anket ana sayfada sol altta görünür. Kullanıcılar sadece bir kez oy verebilir; anket sonuçları ve oy kullananlar listesi gösterilir.</div>
+            </div>
+            <div class="section-subtitle">Mevcut ve Önceki Anketler</div>
+            <div id="admin-polls-list"></div>
+        </div>
+
         <div id="section-moderation" class="admin-section">
             <div class="section-subtitle">Tüm Paylaşımları Yönet</div>
             <div id="admin-feed-list"></div>
@@ -136,6 +163,16 @@
     const db = getFirestore(app);
     const auth = getAuth(app);
     const ADMIN_EMAIL = "officialfthuzun@gmail.com";
+
+    function escapeHtml(text) {
+        if (text === null || text === undefined) return '';
+        return String(text)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
 
     let isAdminInitialized = false;
 
@@ -176,6 +213,7 @@
         loadRecentLogins();
         loadLoginTimes();
         loadAllRegisteredUsers();
+        loadPollsAdmin();
     }
 
     async function loadAllRegisteredUsers() {
@@ -423,6 +461,141 @@
         } catch (e) { console.error(e); }
     };
 
+    document.getElementById('createPollBtn').onclick = async () => {
+        const question = document.getElementById('pollQuestion').value.trim();
+        const optionInputs = [
+            document.getElementById('pollOption1').value.trim(),
+            document.getElementById('pollOption2').value.trim(),
+            document.getElementById('pollOption3').value.trim(),
+            document.getElementById('pollOption4').value.trim()
+        ];
+        const options = optionInputs.filter(opt => opt !== '').slice(0, 4);
+        const days = parseInt(document.getElementById('pollDays').value, 10) || 0;
+        const hours = parseInt(document.getElementById('pollHours').value, 10) || 0;
+        const durationMs = ((days * 24) + hours) * 60 * 60 * 1000;
+
+        if (!question) {
+            alert('Anket sorusunu yazın.');
+            return;
+        }
+        if (options.length < 2) {
+            alert('En az iki seçenek girin.');
+            return;
+        }
+        if (durationMs <= 0) {
+            alert('Anket süresi en az 1 saat olmalıdır.');
+            return;
+        }
+
+        try {
+            const now = Date.now();
+            const expiresAt = new Date(now + durationMs);
+            const optionList = options.map((label, index) => ({ id: `opt${index + 1}`, label }));
+            const counts = optionList.reduce((acc, opt) => ({ ...acc, [opt.id]: 0 }), {});
+            await addDoc(collection(db, 'polls'), {
+                question,
+                options: optionList,
+                counts,
+                voters: [],
+                createdAt: serverTimestamp(),
+                expiresAt,
+                createdBy: ADMIN_EMAIL.split('@')[0],
+                isActive: true
+            });
+            document.getElementById('pollQuestion').value = '';
+            document.getElementById('pollOption1').value = '';
+            document.getElementById('pollOption2').value = '';
+            document.getElementById('pollOption3').value = '';
+            document.getElementById('pollOption4').value = '';
+            document.getElementById('pollDays').value = '0';
+            document.getElementById('pollHours').value = '24';
+            alert('Anket oluşturuldu. Ana sayfada sol altta görünecek.');
+            loadPollsAdmin();
+        } catch (e) {
+            console.error('Anket oluşturma hatası:', e);
+            alert('Anket oluşturulurken hata oluştu.');
+        }
+    };
+
+    async function loadPollsAdmin() {
+        try {
+            const pollsSnap = await getDocs(query(collection(db, 'polls'), orderBy('createdAt', 'desc')));
+            const list = document.getElementById('admin-polls-list');
+            list.innerHTML = '';
+
+            if (pollsSnap.empty) {
+                list.innerHTML = '<div style="color: var(--text-muted); padding: 12px;">Henüz anket oluşturulmamış.</div>';
+                return;
+            }
+
+            pollsSnap.forEach(pollDoc => {
+                const poll = pollDoc.data();
+                const expiresAt = poll.expiresAt?.toDate ? poll.expiresAt.toDate() : new Date(poll.expiresAt);
+                const isExpired = expiresAt < new Date();
+                const totalVotes = Object.values(poll.counts || {}).reduce((sum, val) => sum + (val || 0), 0);
+                const statusText = isExpired ? 'Süresi doldu' : `Aktif - bitiş: ${expiresAt.toLocaleString('tr-TR')}`;
+                const votersHtml = (poll.voters || []).slice(0, 10).map(v => `<span style="display:inline-block; margin:2px 4px; padding:4px 8px; border-radius:12px; background: rgba(99,102,241,0.08);">${escapeHtml(v.displayName || v.username || 'Anonim')}</span>`).join('') || '<span style="color: var(--text-muted);">Henüz oy yok</span>';
+
+                const optionsHtml = (poll.options || []).map(opt => {
+                    const voteCount = poll.counts?.[opt.id] || 0;
+                    const percentage = totalVotes ? Math.round((voteCount / totalVotes) * 100) : 0;
+                    return `<div style="margin-bottom:10px;">
+                                <div style="display:flex; justify-content:space-between; gap:10px; align-items:center; font-size:0.95rem;">
+                                    <strong>${escapeHtml(opt.label)}</strong>
+                                    <span>${voteCount} oy · ${percentage}%</span>
+                                </div>
+                                <div style="height:8px; background: var(--border); border-radius: 999px; overflow:hidden; margin-top:6px;">
+                                    <div style="width:${percentage}%; height:100%; background: linear-gradient(135deg, var(--primary), #8b5cf6);"></div>
+                                </div>
+                            </div>`;
+                }).join('');
+
+                list.innerHTML += `
+                    <div class="glass-card" style="padding:16px; margin-bottom:14px; border-left: 4px solid ${isExpired ? '#94a3b8' : 'var(--primary)'};">
+                        <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px; margin-bottom:12px;">
+                            <div>
+                                <h4 style="margin:0 0 6px;">${escapeHtml(poll.question)}</h4>
+                                <div style="font-size:0.85rem; color: var(--text-muted);">${statusText} · Toplam oy: ${totalVotes}</div>
+                            </div>
+                            <div style="display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end;">
+                                <button class="action-btn" style="background:#6366f1; color:white;" onclick="forceExpirePoll('${pollDoc.id}')">Bitir</button>
+                                <button class="action-btn btn-delete" onclick="deletePollAdmin('${pollDoc.id}')">Sil</button>
+                            </div>
+                        </div>
+                        ${optionsHtml}
+                        <div style="margin-top:10px; font-size:0.9rem; color:var(--text-muted);">Oy kullananlar:</div>
+                        <div>${votersHtml}</div>
+                    </div>`;
+            });
+        } catch (e) {
+            console.error('Anketler yüklenirken hata:', e);
+            const list = document.getElementById('admin-polls-list');
+            if (list) list.innerHTML = '<div style="color: var(--danger); padding: 12px;">Anketler yüklenirken hata oluştu.</div>';
+        }
+    }
+
+    window.forceExpirePoll = async (pollId) => {
+        if (!confirm('Bu anketi hemen bitirmek istiyor musunuz?')) return;
+        try {
+            await updateDoc(doc(db, 'polls', pollId), { expiresAt: new Date(), isActive: false });
+            loadPollsAdmin();
+        } catch (e) {
+            console.error('Anket süresini bitirme hatası:', e);
+            alert('Anket bitirilemedi.');
+        }
+    };
+
+    window.deletePollAdmin = async (pollId) => {
+        if (!confirm('Bu anketi silmek istediğinizden emin misiniz?')) return;
+        try {
+            await deleteDoc(doc(db, 'polls', pollId));
+            loadPollsAdmin();
+        } catch (e) {
+            console.error('Anket silme hatası:', e);
+            alert('Anket silinemedi.');
+        }
+    };
+
     window.switchTab = (tabId) => {
         document.querySelectorAll('.admin-section').forEach(s => s.classList.remove('active'));
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -430,6 +603,12 @@
         if(event) event.target.classList.add('active');
         if (tabId === 'registered') {
             loadAllRegisteredUsers();
+        }
+        if (tabId === 'loginTimes') {
+            loadLoginTimes();
+        }
+        if (tabId === 'polls') {
+            loadPollsAdmin();
         }
     };
 
