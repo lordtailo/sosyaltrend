@@ -51,6 +51,8 @@ Hızlı kurulum:
 
 Sunucu, varsayılan olarak `http://localhost:3001` üzerinde çalışır ve istemcinin `ai-client.js` içindeki `/yapay-zeka/api` çağrısını karşılar.
 
+Not: Ana site içindeki `openStBotChat()` tabanlı yönetici sohbeti artık önce bu OpenAI proxy uç noktasına bağlanmaya çalışır. Sunucu çalışmadığında, yerel kurallar hala yedek cevaplar üretir.
+
 Güvenlik notları:
 - `OPENAI_API_KEY` kesinlikle istemci tarafına konulmamalıdır.
 - Üretimde sunucuyu HTTPS arkasında ve kimlik doğrulama ile çalıştırın. `clear-conversation` ve `clear-all` uç noktaları şu anda uygulama içinde "Not implemented" olarak bırakılmıştır — eğer sunucu tarafı sohbet geçmişi saklıyorsanız, bu uç noktaları güvenli bir şekilde uygulayın.

@@ -502,6 +502,7 @@
                 createdBy: ADMIN_EMAIL.split('@')[0],
                 isActive: true
             });
+            await cleanupOldPolls();
             document.getElementById('pollQuestion').value = '';
             document.getElementById('pollOption1').value = '';
             document.getElementById('pollOption2').value = '';
@@ -516,6 +517,21 @@
             alert('Anket oluşturulurken hata oluştu.');
         }
     };
+
+    async function cleanupOldPolls() {
+        try {
+            const pollDocs = await getDocs(query(collection(db, 'polls'), orderBy('createdAt', 'desc')));
+            const polls = [];
+            pollDocs.forEach(docSnap => {
+                polls.push({ id: docSnap.id, data: docSnap.data() });
+            });
+            if (polls.length <= 10) return;
+            const toDelete = polls.slice(10);
+            await Promise.all(toDelete.map(p => deleteDoc(doc(db, 'polls', p.id))));
+        } catch (e) {
+            console.error('Anket temizleme hatası:', e);
+        }
+    }
 
     async function loadPollsAdmin() {
         try {

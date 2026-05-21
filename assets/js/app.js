@@ -82,6 +82,7 @@ window.deleteVideo = deleteVideo;
 window.deleteMusic = deleteMusic;
 
 let pollWidgetUnsubscribe = null;
+window.pollWidgetLatestPolls = [];
 
 window.loadPollWidget = function() {
     const container = document.getElementById('poll-widget-content');
@@ -98,54 +99,149 @@ window.loadPollWidget = function() {
             polls.push({ id: docSnap.id, ...data, expiresAt });
         });
 
+        window.pollWidgetLatestPolls = polls;
         const now = new Date();
-        const activePoll = polls.find(p => p.expiresAt > now) || polls[0] || null;
-        if (!activePoll) {
+        const activePoll = polls.find(p => p.expiresAt > now) || null;
+        const finishedPolls = polls.filter(p => p.expiresAt <= now).slice(0, 5);
+
+        if (!activePoll && finishedPolls.length === 0) {
             container.innerHTML = '<div style="color: var(--text-muted);">Henüz anket yok.</div>';
             return;
         }
 
-        const pollExpired = activePoll.expiresAt <= now;
-        const totalVotes = Object.values(activePoll.counts || {}).reduce((sum, count) => sum + (count || 0), 0);
-        const userVoted = auth.currentUser && (activePoll.voters || []).some(v => v.uid === auth.currentUser.uid);
-        const canVote = !pollExpired && auth.currentUser && !userVoted;
-        const optionButtons = (activePoll.options || []).map(opt => {
-            const count = activePoll.counts?.[opt.id] || 0;
-            const percent = totalVotes ? Math.round((count / totalVotes) * 100) : 0;
-            return `
-                <div style="margin-bottom: 12px;">
-                    <div style="display:flex; justify-content:space-between; gap:10px; align-items:center; font-size:0.95rem;">
-                        <span>${escapeHtml(opt.label)}</span>
-                        <span>${count} oy</span>
-                    </div>
-                    <div style="height: 10px; background: var(--border); border-radius: 999px; overflow:hidden; margin-top:6px;">
-                        <div style="width: ${percent}%; height:100%; background: linear-gradient(135deg, var(--primary), #8b5cf6);"></div>
-                    </div>
-                    ${canVote ? `<button onclick="votePoll('${activePoll.id}', '${opt.id}')" style="margin-top:10px; width:100%; background: var(--primary); color:white; border:none; border-radius:12px; padding:10px; cursor:pointer;">Oy ver</button>` : ''}
-                </div>`;
-        }).join('');
-
-        const votersHtml = (activePoll.voters || []).slice(0, 12).map(v => `<span style="display:inline-flex; margin:2px 4px; padding:6px 10px; border-radius:999px; border:1px solid var(--border); background: rgba(99,102,241,0.08);">${escapeHtml(v.displayName || v.username || 'Anonim')}</span>`).join('') || '<div style="color: var(--text-muted);">Henüz oy kullanan yok.</div>';
-
-        container.innerHTML = `
-            <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px; margin-bottom: 10px;">
-                <div>
-                    <strong style="font-size:0.95rem;">${escapeHtml(activePoll.question)}</strong>
-                    <div style="font-size:0.8rem; color: var(--text-muted); margin-top:4px;">${pollExpired ? 'Anket süresi doldu' : `Bitiş: ${activePoll.expiresAt.toLocaleString('tr-TR')}`}</div>
-                </div>
-                <div style="font-size:0.8rem; color: var(--text-muted);">${totalVotes} oy</div>
-            </div>
-            <div>${optionButtons}</div>
-            <div style="font-size:0.85rem; color: var(--text-muted); margin-top: 8px;">Oy kullananlar:</div>
-            <div style="margin-top: 8px; display:flex; flex-wrap:wrap; gap:4px;">${votersHtml}</div>
-            ${!auth.currentUser ? '<div style="margin-top:10px; color:var(--danger); font-size:0.9rem;">Oy vermek için giriş yapın.</div>' : ''}
-            ${auth.currentUser && userVoted && !pollExpired ? '<div style="margin-top:10px; color:var(--success); font-size:0.9rem;">Oyunuz kaydedildi. Sonuçları görebilirsiniz.</div>' : ''}
-        `;
+        if (activePoll) {
+            renderActivePoll(container, activePoll, now, finishedPolls);
+        } else {
+            renderFinishedPollList(container, finishedPolls, now);
+        }
     }, (error) => {
         console.error('Poll widget snapshot error:', error);
         const containerErr = document.getElementById('poll-widget-content');
         if (containerErr) containerErr.innerHTML = '<div style="color: var(--danger);">Anketler yüklenemedi.</div>';
     });
+};
+
+function renderActivePoll(container, activePoll, now, finishedPolls = []) {
+    const pollExpired = activePoll.expiresAt <= now;
+    const totalVotes = Object.values(activePoll.counts || {}).reduce((sum, count) => sum + (count || 0), 0);
+    const userVoted = auth.currentUser && (activePoll.voters || []).some(v => v.uid === auth.currentUser.uid);
+    const canVote = !pollExpired && auth.currentUser && !userVoted;
+
+    const optionButtons = (activePoll.options || []).map(opt => {
+        const count = activePoll.counts?.[opt.id] || 0;
+        const percent = totalVotes ? Math.round((count / totalVotes) * 100) : 0;
+        return `
+            <div style="margin-bottom: 12px;">
+                <div style="display:flex; justify-content:space-between; gap:10px; align-items:center; font-size:0.95rem;">
+                    <span>${escapeHtml(opt.label)}</span>
+                    <span>${count} oy</span>
+                </div>
+                <div style="height: 10px; background: var(--border); border-radius: 999px; overflow:hidden; margin-top:6px;">
+                    <div style="width: ${percent}%; height:100%; background: linear-gradient(135deg, var(--primary), #8b5cf6);"></div>
+                </div>
+                ${canVote ? `<button onclick="votePoll('${activePoll.id}', '${opt.id}')" style="margin-top:10px; width:100%; background: var(--primary); color:white; border:none; border-radius:12px; padding:10px; cursor:pointer;">Oy ver</button>` : ''}
+            </div>`;
+    }).join('');
+
+    const votersHtml = (activePoll.voters || []).slice(0, 12).map(v => `<span style="display:inline-flex; margin:2px 4px; padding:6px 10px; border-radius:999px; border:1px solid var(--border); background: rgba(99,102,241,0.08);">${escapeHtml(v.displayName || v.username || 'Anonim')}</span>`).join('') || '<div style="color: var(--text-muted);">Henüz oy kullanan yok.</div>';
+
+    container.innerHTML = `
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px; margin-bottom: 10px;">
+            <div>
+                <strong style="font-size:0.95rem;">${escapeHtml(activePoll.question)}</strong>
+                <div style="font-size:0.8rem; color: var(--text-muted); margin-top:4px;">${pollExpired ? 'Anket süresi doldu' : `Bitiş: ${activePoll.expiresAt.toLocaleString('tr-TR')}`}</div>
+            </div>
+            <div style="font-size:0.8rem; color: var(--text-muted);">${totalVotes} oy</div>
+        </div>
+        <div>${optionButtons}</div>
+        <div style="font-size:0.85rem; color: var(--text-muted); margin-top: 8px;">Oy kullananlar:</div>
+        <div style="margin-top: 8px; display:flex; flex-wrap:wrap; gap:4px;">${votersHtml}</div>
+        ${!auth.currentUser ? '<div style="margin-top:10px; color:var(--danger); font-size:0.9rem;">Oy vermek için giriş yapın.</div>' : ''}
+        ${auth.currentUser && userVoted && !pollExpired ? '<div style="margin-top:10px; color:var(--success); font-size:0.9rem;">Oyunuz kaydedildi. Sonuçları görebilirsiniz.</div>' : ''}
+        ${finishedPolls.length ? `<div style="margin-top: 18px; font-size:0.92rem; font-weight:700; text-align:center;">Biten anketler</div>` : ''}
+        ${finishedPolls.map(poll => {
+            const total = Object.values(poll.counts || {}).reduce((sum, count) => sum + (count || 0), 0);
+            return `
+                <div style="margin-top: 10px; padding: 12px 14px; background: rgba(255,255,255,0.03); border-radius: 14px; border: 1px solid var(--border);">
+                    <div style="font-size:0.92rem; font-weight:700; margin-bottom:6px;">${escapeHtml(poll.question)}</div>
+                    <div style="font-size:0.8rem; color: var(--text-muted); margin-bottom: 8px;">Toplam oy: ${total} · Bitiş: ${poll.expiresAt.toLocaleString('tr-TR')}</div>
+                    <button onclick="showPollResults('${poll.id}')" style="width:100%; background: var(--primary); color:white; border:none; border-radius:12px; padding:10px; cursor:pointer;">Sonuçları Göster</button>
+                </div>`;
+        }).join('')}
+    `;
+}
+
+window.renderFinishedPollList = function(container, finishedPolls, now) {
+    if (finishedPolls.length === 0) {
+        container.innerHTML = '<div style="color: var(--text-muted);">Henüz tamamlanmış anket yok.</div>';
+        return;
+    }
+
+    const listHtml = finishedPolls.map(poll => {
+        const totalVotes = Object.values(poll.counts || {}).reduce((sum, count) => sum + (count || 0), 0);
+        return `
+            <div style="margin-bottom: 14px; padding: 14px; background: rgba(255,255,255,0.03); border-radius: 16px; border: 1px solid var(--border);">
+                <div style="font-size:0.95rem; font-weight:700; margin-bottom: 6px;">${escapeHtml(poll.question)}</div>
+                <div style="font-size:0.82rem; color: var(--text-muted); margin-bottom: 10px;">Toplam oy: ${totalVotes} · Bitiş: ${poll.expiresAt.toLocaleString('tr-TR')}</div>
+                <button onclick="showPollResults('${poll.id}')" style="width:100%; background: var(--primary); color:white; border:none; border-radius:12px; padding:10px; cursor:pointer;">Sonuçları Göster</button>
+            </div>`;
+    }).join('');
+
+    container.innerHTML = `
+        <div style="margin-bottom: 12px; font-size:0.95rem; font-weight:700; text-align:center;"><span style="color: #22c55e;">Aktif anket bulunmuyor.</span><br>Geçmiş anketler aşağıdadır.</div>
+        ${listHtml}
+    `;
+}
+
+window.showPollResults = async function(pollId) {
+    const container = document.getElementById('poll-widget-content');
+    if (!container) return;
+
+    try {
+        const pollDoc = await getDoc(doc(db, 'polls', pollId));
+        if (!pollDoc.exists()) {
+            container.innerHTML = '<div style="color: var(--danger);">Anket bulunamadı.</div>';
+            return;
+        }
+
+        const poll = pollDoc.data();
+        const expiresAt = poll.expiresAt?.toDate ? poll.expiresAt.toDate() : new Date(poll.expiresAt);
+        const now = new Date();
+        const totalVotes = Object.values(poll.counts || {}).reduce((sum, count) => sum + (count || 0), 0);
+        const optionsHtml = (poll.options || []).map(opt => {
+            const count = poll.counts?.[opt.id] || 0;
+            const percent = totalVotes ? Math.round((count / totalVotes) * 100) : 0;
+            return `
+                <div style="margin-bottom: 12px;">
+                    <div style="display:flex; justify-content:space-between; gap:10px; align-items:center; font-size:0.95rem;">
+                        <span>${escapeHtml(opt.label)}</span>
+                        <span>${count} oy · ${percent}%</span>
+                    </div>
+                    <div style="height: 10px; background: var(--border); border-radius: 999px; overflow:hidden; margin-top:6px;">
+                        <div style="width: ${percent}%; height:100%; background: linear-gradient(135deg, var(--primary), #8b5cf6);"></div>
+                    </div>
+                </div>`;
+        }).join('');
+
+        const votersHtml = (poll.voters || []).slice(0, 12).map(v => `<span style="display:inline-flex; margin:2px 4px; padding:6px 10px; border-radius:999px; border:1px solid var(--border); background: rgba(99,102,241,0.08);">${escapeHtml(v.displayName || v.username || 'Anonim')}</span>`).join('') || '<div style="color: var(--text-muted);">Henüz oy kullanan yok.</div>';
+
+        container.innerHTML = `
+            <div style="margin-bottom: 14px; display:flex; justify-content:space-between; align-items:flex-start; gap: 10px;">
+                <div>
+                    <strong style="font-size:0.95rem;">${escapeHtml(poll.question)}</strong>
+                    <div style="font-size:0.8rem; color: var(--text-muted); margin-top:4px;">Bitiş: ${expiresAt.toLocaleString('tr-TR')}</div>
+                </div>
+                <button onclick="renderFinishedPollList(document.getElementById('poll-widget-content'), window.pollWidgetLatestPolls.filter(p => p.expiresAt <= new Date()).slice(0, 5), new Date())" style="background: transparent; color: var(--primary); border: 1px solid var(--primary); border-radius: 12px; padding: 8px 12px; cursor:pointer;">Geri</button>
+            </div>
+            <div style="font-size:0.85rem; color: var(--text-muted); margin-bottom: 12px;">Toplam oy: ${totalVotes}</div>
+            <div>${optionsHtml}</div>
+            <div style="font-size:0.85rem; color: var(--text-muted); margin-top: 10px;">Oy kullananlar:</div>
+            <div style="margin-top: 10px; display:flex; flex-wrap:wrap; gap:4px;">${votersHtml}</div>
+        `;
+    } catch (error) {
+        console.error('Sonuçlar yüklenirken hata:', error);
+        container.innerHTML = '<div style="color: var(--danger);">Anket sonuçları yüklenemedi.</div>';
+    }
 };
 
 window.votePoll = async function(pollId, optionId) {
@@ -6166,6 +6262,62 @@ function loadMathJsIfNeeded() {
     });
 }
 
+// OpenAI proxy üzerinden doğrudan cevap alma denemesi
+async function fetchStBotAIReply(message, history = []) {
+    const endpoints = [
+        '/yapay-zeka/api',
+        window.location.hostname ? `${window.location.protocol}//${window.location.hostname}:3001/yapay-zeka/api` : 'http://localhost:3001/yapay-zeka/api'
+    ];
+
+    const payload = { message, history };
+
+    for (const endpoint of endpoints) {
+        try {
+            const response = await fetch(endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+                mode: 'cors'
+            });
+            if (!response.ok) continue;
+            const data = await response.json();
+            if (data && typeof data.reply === 'string' && data.reply.trim()) {
+                return data.reply.trim();
+            }
+        } catch (e) {
+            // Sunucuya bağlanamadı; diğer uç noktaya geç
+        }
+    }
+
+    return null;
+}
+
+async function getStBotConversationHistory() {
+    if (!currentConversationId || !db) return [];
+
+    try {
+        const historyQuery = query(
+            collection(db, 'conversations', currentConversationId, 'messages'),
+            orderBy('createdAt', 'desc'),
+            limit(10)
+        );
+        const historySnapshot = await getDocs(historyQuery);
+        const history = [];
+        historySnapshot.forEach(docSnap => {
+            const item = docSnap.data();
+            if (!item || !item.text) return;
+            history.unshift({
+                role: item.senderId === 'stbot_internal' ? 'assistant' : 'user',
+                content: String(item.text || '')
+            });
+        });
+        return history;
+    } catch (e) {
+        console.warn('Chat geçmişi yüklenirken hata:', e);
+        return [];
+    }
+}
+
 // Asenkron cevap üretici: matematiksel ifadeleri hesaplayabilir
 async function generateStBotResponseAsync(text) {
     const trimmed = (text || '').trim();
@@ -6185,6 +6337,14 @@ async function generateStBotResponseAsync(text) {
             console.error('Math evaluation error:', e);
             return 'Matematiksel ifadeyi değerlendirirken bir hata oluştu. Lütfen ifadeyi kontrol edin.';
         }
+    }
+
+    try {
+        const history = await getStBotConversationHistory();
+        const aiReply = await fetchStBotAIReply(trimmed, history);
+        if (aiReply) return aiReply;
+    } catch (e) {
+        console.warn('OpenAI sunucusuna bağlanırken hata oluştu:', e);
     }
 
     // Diğer durumlarda mevcut senkron jeneratörü kullan

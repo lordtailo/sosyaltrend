@@ -36,14 +36,29 @@ app.post('/yapay-zeka/api', async (req, res) => {
   if (!message) return res.status(400).json({ error: 'message alanı gerekli.' });
 
   try {
+    const { history = [] } = req.body || {};
+    const messages = [
+      { role: 'system', content: 'SosyaLTrend destek asistanı. Kısa, doğal ve samimi Türkçe cevaplar ver. Tekrar eden ifadeler kullanma. Kullanıcıyla sohbet ederken her soruya farklı bir cümleyle karşılık ver, sıkıcı veya aynı tekrarları verme. Güvenlik, kişisel veri paylaşımı ve moderasyon kurallarına dikkat et.' }
+    ];
+
+    if (Array.isArray(history)) {
+      history.slice(-10).forEach(item => {
+        if (!item || !item.role || !item.content) return;
+        const role = item.role === 'user' ? 'user' : 'assistant';
+        messages.push({ role, content: String(item.content) });
+      });
+    }
+
+    messages.push({ role: 'user', content: String(message) });
+
     const payload = {
       model: OPENAI_MODEL,
-      messages: [
-        { role: 'system', content: 'SosyaLTrend destek asistanı. Kısa ve net Türkçe cevaplar ver. Güvenlik, kişisel veri paylaşımı ve moderasyon kurallarına dikkat et.' },
-        { role: 'user', content: String(message) }
-      ],
-      max_tokens: 800,
-      temperature: 0.2,
+      messages,
+      max_tokens: 900,
+      temperature: 0.95,
+      top_p: 0.92,
+      frequency_penalty: 0.4,
+      presence_penalty: 0.7,
     };
 
     const r = await fetch('https://api.openai.com/v1/chat/completions', {

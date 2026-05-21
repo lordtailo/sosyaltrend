@@ -329,6 +329,24 @@ function createChatModal(conversationId = 'global', conversationLabel = '') {
     card.appendChild(header); card.appendChild(messages); card.appendChild(form);
     overlay.appendChild(card);
 
+    function getConversationHistory() {
+        try {
+            const raw = localStorage.getItem(storageKey);
+            if (!raw) return [];
+            const arr = JSON.parse(raw);
+            const filtered = arr.filter(it => (it.conversation || 'global') === convKey);
+            return filtered.slice(-10).map(it => {
+                const content = String(it.text || '');
+                return {
+                    role: it.who === 'you' ? 'user' : 'assistant',
+                    content: it.who === 'you' ? content.replace(/^[^:]+:\s*/, '') : content
+                };
+            });
+        } catch (e) {
+            return [];
+        }
+    }
+
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
         const text = input.value.trim();
@@ -337,10 +355,10 @@ function createChatModal(conversationId = 'global', conversationLabel = '') {
         appendMessage(messages, 'you', username + ': ' + text);
         persistMessage('you', username + ': ' + text);
         input.value = '';
-        appendMessage(messages, 'bot', 'Gönderiliyor...');
+        appendMessage(messages, 'bot', 'Gönderiliyor...', false);
         try {
-            const reply = await window.yapayZekaClient.getAIResponse(text);
-            // son bot mesajını güncelle
+            const history = getConversationHistory();
+            const reply = await window.yapayZekaClient.getAIResponse(text, history);
             const last = messages.querySelector('.stbot-bot:last-child');
             if (last) last.textContent = reply;
             else appendMessage(messages, 'bot', reply);
