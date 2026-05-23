@@ -1,23 +1,43 @@
 <aside>
     
-    <div class="glass-card sidebar-profile-card" onclick="navigateTo('profil')" style="
-    cursor: pointer;
-    padding: 21px;
-    text-align: center;
-    align-items: center;">
-        <img id="sidebarAvatar" src="" alt="Kenar çubuğu avatarı" style="
-    width: 97px;
-    height: 99px;
-    border-radius: 50%;
-    border: 2px solid var(--primary);
-    object-fit: cover;">
-        <div style="overflow: hidden;">
-            <div id="sidebarDisplayName" style="font-weight: 800; font-size: 0.95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">...</div>
-            <div id="sidebarUsername" style="font-size: 0.8rem; color: var(--text-muted);">@...</div>
-            <div id="sidebarJoinDate" style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px;">Kayıt Tarihi: ...</div>
+    <div class="glass-card sidebar-container" style="margin-bottom: 12px;">
+            <div class="sidebar-title"><i class="fa-solid fa-id-card"></i> Profiliniz</div>
+            <div class="glass-card sidebar-profile-card">
+                <div class="sidebar-profile-avatar">
+                    <img id="sidebarAvatar" src="assets/img/strendsaydamv2.png" alt="Kenar çubuğu avatarı" onclick="navigateTo('profil')">
+                </div>
+                <div class="sidebar-profile-body">
+                    <div id="sidebarDisplayName" class="sidebar-profile-name">Misafir</div>
+                    <div id="sidebarUsername" class="sidebar-profile-username">@kullanici</div>
+                    <div class="sidebar-profile-meta">
+                        <div class="sidebar-profile-row">
+                            <span class="sidebar-profile-label"><i class="fa-solid fa-calendar-days"></i> kayıt tarihi:</span>
+                            <span id="sidebarJoinDate" class="sidebar-profile-value">—</span>
+                        </div>
+                        <div class="sidebar-profile-row">
+                            <span class="sidebar-profile-label"><i class="fa-solid fa-envelope"></i> kayıt bilgileri:</span>
+                            <span id="sidebarSignupInfo" class="sidebar-profile-value">—</span>
+                        </div>
+                        <div class="sidebar-profile-row">
+                            <span class="sidebar-profile-label"><i class="fa-solid fa-user-tag"></i> rol:</span>
+                            <span id="sidebarRole" class="sidebar-profile-value">Kullanıcı</span>
+                        </div>
+                        <div class="sidebar-profile-row">
+                            <span class="sidebar-profile-label"><i class="fa-solid fa-hourglass-half"></i> üyelik süresi:</span>
+                            <span id="sidebarMembershipAge" class="sidebar-profile-value">—</span>
+                        </div>
+                        <div class="sidebar-profile-row">
+                            <span class="sidebar-profile-label"><i class="fa-solid fa-users"></i> arkadaş sayısı:</span>
+                            <span id="sidebarFriendCount" class="sidebar-profile-value">0</span>
+                        </div>
+                        <div class="sidebar-profile-row">
+                            <span class="sidebar-profile-label"><i class="fa-solid fa-user-clock"></i> bekleyen istekler:</span>
+                            <span id="sidebarPendingRequests" class="sidebar-profile-value">0</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
-    </div>
-
     <!-- blog card separate from social menu -->
     <div class="glass-card sidebar-container">
         <div class="sidebar-title" data-i18n="menuTitle"><i class="fa-solid fa-blog"></i> Blog Menü</div>

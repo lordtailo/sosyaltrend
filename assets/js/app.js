@@ -595,6 +595,11 @@ await updateDoc(currentUserRef, {
   let user = {
   displayName: "Misafir",
   avatarUrl: "assets/img/strendsaydamv2.png",
+  email: null,
+  lastActiveAt: null,
+  createdAt: null,
+  friendCount: 0,
+  pendingRequests: 0,
   isAdmin: false
 };
 
@@ -631,6 +636,7 @@ onAuthStateChanged(auth, async (fbUser) => {
     } else {
         // Kullanıcı bilgilerini güncelle
         user.username = fbUser.email.split('@')[0];
+        user.email = fbUser.email;
         user.displayName = localStorage.getItem('st_displayName') || fbUser.displayName || user.username;
         
         // Avatar URL'i Firestore'dan çek
@@ -652,6 +658,12 @@ onAuthStateChanged(auth, async (fbUser) => {
                 if (data.username) {
                     user.username = data.username;
                 }
+                if (data.email) {
+                    user.email = data.email;
+                }
+                if (data.lastActiveAt) {
+                    user.lastActiveAt = data.lastActiveAt;
+                }
                 if (data.createdAt) {
                     user.createdAt = data.createdAt;
                 } else {
@@ -659,6 +671,8 @@ onAuthStateChanged(auth, async (fbUser) => {
                     await setDoc(userRef, { createdAt: serverTimestamp() }, { merge: true });
                     user.createdAt = { seconds: Math.floor(Date.now() / 1000) };
                 }
+                user.friendCount = Array.isArray(data.friends) ? data.friends.length : 0;
+                user.pendingRequests = Array.isArray(data.friendRequests) ? data.friendRequests.length : 0;
             } else {
                 // User document doesn't exist yet; create with timestamp
                 user.avatarUrl = "assets/img/strendsaydamv2.png";
@@ -716,6 +730,14 @@ onAuthStateChanged(auth, async (fbUser) => {
                 if (userData.displayName && userData.displayName !== user.displayName) {
                     user.displayName = userData.displayName;
                     localStorage.setItem('st_displayName', userData.displayName);
+                    updateUIWithUser();
+                }
+                if (Array.isArray(userData.friends)) {
+                    user.friendCount = userData.friends.length;
+                    updateUIWithUser();
+                }
+                if (Array.isArray(userData.friendRequests)) {
+                    user.pendingRequests = userData.friendRequests.length;
                     updateUIWithUser();
                 }
                 // Bildirimleri (arkadaş istekleri + diğer bildirimler) güncelle
@@ -1416,6 +1438,12 @@ function getAvatarUrl(avatarUrlOrSeed, type = 'user') {
     const sDn = document.getElementById('sidebarDisplayName');
     const sUn = document.getElementById('sidebarUsername');
     const sJd = document.getElementById('sidebarJoinDate');
+    const sSi = document.getElementById('sidebarSignupInfo');
+    const sLa = document.getElementById('sidebarLastActive');
+    const sRo = document.getElementById('sidebarRole');
+    const sMa = document.getElementById('sidebarMembershipAge');
+    const sFc = document.getElementById('sidebarFriendCount');
+    const sPr = document.getElementById('sidebarPendingRequests');
 
     // Profil Sayfası
     const pAv = document.getElementById('profilePageAvatar');
@@ -1442,8 +1470,15 @@ function getAvatarUrl(avatarUrlOrSeed, type = 'user') {
 
     // Sol Menü Güncelleme
     if(sAv) sAv.src = avatarUrl;
-    if(sDn) sDn.innerText = user.displayName;
-    if(sUn) sUn.innerText = `@${user.username}`;
+    if(sDn) sDn.innerText = user.displayName || 'Misafir';
+    if(sUn) sUn.innerText = user.username ? `@${user.username}` : '@kullanici';
+    if(sJd && !sJd.innerText) sJd.innerText = '—';
+    if(sSi) sSi.innerText = user.email ? user.email : '—';
+    if(sRo) sRo.innerText = user.isAdmin ? 'Admin' : 'Kullanıcı';
+    if(sLa) sLa.innerText = '—';
+    if(sMa) sMa.innerText = '—';
+    if(sFc) sFc.innerText = user.friendCount;
+    if(sPr) sPr.innerText = user.pendingRequests;
     // show/hide blog creation and my posts links depending on auth state
     const blogNewLink = document.getElementById('btn-blog-new');
     const blogMineLink = document.getElementById('btn-blog-mine');
@@ -1478,13 +1513,59 @@ function getAvatarUrl(avatarUrlOrSeed, type = 'user') {
                     month: 'long',
                     day: 'numeric'
                 });
-                sJd.innerText = `Kayıt Tarihi: ${joinDate}`;
+                sJd.innerText = joinDate;
             } catch (e) {
                 console.error('Join date formatting error:', e);
-                sJd.innerText = 'Kayıt Tarihi: —';
+                sJd.innerText = '—';
             }
         } else {
-            sJd.innerText = 'Kayıt Tarihi: —';
+            sJd.innerText = '—';
+        }
+    }
+    if (sMa) {
+        if (user.createdAt) {
+            try {
+                const createdAtDate = user.createdAt.toDate ? user.createdAt.toDate() :
+                    (user.createdAt.seconds != null ? new Date(user.createdAt.seconds * 1000) : new Date(user.createdAt));
+                const now = new Date();
+                const diffMs = now - createdAtDate;
+                const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+                let durationText = `${diffDays} gün`;
+                if (diffDays >= 365) {
+                    const years = Math.floor(diffDays / 365);
+                    durationText = years === 1 ? '1 yıl' : `${years} yıl`;
+                } else if (diffDays >= 30) {
+                    const months = Math.floor(diffDays / 30);
+                    durationText = months === 1 ? '1 ay' : `${months} ay`;
+                }
+                sMa.innerText = durationText;
+            } catch (e) {
+                console.error('Membership age formatting error:', e);
+                sMa.innerText = '—';
+            }
+        } else {
+            sMa.innerText = '—';
+        }
+    }
+    if (sLa) {
+        const lastActiveAt = user.lastActiveAt || user.createdAt;
+        if (lastActiveAt) {
+            try {
+                const activeDate = lastActiveAt.toDate ? lastActiveAt.toDate() :
+                    (lastActiveAt.seconds != null ? new Date(lastActiveAt.seconds * 1000) : new Date(lastActiveAt));
+                sLa.innerText = activeDate.toLocaleString('tr-TR', {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+            } catch (e) {
+                console.error('Last active formatting error:', e);
+                sLa.innerText = '—';
+            }
+        } else {
+            sLa.innerText = '—';
         }
     }
 

@@ -1,30 +1,55 @@
-// Basic service worker stub
-// Prevents 404 when registering. Add caching logic as needed.
-self.addEventListener('install', function(event) {
-    self.skipWaiting();
+const CACHE_NAME = 'sosyaltrend-pwa-v1';
+const CACHE_ASSETS = [
+  '/',
+  '/index.html',
+  '/manifest.json',
+  '/assets/css/style.css',
+  '/assets/css/chat-widget.css?v=20260240',
+  '/assets/fontawesome/css/all.min.css',
+  '/assets/img/strendsaydamv2.png',
+  '/assets/img/strendsaydamv2.ico'
+];
+
+self.addEventListener('install', (event) => {
+  event.waitUntil(
+    caches.open(CACHE_NAME)
+      .then((cache) => cache.addAll(CACHE_ASSETS))
+      .then(() => self.skipWaiting())
+  );
 });
 
-self.addEventListener('activate', function(event) {
-    event.waitUntil(self.clients.claim());
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    caches.keys().then((keys) => Promise.all(
+      keys.filter((key) => key !== CACHE_NAME)
+          .map((key) => caches.delete(key))
+    ))
+    .then(() => self.clients.claim())
+  ));
 });
 
-// Intercept fetch requests (optional, currently passthrough)
-self.addEventListener('fetch', function(event) {
-    const requestUrl = new URL(event.request.url);
+self.addEventListener('fetch', (event) => {
+  const requestUrl = new URL(event.request.url);
 
-    // explicitly bypass any chat attachment requests (these are stored on Firebase storage)
-    if (requestUrl.pathname.includes('/chat_attachments') ||
-        requestUrl.pathname.includes('chat_attachments%2F')) {
-        // do not intercept or cache these binary files; allow normal loading
-        return;
-    }
+  if (requestUrl.origin !== self.location.origin) return;
 
-    // Ignore cross-origin requests to prevent CORB warnings and unintended handling.
-    if (requestUrl.origin !== self.location.origin) {
-        // let browser handle it normally
-        return;
-    }
+  if (requestUrl.pathname.includes('/chat_attachments') || requestUrl.pathname.includes('chat_attachments%2F')) {
+    return;
+  }
 
-    // If you eventually add caching logic, handle same-origin requests below
-    // event.respondWith(caches.match(event.request).then(cached => cached || fetch(event.request)));
+  event.respondWith(
+    caches.match(event.request).then((cachedResponse) => {
+      if (cachedResponse) return cachedResponse;
+      return fetch(event.request).then((networkResponse) => {
+        if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== 'basic') {
+          return networkResponse;
+        }
+        const clonedResponse = networkResponse.clone();
+        caches.open(CACHE_NAME).then((cache) => {
+          cache.put(event.request, clonedResponse);
+        });
+        return networkResponse;
+      }).catch(() => caches.match('/index.html'));
+    })
+  );
 });
