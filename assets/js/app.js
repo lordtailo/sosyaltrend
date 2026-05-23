@@ -231,7 +231,7 @@ window.showPollResults = async function(pollId) {
                     <strong style="font-size:0.95rem;">${escapeHtml(poll.question)}</strong>
                     <div style="font-size:0.8rem; color: var(--text-muted); margin-top:4px;">Bitiş: ${expiresAt.toLocaleString('tr-TR')}</div>
                 </div>
-                <button onclick="renderFinishedPollList(document.getElementById('poll-widget-content'), window.pollWidgetLatestPolls.filter(p => p.expiresAt <= new Date()).slice(0, 5), new Date())" style="background: transparent; color: var(--primary); border: 1px solid var(--primary); border-radius: 12px; padding: 8px 12px; cursor:pointer;">Geri</button>
+                <button onclick="loadPollWidget()" style="background: transparent; color: var(--primary); border: 1px solid var(--primary); border-radius: 12px; padding: 8px 12px; cursor:pointer;">Geri</button>
             </div>
             <div style="font-size:0.85rem; color: var(--text-muted); margin-bottom: 12px;">Toplam oy: ${totalVotes}</div>
             <div>${optionsHtml}</div>
