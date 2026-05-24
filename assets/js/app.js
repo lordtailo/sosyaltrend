@@ -709,6 +709,7 @@ onAuthStateChanged(auth, async (fbUser) => {
         // also update sidebar statistics such as total users and last signup
         updateSidebarStats();
         loadPollWidget();
+        updateBanOverlay(userData);
         // Ensure feed is loaded with current user context so profile tabs populate
         try { loadPostsFeed(); } catch(e) { console.warn('loadPostsFeed retry failed', e); }
         // also populate profile sections if on profile page
@@ -742,6 +743,7 @@ onAuthStateChanged(auth, async (fbUser) => {
                 }
                 // Bildirimleri (arkadaş istekleri + diğer bildirimler) güncelle
                 loadNotifications(userData);
+                updateBanOverlay(userData);
                 if (typeof userData.isAdmin !== 'undefined') {
                     const newAdminStatus = userData.isAdmin === true || fbUser.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
                     if (newAdminStatus !== user.isAdmin) {
@@ -789,6 +791,108 @@ onAuthStateChanged(auth, async (fbUser) => {
     
     // Profil sayfasında ziyaretçi profilini kontrol et
     loadVisitorProfile();
+
+    function getTimestampDate(value) {
+        if (!value) return null;
+        if (typeof value.toDate === 'function') return value.toDate();
+        if (typeof value.toMillis === 'function') return new Date(value.toMillis());
+        if (value.seconds) return new Date(value.seconds * 1000);
+        return new Date(value);
+    }
+
+    function updateBanOverlay(userData) {
+        const existing = document.getElementById('ban-overlay');
+        const banUntilDate = getTimestampDate(userData?.banUntil);
+        const now = new Date();
+        const banActive = userData?.isBanned === true && banUntilDate && banUntilDate > now;
+
+        if (!banActive) {
+            if (existing) {
+                existing.remove();
+                document.body.style.overflow = '';
+            }
+            return;
+        }
+
+        if (existing) {
+            existing.querySelector('#banUntilText').textContent = banUntilDate.toLocaleString('tr-TR');
+            existing.querySelector('#banReasonText').textContent = userData.banReason || 'Sebep belirtilmedi';
+            return;
+        }
+
+        const overlay = document.createElement('div');
+        overlay.id = 'ban-overlay';
+        overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(15,23,42,0.95);color:#f8fafc;z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px;';
+        overlay.innerHTML = `
+            <div style="max-width:600px; width:100%; background:rgba(15,23,42,0.98); border:1px solid rgba(148,163,184,0.18); border-radius:20px; padding:28px; box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+                <h2 style="margin:0 0 12px; font-size:1.9rem;">Geçici Uzaklaştırıldınız</h2>
+                <p style="margin:0 0 18px; color:#cbd5e1; line-height:1.7;">Bu hesap şu anda siteden uzaklaştırılmıştır. Ban süresi boyunca sayfaya erişim engellenmiştir.</p>
+                <div style="background:rgba(255,255,255,0.06); border:1px solid rgba(148,163,184,0.18); border-radius:16px; padding:18px; margin-bottom:20px;">
+                    <p style="margin:0 0 8px;"><strong>Ban nedeni:</strong> <span id="banReasonText">${escapeHtml(userData.banReason || 'Sebep belirtilmedi')}</span></p>
+                    <p style="margin:0 0 8px;"><strong>Ban bitiş:</strong> <span id="banUntilText">${escapeHtml(banUntilDate.toLocaleString('tr-TR'))}</span></p>
+                    <p style="margin:0; color:#94a3b8;"><strong>Yönetici:</strong> ${escapeHtml(userData.banBy || 'Admin')}</p>
+                </div>
+                <div style="display:grid; gap:12px; margin-top:16px;">
+                    <button id="banAppealToggleBtn" style="width:100%; padding:14px 18px; border-radius:14px; border:none; background: #2563eb; color:white; font-weight:700; cursor:pointer;">İletişim Formunu Aç</button>
+                    <button id="banLogoutBtn" style="width:100%; padding:14px 18px; border-radius:14px; border:none; background: #ef4444; color:white; font-weight:700; cursor:pointer;">Çıkış Yap</button>
+                </div>
+                <div id="banAppealForm" style="display:none; margin-top:20px;">
+                    <textarea id="banAppealMessage" placeholder="Ban itirazınızı yazın..." style="width:100%; min-height:140px; padding:14px; border-radius:16px; border:1px solid rgba(148,163,184,0.35); background:rgba(15,23,42,0.9); color:#f8fafc; resize:vertical; outline:none;"></textarea>
+                    <button id="banAppealSendBtn" style="width:100%; margin-top:14px; padding:14px 18px; border-radius:14px; border:none; background:#14b8a6; color:white; font-weight:700; cursor:pointer;">Mesaj Gönder</button>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(overlay);
+        document.body.style.overflow = 'hidden';
+
+        const toggleBtn = overlay.querySelector('#banAppealToggleBtn');
+        const logoutBtn = overlay.querySelector('#banLogoutBtn');
+        const form = overlay.querySelector('#banAppealForm');
+        const sendBtn = overlay.querySelector('#banAppealSendBtn');
+        const messageEl = overlay.querySelector('#banAppealMessage');
+
+        toggleBtn.addEventListener('click', () => {
+            form.style.display = form.style.display === 'none' ? 'block' : 'none';
+            if (form.style.display === 'block') {
+                messageEl.focus();
+            }
+        });
+
+        logoutBtn.addEventListener('click', async () => {
+            try {
+                await signOut(auth);
+            } catch (err) {
+                console.error('Çıkış yapılamadı:', err);
+                alert('Çıkış yapılırken hata oluştu. Lütfen tekrar deneyin.');
+            }
+        });
+
+        sendBtn.addEventListener('click', async () => {
+            const message = messageEl.value.trim();
+            if (!message) {
+                alert('Lütfen mesaj yazın.');
+                return;
+            }
+            try {
+                await addDoc(collection(db, 'banAppeals'), {
+                    userId: auth.currentUser.uid,
+                    username: userData.username || userData.email?.split('@')[0] || 'Bilinmeyen',
+                    banReason: userData.banReason || '',
+                    message,
+                    sentAt: serverTimestamp(),
+                    responded: false
+                });
+                alert('Ban itirazınız yöneticilere iletildi.');
+                sendBtn.textContent = 'İtiraz Gönderildi';
+                sendBtn.disabled = true;
+                messageEl.value = '';
+            } catch (err) {
+                console.error('Ban itirazı gönderilemedi:', err);
+                alert('Mesaj gönderilemedi.');
+            }
+        });
+    }
     
     // Kendi profili açılıyorsa
     const params = new URLSearchParams(location.search);

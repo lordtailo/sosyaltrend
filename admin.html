@@ -21,14 +21,17 @@
         .stat-card i { font-size: 2rem; color: var(--primary); margin-bottom: 10px; }
         .stat-card h3 { font-size: 1.8rem; margin: 5px 0; }
         .stat-card p { color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase; }
-        .admin-tabs { display: flex; gap: 15px; margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 10px; }
-        .tab-btn { background: none; border: none; color: var(--text-muted); padding: 8px 16px; cursor: pointer; font-weight: 600; transition: 0.3s; }
-        .tab-btn.active { color: var(--primary); border-bottom: 2px solid var(--primary); }
-        .admin-subtabs { display: flex; gap: 12px; margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 10px; }
-        .subtab-btn { background: none; border: none; color: var(--text-muted); padding: 8px 14px; cursor: pointer; font-weight: 600; transition: 0.3s; }
-        .subtab-btn.active { color: var(--primary); border-bottom: 2px solid var(--primary); }
+        .admin-tabs { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; }
+        .tab-btn { background: var(--input-bg); border: 1px solid var(--border); color: var(--text-main); padding: 10px 16px; cursor: pointer; font-weight: 600; transition: 0.3s; border-radius: 12px; text-align: left; }
+        .tab-btn.active { color: white; background: var(--primary); border-color: var(--primary); }
+        .tab-btn:hover { transform: translateY(-1px); }
+        .admin-subtabs { display: flex; gap: 12px; margin-bottom: 16px; padding-bottom: 0; }
+        .subtab-btn { display: inline-flex; align-items: center; justify-content: center; background: none; border: none; color: var(--text-muted); padding: 10px 14px 6px; cursor: pointer; font-weight: 600; line-height: 1; transition: 0.3s; border-bottom: 2px solid transparent; }
+        .subtab-btn.active { color: var(--primary); border-bottom-color: var(--primary); }
         .admin-section { display: none; }
         .admin-section.active { display: block; }
+        .admin-block { margin-top: 22px; padding: 20px; background: var(--card-bg); border: 1px solid var(--border); border-radius: 22px; }
+        .admin-block h2 { margin: 0 0 18px; font-size: 1.1rem; font-weight: 700; color: var(--text-main); border-bottom: 1px solid var(--border); padding-bottom: 10px; }
         .admin-subsection { display: none; }
         .admin-subsection.active { display: block; }
         .data-table { width: 100%; border-collapse: collapse; margin-top: 15px; }
@@ -56,89 +59,133 @@
     </div>
 
     <div class="glass-card" style="padding: 25px;">
-        <div class="admin-tabs">
-            <button class="tab-btn active" onclick="switchTab('announcement')">Sistem Duyurusu</button>
-            <button class="tab-btn" onclick="switchTab('users')">Aktif Kullanıcı Yönetimi</button>
-            <button class="tab-btn" onclick="switchTab('registered')">Tüm Kayıtlı Kullanıcılar</button>
-            <button class="tab-btn" onclick="switchTab('moderation')">İçerik Denetimi</button>
-            <button class="tab-btn" onclick="switchTab('polls')">Anket Yönetimi</button>
-        </div>
-
-        <div id="section-announcement" class="admin-section active">
-            <div class="section-subtitle">Tüm Sisteme Duyuru Yayınla</div>
-            <textarea id="adminNoticeInput" class="form-input" style="min-height: 120px; margin-bottom: 15px;" placeholder="Tüm kullanıcılara görünecek resmi bir duyuru yazın..."></textarea>
-            <button id="broadcastBtn" class="form-btn" style="width: auto; padding: 12px 30px;"><i class="fa-solid fa-paper-plane"></i> Duyuruyu Tüm Sisteme Gönder</button>
-        </div>
-
-        <div id="section-users" class="admin-section">
-            <div class="admin-subtabs">
-                <button class="subtab-btn active" onclick="switchUserSubtab('active')">Aktif Kullanıcı Veritabanı</button>
-                <button class="subtab-btn" onclick="switchUserSubtab('recent')">24 Saat İçinde Giriş Yapan Kullanıcılar</button>
-                <button class="subtab-btn" onclick="switchUserSubtab('loginTimes')">En Son Ne Zaman Girdiler</button>
+        <div class="admin-block admin-block-system">
+            <h2>Yönetim</h2>
+            <div class="admin-tabs">
+                <button class="tab-btn active" onclick="switchTab('announcement', this)">Sistem Duyurusu</button>
+                <button class="tab-btn" onclick="switchTab('polls', this)">Anket Yönetimi</button>
             </div>
 
-            <div id="subsection-active" class="admin-subsection active">
-                <div class="section-subtitle">Aktif Kullanıcı Veritabanı (Etkileşime Göre)</div>
-                <table class="data-table">
-                    <thead><tr><th>Kullanıcı</th><th>Kullanıcı Adı</th><th>Rol</th><th>İşlem</th></tr></thead>
-                    <tbody id="user-list-body"></tbody>
-                </table>
+            <div id="section-announcement" class="admin-section active">
+                <div class="section-subtitle">Tüm Sisteme Duyuru Yayınla</div>
+                <textarea id="adminNoticeInput" class="form-input" style="min-height: 120px; margin-bottom: 15px;" placeholder="Tüm kullanıcılara görünecek resmi bir duyuru yazın..."></textarea>
+                <button id="broadcastBtn" class="form-btn" style="width: auto; padding: 12px 30px;"><i class="fa-solid fa-paper-plane"></i> Duyuruyu Tüm Sisteme Gönder</button>
             </div>
 
-            <div id="subsection-recent" class="admin-subsection">
-                <div class="section-subtitle">24 Saat İçinde Giriş Yapan Kullanıcılar</div>
-                <table class="data-table">
-                    <thead><tr><th>Kullanıcı</th><th>Kullanıcı Adı</th><th>Son Giriş</th><th>Durum</th></tr></thead>
-                    <tbody id="recent-logins-body"></tbody>
-                </table>
-            </div>
-
-            <div id="subsection-loginTimes" class="admin-subsection">
-                <div class="section-subtitle">En Son Ne Zaman Girdiler</div>
-                <table class="data-table">
-                    <thead><tr><th>Kullanıcı</th><th>Kullanıcı Adı</th><th>Son Giriş</th><th>Kullanıcı Sil</th></tr></thead>
-                    <tbody id="last-login-times-body"></tbody>
-                </table>
-            </div>
-        </div>
-
-        <div id="section-registered" class="admin-section">
-            <div class="section-subtitle">Tüm Kayıtlı Kullanıcılar</div>
-            <table class="data-table">
-                <thead><tr><th>Kullanıcı</th><th>Kullanıcı Adı</th><th>Email</th><th>Kayıt Tarihi</th><th>Rol</th><th>İşlem</th></tr></thead>
-                <tbody id="registered-users-body"></tbody>
-            </table>
-        </div>
-
-        <div id="section-polls" class="admin-section">
-            <div class="section-subtitle">Yeni Anket Oluştur</div>
-            <div style="display:grid; gap:12px; margin-bottom:20px;">
-                <input id="pollQuestion" class="form-input" placeholder="Anket sorusunu yazın..." style="width:100%; padding:12px; border-radius:12px; border:1px solid var(--border); background:transparent; color:var(--text-main);">
-                <div style="display:grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap:10px;">
-                    <input id="pollOption1" class="form-input" placeholder="Seçenek 1" style="padding:12px; border-radius:12px; border:1px solid var(--border); background:transparent; color:var(--text-main);">
-                    <input id="pollOption2" class="form-input" placeholder="Seçenek 2" style="padding:12px; border-radius:12px; border:1px solid var(--border); background:transparent; color:var(--text-main);">
-                    <input id="pollOption3" class="form-input" placeholder="Seçenek 3 (isteğe bağlı)" style="padding:12px; border-radius:12px; border:1px solid var(--border); background:transparent; color:var(--text-main);">
-                    <input id="pollOption4" class="form-input" placeholder="Seçenek 4 (isteğe bağlı)" style="padding:12px; border-radius:12px; border:1px solid var(--border); background:transparent; color:var(--text-main);">
-                </div>
-                <div style="display:flex; flex-wrap:wrap; gap:10px; align-items:center;">
-                    <div style="display:flex; gap:8px; align-items:center;">
-                        <label for="pollDays" style="font-size:0.9rem; color:var(--text-muted);">Süre:</label>
-                        <input id="pollDays" type="number" min="0" max="30" value="0" style="width:80px; padding:10px; border-radius:12px; border:1px solid var(--border); background:transparent; color:var(--text-main);" placeholder="Gün">
-                        <span style="font-size:0.9rem; color:var(--text-muted);">gün</span>
-                        <input id="pollHours" type="number" min="1" max="168" value="24" style="width:80px; padding:10px; border-radius:12px; border:1px solid var(--border); background:transparent; color:var(--text-main);" placeholder="Saat">
-                        <span style="font-size:0.9rem; color:var(--text-muted);">saat</span>
+            <div id="section-polls" class="admin-section">
+                <div class="section-subtitle">Yeni Anket Oluştur</div>
+                <div style="display:grid; gap:12px; margin-bottom:20px;">
+                    <input id="pollQuestion" class="form-input" placeholder="Anket sorusunu yazın..." style="width:100%; padding:12px; border-radius:12px; border:1px solid var(--border); background:transparent; color:var(--text-main);">
+                    <div style="display:grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap:10px;">
+                        <input id="pollOption1" class="form-input" placeholder="Seçenek 1" style="padding:12px; border-radius:12px; border:1px solid var(--border); background:transparent; color:var(--text-main);">
+                        <input id="pollOption2" class="form-input" placeholder="Seçenek 2" style="padding:12px; border-radius:12px; border:1px solid var(--border); background:transparent; color:var(--text-main);">
+                        <input id="pollOption3" class="form-input" placeholder="Seçenek 3 (isteğe bağlı)" style="padding:12px; border-radius:12px; border:1px solid var(--border); background:transparent; color:var(--text-main);">
+                        <input id="pollOption4" class="form-input" placeholder="Seçenek 4 (isteğe bağlı)" style="padding:12px; border-radius:12px; border:1px solid var(--border); background:transparent; color:var(--text-main);">
                     </div>
-                    <button id="createPollBtn" class="form-btn" style="width:auto; padding:12px 24px;">Anket Oluştur</button>
+                    <div style="display:flex; flex-wrap:wrap; gap:10px; align-items:center;">
+                        <div style="display:flex; gap:8px; align-items:center;">
+                            <label for="pollDays" style="font-size:0.9rem; color:var(--text-muted);">Süre:</label>
+                            <input id="pollDays" type="number" min="0" max="30" value="0" style="width:80px; padding:10px; border-radius:12px; border:1px solid var(--border); background:transparent; color:var(--text-main);" placeholder="Gün">
+                            <span style="font-size:0.9rem; color:var(--text-muted);">gün</span>
+                            <input id="pollHours" type="number" min="1" max="168" value="24" style="width:80px; padding:10px; border-radius:12px; border:1px solid var(--border); background:transparent; color:var(--text-main);" placeholder="Saat">
+                            <span style="font-size:0.9rem; color:var(--text-muted);">saat</span>
+                        </div>
+                        <button id="createPollBtn" class="form-btn" style="width:auto; padding:12px 24px;">Anket Oluştur</button>
+                    </div>
+                    <div style="font-size:0.85rem; color:var(--text-muted);">Oluşturduğunuz anket ana sayfada sol altta görünür. Kullanıcılar sadece bir kez oy verebilir; anket sonuçları ve oy kullananlar listesi gösterilir.</div>
                 </div>
-                <div style="font-size:0.85rem; color:var(--text-muted);">Oluşturduğunuz anket ana sayfada sol altta görünür. Kullanıcılar sadece bir kez oy verebilir; anket sonuçları ve oy kullananlar listesi gösterilir.</div>
+                <div class="section-subtitle">Mevcut ve Önceki Anketler</div>
+                <div id="admin-polls-list"></div>
             </div>
-            <div class="section-subtitle">Mevcut ve Önceki Anketler</div>
-            <div id="admin-polls-list"></div>
         </div>
 
-        <div id="section-moderation" class="admin-section">
-            <div class="section-subtitle">Tüm Paylaşımları Yönet</div>
-            <div id="admin-feed-list"></div>
+        <div class="admin-block admin-block-user">
+            <h2>Kullanıcı</h2>
+            <div class="admin-tabs">
+                <button class="tab-btn active" onclick="switchTab('users', this)">Aktif Kullanıcı Yönetimi</button>
+                <button class="tab-btn" onclick="switchTab('registered', this)">Tüm Kayıtlı Kullanıcılar</button>
+                <button class="tab-btn" onclick="switchTab('userManagement', this)">Kullanıcı Yönetimi</button>
+            </div>
+
+            <div id="section-users" class="admin-section active">
+                <div class="admin-subtabs">
+                    <button class="subtab-btn active" onclick="switchUserSubtab('active', this)">Aktif Kullanıcı Veritabanı</button>
+                    <button class="subtab-btn" onclick="switchUserSubtab('recent', this)">24 Saat İçinde Giriş Yapan Kullanıcılar</button>
+                    <button class="subtab-btn" onclick="switchUserSubtab('loginTimes', this)">En Son Ne Zaman Girdiler</button>
+                </div>
+
+                <div id="subsection-active" class="admin-subsection active">
+                    <div class="section-subtitle">Aktif Kullanıcı Veritabanı (Etkileşime Göre)</div>
+                    <table class="data-table">
+                        <thead><tr><th>Kullanıcı</th><th>Kullanıcı Adı</th><th>Rol</th><th>İşlem</th></tr></thead>
+                        <tbody id="user-list-body"></tbody>
+                    </table>
+                </div>
+
+                <div id="subsection-recent" class="admin-subsection">
+                    <div class="section-subtitle">24 Saat İçinde Giriş Yapan Kullanıcılar</div>
+                    <table class="data-table">
+                        <thead><tr><th>Kullanıcı</th><th>Kullanıcı Adı</th><th>Son Giriş</th><th>Durum</th></tr></thead>
+                        <tbody id="recent-logins-body"></tbody>
+                    </table>
+                </div>
+
+                <div id="subsection-loginTimes" class="admin-subsection">
+                    <div class="section-subtitle">En Son Ne Zaman Girdiler</div>
+                    <table class="data-table">
+                        <thead><tr><th>Kullanıcı</th><th>Kullanıcı Adı</th><th>Son Giriş</th><th>Kullanıcı Sil</th></tr></thead>
+                        <tbody id="last-login-times-body"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="section-registered" class="admin-section">
+                <div class="section-subtitle">Tüm Kayıtlı Kullanıcılar</div>
+                <table class="data-table">
+                    <thead><tr><th>Kullanıcı</th><th>Kullanıcı Adı</th><th>Email</th><th>Kayıt Tarihi</th><th>Rol</th></tr></thead>
+                    <tbody id="registered-users-body"></tbody>
+                </table>
+            </div>
+
+            <div id="section-userManagement" class="admin-section">
+                <div class="section-subtitle">Kullanıcı Yönetimi</div>
+                <div style="margin-bottom:16px; color: var(--text-muted);">Bu bölümde kullanıcıya yönetici yetkisi verebilir, geçici banlayabilir veya hesabını tamamen silebilirsiniz.</div>
+                <div class="admin-subtabs">
+                    <button class="subtab-btn active" onclick="switchUserManagementSubtab('managed', this)">Tüm Kullanıcılar</button>
+                    <button class="subtab-btn" onclick="switchUserManagementSubtab('banned', this)">Banlananlar</button>
+                    <button class="subtab-btn" onclick="switchUserManagementSubtab('appeals', this)">Ban İtirazları</button>
+                </div>
+
+                <div id="userManagement-subsection-managed" class="admin-subsection active">
+                    <table class="data-table">
+                        <thead><tr><th>Kullanıcı</th><th>Kullanıcı Adı</th><th>Email</th><th>Rol</th><th>Ban Durumu</th><th>İşlem</th></tr></thead>
+                        <tbody id="managed-users-body"></tbody>
+                    </table>
+                </div>
+
+                <div id="userManagement-subsection-banned" class="admin-subsection">
+                    <p style="margin:0 0 14px; color: var(--text-muted);">Sadece şu anda aktif banlı kullanıcılar listelenir. Kalıcı banlılar "Kalıcı" olarak gösterilir.</p>
+                    <table class="data-table">
+                        <thead><tr><th>Kullanıcı</th><th>Kullanıcı Adı</th><th>Email</th><th>Ban Bitiş</th><th>Ban Nedeni</th><th>İşlem</th></tr></thead>
+                        <tbody id="banned-users-body"></tbody>
+                    </table>
+                </div>
+
+                <div id="userManagement-subsection-appeals" class="admin-subsection">
+                    <div id="user-management-ban-appeals-list" style="display:grid; gap:12px;"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="admin-block admin-block-page">
+            <h2>Sayfa</h2>
+            <div class="admin-tabs">
+                <button class="tab-btn active" onclick="switchTab('moderation', this)">İçerik Denetimi</button>
+            </div>
+            <div id="section-moderation" class="admin-section active">
+                <div class="section-subtitle">Tüm Paylaşımları Yönet</div>
+                <div id="admin-feed-list"></div>
+            </div>
         </div>
     </div>
 </main>
@@ -213,10 +260,15 @@
         loadRecentLogins();
         loadLoginTimes();
         loadAllRegisteredUsers();
+        loadBannedUsers();
+        loadBanAppeals();
         loadPollsAdmin();
     }
 
+    // ---------------- Kullanıcı Yönetimi ----------------
     async function loadAllRegisteredUsers() {
+        let tbody = null;
+        let managedTbody = null;
         try {
             const usersSnap = await getDocs(query(
                 collection(db, "users"),
@@ -224,11 +276,16 @@
                 limit(500)
             ));
 
-            const tbody = document.getElementById('registered-users-body');
-            tbody.innerHTML = "";
+            tbody = document.getElementById('registered-users-body');
+            managedTbody = document.getElementById('managed-users-body');
+            if (tbody) tbody.innerHTML = "";
+            if (managedTbody) managedTbody.innerHTML = "";
 
             if (usersSnap.empty) {
-                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color: var(--text-muted);">Kayıtlı kullanıcı bulunamadı</td></tr>';
+                const emptyRowRegistered = '<tr><td colspan="5" style="text-align:center; color: var(--text-muted);">Kayıtlı kullanıcı bulunamadı</td></tr>';
+                const emptyRowManaged = '<tr><td colspan="6" style="text-align:center; color: var(--text-muted);">Kayıtlı kullanıcı bulunamadı</td></tr>';
+                if (tbody) tbody.innerHTML = emptyRowRegistered;
+                if (managedTbody) managedTbody.innerHTML = emptyRowManaged;
                 return;
             }
 
@@ -239,23 +296,91 @@
                 const email = data.email || '—';
                 const registeredAt = data.createdAt ? data.createdAt.toDate().toLocaleString('tr-TR') : 'Bilinmiyor';
                 const isUserAdmin = data.isAdmin === true || email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+                const banUntilDate = data.banUntil && data.banUntil.toDate ? data.banUntil.toDate() : null;
+                const banActive = data.isBanned === true && banUntilDate && banUntilDate > new Date();
+                const banStatusText = banActive ? 'Banlı' : (data.isBanned === true && banUntilDate ? 'Ban Süresi Doldu' : 'Aktif');
                 const avatarSrc = data.avatarUrl && data.avatarUrl.trim() !== ''
                     ? data.avatarUrl
                     : `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(data.avatarSeed || username || '1')}`;
 
-                tbody.innerHTML += `
+                const rowHtmlRegistered = `
                     <tr class="user-row">
                         <td><img src="${avatarSrc}" alt="${name} avatar" style="width:32px;height:32px;border-radius:50%;object-fit:cover;"><b>${name}</b></td>
                         <td>@${username}</td>
                         <td>${email}</td>
                         <td>${registeredAt}</td>
                         <td><span class="badge ${isUserAdmin ? 'badge-admin' : 'badge-user'}">${isUserAdmin ? 'Admin' : 'Üye'}</span></td>
-                        <td><button class="action-btn btn-delete" onclick="toggleAdminPrivilege('${doc.id}', ${isUserAdmin ? 'false' : 'true'})">${isUserAdmin ? 'Yetki Kaldır' : 'Admin Yap'}</button></td>
                     </tr>`;
+
+                const rowHtmlManaged = `
+                    <tr class="user-row">
+                        <td><img src="${avatarSrc}" alt="${name} avatar" style="width:32px;height:32px;border-radius:50%;object-fit:cover;"><b>${name}</b></td>
+                        <td>@${username}</td>
+                        <td>${email}</td>
+                        <td><span class="badge ${isUserAdmin ? 'badge-admin' : 'badge-user'}">${isUserAdmin ? 'Admin' : 'Üye'}</span></td>
+                        <td><span class="badge ${banActive ? 'badge-danger' : 'badge-active'}">${banStatusText}</span></td>
+                        <td style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+                            <button class="action-btn" onclick="toggleAdminPrivilege('${doc.id}', ${isUserAdmin ? 'false' : 'true'})">${isUserAdmin ? 'Yetki Kaldır' : 'Admin Yap'}</button>
+                            <button class="action-btn btn-delete" onclick="openBanModal('${doc.id}')" ${isUserAdmin ? 'disabled' : ''}>${banActive ? 'Banı Kaldır' : 'Banla'}</button>
+                            <button class="action-btn btn-delete" onclick="deleteRegisteredUser('${doc.id}')" ${isUserAdmin ? 'disabled' : ''}>Sil</button>
+                        </td>
+                    </tr>`;
+
+                if (tbody) tbody.innerHTML += rowHtmlRegistered;
+                if (managedTbody) managedTbody.innerHTML += rowHtmlManaged;
             });
         } catch (e) {
             console.error('Registered users load error:', e);
-            document.getElementById('registered-users-body').innerHTML = '<tr><td colspan="6" style="text-align:center; color: var(--danger);">Veri yüklenirken hata oluştu</td></tr>';
+            if (tbody) tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color: var(--danger);">Veri yüklenirken hata oluştu</td></tr>';
+            if (managedTbody) managedTbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color: var(--danger);">Veri yüklenirken hata oluştu</td></tr>';
+        }
+    }
+
+    async function loadBannedUsers() {
+        const tbody = document.getElementById('banned-users-body');
+        if (tbody) tbody.innerHTML = '';
+
+        try {
+            const bannedSnap = await getDocs(query(
+                collection(db, 'users'),
+                where('isBanned', '==', true),
+                limit(500)
+            ));
+
+            if (!tbody) return;
+            if (bannedSnap.empty) {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color: var(--text-muted);">Banlanan kullanıcı bulunamadı</td></tr>';
+                return;
+            }
+
+            bannedSnap.forEach(doc => {
+                const data = doc.data();
+                const username = data.username || (data.email ? data.email.split('@')[0] : 'Bilinmiyor');
+                const name = data.displayName || data.name || username;
+                const email = data.email || '—';
+                const banUntilDate = data.banUntil && data.banUntil.toDate ? data.banUntil.toDate() : null;
+                const banUntilText = !data.banUntil ? 'Kalıcı' : (banUntilDate ? banUntilDate.toLocaleString('tr-TR') : 'Bilinmiyor');
+                const banReason = data.banReason || 'Belirtilmemiş';
+                const avatarSrc = data.avatarUrl && data.avatarUrl.trim() !== ''
+                    ? data.avatarUrl
+                    : `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(data.avatarSeed || username || '1')}`;
+                const isUserAdmin = data.isAdmin === true || email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+
+                tbody.innerHTML += `
+                    <tr class="user-row">
+                        <td><img src="${avatarSrc}" alt="${name} avatar" style="width:32px;height:32px;border-radius:50%;object-fit:cover;"><b>${name}</b></td>
+                        <td>@${username}</td>
+                        <td>${email}</td>
+                        <td>${banUntilText}</td>
+                        <td>${banReason}</td>
+                        <td style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+                            <button class="action-btn" onclick="openBanModal('${doc.id}')" ${isUserAdmin ? 'disabled' : ''}>Banı Yönet</button>
+                        </td>
+                    </tr>`;
+            });
+        } catch (e) {
+            console.error('Banlanan kullanıcılar yüklenemedi:', e);
+            if (tbody) tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color: var(--danger);">Banlanan kullanıcılar yüklenemedi</td></tr>';
         }
     }
 
@@ -270,6 +395,138 @@
             alert('Yönetici yetkisi değiştirilemedi.');
         }
     };
+
+    let currentBanUserId = null;
+
+    window.deleteRegisteredUser = async (userDocId) => {
+        if (!confirm('Bu kullanıcıyı tamamen silmek istediğinizden emin misiniz?')) return;
+        try {
+            await deleteDoc(doc(db, "users", userDocId));
+            loadAllRegisteredUsers();
+            loadBanAppeals();
+            alert('Kullanıcı hesabı silindi.');
+        } catch (e) {
+            console.error('Kullanıcı silme hatası:', e);
+            alert('Kullanıcı silinirken hata oluştu.');
+        }
+    };
+
+    window.openBanModal = async (userDocId) => {
+        try {
+            const userDoc = await getDoc(doc(db, 'users', userDocId));
+            if (!userDoc.exists()) {
+                alert('Kullanıcı bulunamadı.');
+                return;
+            }
+            const userData = userDoc.data();
+            currentBanUserId = userDocId;
+            const username = userData.username || userData.email?.split('@')[0] || 'Bilinmeyen';
+            const banUntilDate = userData.banUntil && userData.banUntil.toDate ? userData.banUntil.toDate() : null;
+            const banActive = userData.isBanned === true && (!banUntilDate || banUntilDate > new Date());
+            document.getElementById('banModalUserLabel').textContent = `${username} için ban yönetimi`;
+            document.getElementById('banReasonInput').value = userData.banReason || '';
+            document.getElementById('banDaysInput').value = '0';
+            document.getElementById('banHoursInput').value = '24';
+            const banSaveBtn = document.getElementById('banSaveBtn');
+            if (banActive) {
+                banSaveBtn.textContent = 'Banı Kaldır';
+                banSaveBtn.style.background = '#10b981';
+            } else {
+                banSaveBtn.textContent = 'Banla';
+                banSaveBtn.style.background = 'var(--danger)';
+            }
+            document.getElementById('banModal').style.display = 'flex';
+        } catch (e) {
+            console.error('Ban modal açılırken hata:', e);
+            alert('Ban yönetimi açılamadı.');
+        }
+    };
+
+    window.closeBanModal = () => {
+        document.getElementById('banModal').style.display = 'none';
+        currentBanUserId = null;
+    };
+
+    window.saveBanUser = async () => {
+        if (!currentBanUserId) return;
+        try {
+            const userRef = doc(db, 'users', currentBanUserId);
+            const userDoc = await getDoc(userRef);
+            if (!userDoc.exists()) {
+                alert('Kullanıcı bulunamadı.');
+                return;
+            }
+            const userData = userDoc.data();
+            const banUntilDate = userData.banUntil && userData.banUntil.toDate ? userData.banUntil.toDate() : null;
+            const isActiveBan = userData.isBanned === true && (!banUntilDate || banUntilDate > new Date());
+            if (isActiveBan) {
+                await updateDoc(userRef, {
+                    isBanned: false,
+                    banUntil: null,
+                    banReason: null,
+                    banBy: null
+                });
+                alert('Kullanıcının banı kaldırıldı.');
+            } else {
+                const days = parseInt(document.getElementById('banDaysInput').value, 10) || 0;
+                const hours = parseInt(document.getElementById('banHoursInput').value, 10) || 0;
+                const reason = document.getElementById('banReasonInput').value.trim();
+                const durationMs = ((days * 24) + hours) * 60 * 60 * 1000;
+                if (durationMs <= 0) {
+                    alert('Lütfen geçerli bir ban süresi girin.');
+                    return;
+                }
+                if (!reason) {
+                    alert('Lütfen ban nedeni girin.');
+                    return;
+                }
+                const banUntil = new Date(Date.now() + durationMs);
+                await updateDoc(userRef, {
+                    isBanned: true,
+                    banReason: reason,
+                    banBy: ADMIN_EMAIL,
+                    banUntil: banUntil,
+                    banAppealSent: false
+                });
+                alert('Kullanıcı banlandı.');
+            }
+            closeBanModal();
+            loadAllRegisteredUsers();
+            loadBannedUsers();
+            loadBanAppeals();
+        } catch (e) {
+            console.error('Ban kaydedilemedi:', e);
+            alert('Ban kaydedilemedi.');
+        }
+    };
+
+    async function loadBanAppeals() {
+        try {
+            const appealsSnap = await getDocs(query(collection(db, 'banAppeals'), orderBy('sentAt', 'desc'), limit(50)));
+            const list = document.getElementById('user-management-ban-appeals-list');
+            if (!list) return;
+            list.innerHTML = '';
+            if (appealsSnap.empty) {
+                list.innerHTML = '<div style="color: var(--text-muted); padding: 12px;">Henüz ban itirazı bulunmuyor.</div>';
+                return;
+            }
+            appealsSnap.forEach(docSnap => {
+                const appeal = docSnap.data();
+                const sentAt = appeal.sentAt && appeal.sentAt.toDate ? appeal.sentAt.toDate().toLocaleString('tr-TR') : 'Tarih yok';
+                list.innerHTML += `
+                    <div class="glass-card" style="padding:14px; border-left: 4px solid var(--primary);">
+                        <div style="display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; align-items:flex-start; margin-bottom:8px;">
+                            <div><strong>${escapeHtml(appeal.username || 'Bilinmeyen')}</strong> tarafından gönderildi</div>
+                            <small style="color: var(--text-muted);">${sentAt}</small>
+                        </div>
+                        <div style="margin-bottom:10px;">${escapeHtml(appeal.message || '')}</div>
+                        <div style="font-size:0.9rem; color: var(--text-muted);">Ban nedeni: ${escapeHtml(appeal.banReason || 'Belirtilmemiş')}</div>
+                    </div>`;
+            });
+        } catch (e) {
+            console.error('Ban itirazları yüklenemedi:', e);
+        }
+    }
 
     window.deleteUserFromLoginTimes = async (userDocId) => {
         if (!confirm('Bu kullanıcıyı veritabanından silmek istediğinizden emin misiniz?')) return;
@@ -612,30 +869,71 @@
         }
     };
 
-    window.switchTab = (tabId) => {
+    window.switchTab = (tabId, button) => {
+        const section = document.getElementById('section-' + tabId);
+        const isAlreadyActive = section && section.classList.contains('active');
+
         document.querySelectorAll('.admin-section').forEach(s => s.classList.remove('active'));
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-        document.getElementById('section-' + tabId).classList.add('active');
-        if(event) event.target.classList.add('active');
-        if (tabId === 'registered') {
-            loadAllRegisteredUsers();
+
+        if (!isAlreadyActive) {
+            section.classList.add('active');
+            if (button) button.classList.add('active');
         }
-        if (tabId === 'loginTimes') {
-            loadLoginTimes();
-        }
-        if (tabId === 'polls') {
-            loadPollsAdmin();
+
+        if (!isAlreadyActive) {
+            if (tabId === 'registered') {
+                loadAllRegisteredUsers();
+            }
+            if (tabId === 'loginTimes') {
+                loadLoginTimes();
+            }
+            if (tabId === 'userManagement') {
+                loadAllRegisteredUsers();
+                loadBannedUsers();
+                loadBanAppeals();
+            }
+            if (tabId === 'polls') {
+                loadPollsAdmin();
+            }
         }
     };
 
-    window.switchUserSubtab = (subtabId) => {
-        document.querySelectorAll('.admin-subsection').forEach(s => s.classList.remove('active'));
-        document.querySelectorAll('.subtab-btn').forEach(b => b.classList.remove('active'));
-        document.getElementById('subsection-' + subtabId).classList.add('active');
-        const btn = document.querySelector(`.subtab-btn[onclick="switchUserSubtab('${subtabId}')"]`);
-        if (btn) btn.classList.add('active');
-        if (subtabId === 'loginTimes') {
+    window.switchUserSubtab = (subtabId, button) => {
+        const subsection = document.getElementById('subsection-' + subtabId);
+        const isAlreadyActive = subsection && subsection.classList.contains('active');
+
+        document.querySelectorAll('#section-users .admin-subsection').forEach(s => s.classList.remove('active'));
+        document.querySelectorAll('#section-users .subtab-btn').forEach(b => b.classList.remove('active'));
+
+        if (!isAlreadyActive) {
+            if (subsection) subsection.classList.add('active');
+            if (button) button.classList.add('active');
+        }
+
+        if (!isAlreadyActive && subtabId === 'loginTimes') {
             loadLoginTimes();
+        }
+    };
+
+    window.switchUserManagementSubtab = (subtabId, button) => {
+        const subsection = document.getElementById('userManagement-subsection-' + subtabId);
+        const isAlreadyActive = subsection && subsection.classList.contains('active');
+
+        document.querySelectorAll('#section-userManagement .admin-subsection').forEach(s => s.classList.remove('active'));
+        document.querySelectorAll('#section-userManagement .subtab-btn').forEach(b => b.classList.remove('active'));
+
+        if (!isAlreadyActive) {
+            if (subsection) subsection.classList.add('active');
+            if (button) button.classList.add('active');
+        }
+
+        if (!isAlreadyActive && subtabId === 'banned') {
+            loadBannedUsers();
+        }
+
+        if (!isAlreadyActive && subtabId === 'appeals') {
+            loadBanAppeals();
         }
     };
 
@@ -671,6 +969,35 @@
 
 
 <div id="footer-placeholder"></div>  
+
+<div id="banModal" class="modal-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; align-items: center; justify-content: center;">
+    <div class="glass-card" style="width: 90%; max-width: 520px; padding: 22px;">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 15px;">
+            <h3 style="margin: 0;">Kullanıcı Banla / Ban Kaldır</h3>
+            <button onclick="closeBanModal()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-main);">&times;</button>
+        </div>
+        <div style="display:grid; gap:12px; margin-bottom:16px;">
+            <div><strong id="banModalUserLabel"></strong></div>
+            <label style="font-size:0.9rem; color:var(--text-muted);">Ban sebebi</label>
+            <textarea id="banReasonInput" class="form-input" style="min-height: 100px; resize: vertical;" placeholder="Ban sebebini yazın..."></textarea>
+            <div style="display:grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap:10px;">
+                <div>
+                    <label style="font-size:0.9rem; color:var(--text-muted);">Süre (gün)</label>
+                    <input id="banDaysInput" type="number" min="0" value="0" class="form-input" style="width:100%; padding:10px; border-radius:12px; border:1px solid var(--border); background:transparent; color:var(--text-main);">
+                </div>
+                <div>
+                    <label style="font-size:0.9rem; color:var(--text-muted);">Süre (saat)</label>
+                    <input id="banHoursInput" type="number" min="1" max="168" value="24" class="form-input" style="width:100%; padding:10px; border-radius:12px; border:1px solid var(--border); background:transparent; color:var(--text-main);">
+                </div>
+            </div>
+            <div style="font-size:0.85rem; color:var(--text-muted);">Ban süresi dolduğunda kullanıcı otomatik olarak tekrar erişim kazanır.</div>
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 10px;">
+            <button onclick="closeBanModal()" style="padding: 10px 20px; border-radius: 20px; border: 1px solid var(--border); background: transparent; cursor: pointer;">İptal</button>
+            <button id="banSaveBtn" onclick="saveBanUser()" style="padding: 10px 20px; border-radius: 20px; border: none; background: var(--danger); color: white; font-weight: bold; cursor: pointer;">Banla</button>
+        </div>
+    </div>
+</div>
 
 <div id="editModal" class="modal-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; align-items: center; justify-content: center;">
     <div class="glass-card" style="width: 90%; max-width: 500px; padding: 20px;">
