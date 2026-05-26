@@ -791,6 +791,10 @@ onAuthStateChanged(auth, async (fbUser) => {
         if (aiButton) {
             aiButton.style.display = auth.currentUser ? 'inline-flex' : 'none';
         }
+        const sidebarAdminBtn = document.getElementById('sidebarAdminBtn');
+        if (sidebarAdminBtn) {
+            sidebarAdminBtn.style.display = user.isAdmin ? 'flex' : 'none';
+        }
     }
     
     // Profil sayfasında ziyaretçi profilini kontrol et
@@ -1828,8 +1832,8 @@ function getAvatarUrl(avatarUrlOrSeed, type = 'user') {
                     (createdAt.seconds != null ? new Date(createdAt.seconds * 1000) : new Date(createdAt));
                 const joinDate = createdAtDate.toLocaleDateString('tr-TR', {
                     year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
+                    month: '2-digit',
+                    day: '2-digit'
                 });
                 const now = new Date();
                 const diffMs = now - createdAtDate;
@@ -6872,7 +6876,9 @@ window.loadRecentChats = async function() {
                         <p class="chat-friend-name">${escapeHtml(chat.displayName)}</p>
                         <p class="chat-friend-lastmsg">${escapeHtml(chat.lastMessage)}</p>
                     </div>
-                    ${chat.unreadCount > 0 ? `<span class="chat-unread-pill">${chat.unreadCount}</span>` : ''}
+                    <div class="chat-friend-meta">
+                        ${chat.unreadCount > 0 ? `<span class="chat-last-sender">Yeni Mesaj</span>` : ''}
+                    </div>
                 </div>
             `;
         }
@@ -7018,7 +7024,9 @@ window.loadUnreadChats = async function() {
                             <p class="chat-friend-name">${escapeHtml(displayName)}</p>
                             <p class="chat-friend-lastmsg">${escapeHtml(lastMessage)}</p>
                         </div>
-                        <span class="chat-unread-pill">${unreadCount}</span>
+                        <div class="chat-friend-meta">
+                            ${unreadCount > 0 ? `<span class="chat-last-sender">Yeni Mesaj</span>` : ''}
+                        </div>
                     </div>
                 `;
             } catch (error) {
@@ -7323,10 +7331,11 @@ function loadChatMessages(conversationId) {
         // Scroll to bottom
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
         
-        // Mark as read
+        // Mark as read and clear any persistent notification for this conversation
         updateDoc(doc(db, 'conversations', conversationId), {
             [`unreadCount.${auth.currentUser.uid}`]: 0
         }).catch(() => {});
+        clearChatNotificationForConversation(conversationId);
 
         if (typeof updateChatUnreadIndicator === 'function') updateChatUnreadIndicator();
         
@@ -7407,11 +7416,29 @@ window.sendChatMessage = async function() {
         // message sent log removed
 
         
-        // Update last message
-        await updateDoc(doc(db, 'conversations', currentConversationId), {
+        const conversationRef = doc(db, 'conversations', currentConversationId);
+        const conversationSnap = await getDoc(conversationRef);
+        const unreadUpdates = {};
+
+        if (conversationSnap.exists()) {
+            const convData = conversationSnap.data();
+            const participants = convData.participants || [];
+            const currentUnread = convData.unreadCount || {};
+
+            participants.forEach((participantId) => {
+                if (participantId === currentUserId) {
+                    unreadUpdates[`unreadCount.${participantId}`] = 0;
+                } else {
+                    unreadUpdates[`unreadCount.${participantId}`] = (currentUnread[participantId] || 0) + 1;
+                }
+            });
+        }
+
+        await updateDoc(conversationRef, {
             lastMessage: text,
             lastMessageAt: serverTimestamp(),
-            lastSenderId: currentUserId
+            lastSenderId: currentUserId,
+            ...unreadUpdates
         });
         
         inputEl.value = '';
@@ -7619,7 +7646,7 @@ function listenForIncomingMessages() {
 function saveChatNotification(conversationId, senderId, data) {
     try {
         const payload = { conversationId, senderId, ...data };
-        localStorage.setItem('chatNotif_' + senderId, JSON.stringify(payload));
+        localStorage.setItem('chatNotif_' + conversationId, JSON.stringify(payload));
     } catch (e) {
         console.warn('notification storage failed', e);
     }
@@ -7628,18 +7655,23 @@ function saveChatNotification(conversationId, senderId, data) {
 function removeChatNotification(elementId) {
     try {
         if (elementId.startsWith('notif-')) {
-            const senderId = elementId.replace('notif-', '');
-            localStorage.removeItem('chatNotif_' + senderId);
+            const conversationId = elementId.replace('notif-', '');
+            localStorage.removeItem('chatNotif_' + conversationId);
         }
         if (elementId.startsWith('toast-')) {
             const el = document.getElementById(elementId);
-            if (el && el.dataset.senderId) {
-                localStorage.removeItem('chatNotif_' + el.dataset.senderId);
+            if (el && el.dataset.conversationId) {
+                localStorage.removeItem('chatNotif_' + el.dataset.conversationId);
             }
         }
     } catch (e) {}
     const el = document.getElementById(elementId);
     if (el) el.remove();
+}
+
+function clearChatNotificationForConversation(conversationId) {
+    removeChatNotification(`notif-${conversationId}`);
+    removeChatNotification(`toast-${conversationId}`);
 }
 
 function renderChatNotification(conversationId, senderId, senderName, messageText) {
@@ -7660,6 +7692,7 @@ function renderChatNotification(conversationId, senderId, senderName, messageTex
             </div>
         `;
         toastDiv.dataset.senderId = senderId;
+        toastDiv.dataset.conversationId = conversationId;
         toastDiv.onclick = async () => {
             try {
                 const currentUserId = auth.currentUser.uid;
@@ -7673,19 +7706,14 @@ function renderChatNotification(conversationId, senderId, senderName, messageTex
             removeChatNotification(toastId);
         };
         document.body.appendChild(toastDiv);
-        setTimeout(() => {
-            if (document.getElementById(toastId)) {
-                removeChatNotification(toastId);
-            }
-        }, 5000);
         return;
     }
 
-    if (document.getElementById(`notif-${senderId}`)) {
-        document.getElementById(`notif-${senderId}`).remove();
+    if (document.getElementById(`notif-${conversationId}`)) {
+        document.getElementById(`notif-${conversationId}`).remove();
     }
     const notifDiv = document.createElement('div');
-    notifDiv.id = `notif-${senderId}`;
+    notifDiv.id = `notif-${conversationId}`;
     notifDiv.className = 'chat-notification-badge';
     notifDiv.innerHTML = `
         <i class="fa-solid fa-envelope"></i>
@@ -7694,6 +7722,7 @@ function renderChatNotification(conversationId, senderId, senderName, messageTex
             <div style="font-size:0.8rem; opacity:0.9;">${messageText.slice(0, 50)}${messageText.length > 50 ? '...' : ''}</div>
         </div>
     `;
+    notifDiv.dataset.conversationId = conversationId;
     notifDiv.onclick = async () => {
         try {
             const currentUserId = auth.currentUser.uid;
@@ -7704,16 +7733,9 @@ function renderChatNotification(conversationId, senderId, senderName, messageTex
             console.warn('Bildirim tıklanırken okunma işareti atamada hata:', e);
         }
         openChatWithUser(senderId, senderName);
-        removeChatNotification(`notif-${senderId}`);
+        removeChatNotification(`notif-${conversationId}`);
     };
     document.body.appendChild(notifDiv);
-    
-    // 5 saniye sonra otomatik kaldır
-    setTimeout(() => {
-        if (document.getElementById(`notif-${senderId}`)) {
-            removeChatNotification(`notif-${senderId}`);
-        }
-    }, 5000);
 }
 
 function loadStoredChatNotifications() {
@@ -7727,6 +7749,46 @@ function loadStoredChatNotifications() {
                 }
             } catch (e) {}
         }
+    }
+}
+
+async function restoreUnreadChatNotifications() {
+    if (!auth.currentUser) return;
+    try {
+        const currentUserId = auth.currentUser.uid;
+        const q = query(
+            collection(db, 'conversations'),
+            where('participants', 'array-contains', currentUserId)
+        );
+        const convSnap = await getDocs(q);
+        for (const convDoc of convSnap.docs) {
+            const convData = convDoc.data();
+            const unreadCount = convData.unreadCount?.[currentUserId] || 0;
+            if (unreadCount <= 0) continue;
+            const conversationId = convDoc.id;
+            if (localStorage.getItem('chatNotif_' + conversationId)) continue;
+            if (document.getElementById(`notif-${conversationId}`) || document.getElementById(`toast-${conversationId}`)) continue;
+            if (currentConversationId === conversationId) continue;
+
+            const otherParticipantId = (convData.participants || []).find(id => id !== currentUserId);
+            if (!otherParticipantId) continue;
+
+            let senderName = 'Bilinmeyen Kullanıcı';
+            try {
+                const userSnap = await getDoc(doc(db, 'users', otherParticipantId));
+                if (userSnap.exists()) {
+                    const userData = userSnap.data();
+                    senderName = userData.displayName || userData.username || senderName;
+                }
+            } catch (e) {
+                console.warn('Sohbet bildirimi için kullanıcı bilgisi alınamadı:', e);
+            }
+
+            const messageText = convData.lastMessage || 'Yeni mesaj';
+            showMessageNotification(conversationId, otherParticipantId, senderName, messageText);
+        }
+    } catch (e) {
+        console.warn('Offline gelen sohbet bildirimleri geri yüklenirken hata:', e);
     }
 }
 
@@ -9096,6 +9158,9 @@ onAuthStateChanged(auth, (authUser) => {
             if (typeof updateChatUnreadIndicator === 'function') {
                 updateChatUnreadIndicator();
             }
+            if (typeof restoreUnreadChatNotifications === 'function') {
+                restoreUnreadChatNotifications();
+            }
         }, 2000);
     }
     // Update create view UI when auth changes
@@ -9113,6 +9178,26 @@ onAuthStateChanged(auth, (authUser) => {
             showBlogView('create');
         } else {
             loadBlogPosts();
+        }
+    }
+});
+
+window.addEventListener('online', () => {
+    if (typeof updateChatUnreadIndicator === 'function') {
+        updateChatUnreadIndicator();
+    }
+    if (typeof restoreUnreadChatNotifications === 'function') {
+        restoreUnreadChatNotifications();
+    }
+});
+
+window.addEventListener('visibilitychange', () => {
+    if (!document.hidden) {
+        if (typeof updateChatUnreadIndicator === 'function') {
+            updateChatUnreadIndicator();
+        }
+        if (typeof restoreUnreadChatNotifications === 'function') {
+            restoreUnreadChatNotifications();
         }
     }
 });
