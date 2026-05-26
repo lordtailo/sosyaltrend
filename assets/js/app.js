@@ -1,7 +1,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, doc, updateDoc, setDoc, arrayUnion, arrayRemove, deleteDoc, getDoc, getDocs, limit, where, increment } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { ozelGunler, tarihteBugun, ramazanTakvimi } from "./calendarDays.js";
-import { getAuth, onAuthStateChanged, signOut, updateEmail, updatePassword, sendPasswordResetEmail, updateProfile } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { getAuth, onAuthStateChanged, signOut, updateEmail, updatePassword, sendPasswordResetEmail, updateProfile, deleteUser } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
 
 // HELPER FONKSİYONLAR
@@ -632,7 +632,11 @@ localStorage.setItem('st_avatar', 'strendsaydamv2');
 onAuthStateChanged(auth, async (fbUser) => {
     if (!fbUser) {
         localStorage.removeItem('st_isAdmin');
-        window.location.href = 'login.html'; kontrolEtVeOtomatikPostAt();
+        if (typeof kontrolEtVeOtomatikPostAt === 'function') {
+            kontrolEtVeOtomatikPostAt();
+        }
+        window.location.href = 'login.html';
+        return;
     } else {
         // Kullanıcı bilgilerini güncelle
         user.username = fbUser.email.split('@')[0];
@@ -1030,6 +1034,216 @@ let tempAvatarBuffer = null;
             }
         } else if (newEmail) {
             alert('Geçerli bir e-posta girin');
+        }
+    };
+
+    async function archiveDeletedUserData(userId, userData, deletedBy) {
+        try {
+            await setDoc(doc(db, 'deletedUsers', userId), {
+                ...userData,
+                deletedBy: deletedBy || 'self',
+                deletedAt: serverTimestamp(),
+                originalUid: userId
+            }, { merge: true });
+        } catch (e) {
+            console.error('Silinen kullanıcı verisi arşivlenemedi:', e);
+        }
+    }
+
+    async function _cleanupUserPostsAndContent(uid, username) {
+        const collectionsToDelete = [
+            { name: 'posts', authorUidField: 'authorUid', authorUsernameField: 'username' },
+            { name: 'videos', authorUidField: 'authorUid', authorUsernameField: 'authorUsername' },
+            { name: 'music', authorUidField: 'authorUid', authorUsernameField: 'authorUsername' },
+            { name: 'blogs', authorUidField: 'authorUid', authorUsernameField: 'authorUsername' }
+        ];
+
+        const deleteRefs = new Map();
+
+        for (const collectionInfo of collectionsToDelete) {
+            try {
+                if (uid && collectionInfo.authorUidField) {
+                    const snap = await getDocs(query(collection(db, collectionInfo.name), where(collectionInfo.authorUidField, '==', uid)));
+                    snap.forEach((docSnap) => deleteRefs.set(`${collectionInfo.name}:${docSnap.id}`, docSnap.ref));
+                }
+
+                if (username && collectionInfo.authorUsernameField) {
+                    const snap = await getDocs(query(collection(db, collectionInfo.name), where(collectionInfo.authorUsernameField, '==', username)));
+                    snap.forEach((docSnap) => deleteRefs.set(`${collectionInfo.name}:${docSnap.id}`, docSnap.ref));
+                }
+            } catch (e) {
+                console.error(`cleanup query failed for ${collectionInfo.name}`, e);
+            }
+        }
+
+        for (const ref of deleteRefs.values()) {
+            try {
+                await deleteDoc(ref);
+            } catch (e) {
+                console.error('delete doc failed', e);
+            }
+        }
+    }
+
+    async function _cleanupUserPostInteractions(username) {
+        if (!username) return;
+        try {
+            const postsSnap = await getDocs(collection(db, 'posts'));
+            for (const postDoc of postsSnap.docs) {
+                const postData = postDoc.data();
+                let changed = false;
+                const updates = {};
+
+                if (Array.isArray(postData.likes) && postData.likes.includes(username)) {
+                    updates.likes = postData.likes.filter((item) => item !== username);
+                    changed = true;
+                }
+
+                if (Array.isArray(postData.savedBy) && postData.savedBy.includes(username)) {
+                    updates.savedBy = postData.savedBy.filter((item) => item !== username);
+                    changed = true;
+                }
+
+                if (Array.isArray(postData.comments) && postData.comments.length > 0) {
+                    const cleanedComments = postData.comments.reduce((acc, comment) => {
+                        if (comment.username === username) {
+                            return acc;
+                        }
+
+                        const updatedComment = { ...comment };
+                        if (Array.isArray(updatedComment.replies) && updatedComment.replies.length > 0) {
+                            const filteredReplies = updatedComment.replies.filter((reply) => reply.username !== username);
+                            if (filteredReplies.length !== updatedComment.replies.length) {
+                                updatedComment.replies = filteredReplies;
+                                changed = true;
+                            }
+                        }
+                        acc.push(updatedComment);
+                        return acc;
+                    }, []);
+
+                    if (cleanedComments.length !== postData.comments.length) {
+                        updates.comments = cleanedComments;
+                        changed = true;
+                    }
+                }
+
+                if (changed) {
+                    try {
+                        await updateDoc(postDoc.ref, updates);
+                    } catch (e) {
+                        console.error('update post interactions failed', e);
+                    }
+                }
+            }
+        } catch (e) {
+            console.error('cleanup user post interactions failed', e);
+        }
+    }
+
+    async function _cleanupUserReferences(uid, username) {
+        if (!uid) return;
+        try {
+            const usersSnap = await getDocs(collection(db, 'users'));
+            for (const userDoc of usersSnap.docs) {
+                if (userDoc.id === uid) continue;
+                const data = userDoc.data();
+                const updates = {};
+                let changed = false;
+
+                if (Array.isArray(data.friends) && data.friends.includes(uid)) {
+                    updates.friends = data.friends.filter((item) => item !== uid);
+                    changed = true;
+                }
+
+                if (Array.isArray(data.friendRequests)) {
+                    const filtered = data.friendRequests.filter((req) => req.fromUid !== uid && req.toUid !== uid);
+                    if (filtered.length !== data.friendRequests.length) {
+                        updates.friendRequests = filtered;
+                        changed = true;
+                    }
+                }
+
+                if (Array.isArray(data.sentRequests)) {
+                    const filtered = data.sentRequests.filter((req) => req.fromUid !== uid && req.toUid !== uid);
+                    if (filtered.length !== data.sentRequests.length) {
+                        updates.sentRequests = filtered;
+                        changed = true;
+                    }
+                }
+
+                if (Array.isArray(data.notifications)) {
+                    const filtered = data.notifications.filter((notif) => notif.fromUid !== uid && notif.fromName !== username);
+                    if (filtered.length !== data.notifications.length) {
+                        updates.notifications = filtered;
+                        changed = true;
+                    }
+                }
+
+                if (changed) {
+                    try {
+                        await updateDoc(userDoc.ref, updates);
+                    } catch (e) {
+                        console.error('cleanup user references failed for', userDoc.id, e);
+                    }
+                }
+            }
+        } catch (e) {
+            console.error('cleanup user references failed', e);
+        }
+    }
+
+    window.deleteAccount = async () => {
+        if (!auth.currentUser) {
+            return alert('Hesap silme işlemi için giriş yapmalısınız.');
+        }
+
+        const currentUser = auth.currentUser;
+        const confirmation = confirm('Hesabınızı silmek üzeresiniz. Bu işlem geri alınamaz ve tüm içerikleriniz kalıcı olarak silinir. Devam etmek istiyor musunuz?');
+        if (!confirmation) return;
+
+        const userRef = doc(db, 'users', currentUser.uid);
+        const userSnap = await getDoc(userRef);
+        if (!userSnap.exists()) {
+            return alert('Kullanıcı bilgileri bulunamadı. Lütfen tekrar giriş yapın.');
+        }
+
+        const username = userSnap.data().username || currentUser.displayName || (currentUser.email ? currentUser.email.split('@')[0] : '');
+        const deleteBtn = document.querySelector('button[onclick*="deleteAccount"]');
+        if (deleteBtn) {
+            disableButton(deleteBtn, 'Siliniyor...');
+        }
+
+        try {
+            await archiveDeletedUserData(currentUser.uid, userSnap.data(), 'self');
+            await _cleanupUserPostsAndContent(currentUser.uid, username);
+            await _cleanupUserPostInteractions(username);
+            await _cleanupUserReferences(currentUser.uid, username);
+            await deleteDoc(userRef);
+
+            try {
+                await deleteUser(currentUser);
+            } catch (authError) {
+                console.error('deleteUser failed', authError);
+                if (authError.code === 'auth/requires-recent-login') {
+                    alert('Hesabınızı silmek için lütfen yeniden giriş yapın ve tekrar deneyin.');
+                    return;
+                }
+                alert('Hesabınız silindi, ancak kimlik doğrulama hesabı silinemedi: ' + authError.message);
+            }
+
+            alert('Hesabınız ve ilişkili içerikler başarıyla silindi.');
+            await signOut(auth).catch(() => {});
+            window.location.href = 'login.html';
+            setTimeout(() => { window.location.href = 'login.html'; }, 250);
+        } catch (e) {
+            console.error('deleteAccount error', e);
+            alert('Hesap silme işlemi sırasında bir hata oluştu. Lütfen tekrar deneyin.');
+            if (deleteBtn) {
+                deleteBtn.disabled = false;
+                deleteBtn.style.opacity = '1';
+                deleteBtn.style.cursor = 'pointer';
+            }
         }
     };
 
@@ -1577,7 +1791,7 @@ function getAvatarUrl(avatarUrlOrSeed, type = 'user') {
     if(sDn) sDn.innerText = user.displayName || 'Misafir';
     if(sUn) sUn.innerText = user.username ? `@${user.username}` : '@kullanici';
     if(sJd && !sJd.innerText) sJd.innerText = '—';
-    if(sSi) sSi.innerText = user.email ? user.email : '—';
+    if(sSi) sSi.innerText = user.email ? shortenEmail(user.email) : '—';
     if(sRo) sRo.innerText = user.isAdmin ? 'Admin' : 'Kullanıcı';
     if(sLa) sLa.innerText = '—';
     if(sMa) sMa.innerText = '—';
@@ -1617,38 +1831,24 @@ function getAvatarUrl(avatarUrlOrSeed, type = 'user') {
                     month: 'long',
                     day: 'numeric'
                 });
-                sJd.innerText = joinDate;
+                const now = new Date();
+                const diffMs = now - createdAtDate;
+                const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+                let durationText = `${diffDays}gün`;
+                if (diffDays >= 365) {
+                    const years = Math.floor(diffDays / 365);
+                    durationText = years === 1 ? '1yıl' : `${years}yıl`;
+                } else if (diffDays >= 30) {
+                    const months = Math.floor(diffDays / 30);
+                    durationText = months === 1 ? '1ay' : `${months}ay`;
+                }
+                sJd.innerText = `${joinDate}/${durationText}`;
             } catch (e) {
                 console.error('Join date formatting error:', e);
                 sJd.innerText = '—';
             }
         } else {
             sJd.innerText = '—';
-        }
-    }
-    if (sMa) {
-        if (user.createdAt) {
-            try {
-                const createdAtDate = user.createdAt.toDate ? user.createdAt.toDate() :
-                    (user.createdAt.seconds != null ? new Date(user.createdAt.seconds * 1000) : new Date(user.createdAt));
-                const now = new Date();
-                const diffMs = now - createdAtDate;
-                const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-                let durationText = `${diffDays} gün`;
-                if (diffDays >= 365) {
-                    const years = Math.floor(diffDays / 365);
-                    durationText = years === 1 ? '1 yıl' : `${years} yıl`;
-                } else if (diffDays >= 30) {
-                    const months = Math.floor(diffDays / 30);
-                    durationText = months === 1 ? '1 ay' : `${months} ay`;
-                }
-                sMa.innerText = durationText;
-            } catch (e) {
-                console.error('Membership age formatting error:', e);
-                sMa.innerText = '—';
-            }
-        } else {
-            sMa.innerText = '—';
         }
     }
     if (sLa) {
@@ -3941,10 +4141,12 @@ window.closeEditModal = function() {
 };
 
 // Ortak Kaydetme İşlemi
-document.getElementById('saveEditBtn').onclick = async () => {
-    let newContent = document.getElementById('editPostInput').innerText.trim();
-    if (newContent.length > 500) newContent = newContent.substring(0, 500);
-    if (!newContent || !editTarget.postId) return;
+const saveEditBtn = document.getElementById('saveEditBtn');
+if (saveEditBtn) {
+    saveEditBtn.onclick = async () => {
+        let newContent = document.getElementById('editPostInput').innerText.trim();
+        if (newContent.length > 500) newContent = newContent.substring(0, 500);
+        if (!newContent || !editTarget.postId) return;
 
     try {
         const postRef = doc(db, "posts", editTarget.postId);
@@ -3987,10 +4189,11 @@ document.getElementById('saveEditBtn').onclick = async () => {
         console.error("Güncelleme hatası:", error);
         alert("İşlem başarısız oldu.");
     }
-};
+  };
+}
 
 // Karşılama mesajı için global fonksiyon (app.js'den çağrılacak)
-  window.updateWelcomeMessage = (username) => {
+window.updateWelcomeMessage = (username) => {
     const welcomeEl = document.getElementById('welcomeMessage');
     if (welcomeEl) {
       const name = username ? username : "misafir";
@@ -7297,6 +7500,21 @@ function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
+}
+
+function shortenEmail(email) {
+    if (!email || typeof email !== 'string') return '—';
+    const parts = email.split('@');
+    if (parts.length !== 2) return email;
+    const localPart = parts[0];
+    const domain = parts[1].toLowerCase();
+    let shortDomain = '...';
+    if (domain.includes('gmail.com')) {
+        shortDomain = 'gm..';
+    } else if (domain.includes('hotmail.com')) {
+        shortDomain = 'hm..';
+    }
+    return `${localPart}@${shortDomain}`;
 }
 
 // Format timestamp to readable time for chat

@@ -12,7 +12,7 @@
     </div>
 
     <div class="glass-card sidebar-container" style="margin-bottom: 12px;">
-            <div class="sidebar-title"><i class="fa-solid fa-id-card"></i> Profiliniz</div>
+            <div class="sidebar-title"><i class="fa-solid fa-id-card"></i> Profil Kartınız</div>
             <div class="glass-card sidebar-profile-card">
                 <div class="sidebar-profile-avatar">
                     <img id="sidebarAvatar" src="assets/img/strendsaydamv2.png" alt="Kenar çubuğu avatarı" onclick="navigateTo('profil')">
@@ -20,10 +20,12 @@
                 <div class="sidebar-profile-body">
                     <div id="sidebarDisplayName" class="sidebar-profile-name">Misafir</div>
                     <div id="sidebarUsername" class="sidebar-profile-username">@kullanici</div>
+                    <hr class="sidebar-profile-divider">
+                    <div class="sidebar-profile-subtitle"><i class="fa-solid fa-id-card"></i> Üyelik Bilgileriniz</div>
                     <div class="sidebar-profile-meta">
                         <div class="sidebar-profile-row">
                             <span class="sidebar-profile-label"><i class="fa-solid fa-calendar-days"></i> Kayıt Tarihi</span>
-                            <span id="sidebarJoinDate" class="sidebar-profile-value">—</span> (<span id="sidebarMembershipAge" class="sidebar-profile-value">—</span>)
+                            <span id="sidebarJoinDate" class="sidebar-profile-value">—</span>
                         </div>
                         <div class="sidebar-profile-row">
                             <span class="sidebar-profile-label"><i class="fa-solid fa-envelope"></i> E-Posta</span>
@@ -41,6 +43,14 @@
                             <span class="sidebar-profile-label"><i class="fa-solid fa-user-clock"></i>Bekleyen istekler</span>
                             <span id="sidebarPendingRequests" class="sidebar-profile-value">0</span>
                         </div>
+                    </div>
+                    <div class="sidebar-profile-actions">
+                        <button class="menu-style-btn sidebar-profile-button" onclick="navigateTo('profil'); return false;">
+                            <i class="fa-solid fa-user"></i> Profilim
+                        </button>
+                        <button class="menu-style-btn sidebar-profile-button sidebar-settings-button" onclick="navigateTo('settings'); return false;">
+                            <i class="fa-solid fa-gear"></i> Ayarlarım
+                        </button>
                     </div>
                 </div>
             </div>
@@ -62,9 +72,6 @@
     <div class="glass-card sidebar-container">
         <div class="sidebar-title"><i class="fa-solid fa-user"></i> Profil Menü</div>
 
-        <a href="profil.html" data-href="profil.html" class="menu-style-btn nav-item" id="btn-profilim">
-            <i class="fa-solid fa-user"></i> Profilim
-        </a>
         <a href="profil.html#posts" data-href="profil.html#posts" class="menu-style-btn nav-item" id="btn-gonderiler">
             <i class="fa-solid fa-feather"></i> Gönderilerim
         </a>

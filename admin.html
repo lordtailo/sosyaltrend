@@ -25,7 +25,7 @@
         .tab-btn { background: var(--input-bg); border: 1px solid var(--border); color: var(--text-main); padding: 10px 16px; cursor: pointer; font-weight: 600; transition: 0.3s; border-radius: 12px; text-align: left; }
         .tab-btn.active { color: white; background: var(--primary); border-color: var(--primary); }
         .tab-btn:hover { transform: translateY(-1px); }
-        .admin-subtabs { display: flex; gap: 12px; margin-bottom: 16px; padding-bottom: 0; }
+        .admin-subtabs { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 16px; padding-bottom: 0; }
         .subtab-btn { display: inline-flex; align-items: center; justify-content: center; background: none; border: none; color: var(--text-muted); padding: 10px 14px 6px; cursor: pointer; font-weight: 600; line-height: 1; transition: 0.3s; border-bottom: 2px solid transparent; }
         .subtab-btn.active { color: var(--primary); border-bottom-color: var(--primary); }
         .admin-section { display: none; }
@@ -140,7 +140,12 @@
             </div>
 
             <div id="section-registered" class="admin-section">
-                <div class="section-subtitle">Tüm Kayıtlı Kullanıcılar</div>
+                <div class="admin-subtabs">
+                    <button class="subtab-btn active" onclick="switchRegisteredSubtab('all', this)">Tüm Kayıtlılar</button>
+                    <button class="subtab-btn" onclick="switchRegisteredSubtab('week', this)">Yeni Kayıtlar (1 Hafta)</button>
+                    <button class="subtab-btn" onclick="switchRegisteredSubtab('month', this)">Yeni Kayıtlar (1 Ay)</button>
+                </div>
+                <div class="section-subtitle" id="registered-section-title">Tüm Kayıtlı Kullanıcılar</div>
                 <table class="data-table">
                     <thead><tr><th>Kullanıcı</th><th>Kullanıcı Adı</th><th>Email</th><th>Kayıt Tarihi</th><th>Rol</th></tr></thead>
                     <tbody id="registered-users-body"></tbody>
@@ -154,11 +159,12 @@
                     <button class="subtab-btn active" onclick="switchUserManagementSubtab('managed', this)">Tüm Kullanıcılar</button>
                     <button class="subtab-btn" onclick="switchUserManagementSubtab('banned', this)">Banlananlar</button>
                     <button class="subtab-btn" onclick="switchUserManagementSubtab('appeals', this)">Ban İtirazları</button>
+                    <button class="subtab-btn" onclick="switchUserManagementSubtab('deleted', this)">Silinen Üyeler</button>
                 </div>
 
                 <div id="userManagement-subsection-managed" class="admin-subsection active">
                     <table class="data-table">
-                        <thead><tr><th>Kullanıcı</th><th>Kullanıcı Adı</th><th>Email</th><th>Rol</th><th>Ban Durumu</th><th>İşlem</th></tr></thead>
+                        <thead><tr><th>Kullanıcı</th><th>Kullanıcı Adı</th><th>Email</th><th>Rol</th><th>İşlem</th></tr></thead>
                         <tbody id="managed-users-body"></tbody>
                     </table>
                 </div>
@@ -173,6 +179,13 @@
 
                 <div id="userManagement-subsection-appeals" class="admin-subsection">
                     <div id="user-management-ban-appeals-list" style="display:grid; gap:12px;"></div>
+                </div>
+                <div id="userManagement-subsection-deleted" class="admin-subsection">
+                    <div class="section-subtitle">Silinen Üyeler</div>
+                    <table class="data-table">
+                        <thead><tr><th>Kullanıcı</th><th>Kullanıcı Adı</th><th>Email</th><th>Silme Tarihi</th><th>Silme Yapan</th></tr></thead>
+                        <tbody id="deleted-users-body"></tbody>
+                    </table>
                 </div>
             </div>
         </div>
@@ -193,7 +206,7 @@
 <script type="module">
     // Firebase importları ve config aynı kalıyor
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getFirestore, collection, getDocs, getDoc, addDoc, serverTimestamp, query, orderBy, limit, deleteDoc, doc, onSnapshot, updateDoc, where } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getFirestore, collection, getDocs, getDoc, addDoc, setDoc, serverTimestamp, query, orderBy, limit, deleteDoc, doc, onSnapshot, updateDoc, where } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
     const firebaseConfig = {
@@ -219,6 +232,21 @@
             .replace(/>/g, '&gt;')
             .replace(/"/g, '&quot;')
             .replace(/'/g, '&#39;');
+    }
+
+    function shortenEmail(email) {
+        if (!email || typeof email !== 'string') return '—';
+        const parts = email.split('@');
+        if (parts.length !== 2) return email;
+        const localPart = parts[0];
+        const domain = parts[1].toLowerCase();
+        let shortDomain = '...';
+        if (domain.includes('gmail.com')) {
+            shortDomain = 'gm..';
+        } else if (domain.includes('hotmail.com')) {
+            shortDomain = 'hm..';
+        }
+        return `${localPart}@${shortDomain}`;
     }
 
     let isAdminInitialized = false;
@@ -266,39 +294,60 @@
     }
 
     // ---------------- Kullanıcı Yönetimi ----------------
-    async function loadAllRegisteredUsers() {
-        let tbody = null;
-        let managedTbody = null;
-        try {
-            const usersSnap = await getDocs(query(
-                collection(db, "users"),
-                orderBy("createdAt", "desc"),
-                limit(500)
-            ));
+    let activeRegisteredFilter = 'all';
 
-            tbody = document.getElementById('registered-users-body');
-            managedTbody = document.getElementById('managed-users-body');
-            if (tbody) tbody.innerHTML = "";
-            if (managedTbody) managedTbody.innerHTML = "";
+    async function loadAllRegisteredUsers() {
+        await Promise.all([
+            loadRegisteredUsers('all'),
+            loadManagedUsers()
+        ]);
+    }
+
+    async function loadRegisteredUsers(filter = 'all') {
+        activeRegisteredFilter = filter;
+        const tbody = document.getElementById('registered-users-body');
+        const sectionTitle = document.getElementById('registered-section-title');
+        if (tbody) tbody.innerHTML = '';
+        if (sectionTitle) {
+            if (filter === 'week') {
+                sectionTitle.textContent = 'Son 1 Hafta İçinde Kayıt Olanlar';
+            } else if (filter === 'month') {
+                sectionTitle.textContent = 'Son 1 Ay İçinde Kayıt Olanlar';
+            } else {
+                sectionTitle.textContent = 'Tüm Kayıtlı Kullanıcılar';
+            }
+        }
+
+        try {
+            const cutoff = filter === 'week'
+                ? new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+                : filter === 'month'
+                    ? new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+                    : null;
+
+            const usersQuery = filter === 'all'
+                ? query(collection(db, 'users'), orderBy('createdAt', 'desc'), limit(500))
+                : query(collection(db, 'users'), where('createdAt', '>=', cutoff), orderBy('createdAt', 'desc'), limit(500));
+
+            const usersSnap = await getDocs(usersQuery);
+            if (!tbody) return;
 
             if (usersSnap.empty) {
-                const emptyRowRegistered = '<tr><td colspan="5" style="text-align:center; color: var(--text-muted);">Kayıtlı kullanıcı bulunamadı</td></tr>';
-                const emptyRowManaged = '<tr><td colspan="6" style="text-align:center; color: var(--text-muted);">Kayıtlı kullanıcı bulunamadı</td></tr>';
-                if (tbody) tbody.innerHTML = emptyRowRegistered;
-                if (managedTbody) managedTbody.innerHTML = emptyRowManaged;
+                const emptyMessage = filter === 'all'
+                    ? 'Kayıtlı kullanıcı bulunamadı'
+                    : 'Bu süre içinde kayıt olan kullanıcı bulunamadı';
+                tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color: var(--text-muted);">${emptyMessage}</td></tr>`;
                 return;
             }
 
             usersSnap.forEach(doc => {
                 const data = doc.data();
-                const username = data.username || (data.email ? data.email.split('@')[0] : 'Bilinmiyor');
+                const rawEmail = data.email || '';
+                const username = data.username || (rawEmail ? rawEmail.split('@')[0] : 'Bilinmiyor');
                 const name = data.displayName || data.name || username;
-                const email = data.email || '—';
+                const email = rawEmail ? shortenEmail(rawEmail) : '—';
                 const registeredAt = data.createdAt ? data.createdAt.toDate().toLocaleString('tr-TR') : 'Bilinmiyor';
-                const isUserAdmin = data.isAdmin === true || email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
-                const banUntilDate = data.banUntil && data.banUntil.toDate ? data.banUntil.toDate() : null;
-                const banActive = data.isBanned === true && banUntilDate && banUntilDate > new Date();
-                const banStatusText = banActive ? 'Banlı' : (data.isBanned === true && banUntilDate ? 'Ban Süresi Doldu' : 'Aktif');
+                const isUserAdmin = data.isAdmin === true || rawEmail.toLowerCase() === ADMIN_EMAIL.toLowerCase();
                 const avatarSrc = data.avatarUrl && data.avatarUrl.trim() !== ''
                     ? data.avatarUrl
                     : `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(data.avatarSeed || username || '1')}`;
@@ -312,13 +361,51 @@
                         <td><span class="badge ${isUserAdmin ? 'badge-admin' : 'badge-user'}">${isUserAdmin ? 'Admin' : 'Üye'}</span></td>
                     </tr>`;
 
+                tbody.innerHTML += rowHtmlRegistered;
+            });
+        } catch (e) {
+            console.error('Registered users load error:', e);
+            if (tbody) tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color: var(--danger);">Veri yüklenirken hata oluştu</td></tr>';
+        }
+    }
+
+    async function loadManagedUsers() {
+        const managedTbody = document.getElementById('managed-users-body');
+        if (managedTbody) managedTbody.innerHTML = '';
+
+        try {
+            const managedSnap = await getDocs(query(
+                collection(db, 'users'),
+                orderBy('createdAt', 'desc'),
+                limit(500)
+            ));
+
+            if (!managedTbody) return;
+            if (managedSnap.empty) {
+                managedTbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color: var(--text-muted);">Kayıtlı kullanıcı bulunamadı</td></tr>';
+                return;
+            }
+
+            managedSnap.forEach(doc => {
+                const data = doc.data();
+                const rawEmail = data.email || '';
+                const username = data.username || (rawEmail ? rawEmail.split('@')[0] : 'Bilinmiyor');
+                const name = data.displayName || data.name || username;
+                const email = rawEmail ? shortenEmail(rawEmail) : '—';
+                const isUserAdmin = data.isAdmin === true || rawEmail.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+                const banUntilDate = data.banUntil && data.banUntil.toDate ? data.banUntil.toDate() : null;
+                const banActive = data.isBanned === true && banUntilDate && banUntilDate > new Date();
+                const banStatusText = banActive ? 'Banlı' : (data.isBanned === true && banUntilDate ? 'Ban Süresi Doldu' : 'Aktif');
+                const avatarSrc = data.avatarUrl && data.avatarUrl.trim() !== ''
+                    ? data.avatarUrl
+                    : `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(data.avatarSeed || username || '1')}`;
+
                 const rowHtmlManaged = `
                     <tr class="user-row">
                         <td><img src="${avatarSrc}" alt="${name} avatar" style="width:32px;height:32px;border-radius:50%;object-fit:cover;"><b>${name}</b></td>
                         <td>@${username}</td>
                         <td>${email}</td>
                         <td><span class="badge ${isUserAdmin ? 'badge-admin' : 'badge-user'}">${isUserAdmin ? 'Admin' : 'Üye'}</span></td>
-                        <td><span class="badge ${banActive ? 'badge-danger' : 'badge-active'}">${banStatusText}</span></td>
                         <td style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
                             <button class="action-btn" onclick="toggleAdminPrivilege('${doc.id}', ${isUserAdmin ? 'false' : 'true'})">${isUserAdmin ? 'Yetki Kaldır' : 'Admin Yap'}</button>
                             <button class="action-btn btn-delete" onclick="openBanModal('${doc.id}')" ${isUserAdmin ? 'disabled' : ''}>${banActive ? 'Banı Kaldır' : 'Banla'}</button>
@@ -326,14 +413,19 @@
                         </td>
                     </tr>`;
 
-                if (tbody) tbody.innerHTML += rowHtmlRegistered;
-                if (managedTbody) managedTbody.innerHTML += rowHtmlManaged;
+                managedTbody.innerHTML += rowHtmlManaged;
             });
         } catch (e) {
-            console.error('Registered users load error:', e);
-            if (tbody) tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color: var(--danger);">Veri yüklenirken hata oluştu</td></tr>';
+            console.error('Managed users load error:', e);
             if (managedTbody) managedTbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color: var(--danger);">Veri yüklenirken hata oluştu</td></tr>';
         }
+    }
+
+    window.switchRegisteredSubtab = (filter, button) => {
+        const parent = button?.parentElement;
+        if (parent) parent.querySelectorAll('.subtab-btn').forEach(btn => btn.classList.remove('active'));
+        if (button) button.classList.add('active');
+        loadRegisteredUsers(filter);
     }
 
     async function loadBannedUsers() {
@@ -355,16 +447,17 @@
 
             bannedSnap.forEach(doc => {
                 const data = doc.data();
-                const username = data.username || (data.email ? data.email.split('@')[0] : 'Bilinmiyor');
+                const rawEmail = data.email || '';
+                const username = data.username || (rawEmail ? rawEmail.split('@')[0] : 'Bilinmiyor');
                 const name = data.displayName || data.name || username;
-                const email = data.email || '—';
+                const email = rawEmail ? shortenEmail(rawEmail) : '—';
                 const banUntilDate = data.banUntil && data.banUntil.toDate ? data.banUntil.toDate() : null;
                 const banUntilText = !data.banUntil ? 'Kalıcı' : (banUntilDate ? banUntilDate.toLocaleString('tr-TR') : 'Bilinmiyor');
                 const banReason = data.banReason || 'Belirtilmemiş';
                 const avatarSrc = data.avatarUrl && data.avatarUrl.trim() !== ''
                     ? data.avatarUrl
                     : `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(data.avatarSeed || username || '1')}`;
-                const isUserAdmin = data.isAdmin === true || email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+                const isUserAdmin = data.isAdmin === true || rawEmail.toLowerCase() === ADMIN_EMAIL.toLowerCase();
 
                 tbody.innerHTML += `
                     <tr class="user-row">
@@ -398,11 +491,29 @@
 
     let currentBanUserId = null;
 
+    async function archiveDeletedUser(userDocId, userData, deletedBy) {
+        try {
+            await setDoc(doc(db, 'deletedUsers', userDocId), {
+                ...userData,
+                deletedAt: serverTimestamp(),
+                deletedBy: deletedBy || 'admin',
+                originalUid: userDocId
+            }, { merge: true });
+        } catch (e) {
+            console.error('Silinen kullanıcı arşivlenemedi:', e);
+        }
+    }
+
     window.deleteRegisteredUser = async (userDocId) => {
         if (!confirm('Bu kullanıcıyı tamamen silmek istediğinizden emin misiniz?')) return;
         try {
+            const userDoc = await getDoc(doc(db, 'users', userDocId));
+            if (userDoc.exists()) {
+                await archiveDeletedUser(userDocId, userDoc.data(), 'admin');
+            }
             await deleteDoc(doc(db, "users", userDocId));
             loadAllRegisteredUsers();
+            loadBannedUsers();
             loadBanAppeals();
             alert('Kullanıcı hesabı silindi.');
         } catch (e) {
@@ -410,6 +521,45 @@
             alert('Kullanıcı silinirken hata oluştu.');
         }
     };
+
+    async function loadDeletedUsers() {
+        const tbody = document.getElementById('deleted-users-body');
+        if (!tbody) return;
+        tbody.innerHTML = '';
+
+        try {
+            const deletedSnap = await getDocs(query(collection(db, 'deletedUsers'), orderBy('deletedAt', 'desc'), limit(200)));
+            if (deletedSnap.empty) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color: var(--text-muted);">Silinen kullanıcı bulunamadı</td></tr>';
+                return;
+            }
+
+            deletedSnap.forEach(docSnap => {
+                const data = docSnap.data();
+                const rawEmail = data.email || '';
+                const username = data.username || (rawEmail ? rawEmail.split('@')[0] : 'Bilinmiyor');
+                const name = data.displayName || data.name || username;
+                const email = rawEmail ? shortenEmail(rawEmail) : '—';
+                const deletedAt = data.deletedAt && data.deletedAt.toDate ? data.deletedAt.toDate().toLocaleString('tr-TR') : 'Bilinmiyor';
+                const deletedBy = data.deletedBy || 'Bilinmiyor';
+                const avatarSrc = data.avatarUrl && data.avatarUrl.trim() !== ''
+                    ? data.avatarUrl
+                    : `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(data.avatarSeed || username || '1')}`;
+
+                tbody.innerHTML += `
+                    <tr class="user-row">
+                        <td><img src="${avatarSrc}" alt="${name} avatar" style="width:32px;height:32px;border-radius:50%;object-fit:cover;"><b>${name}</b></td>
+                        <td>@${username}</td>
+                        <td>${email}</td>
+                        <td>${deletedAt}</td>
+                        <td>${escapeHtml(deletedBy)}</td>
+                    </tr>`;
+            });
+        } catch (e) {
+            console.error('Silinen kullanıcılar yüklenemedi:', e);
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color: var(--danger);">Silinen kullanıcılar yüklenemedi</td></tr>';
+        }
+    }
 
     window.openBanModal = async (userDocId) => {
         try {
@@ -934,6 +1084,10 @@
 
         if (!isAlreadyActive && subtabId === 'appeals') {
             loadBanAppeals();
+        }
+
+        if (!isAlreadyActive && subtabId === 'deleted') {
+            loadDeletedUsers();
         }
     };
 
