@@ -4448,6 +4448,16 @@ async function loadComponent(elementId, filePath) {
             if (typeof updateContent === 'function') updateContent();
             if (elementId === 'header-placeholder') {
                 initHeaderInteractions();
+                if (auth.currentUser) {
+                    const userRef = doc(db, 'users', auth.currentUser.uid);
+                    getDoc(userRef).then(userSnap => {
+                        if (userSnap.exists()) {
+                            loadNotifications(userSnap.data());
+                        }
+                    }).catch((err) => {
+                        console.warn('Header bildirimlerini yenileme hatası:', err);
+                    });
+                }
             }
         }
     } catch (error) {
@@ -5309,7 +5319,8 @@ async function loadNotifications(userData) {
             icon = 'fa-reply';
         } else if (n.type === 'message' || n.type === 'msg') {
             text = `${n.fromName} size mesaj gönderdi`;
-            icon = 'fa-message';
+            detail = n.message ? `"${n.message.slice(0, 80)}${n.message.length > 80 ? '...' : ''}"` : '';
+            icon = 'fa-envelope';
         } else {
             text = n.message || `${n.fromName || 'Birileri'} bir bildirim gönderdi`;
         }
@@ -5348,14 +5359,16 @@ async function loadNotifications(userData) {
                     }
                 }
             }
-            // Eğer gönderi id'si varsa gönderiye git, yoksa profil bildirimler sekmesine git
-            if (n.postId) {
-                const dropdown = document.getElementById('notificationsDropdown');
-                if (dropdown) dropdown.style.display = 'none';
+            // Eğer gönderi id'si varsa gönderiye git, mesaj bildirimi ise sohbeti aç
+            const dropdown = document.getElementById('notificationsDropdown');
+            if (dropdown) dropdown.style.display = 'none';
+
+            const chatUserId = n.fromUid || n.senderUid;
+            if (n.type === 'message' && chatUserId) {
+                openChatWithUser(chatUserId, n.fromName || 'Sohbet');
+            } else if (n.postId) {
                 window.location.href = `index.html#post-${n.postId}`;
             } else {
-                const dropdown = document.getElementById('notificationsDropdown');
-                if (dropdown) dropdown.style.display = 'none';
                 // Açık profilden farklı bir sayfadaysak profil sayfasına git
                 if (!window.location.pathname.endsWith('profil.html')) {
                     window.location.href = 'profil.html#my-notifs-tab';
@@ -5386,7 +5399,7 @@ async function loadNotifications(userData) {
                 // Remove from dropdown immediately
                 nDiv.remove();
                 // update badge
-                const countBadge = document.getElementById('requestCountBadge');
+                const countBadge = document.getElementById('notificationCountBadge');
                 const current = parseInt((countBadge && countBadge.textContent) || '0') || 0;
                 updateNotificationBadge(Math.max(0, current - 1));
             };
@@ -5402,7 +5415,7 @@ async function loadNotifications(userData) {
                     console.error('header delete button error', err);
                 }
                 nDiv.remove();
-                const countBadge = document.getElementById('requestCountBadge');
+                const countBadge = document.getElementById('notificationCountBadge');
                 const current = parseInt((countBadge && countBadge.textContent) || '0') || 0;
                 updateNotificationBadge(Math.max(0, current - 1));
             };
@@ -5831,22 +5844,30 @@ window.toggleNotifications = function() {
 // Bildirim badge'ini güncelle
 function updateNotificationBadge(count) {
     const badge = document.getElementById('notificationBadge');
-    const countBadge = document.getElementById('requestCountBadge');
-    
+    const countBadge = document.getElementById('notificationCountBadge');
+
     if (badge) {
         if (count > 0) {
-            badge.textContent = count > 99 ? '99+' : count;
             badge.style.display = 'flex';
         } else {
             badge.style.display = 'none';
         }
     }
-    
-    const countBadges = document.querySelectorAll('.requestCountBadge');
-    countBadges.forEach((badge) => {
-        badge.textContent = count > 99 ? '99+' : count;
+
+    if (countBadge) {
+        if (count > 0) {
+            countBadge.textContent = `${count > 99 ? '99+' : count} okunmamış`;
+            countBadge.style.display = 'inline-flex';
+        } else {
+            countBadge.style.display = 'none';
+        }
+    }
+
+    const headerBadges = document.querySelectorAll('.requestCountBadge');
+    headerBadges.forEach((badge) => {
+        badge.textContent = count > 0 ? `${count > 99 ? '99+' : count} okunmamış` : '0';
     });
-    
+
     // Page title'a bildirim sayısı ekle
     if (count > 0) {
         document.title = `(${count}) SosyalTrend • Sosyal Ağ`;
@@ -6479,6 +6500,21 @@ window.closeChatsList = function() {
     }
 }
 
+window.openUnreadChatsPanel = async function() {
+    if (!auth.currentUser) {
+        alert('Lütfen giriş yapın');
+        return;
+    }
+    if (!document.getElementById('chat-lists-panel')) {
+        initChatListsPanel();
+    }
+    const panel = document.getElementById('chat-lists-panel');
+    if (panel && !panel.classList.contains('active')) {
+        panel.classList.add('active');
+    }
+    await loadUnreadChats();
+}
+
 // Load friends for chat
 
 window.loadChatFriends = async function() {
@@ -6681,7 +6717,7 @@ async function updateChatUnreadIndicator() {
         if (leftBadge) {
             if (totalUnread > 0) {
                 leftBadge.style.display = 'block';
-                leftBadge.textContent = `${totalUnread} okunmamış`;
+                leftBadge.textContent = totalUnread === 1 ? '1 mesajınız var' : `${totalUnread} mesajınız var`;
             } else {
                 leftBadge.style.display = 'none';
             }
@@ -7177,6 +7213,16 @@ window.sendChatMessage = async function() {
             lastSenderId: currentUserId,
             ...unreadUpdates
         });
+
+        // Send a header notification to other chat participants
+        const participantIds = Object.keys(unreadUpdates).filter(id => id !== currentUserId);
+        for (const participantId of participantIds) {
+            await sendNotification(participantId, 'message', messageData.senderName, {
+                message: text,
+                conversationId: currentConversationId,
+                senderUid: currentUserId
+            });
+        }
         
         inputEl.value = '';
         
@@ -7471,17 +7517,8 @@ function renderChatNotification(conversationId, senderId, senderName, messageTex
 }
 
 function loadStoredChatNotifications() {
-    for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key && key.startsWith('chatNotif_')) {
-            try {
-                const data = JSON.parse(localStorage.getItem(key));
-                if (data && data.conversationId && data.senderId) {
-                    renderChatNotification(data.conversationId, data.senderId, data.senderName, data.messageText);
-                }
-            } catch (e) {}
-        }
-    }
+    // Local stored chat notifications are no longer shown as bottom-left toast badges.
+    // Keep the stored keys if needed for compatibility, but do not render them.
 }
 
 async function restoreUnreadChatNotifications() {
@@ -7612,8 +7649,11 @@ window.showImageModal = function(url) {
 
 // Show message notification
 function showMessageNotification(conversationId, senderId, senderName, messageText) {
-    saveChatNotification(conversationId, senderId, { senderId, senderName, messageText });
-    renderChatNotification(conversationId, senderId, senderName, messageText);
+    // Disable local bottom-left chat toast notifications.
+    // Incoming messages are handled via header notification dropdown only.
+    if (typeof updateChatUnreadIndicator === 'function') {
+        updateChatUnreadIndicator();
+    }
 }
 
 // --- message editing / deletion helpers ---

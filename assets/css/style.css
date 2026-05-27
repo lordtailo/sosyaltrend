@@ -635,6 +635,28 @@ details.menu-details[open] summary:after {
     transform: translateY(0);
 }
 
+.chat-left-unread-text {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 18px;
+    min-width: 152px;
+    margin: 10px 0;
+    border-radius: 10px;
+    background: var(--primary);
+    color: #fff;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    box-shadow: 0 2px 8px rgba(99, 102, 241, 0.18);
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.chat-left-unread-text:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.22);
+}
+
 /* Right sidebar calendar */
 .calendar-nav {
     display: flex;
@@ -1395,6 +1417,17 @@ display: block; font-size: 0.8rem; font-weight: 700; margin-bottom: 8px; color: 
 .form-btn { width: 100%; padding: 12px; border-radius: 10px; border: none; background: var(--primary); color: white; font-weight: 700; cursor: pointer; transition: 0.2s; }
 .form-btn:hover { background: var(--primary-dark); }
 
+#sendMessageBtn {
+    background: var(--card-bg);
+    color: var(--text-main);
+    border: 1px solid var(--border);
+    border-radius: 22px;
+}
+
+#sendMessageBtn:hover {
+    background: rgba(255, 255, 255, 0.12);
+}
+
 .section-subtitle { 
 font-size: 0.9rem; font-weight: 800; color: var(--primary); margin: 20px 0 10px; text-transform: uppercase; }
 
@@ -1883,6 +1916,29 @@ aside, .right-panel { display: none; } }
 /* Bildirim Badge Animasyonu */
 #notificationBadge {
     animation: badgePulse 2s infinite;
+}
+
+.notificationCountBadge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-width: 54px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.15);
+    color: white;
+    font-weight: 700;
+    font-size: 0.8rem;
+    white-space: nowrap;
+}
+
+#notificationCountBadge {
+    background: var(--primary);
+    color: #fff;
+    position: relative;
+    top: 0;
+    right: 0;
 }
 
 /* Bildirim Dropdown Stilleri */
