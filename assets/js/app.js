@@ -1,5 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, doc, updateDoc, setDoc, arrayUnion, arrayRemove, deleteDoc, getDoc, getDocs, limit, where, increment } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, Timestamp, doc, updateDoc, setDoc, arrayUnion, arrayRemove, deleteDoc, getDoc, getDocs, limit, where, increment } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { ozelGunler, tarihteBugun, ramazanTakvimi } from "./calendarDays.js";
 import { getAuth, onAuthStateChanged, signOut, updateEmail, updatePassword, sendPasswordResetEmail, updateProfile, deleteUser } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
@@ -14,6 +14,14 @@ function disableButton(btn, text) {
         btn.style.cursor = 'default';
         btn.onclick = (e) => e.preventDefault();
     }
+}
+
+function enableButton(btn, text) {
+    if (!btn) return;
+    btn.disabled = false;
+    btn.style.opacity = '';
+    btn.style.cursor = '';
+    if (text) btn.innerHTML = text;
 }
 
 // Update character counter below comment input
@@ -63,6 +71,7 @@ async function loadComponents() {
 
 // Diğer header/footer yükleme kodların...
     await loadSuggestions();
+    await loadTopTebrikList();
     
     // Avatar input listener'ı
     const fileInput = document.getElementById('fileAvatarInput');
@@ -713,6 +722,7 @@ onAuthStateChanged(auth, async (fbUser) => {
         // also update sidebar statistics such as total users and last signup
         updateSidebarStats();
         loadPollWidget();
+        loadTopTebrikList();
         updateBanOverlay(userData);
         // Ensure feed is loaded with current user context so profile tabs populate
         try { loadPostsFeed(); } catch(e) { console.warn('loadPostsFeed retry failed', e); }
@@ -720,6 +730,8 @@ onAuthStateChanged(auth, async (fbUser) => {
         if (typeof window.loadProfileSections === 'function') {
             try { window.loadProfileSections('all'); } catch(e) { console.warn('loadProfileSections call during auth state failed', e); }
         }
+        // update tebrik badge for own profile
+        if (typeof updateProfileTebrikUI === 'function' && user.username) updateProfileTebrikUI(user.username);
         
         // Real-time kullanıcı profili listener - Avatar değişikliklerini senkronize et
         onSnapshot(doc(db, "users", fbUser.uid), (docSnapshot) => {
@@ -1760,6 +1772,11 @@ function getAvatarUrl(avatarUrlOrSeed, type = 'user') {
     const sMa = document.getElementById('sidebarMembershipAge');
     const sFc = document.getElementById('sidebarFriendCount');
     const sPr = document.getElementById('sidebarPendingRequests');
+    const pJd = document.getElementById('profileJoinDate');
+    const pSi = document.getElementById('profileSignupInfo');
+    const pRo = document.getElementById('profileRole');
+    const pFc = document.getElementById('profileFriendCount');
+    const pPr = document.getElementById('profilePendingRequests');
 
     // Profil Sayfası
     const pAv = document.getElementById('profilePageAvatar');
@@ -1789,12 +1806,17 @@ function getAvatarUrl(avatarUrlOrSeed, type = 'user') {
     if(sDn) sDn.innerText = user.displayName || 'Misafir';
     if(sUn) sUn.innerText = user.username ? `@${user.username}` : '@kullanici';
     if(sJd && !sJd.innerText) sJd.innerText = '—';
+    if(pJd && !pJd.innerText) pJd.innerText = '—';
     if(sSi) sSi.innerText = user.email ? shortenEmail(user.email) : '—';
+    if(pSi) pSi.innerText = user.email ? shortenEmail(user.email) : '—';
     if(sRo) sRo.innerText = user.isAdmin ? 'Admin' : 'Kullanıcı';
+    if(pRo) pRo.innerText = user.isAdmin ? 'Admin' : 'Kullanıcı';
     if(sLa) sLa.innerText = '—';
     if(sMa) sMa.innerText = '—';
     if(sFc) sFc.innerText = user.friendCount;
+    if(pFc) pFc.innerText = user.friendCount;
     if(sPr) sPr.innerText = user.pendingRequests;
+    if(pPr) pPr.innerText = user.pendingRequests;
     // show/hide blog creation and my posts links depending on auth state
     const blogNewLink = document.getElementById('btn-blog-new');
     const blogMineLink = document.getElementById('btn-blog-mine');
@@ -1841,12 +1863,15 @@ function getAvatarUrl(avatarUrlOrSeed, type = 'user') {
                     durationText = months === 1 ? '1ay' : `${months}ay`;
                 }
                 sJd.innerText = `${joinDate}/${durationText}`;
+                if(pJd) pJd.innerText = `${joinDate}/${durationText}`;
             } catch (e) {
                 console.error('Join date formatting error:', e);
                 sJd.innerText = '—';
+                if(pJd) pJd.innerText = '—';
             }
         } else {
             sJd.innerText = '—';
+            if(pJd) pJd.innerText = '—';
         }
     }
     if (sLa) {
@@ -2995,13 +3020,17 @@ window.loadPostsFeed = (showAll = false) => {
             ${decoded.length > 280 ? `<button id="toggle-${d.id}" class="read-more-btn" onclick="togglePostContent('${d.id}')" style="border:none; background:none; color: var(--primary); display:flex; align-items:center; gap:8px; font-weight:700; padding:0; margin-top:10px; cursor:pointer;"><i class="fa-solid fa-chevron-down"></i> Daha fazlasını gör</button>` : ''}
         </div>${postImageHtml}
 
-        <div id="likers-${d.id}" style="display:flex; align-items:center; gap:8px; margin-bottom:10px; min-height:28px;"></div>
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:10px; min-height:28px;">
+            <div id="likers-${d.id}" style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;"></div>
+            ${(p.tebrikCount && p.tebrikCount > 0) ? `<div title="Tebrik sayısı: ${p.tebrikCount}" style="font-size:0.85rem; color:#f97316; font-weight:700; white-space:nowrap;">+${p.tebrikCount} tebrik</div>` : ''}
+        </div>
 
         <div style="display:flex; gap:12px;">
               <button class="tool-btn" onclick="likePost('${d.id}', ${isLiked}, this)" style="gap:5px; color:${isLiked ? '#ef4444' : ''}"><i class="${isLiked ? 'fa-solid' : 'fa-regular'} fa-heart"></i><span>${p.likes?.length || 0}</span></button>
               <button class="tool-btn" onclick="toggleCommentSection('${d.id}')" style="gap:5px;"><i class="fa-regular fa-comment"></i><span>${p.comments?.length || 0}</span></button>
               <button class="tool-btn" onclick="toggleBookmark('${d.id}', ${isSaved})" style="color:${isSaved ? '#f59e0b' : ''}"><i class="${isSaved ? 'fa-solid' : 'fa-regular'} fa-bookmark"></i></button>
               <button class="tool-btn" onclick="window.openShareMenu('${d.id}')" style="gap:5px; margin-left:auto;"><i class="fa-solid fa-share"></i></button>
+              <button class="tool-btn" onclick="sendTebrikToUsernameQuick('${p.username}', '${d.id}', this)" style="gap:5px; color:#f97316; margin-left:8px;"><i class="fa-solid fa-gift"></i></button>
         </div>
         
         <div id="comments-${d.id}" class="comment-area" style="display:none;">
@@ -3059,7 +3088,8 @@ window.loadPostsFeed = (showAll = false) => {
                       <input type="text" id="input-${d.id}" placeholder="${t.commentPlaceholder}" oninput="updateCommentCount('${d.id}')" maxlength="200" style="flex:1; padding:8px 12px; border-radius:10px; border:1px solid var(--border); outline:none; background: var(--input-bg); color: var(--text-main);">
                       <button onclick="addComment('${d.id}')" style="background:var(--primary); color:white; border:none; padding:0 15px; border-radius:10px; cursor:pointer;">${t.sendComment}</button>
                   </div>
-                  <span id="charcount-${d.id}" style="font-size:0.7rem; color:var(--text-muted); text-align:right;">0/200</span>
+              <button class="tool-btn" onclick="window.openShareMenu('${d.id}')" style="gap:5px; margin-left:auto;"><i class="fa-solid fa-share"></i></button>
+              <button class="tool-btn" onclick="sendTebrikToUsernameQuick('${p.username}', '${d.id}', this)" style="gap:5px; color:#f97316; margin-left:8px;" title="Tebrik Gönder"><i class="fa-solid fa-gift"></i></button>
               </div>
         </div>
     </div>`;
@@ -3156,38 +3186,45 @@ if (typeof updatePostCount === 'function') updatePostCount();
 
   const shareBtn = document.getElementById('shareBtn');
   if(shareBtn) {
-  shareBtn.onclick = async () => {
+    shareBtn.onclick = async () => {
+        const btn = shareBtn;
+        let val = document.getElementById('postInput').innerText.trim();
+        if (val.length > 500) val = val.substring(0, 500);
+        if (!val && !selectedImageBase64) return;
 
-    let val = document.getElementById('postInput').innerText.trim();
-    // enforce maximum length just in case
-    if (val.length > 500) val = val.substring(0, 500);
-    
-    // Eğer hem metin hem de resim boşsa paylaşma
-    if(!val && !selectedImageBase64) return;
+        try {
+            disableButton(btn, 'Paylaşılıyor...');
+            await addDoc(collection(db, "posts"), {
+                    name: user.displayName,
+                    username: user.username,
+                    avatarUrl: user.avatarUrl,
+                    content: val,
+                    image: selectedImageBase64 || null,
+                    timestamp: serverTimestamp(),
+                    likes: [],
+                    savedBy: [],
+                    comments: []
+            });
 
-    try {
-      await addDoc(collection(db, "posts"), { 
-          name: user.displayName, 
-          username: user.username, 
-          avatarUrl: user.avatarUrl,
-          content: val, 
-          // RESİM VERİSİNİ BURAYA EKLEDİK:
-          image: selectedImageBase64 || null, 
-          timestamp: serverTimestamp(), 
-          likes: [], 
-          savedBy: [], 
-          comments: [] 
-      });
-      
-      // Paylaşım sonrası temizlik
-      document.getElementById('postInput').innerText = "";
-      if (typeof updatePostCount === 'function') updatePostCount();
-      window.clearImagePreview(); // Önizlemeyi ve değişkeni sıfırla
-    } catch (e) {
-      console.error("Paylaşım hatası:", e);
-      alert("Gönderi paylaşılamadı.");
-    }
-  };
+            document.getElementById('postInput').innerText = "";
+            if (typeof updatePostCount === 'function') updatePostCount();
+            window.clearImagePreview();
+            // küçük onay bildirimi
+            const t = document.createElement('div');
+            t.innerText = 'Gönderildi';
+            t.style.position = 'fixed'; t.style.right = '20px'; t.style.bottom = '20px'; t.style.background = 'rgba(0,0,0,0.8)'; t.style.color = '#fff'; t.style.padding = '8px 12px'; t.style.borderRadius = '8px'; t.style.zIndex = 99999;
+            document.body.appendChild(t);
+            setTimeout(() => t.remove(), 1800);
+
+            // refresh feed shortly
+            setTimeout(() => { if (typeof loadPostsFeed === 'function') loadPostsFeed(); }, 800);
+        } catch (e) {
+            console.error("Paylaşım hatası:", e);
+            alert("Gönderi paylaşılamadı.");
+        } finally {
+            enableButton(btn, 'Paylaş');
+        }
+    };
 }
 
   setInterval(() => {
@@ -3694,6 +3731,9 @@ async function loadVisitorProfile() {
         
         const profileHandle = document.getElementById('profilePageHandle');
         if (profileHandle) profileHandle.innerText = `@${visitedUsername}`;
+
+        // Update tebrik badge for this profile
+        if (typeof updateProfileTebrikUI === 'function') updateProfileTebrikUI(visitedUsername);
         
         const profileAvatar = document.getElementById('profilePageAvatar');
         if (profileAvatar) {
@@ -3767,12 +3807,15 @@ async function loadVisitorProfile() {
                             <p id="post-preview-${post.id}" class="post-text${postTextClass}" style="white-space: pre-wrap; margin-bottom:10px;">${contentWithLinks}</p>
                             ${postReadMoreButton}
                             ${postImageHtml}
+                            ${(post.tebrikCount && post.tebrikCount > 0) ? `<div title="Tebrik sayısı: ${post.tebrikCount}" style="font-size:0.85rem; color:#f97316; font-weight:700; margin-bottom:8px;">+${post.tebrikCount} tebrik</div>` : ''}
                             
                             <div style="display:flex; gap:12px;">
                                 <button class="tool-btn" onclick="likePost('${post.id}', ${isLiked}, this)" style="gap:5px; color:${isLiked ? '#ef4444' : ''}">
                                     <i class="${isLiked ? 'fa-solid' : 'fa-regular'} fa-heart"></i><span>${post.likes?.length || 0}</span>
                                 </button>
                                 <button class="tool-btn" style="gap:5px;"><i class="fa-regular fa-comment"></i><span>${post.comments?.length || 0}</span></button>
+                                <button class="tool-btn" onclick="window.openShareMenu('${post.id}')" style="gap:5px; margin-left:auto;"><i class="fa-solid fa-share"></i></button>
+                                <button class="tool-btn" onclick="sendTebrikToUsernameQuick('${post.username}', '${post.id}', this)" style="gap:5px; color:#f97316; margin-left:8px;" title="Tebrik Gönder"><i class="fa-solid fa-gift"></i></button>
                             </div>
                         </div>
                     `;
@@ -6062,6 +6105,372 @@ function handleProfileAction() {
     }
   }
 }
+
+// --- Tebrik (congrats) feature ---
+// Send a tebrik to a user by UID
+// send tebrik with optional message
+window.sendTebrikToUid = async function(targetUid, targetUsername, message = '') {
+    if (!auth.currentUser) {
+        alert('Tebrik göndermek için giriş yapın.');
+        return;
+    }
+    if (!targetUid) {
+        alert('Hedef kullanıcı bulunamadı.');
+        return;
+    }
+    if (targetUid === auth.currentUser.uid) {
+        alert('Kendinize tebrik gönderemezsiniz.');
+        return;
+    }
+    try {
+        const targetRef = doc(db, 'users', targetUid);
+        // Prevent duplicate tebrik from same user
+        const targetSnap = await getDoc(targetRef);
+        const targetData = targetSnap.exists() ? targetSnap.data() : null;
+        const givers = Array.isArray(targetData?.tebrikGivers) ? targetData.tebrikGivers : [];
+        if (givers.some(g => g.uid === auth.currentUser.uid)) {
+            alert('Zaten bu kullanıcıya tebrik gönderdiniz.');
+            return;
+        }
+
+        const giverInfo = {
+            uid: auth.currentUser.uid,
+            username: user.username,
+            displayName: user.displayName,
+            message: message || '',
+            at: serverTimestamp()
+        };
+
+        await updateDoc(targetRef, {
+            tebrikCount: increment(1),
+            tebrikGivers: arrayUnion(giverInfo),
+            tebrikMessages: arrayUnion({ fromUid: auth.currentUser.uid, fromUsername: user.username, message: message || '', at: Timestamp.now() })
+        });
+
+        alert('Tebrik gönderildi — kullanıcı tebrik puanına sahip oldu.');
+        // refresh UI
+        loadTopTebrikList();
+        // if currently viewing that profile, refresh its badge
+        const visiting = localStorage.getItem('visiting_username');
+        if (!visiting || visiting === targetUsername) {
+            // reload profile UI
+            if (typeof loadVisitorProfile === 'function') loadVisitorProfile();
+        }
+    } catch (e) {
+        console.error('Tebrik gönderme hatası:', e);
+        alert('Tebrik gönderilemedi. Lütfen tekrar deneyin.');
+    }
+};
+
+// Send tebrik by username (used by quick prompt)
+window.sendTebrikByUsername = async function(username) {
+    if (!username) return;
+    try {
+        const q = query(collection(db, 'users'), where('username', '==', username), limit(1));
+        const snap = await getDocs(q);
+        if (snap.empty) {
+            alert('Kullanıcı bulunamadı: ' + username);
+            return;
+        }
+        const docSnap = snap.docs[0];
+        await window.sendTebrikToUid(docSnap.id, username);
+    } catch (e) {
+        console.error('sendTebrikByUsername hata:', e);
+        alert('Tebrik gönderilirken hata oluştu.');
+    }
+};
+
+// send by username with message
+window.sendTebrikByUsernameWithMessage = async function(username, message) {
+    if (!username) return;
+    try {
+        const q = query(collection(db, 'users'), where('username', '==', username), limit(1));
+        const snap = await getDocs(q);
+        if (snap.empty) {
+            alert('Kullanıcı bulunamadı: ' + username);
+            return;
+        }
+        const docSnap = snap.docs[0];
+        await window.sendTebrikToUid(docSnap.id, username, message);
+    } catch (e) {
+        console.error('sendTebrikByUsernameWithMessage hata:', e);
+        alert('Tebrik gönderilirken hata oluştu.');
+    }
+};
+
+// Open tebrik modal optionally prefilling username
+window.openTebrikModal = function(prefillUsername) {
+    const modal = document.getElementById('tebrikModal');
+    if (!modal) return;
+    const userInput = modal.querySelector('#tebrikTargetUsername');
+    const msgArea = modal.querySelector('#tebrikMessage');
+    if (userInput) userInput.value = prefillUsername || '';
+    if (msgArea) msgArea.value = '';
+    modal.style.display = 'flex';
+};
+
+window.openTebrikModalForProfile = function() {
+    const params = new URLSearchParams(location.search);
+    const visitedUsername = params.get('id');
+    if (!visitedUsername) {
+        alert('Bu profil için tebrik gönderilemez.');
+        return;
+    }
+    openTebrikModal(visitedUsername);
+};
+
+window.closeTebrikModal = function() {
+    const modal = document.getElementById('tebrikModal');
+    if (!modal) return;
+    modal.style.display = 'none';
+};
+
+window.sendTebrikFromModal = async function() {
+    const modal = document.getElementById('tebrikModal');
+    if (!modal) return;
+    const userInput = modal.querySelector('#tebrikTargetUsername');
+    const msgArea = modal.querySelector('#tebrikMessage');
+    const username = userInput?.value?.trim();
+    const message = msgArea?.value?.trim() || '';
+    if (!username) { alert('Lütfen kullanıcı adını girin.'); return; }
+    await sendTebrikByUsernameWithMessage(username, message);
+    closeTebrikModal();
+};
+
+// Quick tebrik from post button - allows multiple clicks (increments each click)
+window.sendTebrikToUsernameQuick = async function(username, postId, btnEl) {
+    if (!auth.currentUser) {
+        alert('Tebrik göndermek için giriş yapın.');
+        return;
+    }
+    if (!username) return;
+    try {
+        // find user doc by username
+        const q = query(collection(db, 'users'), where('username', '==', username), limit(1));
+        const snap = await getDocs(q);
+        if (snap.empty) {
+            alert('Kullanıcı bulunamadı.');
+            return;
+        }
+        const userDoc = snap.docs[0];
+        const targetRef = doc(db, 'users', userDoc.id);
+        const targetData = userDoc.data() || {};
+        const givers = Array.isArray(targetData.tebrikGivers) ? targetData.tebrikGivers : [];
+        const msgs = Array.isArray(targetData.tebrikMessages) ? targetData.tebrikMessages : [];
+        const existingTebrik = postId ? msgs.find(m => m.fromUid === auth.currentUser.uid && m.postId === postId) : givers.find(g => g.uid === auth.currentUser.uid);
+
+        if (existingTebrik) {
+            // remove tebrik on second click
+            const updatedMsgs = msgs.filter(m => !(m.fromUid === auth.currentUser.uid && m.postId === postId));
+            const updatedGivers = givers.filter(g => !(g.uid === auth.currentUser.uid && g.postId === postId));
+            await updateDoc(targetRef, { tebrikCount: increment(-1), tebrikGivers: updatedGivers, tebrikMessages: updatedMsgs });
+            if (postId) {
+                try {
+                    const postRef = doc(db, 'posts', postId);
+                    await updateDoc(postRef, { tebrikCount: increment(-1) });
+                } catch (e) {
+                    console.warn('Post tebrik sayısı azaltılamadı:', e);
+                }
+            }
+            loadTopTebrikList();
+            if (typeof updateProfileTebrikUI === 'function') updateProfileTebrikUI(username);
+            return;
+        }
+
+        const giverInfo = { uid: auth.currentUser.uid, username: user.username, displayName: user.displayName || '', message: '', at: Timestamp.now(), postId: postId || null };
+        // increment tebrik count by 1 for the user and record giver
+        await updateDoc(targetRef, { tebrikCount: increment(1), tebrikGivers: arrayUnion(giverInfo), tebrikMessages: arrayUnion({ fromUid: auth.currentUser.uid, fromUsername: user.username, message: '', at: Timestamp.now(), postId }) });
+        // if a postId is provided, also increment tebrikCount on the post document
+        if (postId) {
+            try {
+                const postRef = doc(db, 'posts', postId);
+                await updateDoc(postRef, { tebrikCount: increment(1) });
+            } catch (e) {
+                console.warn('Post tebrik sayısı güncellenemedi:', e);
+            }
+        }
+
+        // show +1 animation on top of the tebrik icon/button
+        try {
+            const el = btnEl || document.querySelector(`#post-${postId} .tool-btn`);
+            if (el) {
+                el.style.overflow = 'visible';
+                if (el.parentElement) el.parentElement.style.overflow = 'visible';
+                const prevPosition = el.style.position;
+                if (!prevPosition || prevPosition === 'static') {
+                    el.style.position = 'relative';
+                }
+                const plus = document.createElement('span');
+                plus.className = 'tebrik-plus-page';
+                plus.innerText = '+1';
+                plus.style.position = 'absolute';
+                plus.style.right = '-8px';
+                plus.style.top = '-18px';
+                plus.style.fontSize = '12px';
+                plus.style.lineHeight = '14px';
+                plus.style.padding = '2px 4px';
+                plus.style.color = '#f97316';
+                plus.style.fontWeight = '800';
+                plus.style.background = 'rgba(255,255,255,0.95)';
+                plus.style.borderRadius = '999px';
+                plus.style.pointerEvents = 'none';
+                plus.style.zIndex = 9999;
+                plus.style.opacity = '1';
+                plus.style.transition = 'transform 900ms cubic-bezier(.2,.9,.2,1), opacity 900ms ease';
+                el.appendChild(plus);
+                requestAnimationFrame(() => { plus.style.transform = 'translateY(-20px)'; plus.style.opacity = '0'; });
+                setTimeout(() => {
+                    try { plus.remove(); } catch(_){}
+                    if (!prevPosition || prevPosition === 'static') el.style.position = prevPosition;
+                }, 950);
+            }
+        } catch (e) { console.warn('Animasyon esnasında hata', e); }
+
+        // refresh top list and profile badge
+        loadTopTebrikList();
+        if (typeof updateProfileTebrikUI === 'function') updateProfileTebrikUI(username);
+    } catch (e) {
+        console.error('Quick tebrik hatası:', e);
+        alert('Tebrik gönderilemedi.');
+    }
+};
+
+// Called from profile page button — sends tebrik to currently visited profile
+window.sendTebrikCurrentProfile = async function() {
+    const params = new URLSearchParams(location.search);
+    const visitedUsername = params.get('id');
+    if (!visitedUsername) {
+        alert('Bu kullanıcı için tebrik gönderilemez.');
+        return;
+    }
+    try {
+        const q = query(collection(db, 'users'), where('username', '==', visitedUsername), limit(1));
+        const snap = await getDocs(q);
+        if (snap.empty) {
+            alert('Kullanıcı bulunamadı.');
+            return;
+        }
+        const docSnap = snap.docs[0];
+        await window.sendTebrikToUid(docSnap.id, visitedUsername);
+    } catch (e) {
+        console.error('sendTebrikCurrentProfile hata:', e);
+        alert('Tebrik gönderilemedi.');
+    }
+};
+
+// Load Top 10 tebrik list and render into right-aside
+window.loadTopTebrikList = async function() {
+    const container = document.getElementById('top-tebrik-list');
+    if (!container) return;
+    try {
+        const q = query(collection(db, 'users'), orderBy('tebrikCount', 'desc'), limit(10));
+        const snap = await getDocs(q);
+        if (snap.empty) {
+            container.innerHTML = '<div style="color:var(--text-muted); font-size:0.85rem; text-align:center;">Henüz tebrik alan kullanıcı yok.</div>';
+            return;
+        }
+        const users = [];
+        snap.forEach(d => users.push({ id: d.id, ...d.data() }));
+        const max = users[0].tebrikCount || 1;
+        container.innerHTML = '';
+        users.forEach((u, idx) => {
+            const pct = Math.round(((u.tebrikCount || 0) / max) * 100);
+            const avatar = u.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.displayName||u.username||'User')}&background=random&color=fff`;
+            const el = document.createElement('div');
+            el.style.display = 'flex'; el.style.alignItems = 'center'; el.style.justifyContent = 'space-between'; el.style.gap = '8px';
+            el.innerHTML = `
+                <div style="display:flex; gap:8px; align-items:center;">
+                    <img src="${avatar}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;border:1px solid var(--border);cursor:pointer;" onclick="location.href='profil.html?id=${encodeURIComponent(u.username)}'">
+                    <div style="font-size:0.85rem;">
+                        <div style="font-weight:700;">${escapeHtml(u.displayName||u.username)}</div>
+                        <div style="font-size:0.75rem; color:var(--text-muted);">%${pct} · ${u.tebrikCount||0} tebrik</div>
+                    </div>
+                </div>
+                <div style="font-size:0.85rem; font-weight:700; color:var(--primary);">#${idx+1}</div>
+            `;
+            container.appendChild(el);
+        });
+    } catch (e) {
+        console.error('loadTopTebrikList hata:', e);
+    }
+};
+
+// Update tebrik badge in profile header (shows raw count and percent relative to top)
+window.updateProfileTebrikUI = async function(username) {
+    try {
+        const badgeCount = document.getElementById('tebrikCount');
+        const badgePercent = document.getElementById('tebrikPercent');
+        if (!badgeCount || !badgePercent) return;
+        // find user doc
+        const q = query(collection(db, 'users'), where('username','==', username), limit(1));
+        const snap = await getDocs(q);
+        if (snap.empty) {
+            badgeCount.innerText = '0';
+            badgePercent.innerText = '%0';
+            return;
+        }
+        const data = snap.docs[0].data();
+        const count = data.tebrikCount || 0;
+        badgeCount.innerText = count;
+        // get top value
+        const topQ = query(collection(db, 'users'), orderBy('tebrikCount','desc'), limit(1));
+        const topSnap = await getDocs(topQ);
+        const topCount = topSnap.empty ? 0 : (topSnap.docs[0].data().tebrikCount || 0);
+        const pct = topCount > 0 ? Math.round((count / topCount) * 100) : (count > 0 ? 100 : 0);
+        badgePercent.innerText = `%${pct}`;
+        const progress = document.getElementById('tebrikProgress');
+        if (progress) {
+            progress.style.width = `${pct}%`;
+            if (pct >= 80) {
+                progress.style.background = 'linear-gradient(135deg, #10b981, #22c55e)';
+            } else if (pct >= 50) {
+                progress.style.background = 'linear-gradient(135deg, #f59e0b, #fbbf24)';
+            } else {
+                progress.style.background = 'linear-gradient(135deg, #6366f1, #a855f7)';
+            }
+        }
+        const summary = document.getElementById('tebrikSummaryText');
+        const levelLabel = document.getElementById('tebrikLevel');
+        const rank = document.getElementById('tebrikRank');
+        if (rank) {
+            if (count > 0) {
+                const rankQ = query(collection(db, 'users'), where('tebrikCount', '>', count));
+                const rankSnap = await getDocs(rankQ);
+                rank.innerText = `#${rankSnap.size + 1}`;
+            } else {
+                rank.innerText = '#--';
+            }
+        }
+        if (summary) {
+            if (count === 0) {
+                summary.innerText = 'Henüz tebrik almadı. Şimdi ilk tebriği gönder!';
+            } else if (pct >= 80) {
+                summary.innerText = 'Zirveye yaklaştın, tebriklerin yükselişte.';
+            } else if (pct >= 50) {
+                summary.innerText = 'Profilin güçlü; kısa sürede daha yukarı çıkabilirsin.';
+            } else {
+                summary.innerText = 'Tebrik sayını artırmak için paylaşımlarını büyüt.';
+            }
+        }
+        if (levelLabel) {
+            if (pct >= 80) {
+                levelLabel.innerText = 'Efsane';
+                levelLabel.className = 'tebrik-card-tag tebrik-level-pill success';
+            } else if (pct >= 50) {
+                levelLabel.innerText = 'Yıldız';
+                levelLabel.className = 'tebrik-card-tag tebrik-level-pill warning';
+            } else if (pct > 0) {
+                levelLabel.innerText = 'Yükselen';
+                levelLabel.className = 'tebrik-card-tag tebrik-level-pill';
+            } else {
+                levelLabel.innerText = 'Yeni Başlayan';
+                levelLabel.className = 'tebrik-card-tag tebrik-level-pill';
+            }
+        }
+    } catch (e) {
+        console.error('updateProfileTebrikUI hata:', e);
+    }
+};
 
 // Delegated input listener for character counts
 // works even when elements are injected later

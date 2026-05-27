@@ -167,7 +167,7 @@ body.dark-mode .theme-btn i{
     left: 0;
     right: 0;
     height: 32px; /* Yükseklik sabitlendi */
-    z-index: 10000;
+    z-index: 10005;
     box-sizing: border-box;
 }
 
@@ -204,7 +204,7 @@ header {
     position: fixed; /* Sticky yerine fixed */
     top: 32px; /* Top Bar yüksekliği kadar aşağıda */
     left: 0;
-    z-index: 9999;
+    z-index: 10004;
     border-bottom: 1px solid var(--border);
     box-sizing: border-box;
 }
@@ -254,6 +254,36 @@ header::after {
     width: 100%; 
     box-sizing: border-box;
     min-height: 100vh;
+}
+
+/* Grid içindeki orta sütunun taşmasını önleme */
+.app-container > *,
+#main-content,
+.page-content {
+    min-width: 0;
+}
+
+/* Desktop'ta sağ panelin profil sekmelerinin üzerine çıkmasını engelle */
+@media (min-width: 1100px) {
+    .right-panel {
+        position: relative;
+        z-index: 1; /* düşük tut, header ve profil sekmeleri üstte kalsın */
+    }
+}
+
+/* Güvenlik: profil sayfasındaki sekmelerin her zaman sağ panelin üstünde görünmesini sağla */
+@media (min-width: 1100px) {
+    #page-profile, #page-profile .profile-tabs, #page-profile .profile-actions {
+        position: relative;
+        z-index: 10060; /* chat-widget ve diğer sabit öğelerden üstte */
+    }
+
+    /* ana içerikte sağ taraftaki panel çok daralınca butonların altında kalmaması için küçük koruyucu boşluk */
+    #main-content {
+        padding-right: 12px;
+        position: relative;
+        z-index: 1;
+    }
 }
 
 /* --- RAMADAN WIDGET & MODAL STYLES (taşınmış) --- */
@@ -953,6 +983,34 @@ details.menu-details[open] summary:after {
     60% { opacity: 1; transform: translateY(-4px) scale(1.1); }
     100% { opacity: 1; transform: translateY(0) scale(1); }
 }
+.prevent-overflow-btns {
+    box-sizing: border-box;
+}
+
+/* Genel: butonların kapsayıcı dışına taşmasını engelle */
+.glass-card button,
+.profile-actions button,
+.profile-tabs .tab-btn,
+main button,
+table button {
+    min-width: 0; /* flex içinde küçülebilsin */
+    max-width: 100%;
+    flex: 0 1 auto;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis; /* taşıyorsa kısalt */
+}
+
+/* Tablolar içinde içerik taşmasını önle */
+table td, table th {
+    overflow: hidden;
+    word-break: break-word;
+}
+
+/* Profil sekmeleri için dar ekranlarda düzgün sarma */
+.profile-tabs { display: flex; flex-wrap: wrap; }
+.profile-tabs .tab-btn { white-space: nowrap; }
+
 .main-content {
     font-size: 17px;
 }
@@ -1032,6 +1090,321 @@ transition: transform 0.3s ease, box-shadow 0.3s ease;
 .glass-card:hover { 
     transform: translateY(-3px); 
     box-shadow: 0 12px 40px 0 rgba(31, 38, 135, 0.25); 
+}
+
+.tebrik-summary-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 14px;
+  border-radius: 999px;
+  background: rgba(99, 102, 241, 0.08);
+  color: var(--text-main);
+  font-size: 0.9rem;
+  border: 1px solid rgba(99, 102, 241, 0.18);
+}
+
+.tebrik-grid {
+  display: grid;
+  grid-template-columns: minmax(300px, 400px) minmax(320px, 1fr);
+  gap: 20px;
+}
+
+.tebrik-template-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.template-option {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text-main);
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  text-align: left;
+}
+
+.template-option:hover {
+  transform: translateY(-2px);
+  border-color: var(--primary);
+}
+
+.template-option.active {
+  border-color: var(--primary);
+  box-shadow: 0 16px 30px rgba(99, 102, 241, 0.12);
+}
+
+.template-option strong {
+  display: block;
+  font-size: 0.95rem;
+}
+
+.template-option small {
+  display: block;
+  color: var(--text-muted);
+  font-size: 0.82rem;
+}
+
+.tebrik-preview {
+  min-height: 190px;
+  border-radius: 20px;
+  overflow: hidden;
+  position: relative;
+  margin-top: 8px;
+}
+
+.tebrik-card-preview-surface {
+  min-height: 190px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  padding: 20px;
+  color: #fff;
+  text-align: center;
+}
+
+.preview-badge {
+  width: 60px;
+  height: 60px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.2);
+  font-size: 1.6rem;
+}
+
+.preview-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.preview-text {
+  font-size: 0.95rem;
+  line-height: 1.6;
+  max-width: 100%;
+  word-break: break-word;
+}
+
+.preview-footer {
+  margin-top: 8px;
+  font-size: 0.85rem;
+  opacity: 0.9;
+}
+
+.tebrik-form input,
+.tebrik-form textarea {
+  width: 100%;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  background: var(--input-bg);
+  padding: 14px 16px;
+  color: var(--text-main);
+}
+
+.tebrik-form textarea {
+  min-height: 130px;
+  resize: vertical;
+}
+
+.tebrik-card {
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: var(--shadow);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  background: var(--card-bg);
+}
+
+.tebrik-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 18px 28px rgba(15, 23, 42, 0.12);
+}
+
+.tebrik-card-header {
+  padding: 18px;
+  color: var(--text-main);
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: flex-start;
+}
+
+.tebrik-card-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.tebrik-card-subtitle {
+  margin-top: 6px;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  opacity: 0.95;
+}
+
+.tebrik-card-tag {
+  background: rgba(255,255,255,0.18);
+  padding: 8px 12px;
+  border-radius: 999px;
+  font-size: 0.82rem;
+}
+
+.tebrik-card-body {
+  padding: 18px 16px 20px;
+}
+
+.tebrik-card-body p {
+  margin: 0;
+  color: var(--text-main);
+  line-height: 1.7;
+}
+
+.tebrik-card-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 14px;
+  font-size: 0.83rem;
+  color: var(--text-muted);
+}
+
+.tebrik-score-row {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  align-items: stretch;
+}
+
+.tebrik-score {
+  min-width: 120px;
+  display: grid;
+  place-items: center;
+  gap: 8px;
+  padding: 18px;
+  border-radius: 24px;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  color: #fff;
+  text-align: center;
+}
+
+.tebrik-score span {
+  font-size: 2rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.tebrik-score small {
+  display: block;
+  font-size: 0.8rem;
+  opacity: 0.85;
+}
+
+.tebrik-metrics {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(120px, 1fr));
+  gap: 10px;
+}
+
+.tebrik-metric {
+  padding: 14px 12px;
+  border-radius: 18px;
+  background: rgba(99,102,241,0.08);
+  text-align: center;
+}
+
+.tebrik-metric strong {
+  display: block;
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.tebrik-meter {
+  margin-top: 14px;
+  height: 12px;
+  background: rgba(99,102,241,0.12);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.tebrik-meter-fill {
+  width: 0;
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.4s ease, background 0.4s ease;
+  background: linear-gradient(135deg, #6366f1, #a855f7);
+}
+
+.tebrik-label-row {
+  margin-top: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.tebrik-summary-text {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  flex: 1;
+}
+
+.tebrik-level-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(99,102,241,0.12);
+  color: var(--primary);
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
+.tebrik-level-pill.success {
+  background: rgba(16,185,129,0.12);
+  color: #10b981;
+}
+
+.tebrik-level-pill.warning {
+  background: rgba(251,191,36,0.12);
+  color: #f59e0b;
+}
+
+.tebrik-level-pill.danger {
+  background: rgba(239,68,68,0.12);
+  color: #ef4444;
+}
+
+@media (max-width: 700px) {
+  .tebrik-score-row {
+    flex-direction: column;
+  }
+  .tebrik-metrics {
+    grid-template-columns: 1fr;
+  }
+}
+
+.tebrik-recent-list .empty-state {
+  padding: 18px;
+  color: var(--text-muted);
+}
+
+@media (max-width: 900px) {
+  .tebrik-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* Hobi Grupları Sayfası */
@@ -1462,8 +1835,8 @@ font-size: 0.9rem; font-weight: 800; color: var(--primary); margin: 20px 0 10px;
 #emojiPicker span:hover { transform: scale(1.3); }
 
 @media (max-width: 1100px) { 
-.app-container { grid-template-columns: 1fr; } 
-aside, .right-panel { display: none; } }
+    .app-container { grid-template-columns: 1fr; }
+}
 
 /* Gündem Sayfası Özel Tasarımı */
 .gundem-container { max-width: 100%; }
