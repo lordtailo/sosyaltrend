@@ -1,7 +1,8 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="utf-8" />
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>SosyaLTrend • Sosyal Ağ - Profiliniz</title>
   <meta name="description" content="Profilinizi yönetin, arkadaşlarınızı görün, ayarlarınızı değiştirin.">
@@ -95,9 +96,9 @@
   </style>
   <style>
     /* Profil Sekme Stilleri */
-    .profile-tabs { display: flex; gap: 10px; margin: 20px 0; padding-bottom: 10px; overflow-x: auto; white-space: nowrap; -ms-overflow-style: none; scrollbar-width: none; }
+    .profile-tabs { display: flex; gap: 10px; margin: 20px 0; padding-bottom: 10px; overflow-x: auto; width: 100%; box-sizing: border-box; white-space: nowrap; -ms-overflow-style: none; scrollbar-width: none; }
     .profile-tabs::-webkit-scrollbar { display: none; }
-    .tab-btn { background: #fff; border: none; padding: 10px 20px; color: var(--text-muted); font-weight: 600; cursor: pointer; border-radius: 10px; transition: all 0.3s; display: flex; align-items: center; gap: 8px; flex-shrink: 0; text-decoration: none; }
+    .tab-btn { background: #fff; border: none; padding: 10px 20px; color: var(--text-muted); font-weight: 600; cursor: pointer; border-radius: 10px; transition: all 0.3s; display: flex; align-items: center; gap: 8px; flex-shrink: 0; min-width: 0; text-decoration: none; white-space: normal; }
     .tab-btn.active { background: var(--primary); color: white; }
     .tab-content { display: none; animation: fadeIn 0.4s ease; }
     .tab-content.active { display: block; }
@@ -129,7 +130,7 @@
         /* reduce padding on main card */
         #page-profile > .glass-card { padding: 20px 15px; }
         /* tabs: 2x2 grid layout on mobile */
-        .profile-tabs { display: grid; grid-template-columns: repeat(3, 1fr);}
+        .profile-tabs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; width: 100%; }
         .tab-btn { padding: 8px 12px; font-size: 0.75rem; width: 100%; justify-content: center; }
         /* friend search full width */
         #friendSearch { width: 100%; }

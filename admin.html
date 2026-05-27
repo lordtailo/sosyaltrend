@@ -1,7 +1,8 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="utf-8" />
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>SosyaLTrend • Sosyal Ağ - Admin</title>
   <meta name="description" content="SosyaLTrend yönetim paneli. Kullanıcı yönetimi ve sistem ayarları.">
@@ -577,6 +578,10 @@
             document.getElementById('banReasonInput').value = userData.banReason || '';
             document.getElementById('banDaysInput').value = '0';
             document.getElementById('banHoursInput').value = '24';
+            const permanentCheckbox = document.getElementById('banPermanentCheckbox');
+            if (permanentCheckbox) {
+                permanentCheckbox.checked = userData.isBanned === true && !banUntilDate;
+            }
             const banSaveBtn = document.getElementById('banSaveBtn');
             if (banActive) {
                 banSaveBtn.textContent = 'Banı Kaldır';
@@ -620,9 +625,10 @@
             } else {
                 const days = parseInt(document.getElementById('banDaysInput').value, 10) || 0;
                 const hours = parseInt(document.getElementById('banHoursInput').value, 10) || 0;
+                const isPermanentBan = document.getElementById('banPermanentCheckbox')?.checked === true;
                 const reason = document.getElementById('banReasonInput').value.trim();
                 const durationMs = ((days * 24) + hours) * 60 * 60 * 1000;
-                if (durationMs <= 0) {
+                if (!isPermanentBan && durationMs <= 0) {
                     alert('Lütfen geçerli bir ban süresi girin.');
                     return;
                 }
@@ -630,7 +636,7 @@
                     alert('Lütfen ban nedeni girin.');
                     return;
                 }
-                const banUntil = new Date(Date.now() + durationMs);
+                const banUntil = isPermanentBan ? null : new Date(Date.now() + durationMs);
                 await updateDoc(userRef, {
                     isBanned: true,
                     banReason: reason,
@@ -638,7 +644,7 @@
                     banUntil: banUntil,
                     banAppealSent: false
                 });
-                alert('Kullanıcı banlandı.');
+                alert(isPermanentBan ? 'Kullanıcı kalıcı olarak banlandı.' : 'Kullanıcı banlandı.');
             }
             closeBanModal();
             loadAllRegisteredUsers();
@@ -663,6 +669,7 @@
             appealsSnap.forEach(docSnap => {
                 const appeal = docSnap.data();
                 const sentAt = appeal.sentAt && appeal.sentAt.toDate ? appeal.sentAt.toDate().toLocaleString('tr-TR') : 'Tarih yok';
+                const appealId = docSnap.id;
                 list.innerHTML += `
                     <div class="glass-card" style="padding:14px; border-left: 4px solid var(--primary);">
                         <div style="display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; align-items:flex-start; margin-bottom:8px;">
@@ -670,13 +677,29 @@
                             <small style="color: var(--text-muted);">${sentAt}</small>
                         </div>
                         <div style="margin-bottom:10px;">${escapeHtml(appeal.message || '')}</div>
-                        <div style="font-size:0.9rem; color: var(--text-muted);">Ban nedeni: ${escapeHtml(appeal.banReason || 'Belirtilmemiş')}</div>
+                        <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
+                            <div style="font-size:0.9rem; color: var(--text-muted);">Ban nedeni: ${escapeHtml(appeal.banReason || 'Belirtilmemiş')}</div>
+                            <button class="action-btn btn-delete" style="margin-top:8px;" onclick="deleteBanAppeal('${appealId}')">İtirazı Sil</button>
+                        </div>
                     </div>`;
             });
         } catch (e) {
             console.error('Ban itirazları yüklenemedi:', e);
         }
     }
+
+    window.deleteBanAppeal = async (appealId) => {
+        if (!appealId) return;
+        if (!confirm('Bu ban itirazını silmek istediğinizden emin misiniz?')) return;
+        try {
+            await deleteDoc(doc(db, 'banAppeals', appealId));
+            loadBanAppeals();
+            alert('Ban itirazı silindi.');
+        } catch (e) {
+            console.error('Ban itirazı silinemedi:', e);
+            alert('Ban itirazı silinemedi. Lütfen tekrar deneyin.');
+        }
+    };
 
     window.deleteUserFromLoginTimes = async (userDocId) => {
         if (!confirm('Bu kullanıcıyı veritabanından silmek istediğinizden emin misiniz?')) return;
@@ -1144,7 +1167,13 @@
                     <input id="banHoursInput" type="number" min="1" max="168" value="24" class="form-input" style="width:100%; padding:10px; border-radius:12px; border:1px solid var(--border); background:transparent; color:var(--text-main);">
                 </div>
             </div>
-            <div style="font-size:0.85rem; color:var(--text-muted);">Ban süresi dolduğunda kullanıcı otomatik olarak tekrar erişim kazanır.</div>
+            <div style="display:flex; align-items:center; gap:10px;">
+                <label style="display:flex; align-items:center; gap:8px; font-size:0.95rem; color:var(--text-main);">
+                    <input id="banPermanentCheckbox" type="checkbox" style="width:16px; height:16px;">
+                    Kalıcı ban
+                </label>
+            </div>
+            <div style="font-size:0.85rem; color:var(--text-muted);">Ban süresi dolduğunda kullanıcı otomatik olarak tekrar erişim kazanır. Kalıcı ban için yukarıdaki kutuyu işaretleyin.</div>
         </div>
         <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 10px;">
             <button onclick="closeBanModal()" style="padding: 10px 20px; border-radius: 20px; border: 1px solid var(--border); background: transparent; cursor: pointer;">İptal</button>

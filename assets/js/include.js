@@ -5,7 +5,9 @@ async function runIncludes() {
     try {
       const res = await fetch(url);
       if (!res.ok) throw new Error(`Failed to load ${url}: ${res.status}`);
-      const text = await res.text();
+      const buffer = await res.arrayBuffer();
+      let text = new TextDecoder('utf-8').decode(buffer);
+      if (text.charCodeAt(0) === 0xfeff) text = text.slice(1);
       el.innerHTML = text;
 
       // Execute any scripts inside the included fragment

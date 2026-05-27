@@ -783,14 +783,6 @@ onAuthStateChanged(auth, async (fbUser) => {
                 adminBtn.style.display = 'none';
             }
         }
-        const stbotBtn = document.getElementById('stbot-chat-btn');
-        if (stbotBtn) {
-            stbotBtn.style.display = auth.currentUser ? 'flex' : 'none';
-        }
-        const aiButton = document.getElementById('ai-chat-btn');
-        if (aiButton) {
-            aiButton.style.display = auth.currentUser ? 'inline-flex' : 'none';
-        }
         const sidebarAdminBtn = document.getElementById('sidebarAdminBtn');
         if (sidebarAdminBtn) {
             sidebarAdminBtn.style.display = user.isAdmin ? 'flex' : 'none';
@@ -812,7 +804,9 @@ onAuthStateChanged(auth, async (fbUser) => {
         const existing = document.getElementById('ban-overlay');
         const banUntilDate = getTimestampDate(userData?.banUntil);
         const now = new Date();
-        const banActive = userData?.isBanned === true && banUntilDate && banUntilDate > now;
+        const isPermanentBan = userData?.isBanned === true && !banUntilDate;
+        const banActive = isPermanentBan || (userData?.isBanned === true && banUntilDate && banUntilDate > now);
+        const banUntilDisplay = isPermanentBan ? 'Kalıcı' : (banUntilDate ? banUntilDate.toLocaleString('tr-TR') : 'Bilinmiyor');
 
         if (!banActive) {
             if (existing) {
@@ -823,7 +817,7 @@ onAuthStateChanged(auth, async (fbUser) => {
         }
 
         if (existing) {
-            existing.querySelector('#banUntilText').textContent = banUntilDate.toLocaleString('tr-TR');
+            existing.querySelector('#banUntilText').textContent = banUntilDisplay;
             existing.querySelector('#banReasonText').textContent = userData.banReason || 'Sebep belirtilmedi';
             return;
         }
@@ -833,11 +827,11 @@ onAuthStateChanged(auth, async (fbUser) => {
         overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(15,23,42,0.95);color:#f8fafc;z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px;';
         overlay.innerHTML = `
             <div style="max-width:600px; width:100%; background:rgba(15,23,42,0.98); border:1px solid rgba(148,163,184,0.18); border-radius:20px; padding:28px; box-shadow:0 20px 60px rgba(0,0,0,0.3);">
-                <h2 style="margin:0 0 12px; font-size:1.9rem;">Geçici Uzaklaştırıldınız</h2>
-                <p style="margin:0 0 18px; color:#cbd5e1; line-height:1.7;">Bu hesap şu anda siteden uzaklaştırılmıştır. Ban süresi boyunca sayfaya erişim engellenmiştir.</p>
+                <h2 style="margin:0 0 12px; font-size:1.9rem;">${isPermanentBan ? 'Kalıcı Uzaklaştırıldınız' : 'Uzaklaştırıldınız'}</h2>
+                <p style="margin:0 0 18px; color:#cbd5e1; line-height:1.7;">Bu hesap şu anda siteden uzaklaştırılmıştır. ${isPermanentBan ? 'Ban kalıcı olduğu için erişim engeli süresizdir.' : 'Ban süresi boyunca sayfaya erişim engellenmiştir.'}</p>
                 <div style="background:rgba(255,255,255,0.06); border:1px solid rgba(148,163,184,0.18); border-radius:16px; padding:18px; margin-bottom:20px;">
                     <p style="margin:0 0 8px;"><strong>Ban nedeni:</strong> <span id="banReasonText">${escapeHtml(userData.banReason || 'Sebep belirtilmedi')}</span></p>
-                    <p style="margin:0 0 8px;"><strong>Ban bitiş:</strong> <span id="banUntilText">${escapeHtml(banUntilDate.toLocaleString('tr-TR'))}</span></p>
+                    <p style="margin:0 0 8px;"><strong>Ban bitiş:</strong> <span id="banUntilText">${escapeHtml(banUntilDisplay)}</span></p>
                     <p style="margin:0; color:#94a3b8;"><strong>Yönetici:</strong> ${escapeHtml(userData.banBy || 'Admin')}</p>
                 </div>
                 <div style="display:grid; gap:12px; margin-top:16px;">
@@ -2997,8 +2991,8 @@ window.loadPostsFeed = (showAll = false) => {
         </div>
         
         <div class="post-content-block" style="margin-bottom:12px;">
-            <p id="post-preview-${d.id}" class="post-text${decoded.length > 220 ? ' post-text-clamp' : ''}" style="white-space: pre-wrap; margin:0;">${contentWithLinks}</p>
-            ${decoded.length > 220 ? `<button id="toggle-${d.id}" class="read-more-btn" onclick="togglePostContent('${d.id}')" style="border:none; background:none; color: var(--primary); display:flex; align-items:center; gap:8px; font-weight:700; padding:0; margin-top:10px; cursor:pointer;"><i class="fa-solid fa-chevron-down"></i> Daha fazlasını gör</button>` : ''}
+            <p id="post-preview-${d.id}" class="post-text${decoded.length > 280 ? ' post-text-clamp' : ''}" style="white-space: pre-wrap; margin:0;">${contentWithLinks}</p>
+            ${decoded.length > 280 ? `<button id="toggle-${d.id}" class="read-more-btn" onclick="togglePostContent('${d.id}')" style="border:none; background:none; color: var(--primary); display:flex; align-items:center; gap:8px; font-weight:700; padding:0; margin-top:10px; cursor:pointer;"><i class="fa-solid fa-chevron-down"></i> Daha fazlasını gör</button>` : ''}
         </div>${postImageHtml}
 
         <div id="likers-${d.id}" style="display:flex; align-items:center; gap:8px; margin-bottom:10px; min-height:28px;"></div>
@@ -3746,6 +3740,8 @@ async function loadVisitorProfile() {
                     // decodeEntities kullanarak bunları dönüştürelim.
                     const decodedPost = decodeEntities ? decodeEntities(post.content || "") : (post.content || "");
                     const contentWithLinks = decodedPost.replace(/(#[\wığüşöçİĞÜŞÖÇ]+)/g, '<span class="hashtag-link" onclick="searchTrend(\'$1\')">$1</span>');
+                    const postTextClass = decodedPost.length > 280 ? ' post-text-clamp' : '';
+                    const postReadMoreButton = decodedPost.length > 280 ? `<button id="toggle-${post.id}" class="read-more-btn" onclick="togglePostContent('${post.id}')"><i class="fa-solid fa-chevron-down"></i> Daha fazlasını gör</button>` : '';
                     
                     const postImageHtml = post.image ? `
                         <div class="post-image-wrapper" style="margin: 12px auto; border-radius: 12px; overflow: hidden; background: rgb(0, 0, 0); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; max-height: 103%; max-width: 50%; height: auto; width: 100%;">
@@ -3768,7 +3764,8 @@ async function loadVisitorProfile() {
                                 </div>
                             </div>
                             
-                            <p style="white-space: pre-wrap; margin-bottom:10px;">${contentWithLinks}</p>
+                            <p id="post-preview-${post.id}" class="post-text${postTextClass}" style="white-space: pre-wrap; margin-bottom:10px;">${contentWithLinks}</p>
+                            ${postReadMoreButton}
                             ${postImageHtml}
                             
                             <div style="display:flex; gap:12px;">
@@ -3875,6 +3872,10 @@ window.loadProfileSections = async (section = 'all', showAllPosts = false, showA
             const isMine = p.username === uname || p.adminUser === uname;
             const isLiked = p.likes?.includes(uname);
             const isSaved = p.savedBy?.includes(uname);
+            const decodedProfileContent = decodeEntities ? decodeEntities(p.content||"") : (p.content||"");
+            const profileContentWithLinks = decodedProfileContent.replace(/(#[\wığüşöçİĞÜŞÖÇ]+)/g,'<span class="hashtag-link" onclick="searchTrend(\'$1\')">$1</span>');
+            const profileReadMoreBtn = decodedProfileContent.length > 280 ? `<button id="toggle-${d.id}" class="read-more-btn" onclick="togglePostContent('${d.id}')"><i class="fa-solid fa-chevron-down"></i> Daha fazlasını gör</button>` : '';
+            const profileTextClass = decodedProfileContent.length > 280 ? ' post-text-clamp' : '';
             
             const postHtml = `
                 <div class="glass-card post" style="position: relative;">
@@ -3888,7 +3889,8 @@ window.loadProfileSections = async (section = 'all', showAllPosts = false, showA
                             <div style="font-size:0.75rem; color:var(--text-muted); cursor:pointer;" onclick="location.href='profil.html?id=${encodeURIComponent(p.username)}'">@${p.username}</div>
                         </div>
                     </div>
-                            <p style="white-space: pre-wrap; margin-bottom:10px;">${decodeEntities ? decodeEntities(p.content||"") .replace(/(#[\wığüşöçİĞÜŞÖÇ]+)/g,'<span class="hashtag-link" onclick="searchTrend(\'$1\')">$1</span>') : (p.content||"").replace(/(#[\wığüşöçİĞÜŞÖÇ]+)/g,'<span class="hashtag-link" onclick="searchTrend(\'$1\')">$1</span>')}</p>
+                            <p id="post-preview-${d.id}" class="post-text${profileTextClass}" style="white-space: pre-wrap; margin-bottom:10px;">${profileContentWithLinks}</p>
+                            ${profileReadMoreBtn}
                     ${p.image ? `
                     <div class="post-image-wrapper" style="
                         margin: 12px auto;
@@ -4434,7 +4436,9 @@ async function loadComponent(elementId, filePath) {
         const response = await fetch(filePath);
         if (!response.ok) throw new Error(`Dosya bulunamadı: ${filePath}`);
         
-        const html = await response.text();
+        const buffer = await response.arrayBuffer();
+        let html = new TextDecoder('utf-8').decode(buffer);
+        if (html.charCodeAt(0) === 0xfeff) html = html.slice(1);
         const element = document.getElementById(elementId);
         
         if (element) {
@@ -4812,10 +4816,12 @@ async function sendNotification(recipientUid, type, fromName, extra = {}) {
     try {
         const recipientRef = doc(db, "users", recipientUid);
         const notification = {
+            notificationId: `${Date.now()}_${Math.random().toString(36).slice(2)}`,
             type: type,
             fromName: fromName,
             fromUid: auth.currentUser ? auth.currentUser.uid : null,
             timestamp: Date.now(),
+            read: false,
             ...extra
         };
 
@@ -5485,6 +5491,12 @@ function _formatNotificationTime(ts) {
 
 function _isSameNotification(a, b) {
     if (!a || !b) return false;
+    if (a.notificationId && b.notificationId) {
+        return a.notificationId === b.notificationId;
+    }
+    if (a.id && b.id) {
+        return a.id === b.id;
+    }
     const ta = _normalizeTs(a.timestamp);
     const tb = _normalizeTs(b.timestamp);
     return a.type === b.type && (a.fromUid || null) === (b.fromUid || null) && ta === tb && JSON.stringify(a.extra || a.postId || a.commentText || {}) === JSON.stringify(b.extra || b.postId || b.commentText || {});
@@ -6323,9 +6335,6 @@ function initChatWidget() {
                 <button id="chat-clear-btn" type="button" onclick="window.clearChatHistory()" style="display:none; align-items:center; gap:6px; padding:8px 12px; border:none; border-radius:999px; background: linear-gradient(90deg,#ef4444,#fb7185); color:white; font-size:0.85rem; cursor:pointer;">
                     <i class="fa-solid fa-trash-can"></i> Geçmişi Sil
                 </button>
-                <a id="chat-ai-link" href="/stbot/index.html" target="_blank" style="display:none; align-items:center; gap:6px; padding:8px 12px; border:none; border-radius:999px; background: linear-gradient(135deg, var(--primary), #a78bfa); color:white; text-decoration:none; font-size:0.85rem;">
-                    <i class="fa-solid fa-brain"></i> Yapay Zeka
-                </a>
             </div>
         </div>
             <div style="display: flex; gap: 8px; align-items: center;">
@@ -6369,10 +6378,6 @@ function initChatWidget() {
     }
     
     document.body.appendChild(chatWidget);
-    const aiChatLink = document.getElementById('chat-ai-link');
-    if (aiChatLink) {
-        aiChatLink.style.display = user.isAdmin ? 'inline-flex' : 'none';
-    }
 
     if (auth.currentUser && typeof updateChatUnreadIndicator === 'function') {
         updateChatUnreadIndicator();
@@ -6443,10 +6448,6 @@ function initChatListsPanel() {
     `;
     
     document.body.appendChild(chatListsPanel);
-    const aiButton = document.getElementById('ai-chat-btn');
-    if (aiButton) {
-        aiButton.style.display = user.isAdmin ? 'inline-flex' : 'none';
-    }
 }
 
 // Open or close chat friends list
@@ -6478,272 +6479,8 @@ window.closeChatsList = function() {
     }
 }
 
-// Open Yapay Zeka chat for admins
-window.openStBotChat = async function() {
-    if (!auth.currentUser) {
-        alert('Lütfen giriş yapın');
-        return;
-    }
-
-    if (!document.getElementById('chat-widget-container')) {
-        initChatWidget();
-    }
-
-    const botId = 'stbot_internal';
-    const botDisplayName = user.isAdmin ? 'Yapay Zeka' : 'Yapay Zeka Asistanı';
-    const currentUserId = auth.currentUser.uid;
-    const conversationId = `bot_${currentUserId}_${botId}`;
-
-    const convRef = doc(db, 'conversations', conversationId);
-    const convSnap = await getDoc(convRef);
-
-    if (!convSnap.exists()) {
-        await setDoc(convRef, {
-            participants: [currentUserId, botId],
-            lastMessage: '',
-            lastMessageAt: serverTimestamp(),
-            lastSenderId: '',
-            unreadCount: {
-                [currentUserId]: 0,
-                [botId]: 0
-            },
-            createdAt: serverTimestamp(),
-            botConversation: true,
-            botName: botDisplayName
-        });
-    }
-
-    currentConversationId = conversationId;
-    currentChatUserId = botId;
-    currentChatUsername = botDisplayName;
-
-    const titleEl = document.getElementById('chat-widget-title');
-    if (titleEl) {
-        titleEl.textContent = currentChatUsername;
-    }
-
-    const clearButton = document.getElementById('chat-clear-btn');
-    if (clearButton) {
-        clearButton.style.display = 'inline-flex';
-    }
-
-    const widgetEl = document.getElementById('chat-widget-container');
-    widgetEl.classList.add('active');
-
-    loadChatMessages(conversationId);
-    resetChatInactivityTimer();
-}
-
-function chooseRandomReply(choices) {
-    return choices[Math.floor(Math.random() * choices.length)];
-}
-
-function analyzeUserIntent(text) {
-    const normalized = (text || '').trim().toLowerCase();
-    
-    if (/\b(istatistik|analiz|rapor|sayı|kaç|toplam|özet)\b/.test(normalized)) return 'analytics';
-    if (/\b(moderasyon|spam|block|engelle|bildir|flag|uyarı|ceza)\b/.test(normalized)) return 'moderation';
-    if (/\b(gönderi|içerik|paylaş|yaz|blog|video|resim|medya)\b/.test(normalized)) return 'content';
-    if (/\b(kullanıcı|üye|hesap|profil|kim|kimler)\b/.test(normalized)) return 'users';
-    if (/\b(arkadaş|takip|takipçi|follower|bağlantı|network)\b/.test(normalized)) return 'social';
-    if (/\b(ayarlar|ayar|tercih|konfigürasyonu|setting|theme|koyu|aydınlık|dil)\b/.test(normalized)) return 'settings';
-    if (/\b(güvenlik|şifre|token|anahtar|SSL|https|şifrele|gizli)\b/.test(normalized)) return 'security';
-    if (/\b(hata|bug|crash|freeze|gecikme|yavaş|performans)\b/.test(normalized)) return 'performance';
-    if (/\b(merhaba|selam|naber|hoş|hey|yo|sup)\b/.test(normalized)) return 'greeting';
-    if (/\b(teşekkür|sağol|sağolasın|thanks|eyvallah)\b/.test(normalized)) return 'gratitude';
-    
-    return 'general';
-}
-
-function generateStBotResponse(text) {
-    const trimmed = (text || '').trim();
-    const normalized = trimmed.toLowerCase();
-
-    const greetings = [
-        'Merhaba, Yapay Zeka burada! Hadi birlikte sorununuzu çözeyim.',
-        'Selam! Ben Yapay Zeka, SosyaLTrend’in yöneticilere özel asistanıyım.',
-        'Hoş geldiniz! Ne hakkında konuşmak istersiniz bugün?'
-    ];
-
-    const helpReplies = [
-        'Detayları verirseniz, size daha hızlı ve akıllı bir yanıt sunabilirim.',
-        'Tam olarak neye ihtiyacınız var? Sorunuza göre hızlıca yanıtlayayım.',
-        'Soruya daha fazla bilgi eklerseniz, Yapay Zeka size daha özgün bir çözüm önerir.'
-    ];
-
-    const trendReplies = [
-        'SosyaLTrend güncel trendleri takip ediyor. Hangi kategoriye göz atalım?',
-        'Trendler hakkında konuşmayı seviyorum. Hangi alanda bilgi istersiniz?',
-        'Haberler ve trendler için özel öneriler sunabilirim. Bir konu seçin lütfen.'
-    ];
-
-    const thanksReplies = [
-        'rica ederim dostum, başka bir konu var mı?',
-        'her zaman, yeni soruların için buradayım.',
-        'memnun oldum! başka bir şey için yazabilirsin.'
-    ];
-
-    const aboutReplies = [
-        'Ben Yapay Zeka, SosyaLTrend’in içerik ve yönetim asistanı. Platform içindeki sorulara yardımcı olurum.',
-        'Burada, platformun içinde hızlı ve özgün cevaplar vermek için tasarlandım.',
-        'Yapay Zeka, kullanıcı deneyimini iyileştirmek için çalışan bir sohbet arkadaşıdır.'
-    ];
-
-    if (!normalized) {
-        return chooseRandomReply(greetings);
-    }
-    if (/\b(merhaba|selam|naber|hoşgeldin|selamlar|günaydın|iyi akşamlar)\b/.test(normalized)) {
-        return chooseRandomReply(greetings);
-    }
-    if (/\b(yardım|destek|problem|sorun|hata|çalışmıyor|takıldı|takıldım)\b/.test(normalized)) {
-        return chooseRandomReply(helpReplies);
-    }
-    if (/\b(trend|haber|güncel|popüler|tavsiye|öneri)\b/.test(normalized)) {
-        return chooseRandomReply(trendReplies);
-    }
-    if (/\b(teşekkür|sağol|sağolasın|teşekkürler|tşk)\b/.test(normalized)) {
-        return chooseRandomReply(thanksReplies);
-    }
-    if (/\b(nasıl çalışır|nasıl kullanılır|ne işe yarar|neden|ne demek)\b/.test(normalized)) {
-        return chooseRandomReply(aboutReplies);
-    }
-
-    if (normalized.endsWith('?')) {
-        return `Güzel bir soru! Şu anda ${trimmed.split(' ').slice(0, 6).join(' ')} üzerine bir yanıt hazırlıyorum...`;
-    }
-
-    const fallbackReplies = [
-        'Bu konuyu daha iyi anlamak için biraz daha detay verir misiniz?',
-        'Harika, bunu daha derinlemesine tartışalım. Lütfen biraz daha açıklayın.',
-        'Yapay Zeka olarak bu soruya en iyi şekilde cevap vermek istiyorum; biraz daha bilgi verir misiniz?'
-    ];
-
-    return chooseRandomReply(fallbackReplies);
-}
-
-async function replyFromStBot(userText) {
-    if (currentChatUserId !== 'stbot_internal' || !currentConversationId) return;
-    const botMessageText = await generateStBotResponseAsync(userText);
-    try {
-        await addDoc(collection(db, 'conversations', currentConversationId, 'messages'), {
-            senderId: 'stbot_internal',
-            senderName: 'Yapay Zeka',
-            senderAvatar: 'assets/img/strendsaydamv2.png',
-            text: botMessageText,
-            createdAt: serverTimestamp()
-        });
-        await updateDoc(doc(db, 'conversations', currentConversationId), {
-            lastMessage: botMessageText,
-            lastMessageAt: serverTimestamp(),
-            lastSenderId: 'stbot_internal'
-        });
-    } catch (error) {
-        console.error('Yapay Zeka yanıtı oluşturulurken hata:', error);
-    }
-}
-
-// Yükle mathjs dinamik olarak gerektiğinde
-function loadMathJsIfNeeded() {
-    return new Promise((resolve, reject) => {
-        if (window.math) return resolve(window.math);
-        const s = document.createElement('script');
-        s.src = 'https://cdn.jsdelivr.net/npm/mathjs@11.8.0/lib/browser/math.min.js';
-        s.onload = () => resolve(window.math);
-        s.onerror = (e) => reject(e);
-        document.head.appendChild(s);
-    });
-}
-
-// OpenAI proxy üzerinden doğrudan cevap alma denemesi
-async function fetchStBotAIReply(message, history = []) {
-    const endpoints = [
-        '/yapay-zeka/api',
-        window.location.hostname ? `${window.location.protocol}//${window.location.hostname}:3001/yapay-zeka/api` : 'http://localhost:3001/yapay-zeka/api'
-    ];
-
-    const payload = { message, history };
-
-    for (const endpoint of endpoints) {
-        try {
-            const response = await fetch(endpoint, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload),
-                mode: 'cors'
-            });
-            if (!response.ok) continue;
-            const data = await response.json();
-            if (data && typeof data.reply === 'string' && data.reply.trim()) {
-                return data.reply.trim();
-            }
-        } catch (e) {
-            // Sunucuya bağlanamadı; diğer uç noktaya geç
-        }
-    }
-
-    return null;
-}
-
-async function getStBotConversationHistory() {
-    if (!currentConversationId || !db) return [];
-
-    try {
-        const historyQuery = query(
-            collection(db, 'conversations', currentConversationId, 'messages'),
-            orderBy('createdAt', 'desc'),
-            limit(10)
-        );
-        const historySnapshot = await getDocs(historyQuery);
-        const history = [];
-        historySnapshot.forEach(docSnap => {
-            const item = docSnap.data();
-            if (!item || !item.text) return;
-            history.unshift({
-                role: item.senderId === 'stbot_internal' ? 'assistant' : 'user',
-                content: String(item.text || '')
-            });
-        });
-        return history;
-    } catch (e) {
-        console.warn('Chat geçmişi yüklenirken hata:', e);
-        return [];
-    }
-}
-
-// Asenkron cevap üretici: matematiksel ifadeleri hesaplayabilir
-async function generateStBotResponseAsync(text) {
-    const trimmed = (text || '').trim();
-    const normalized = trimmed.toLowerCase();
-
-    // Basit matematik sorgusu belirleme: içerikte sayı ve operatör varsa veya "hesapla/kac" kelimeleri
-    const looksLikeMath = /[0-9\d].*|\b(hesapla|kaç|kaçtır|topla|çarp|böl|çıkar|çıkart|karekök|karekök|üs|kuvvet|log)\b/i;
-    const containsOperators = /[\d\.]+\s*[\+\-\*\/%\^]\s*[\d\.\(\)]/;
-
-    if (looksLikeMath.test(normalized) && containsOperators.test(trimmed)) {
-        try {
-            await loadMathJsIfNeeded();
-            // math.evaluate daha karmaşık ifadeleri de çözer
-            const result = window.math.evaluate(trimmed);
-            return `Sonuç: ${result}`;
-        } catch (e) {
-            console.error('Math evaluation error:', e);
-            return 'Matematiksel ifadeyi değerlendirirken bir hata oluştu. Lütfen ifadeyi kontrol edin.';
-        }
-    }
-
-    try {
-        const history = await getStBotConversationHistory();
-        const aiReply = await fetchStBotAIReply(trimmed, history);
-        if (aiReply) return aiReply;
-    } catch (e) {
-        console.warn('OpenAI sunucusuna bağlanırken hata oluştu:', e);
-    }
-
-    // Diğer durumlarda mevcut senkron jeneratörü kullan
-    return generateStBotResponse(text);
-}
-
 // Load friends for chat
+
 window.loadChatFriends = async function() {
     const friendsList = document.getElementById('chat-friends-list');
     if (!friendsList) return;
@@ -7442,11 +7179,6 @@ window.sendChatMessage = async function() {
         });
         
         inputEl.value = '';
-        
-        // Trigger STBot reply for bot conversations
-        if (currentChatUserId === 'stbot_internal') {
-            setTimeout(() => replyFromStBot(text), 600);
-        }
         
         // Reset inactivity timer
         resetChatInactivityTimer();
@@ -9217,3 +8949,4 @@ if (backBtnElem) {
 // Expose blog edit/delete helpers to global scope so inline onclicks work (module scope doesn't expose them by default)
 window.startEditingBlogPost = startEditingBlogPost;
 window.deleteBlogPost = deleteBlogPost;
+

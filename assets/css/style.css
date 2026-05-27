@@ -475,7 +475,7 @@ body.dark-mode .most-read-table tr:nth-child(even) {
 .menu-style-btn { 
     display: flex; align-items: center; gap: 12px; padding: 12px; text-decoration: none; 
     color: var(--text-main); font-size: 0.9rem; font-weight: 600; border-radius: 10px; 
-    border:none; background:none; cursor:pointer; width:100%; transition: 0.2s; 
+    border:none; background:none; cursor:pointer; width:100%; box-sizing:border-box; white-space: normal; word-break: break-word; transition: 0.2s; 
 }
 .menu-style-btn:hover { background: var(--input-bg); color: var(--primary); }
 
@@ -1707,12 +1707,14 @@ aside, .right-panel { display: none; } }
     color: white;
 }
 
-.sidebar-settings-button {
+.sidebar-settings-button,
+.sidebar-admin-button {
     background: linear-gradient(135deg, var(--primary), #a78bfa);
     color: white;
 }
 
-.sidebar-settings-button:hover {
+.sidebar-settings-button:hover,
+.sidebar-admin-button:hover {
     background: linear-gradient(135deg, var(--primary), #a78bfa);
     color: white;
 }
