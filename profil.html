@@ -149,7 +149,7 @@
         #page-profile > .glass-card { padding: 20px 15px; }
         /* tabs: 2x2 grid layout on mobile */
         .profile-tabs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; width: 100%; }
-        .tab-btn { padding: 8px 12px; font-size: 0.75rem; width: 100%; justify-content: center; }
+        .tab-btn { padding: 8px 12px; font-size: 0.75rem; width: 100%; justify-content: center; white-space: normal; }
         /* friend search full width */
         #friendSearch { width: 100%; }
         /* friend list grid for small screens */
@@ -162,6 +162,16 @@
         .profile-top-pairs > .membership-card { max-width: 100%; }
         /* make edit form inputs full width */
         .edit-profile-form .form-input { width: 100%; }
+    }
+    @media (max-width: 520px) {
+        .profile-tabs { grid-template-columns: 1fr; }
+        .tab-btn { font-size: 0.72rem; }
+        .profile-actions { gap: 8px; }
+        .profile-actions button { max-width: none; }
+        .membership-card, .tebrik-card { width: 100%; }
+        #page-profile img#profilePageAvatar { width: 72px; height: 72px; }
+        #page-profile h2 { font-size: 1.15rem; }
+        .profile-top-pairs { gap: 16px; }
     }
   </style> 
 </head>
@@ -292,25 +302,30 @@
           </div>
           <span id="profileRoleBadge" class="tebrik-card-tag">Kullanıcı</span>
         </div>
-        <div class="tebrik-card-body" style="padding: 14px 18px 18px;">
-          <div class="tebrik-score-row">
-            <div class="tebrik-score">
-              <span id="membershipPercent">%0</span>
-              <small>Üyelik</small>
+        <div class="tebrik-card-body" style="padding: 14px 18px 18px; display:flex; flex-direction:column; gap:16px;">
+          <div class="tebrik-metrics">
+            <div class="tebrik-metric">
+              <strong id="profileFriendCount">0</strong>
+              <span>Arkadaş</span>
             </div>
-            <div class="tebrik-metrics">
-              <div class="tebrik-metric">
-                <strong id="profileFriendCount">0</strong>
-                <span>Arkadaş</span>
-              </div>
-              <div class="tebrik-metric">
-                <strong id="profileRole">Kullanıcı</strong>
-                <span>Rol</span>
-              </div>
+            <div class="tebrik-metric">
+              <strong id="profileRole">Kullanıcı</strong>
+              <span>Rol</span>
             </div>
           </div>
-          <div class="tebrik-meter">
-            <div id="membershipProgress" class="tebrik-meter-fill" style="width:0%"></div>
+          <div class="membership-info-grid" style="display:grid; gap:12px;">
+            <div class="membership-info-item" style="display:flex; justify-content:space-between; align-items:center; gap:10px; padding:12px 14px; background: rgba(99,102,241,0.05); border-radius:14px;">
+              <span style="color: var(--text-muted); font-size:0.85rem;"><i class="fa-solid fa-envelope"></i> E-Posta</span>
+              <strong id="profileSignupInfo" style="color: var(--text-main);">—</strong>
+            </div>
+            <div class="membership-info-item" style="display:flex; justify-content:space-between; align-items:center; gap:10px; padding:12px 14px; background: rgba(99,102,241,0.05); border-radius:14px;">
+              <span style="color: var(--text-muted); font-size:0.85rem;"><i class="fa-solid fa-calendar-days"></i> Kayıt Tarihi</span>
+              <strong id="profileJoinDate" style="color: var(--text-main);">—</strong>
+            </div>
+            <div class="membership-info-item" style="display:flex; justify-content:space-between; align-items:center; gap:10px; padding:12px 14px; background: rgba(99,102,241,0.05); border-radius:14px;">
+              <span style="color: var(--text-muted); font-size:0.85rem;"><i class="fa-solid fa-user-clock"></i> Son Aktif</span>
+              <strong id="profileLastActive" style="color: var(--text-main);">—</strong>
+            </div>
           </div>
           <div class="tebrik-label-row">
             <span id="membershipSummaryText" class="tebrik-summary-text">Profil bilgileri güncelleniyor.</span>
@@ -320,6 +335,7 @@
       </div>
     </div>
 
+    <hr style="border:none; border-top:1px solid var(--border); margin:0 0 24px 0;">
     <nav class="profile-tabs" style="margin-bottom: 24px;">
       <a class="tab-btn active" href="#posts" onclick="openTab(event, 'my-posts-tab')"><i class="fa-solid fa-feather"></i> Gönderiler</a>
       <a class="tab-btn" href="#likes" onclick="openTab(event, 'my-likes-tab')"><i class="fa-solid fa-heart"></i> Beğeniler</a>

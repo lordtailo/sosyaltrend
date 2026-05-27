@@ -57,6 +57,11 @@ function decodeEntities(str) {
     return txt.value;
 }
 
+function getVisitedProfileUsername() {
+    const params = new URLSearchParams(location.search);
+    return params.get('id') || params.get('u') || params.get('username') || null;
+}
+
 // Request card'ı sil
 function removeRequestCard(uid) {
     const card = document.getElementById(`friend-request-${uid}`);
@@ -679,6 +684,8 @@ onAuthStateChanged(auth, async (fbUser) => {
                 }
                 if (data.createdAt) {
                     user.createdAt = data.createdAt;
+                } else if (userDoc.createTime) {
+                    user.createdAt = userDoc.createTime;
                 } else {
                     // if existing doc somehow lacks timestamp, write one
                     await setDoc(userRef, { createdAt: serverTimestamp() }, { merge: true });
@@ -909,8 +916,7 @@ onAuthStateChanged(auth, async (fbUser) => {
     }
     
     // Kendi profili açılıyorsa
-    const params = new URLSearchParams(location.search);
-    const visitedUsername = params.get('id');
+    const visitedUsername = getVisitedProfileUsername();
     if (!visitedUsername || visitedUsername === user.username) {
         // localStorage'ı temizle
         localStorage.removeItem('visiting_username');
@@ -1786,6 +1792,9 @@ function getAvatarUrl(avatarUrlOrSeed, type = 'user') {
     const pPn = document.getElementById('profilePageName');
     const pPh = document.getElementById('profilePageHandle');
 
+    const visitedProfileUsername = getVisitedProfileUsername();
+    const isOwnProfile = !visitedProfileUsername || visitedProfileUsername === user.username;
+
     // Gizlilik Ayarları
     const pTg = document.getElementById('privacyToggle');
     const sPi = document.getElementById('selfPrivateIndicator');
@@ -1811,17 +1820,18 @@ function getAvatarUrl(avatarUrlOrSeed, type = 'user') {
     if(sJd && !sJd.innerText) sJd.innerText = '—';
     if(pJd && !pJd.innerText) pJd.innerText = '—';
     if(sSi) sSi.innerText = user.email ? shortenEmail(user.email) : '—';
-    if(pSi) pSi.innerText = user.email ? shortenEmail(user.email) : '—';
+    if (isOwnProfile && pSi) pSi.innerText = user.email ? shortenEmail(user.email) : '—';
     if(sRo) sRo.innerText = user.isAdmin ? 'Admin' : 'Kullanıcı';
-    if(pRo) pRo.innerText = user.isAdmin ? 'Admin' : 'Kullanıcı';
+    if (isOwnProfile && pRo) pRo.innerText = user.isAdmin ? 'Admin' : 'Kullanıcı';
+    if (isOwnProfile && pRoleBadge) pRoleBadge.innerText = user.isAdmin ? 'Admin' : 'Kullanıcı';
     if(sLa) sLa.innerText = '—';
-    if(pLa) pLa.innerText = '—';
+    if (isOwnProfile && pLa) pLa.innerText = '—';
     if(sMa) sMa.innerText = '—';
     if(sFc) sFc.innerText = user.friendCount;
-    if(pFc) pFc.innerText = user.friendCount;
+    if (isOwnProfile && pFc) pFc.innerText = user.friendCount;
     if(sPr) sPr.innerText = user.pendingRequests;
-    if(pPr) pPr.innerText = user.pendingRequests;
-    if(pVerified) pVerified.innerText = (user.emailVerified === true) ? 'Doğrulandı' : (user.emailVerified === false ? 'Doğrulanmadı' : '—');
+    if (isOwnProfile && pPr) pPr.innerText = user.pendingRequests;
+    if (isOwnProfile && pVerified) pVerified.innerText = (user.emailVerified === true) ? 'Doğrulandı' : (user.emailVerified === false ? 'Doğrulanmadı' : '—');
     // show/hide blog creation and my posts links depending on auth state
     const blogNewLink = document.getElementById('btn-blog-new');
     const blogMineLink = document.getElementById('btn-blog-mine');
@@ -1868,15 +1878,15 @@ function getAvatarUrl(avatarUrlOrSeed, type = 'user') {
                     durationText = months === 1 ? '1ay' : `${months}ay`;
                 }
                 sJd.innerText = `${joinDate}/${durationText}`;
-                if(pJd) pJd.innerText = `${joinDate}/${durationText}`;
+                if (isOwnProfile && pJd) pJd.innerText = `${joinDate}/${durationText}`;
             } catch (e) {
                 console.error('Join date formatting error:', e);
                 sJd.innerText = '—';
-                if(pJd) pJd.innerText = '—';
+                if (isOwnProfile && pJd) pJd.innerText = '—';
             }
         } else {
             sJd.innerText = '—';
-            if(pJd) pJd.innerText = '—';
+            if (isOwnProfile && pJd) pJd.innerText = '—';
         }
     }
     if (sLa) {
@@ -1892,30 +1902,31 @@ function getAvatarUrl(avatarUrlOrSeed, type = 'user') {
                     hour: '2-digit',
                     minute: '2-digit'
                 });
-                if (pLa) pLa.innerText = sLa.innerText;
+                if (isOwnProfile && pLa) pLa.innerText = sLa.innerText;
             } catch (e) {
                 console.error('Last active formatting error:', e);
                 sLa.innerText = '—';
-                if (pLa) pLa.innerText = '—';
+                if (isOwnProfile && pLa) pLa.innerText = '—';
             }
         } else {
             sLa.innerText = '—';
-            if (pLa) pLa.innerText = '—';
+            if (isOwnProfile && pLa) pLa.innerText = '—';
         }
     }
 
     // Profil Sayfası Güncelleme
-    if(pAv) pAv.src = avatarUrl;
-    if(pPn) pPn.innerText = user.displayName;
-    if(pPh) pPh.innerText = `@${user.username}`;
+    if (isOwnProfile) {
+        if(pAv) pAv.src = avatarUrl;
+        if(pPn) pPn.innerText = user.displayName;
+        if(pPh) pPh.innerText = `@${user.username}`;
+    }
 
     // Gizlilik Durumu Güncelleme
     if(pTg) pTg.checked = isPrivate;
     if(sPi) {
         // only show indicator when on own profile
         let showInd = isPrivate;
-        const params = new URLSearchParams(location.search);
-        const visitedUsername = params.get('id');
+        const visitedUsername = getVisitedProfileUsername();
         if (visitedUsername && visitedUsername !== user.username) {
             showInd = false;
         }
@@ -1925,8 +1936,7 @@ function getAvatarUrl(avatarUrlOrSeed, type = 'user') {
     if(pBanner) {
         // only show banner when viewing own profile
         let showBanner = isPrivate;
-        const params = new URLSearchParams(location.search);
-        const visitedUsername = params.get('id');
+        const visitedUsername = getVisitedProfileUsername();
         if (visitedUsername && visitedUsername !== user.username) {
             showBanner = false;
         }
@@ -1934,8 +1944,7 @@ function getAvatarUrl(avatarUrlOrSeed, type = 'user') {
     }
     
     // Kendi profilinde bannerleri gizle
-    const params = new URLSearchParams(location.search);
-    const visitedUsername = params.get('id');
+    const visitedUsername = getVisitedProfileUsername();
     if (!visitedUsername || visitedUsername === user.username) {
         const privateNoticeCard = document.getElementById('privateNoticeCard');
         const friendViewNotice = document.getElementById('friendViewNotice');
@@ -3554,8 +3563,7 @@ window.toggleVisitorSimulation = () => {
 
 // Ziyaretçi Profili Göster
 async function loadVisitorProfile() {
-    const params = new URLSearchParams(location.search);
-    let visitedUsername = params.get('id');
+    let visitedUsername = getVisitedProfileUsername();
     const simulate = isSimulatingVisitor();
     if (simulate && (!visitedUsername || visitedUsername === user.username)) {
         // force visitor state on own profile
@@ -3568,9 +3576,11 @@ async function loadVisitorProfile() {
         const editBtn = document.getElementById('editProfileBtn');
         const addFriendBtn = document.getElementById('addFriendBtn');
         const settingsBtn = document.getElementById('settingsBtn');
+        const tebrikProfileBtn = document.querySelector('button[onclick="window.openTebrikModalForProfile()"]');
         if (editBtn) editBtn.style.display = 'inline-block';
         if (addFriendBtn) addFriendBtn.style.display = 'none';
         if (settingsBtn) settingsBtn.style.display = 'inline-block';
+        if (tebrikProfileBtn) tebrikProfileBtn.style.display = 'none';
         
         // Kendi profilinde bannerleri gizle
         const privateNoticeCard = document.getElementById('privateNoticeCard');
@@ -3724,13 +3734,33 @@ async function loadVisitorProfile() {
                     // gizli profilde yabancılara sohbet yeri gösterilmesin
                     const actionBtn = document.getElementById('profileActionBtn');
                     if (actionBtn) actionBtn.style.display = 'none';
+
+                    // Özel profilde, ziyaretçi arkadaş değilse üyelik bilgilerini temizle
+                    const pJd = document.getElementById('profileJoinDate');
+                    const pSi = document.getElementById('profileSignupInfo');
+                    const pRo = document.getElementById('profileRole');
+                    const pRoleBadge = document.getElementById('profileRoleBadge');
+                    const pFc = document.getElementById('profileFriendCount');
+                    const pPr = document.getElementById('profilePendingRequests');
+                    const pLa = document.getElementById('profileLastActive');
+                    const pVerified = document.getElementById('profileVerified');
+                    const roleText = visitedData?.isAdmin ? 'Admin' : 'Kullanıcı';
+                    if (pSi) pSi.innerText = '—';
+                    if (pRo) pRo.innerText = roleText;
+                    if (pRoleBadge) pRoleBadge.innerText = roleText;
+                    if (pFc) pFc.innerText = typeof visitedData?.friendCount === 'number' ? visitedData.friendCount : (Array.isArray(visitedData?.friends) ? visitedData.friends.length : 0);
+                    if (pPr) pPr.innerText = visitedData?.pendingRequests || 0;
+                    if (pJd) pJd.innerText = '—';
+                    if (pLa) pLa.innerText = '—';
+                    if (pVerified) pVerified.innerText = '—';
                     
                     return; // skip rest of visitor loading
                 }
             }
 
         } else {
-            // Visitor UID not found
+            console.warn('Ziyaret edilen kullanıcı bulunamadı:', visitedUsername);
+            return;
         }
         
         // Profil başlığını güncelle
@@ -3754,6 +3784,7 @@ async function loadVisitorProfile() {
             const pJd = document.getElementById('profileJoinDate');
             const pSi = document.getElementById('profileSignupInfo');
             const pRo = document.getElementById('profileRole');
+            const pRoleBadge = document.getElementById('profileRoleBadge');
             const pFc = document.getElementById('profileFriendCount');
             const pPr = document.getElementById('profilePendingRequests');
             const pLa = document.getElementById('profileLastActive');
@@ -3770,7 +3801,7 @@ async function loadVisitorProfile() {
             // join date formatting
             if (pJd) {
                 try {
-                    const createdAt = visitedData.createdAt || visitedData.joinedAt || visitedData.created;
+                    const createdAt = visitedData.createdAt || visitedData.joinedAt || visitedData.created || userSnap.docs[0].createTime;
                     if (createdAt) {
                         const d = createdAt.toDate ? createdAt.toDate() : (createdAt.seconds != null ? new Date(createdAt.seconds * 1000) : new Date(createdAt));
                         const day = String(d.getDate()).padStart(2,'0');
@@ -3818,31 +3849,18 @@ async function loadVisitorProfile() {
                 const ver = visitedData.emailVerified === true || visitedData.verified === true;
                 pVerified.innerText = ver ? 'Doğrulandı' : (visitedData.emailVerified === false || visitedData.verified === false ? 'Doğrulanmadı' : '—');
             }
-            // Calculate membership percent and update progress (blend of friend count and account age)
             try {
-                const memPercentEl = document.getElementById('membershipPercent');
-                const memProgEl = document.getElementById('membershipProgress');
                 const memSummary = document.getElementById('membershipSummaryText');
-
-                // determine account age in days
                 const createdAtVal = visitedData.createdAt || visitedData.joinedAt || visitedData.created;
                 let ageDays = 0;
                 if (createdAtVal) {
                     const cd = createdAtVal.toDate ? createdAtVal.toDate() : (createdAtVal.seconds != null ? new Date(createdAtVal.seconds * 1000) : new Date(createdAtVal));
                     ageDays = Math.max(0, Math.floor((new Date() - cd) / (1000*60*60*24)));
                 }
-
                 const friendsCount = typeof visitedData.friendCount === 'number' ? visitedData.friendCount : (Array.isArray(visitedData.friends) ? visitedData.friends.length : 0);
-                // score: friends up to 100 -> weight 60%, age up to 365 days -> weight 40%
-                const friendScore = Math.min(1, friendsCount / 100);
-                const ageScore = Math.min(1, ageDays / 365);
-                const membershipScore = Math.round((friendScore * 0.6 + ageScore * 0.4) * 100);
-
-                if (memPercentEl) memPercentEl.innerText = `%${membershipScore}`;
-                if (memProgEl) memProgEl.style.width = `${membershipScore}%`;
                 if (memSummary) memSummary.innerText = `Hesap: ${ageDays} gün · ${friendsCount} arkadaş`;
             } catch (e) {
-                console.warn('Membership percent update failed', e);
+                console.warn('Membership summary update failed', e);
             }
         } catch (e) {
             console.warn('Could not update visited profile membership card', e);
@@ -3942,6 +3960,8 @@ async function loadVisitorProfile() {
         }
     }
 }
+
+window.loadVisitorProfile = loadVisitorProfile;
 
 // For profile page: load own posts/likes/bookmarks separately
 // section param determines which part(s) should be updated; 'all' (default), 'posts', 'likes', 'saves'
@@ -5028,8 +5048,7 @@ async function loadFriendsList(userRef, isOwnProfile = true) {
         
         if (!isOwnProfile) {
             // Başka birinin profili - visitedUsername'dan bulmalıyız
-            const params = new URLSearchParams(location.search);
-            const visitedUsername = params.get('id');
+            const visitedUsername = getVisitedProfileUsername();
             
             if (!visitedUsername) return;
             
@@ -5470,6 +5489,10 @@ async function loadNotifications(userData) {
             text = `${n.fromName} size mesaj gönderdi`;
             detail = n.message ? `"${n.message.slice(0, 80)}${n.message.length > 80 ? '...' : ''}"` : '';
             icon = 'fa-envelope';
+        } else if (n.type === 'tebrik') {
+            text = `${n.fromName} size tebrik gönderdi`;
+            detail = n.message ? `"${n.message.slice(0, 80)}${n.message.length > 80 ? '...' : ''}"` : '';
+            icon = 'fa-hand-holding-heart';
         } else {
             text = n.message || `${n.fromName || 'Birileri'} bir bildirim gönderdi`;
         }
@@ -6224,7 +6247,9 @@ window.sendTebrikToUid = async function(targetUid, targetUsername, message = '')
         alert('Hedef kullanıcı bulunamadı.');
         return;
     }
-    if (targetUid === auth.currentUser.uid) {
+    const normalizedTargetUsername = typeof targetUsername === 'string' ? targetUsername.trim().toLowerCase() : '';
+    const myUsername = user.username ? user.username.trim().toLowerCase() : '';
+    if (targetUid === auth.currentUser.uid || (normalizedTargetUsername && normalizedTargetUsername === myUsername)) {
         alert('Kendinize tebrik gönderemezsiniz.');
         return;
     }
@@ -6244,13 +6269,18 @@ window.sendTebrikToUid = async function(targetUid, targetUsername, message = '')
             username: user.username,
             displayName: user.displayName,
             message: message || '',
-            at: serverTimestamp()
+            at: Timestamp.now()
         };
 
         await updateDoc(targetRef, {
             tebrikCount: increment(1),
             tebrikGivers: arrayUnion(giverInfo),
             tebrikMessages: arrayUnion({ fromUid: auth.currentUser.uid, fromUsername: user.username, message: message || '', at: Timestamp.now() })
+        });
+
+        // send notification to recipient
+        await sendNotification(targetUid, 'tebrik', user.displayName || user.username || 'Bir kullanıcı', {
+            message: message ? `${user.displayName || user.username} size tebrik gönderdi: ${message}` : `${user.displayName || user.username} size tebrik gönderdi.`
         });
 
         alert('Tebrik gönderildi — kullanıcı tebrik puanına sahip oldu.');
@@ -6316,10 +6346,14 @@ window.openTebrikModal = function(prefillUsername) {
 };
 
 window.openTebrikModalForProfile = function() {
-    const params = new URLSearchParams(location.search);
-    const visitedUsername = params.get('id');
+    const visitedUsername = getVisitedProfileUsername();
+    const myUsername = user?.username?.trim().toLowerCase();
     if (!visitedUsername) {
         alert('Bu profil için tebrik gönderilemez.');
+        return;
+    }
+    if (myUsername && visitedUsername.trim().toLowerCase() === myUsername) {
+        alert('Kendinize tebrik gönderemezsiniz.');
         return;
     }
     openTebrikModal(visitedUsername);
@@ -6339,6 +6373,11 @@ window.sendTebrikFromModal = async function() {
     const username = userInput?.value?.trim();
     const message = msgArea?.value?.trim() || '';
     if (!username) { alert('Lütfen kullanıcı adını girin.'); return; }
+    const myUsername = user?.username?.trim().toLowerCase();
+    if (myUsername && username.toLowerCase() === myUsername) {
+        alert('Kendinize tebrik gönderemezsiniz.');
+        return;
+    }
     await sendTebrikByUsernameWithMessage(username, message);
     closeTebrikModal();
 };
@@ -6395,6 +6434,10 @@ window.sendTebrikToUsernameQuick = async function(username, postId, btnEl) {
                 console.warn('Post tebrik sayısı güncellenemedi:', e);
             }
         }
+        // send notification to recipient for quick tebrik
+        await sendNotification(userDoc.id, 'tebrik', user.displayName || user.username || 'Bir kullanıcı', {
+            message: `${user.displayName || user.username} size tebrik gönderdi.`
+        });
 
         // show +1 animation on top of the tebrik icon/button
         try {
@@ -6443,8 +6486,7 @@ window.sendTebrikToUsernameQuick = async function(username, postId, btnEl) {
 
 // Called from profile page button — sends tebrik to currently visited profile
 window.sendTebrikCurrentProfile = async function() {
-    const params = new URLSearchParams(location.search);
-    const visitedUsername = params.get('id');
+    const visitedUsername = getVisitedProfileUsername();
     if (!visitedUsername) {
         alert('Bu kullanıcı için tebrik gönderilemez.');
         return;
