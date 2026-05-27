@@ -614,7 +614,8 @@ await updateDoc(currentUserRef, {
   createdAt: null,
   friendCount: 0,
   pendingRequests: 0,
-  isAdmin: false
+    isAdmin: false,
+    isModerator: false
 };
 
 // Cache author avatars to avoid fetching multiple times
@@ -721,6 +722,8 @@ onAuthStateChanged(auth, async (fbUser) => {
 
         // Admin Kontrolü
         user.isAdmin = fbUser.email.toLowerCase() === ADMIN_EMAIL.toLowerCase() || (userData && userData.isAdmin === true);
+        // Moderator Kontrolü
+        user.isModerator = (userData && userData.isModerator === true) || false;
         // store flag for other scripts
         localStorage.setItem('st_isAdmin', user.isAdmin ? '1' : '0');
         
@@ -775,6 +778,13 @@ onAuthStateChanged(auth, async (fbUser) => {
                         updateUIWithUser();
                     }
                 }
+                if (typeof userData.isModerator !== 'undefined') {
+                    const newModStatus = userData.isModerator === true;
+                    if (newModStatus !== user.isModerator) {
+                        user.isModerator = newModStatus;
+                        updateUIWithUser();
+                    }
+                }
                 // isPrivate değişmişse yerelde de sakla
                 if (typeof userData.isPrivate !== 'undefined' && userData.isPrivate !== isPrivate) {
                     isPrivate = userData.isPrivate;
@@ -806,6 +816,7 @@ onAuthStateChanged(auth, async (fbUser) => {
         if (sidebarAdminBtn) {
             sidebarAdminBtn.style.display = user.isAdmin ? 'flex' : 'none';
         }
+        // NOTE: Moderatör butonu kaldırıldı; sadece admin butonu gösteriliyor.
     }
     
     // Profil sayfasında ziyaretçi profilini kontrol et
