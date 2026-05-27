@@ -731,6 +731,12 @@ details.menu-details[open] summary:after {
     border-bottom: 1px solid var(--border);
     margin-bottom: 8px;
 }
+/* Override: simplify Blog Menü header background */
+.sidebar-blog-card .sidebar-title {
+    background: transparent !important;
+    box-shadow: none !important;
+    color: var(--text-main) !important;
+}
 .sidebar-blog-card a {
     display: block;
     padding: 6px 0;
