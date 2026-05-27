@@ -1775,8 +1775,11 @@ function getAvatarUrl(avatarUrlOrSeed, type = 'user') {
     const pJd = document.getElementById('profileJoinDate');
     const pSi = document.getElementById('profileSignupInfo');
     const pRo = document.getElementById('profileRole');
+    const pRoleBadge = document.getElementById('profileRoleBadge');
     const pFc = document.getElementById('profileFriendCount');
     const pPr = document.getElementById('profilePendingRequests');
+    const pLa = document.getElementById('profileLastActive');
+    const pVerified = document.getElementById('profileVerified');
 
     // Profil Sayfası
     const pAv = document.getElementById('profilePageAvatar');
@@ -1812,11 +1815,13 @@ function getAvatarUrl(avatarUrlOrSeed, type = 'user') {
     if(sRo) sRo.innerText = user.isAdmin ? 'Admin' : 'Kullanıcı';
     if(pRo) pRo.innerText = user.isAdmin ? 'Admin' : 'Kullanıcı';
     if(sLa) sLa.innerText = '—';
+    if(pLa) pLa.innerText = '—';
     if(sMa) sMa.innerText = '—';
     if(sFc) sFc.innerText = user.friendCount;
     if(pFc) pFc.innerText = user.friendCount;
     if(sPr) sPr.innerText = user.pendingRequests;
     if(pPr) pPr.innerText = user.pendingRequests;
+    if(pVerified) pVerified.innerText = (user.emailVerified === true) ? 'Doğrulandı' : (user.emailVerified === false ? 'Doğrulanmadı' : '—');
     // show/hide blog creation and my posts links depending on auth state
     const blogNewLink = document.getElementById('btn-blog-new');
     const blogMineLink = document.getElementById('btn-blog-mine');
@@ -1887,12 +1892,15 @@ function getAvatarUrl(avatarUrlOrSeed, type = 'user') {
                     hour: '2-digit',
                     minute: '2-digit'
                 });
+                if (pLa) pLa.innerText = sLa.innerText;
             } catch (e) {
                 console.error('Last active formatting error:', e);
                 sLa.innerText = '—';
+                if (pLa) pLa.innerText = '—';
             }
         } else {
             sLa.innerText = '—';
+            if (pLa) pLa.innerText = '—';
         }
     }
 
@@ -3741,6 +3749,104 @@ async function loadVisitorProfile() {
             profileAvatar.src = visitorAvatar || getAvatarUrl("strendsaydamv2", 'user');
         }
 
+        // Update membership/profile info card with visited user's data
+        try {
+            const pJd = document.getElementById('profileJoinDate');
+            const pSi = document.getElementById('profileSignupInfo');
+            const pRo = document.getElementById('profileRole');
+            const pFc = document.getElementById('profileFriendCount');
+            const pPr = document.getElementById('profilePendingRequests');
+            const pLa = document.getElementById('profileLastActive');
+            const pVerified = document.getElementById('profileVerified');
+
+            if (pSi) pSi.innerText = visitedData.email ? shortenEmail(visitedData.email) : '—';
+            const roleText = visitedData.isAdmin ? 'Admin' : 'Kullanıcı';
+            if (pRo) pRo.innerText = roleText;
+            if (pRoleBadge) pRoleBadge.innerText = roleText;
+            const fc = typeof visitedData.friendCount === 'number' ? visitedData.friendCount : (Array.isArray(visitedData.friends) ? visitedData.friends.length : 0);
+            if (pFc) pFc.innerText = fc;
+            if (pPr) pPr.innerText = visitedData.pendingRequests || 0;
+
+            // join date formatting
+            if (pJd) {
+                try {
+                    const createdAt = visitedData.createdAt || visitedData.joinedAt || visitedData.created;
+                    if (createdAt) {
+                        const d = createdAt.toDate ? createdAt.toDate() : (createdAt.seconds != null ? new Date(createdAt.seconds * 1000) : new Date(createdAt));
+                        const day = String(d.getDate()).padStart(2,'0');
+                        const month = String(d.getMonth()+1).padStart(2,'0');
+                        const year = d.getFullYear();
+                        const joinDate = `${day}.${month}.${year}`;
+                        const now = new Date();
+                        const diffMs = now - d;
+                        const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+                        let durationText = `${diffDays}gün`;
+                        if (diffDays >= 365) {
+                            const years = Math.floor(diffDays / 365);
+                            durationText = years === 1 ? '1yıl' : `${years}yıl`;
+                        } else if (diffDays >= 30) {
+                            const months = Math.floor(diffDays / 30);
+                            durationText = months === 1 ? '1ay' : `${months}ay`;
+                        }
+                        pJd.innerText = `${joinDate}/${durationText}`;
+                    } else {
+                        pJd.innerText = '—';
+                    }
+                } catch (e) {
+                    console.error('Visitor join date formatting error:', e);
+                    pJd.innerText = '—';
+                }
+            }
+
+            // last active
+            if (pLa) {
+                try {
+                    const lastActiveAt = visitedData.lastActiveAt || visitedData.lastSeen;
+                    if (lastActiveAt) {
+                        const ad = lastActiveAt.toDate ? lastActiveAt.toDate() : (lastActiveAt.seconds != null ? new Date(lastActiveAt.seconds * 1000) : new Date(lastActiveAt));
+                        pLa.innerText = ad.toLocaleString('tr-TR', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+                    } else {
+                        pLa.innerText = '—';
+                    }
+                } catch (e) {
+                    console.error('Visitor last active formatting error:', e);
+                    pLa.innerText = '—';
+                }
+            }
+
+            if (pVerified) {
+                const ver = visitedData.emailVerified === true || visitedData.verified === true;
+                pVerified.innerText = ver ? 'Doğrulandı' : (visitedData.emailVerified === false || visitedData.verified === false ? 'Doğrulanmadı' : '—');
+            }
+            // Calculate membership percent and update progress (blend of friend count and account age)
+            try {
+                const memPercentEl = document.getElementById('membershipPercent');
+                const memProgEl = document.getElementById('membershipProgress');
+                const memSummary = document.getElementById('membershipSummaryText');
+
+                // determine account age in days
+                const createdAtVal = visitedData.createdAt || visitedData.joinedAt || visitedData.created;
+                let ageDays = 0;
+                if (createdAtVal) {
+                    const cd = createdAtVal.toDate ? createdAtVal.toDate() : (createdAtVal.seconds != null ? new Date(createdAtVal.seconds * 1000) : new Date(createdAtVal));
+                    ageDays = Math.max(0, Math.floor((new Date() - cd) / (1000*60*60*24)));
+                }
+
+                const friendsCount = typeof visitedData.friendCount === 'number' ? visitedData.friendCount : (Array.isArray(visitedData.friends) ? visitedData.friends.length : 0);
+                // score: friends up to 100 -> weight 60%, age up to 365 days -> weight 40%
+                const friendScore = Math.min(1, friendsCount / 100);
+                const ageScore = Math.min(1, ageDays / 365);
+                const membershipScore = Math.round((friendScore * 0.6 + ageScore * 0.4) * 100);
+
+                if (memPercentEl) memPercentEl.innerText = `%${membershipScore}`;
+                if (memProgEl) memProgEl.style.width = `${membershipScore}%`;
+                if (memSummary) memSummary.innerText = `Hesap: ${ageDays} gün · ${friendsCount} arkadaş`;
+            } catch (e) {
+                console.warn('Membership percent update failed', e);
+            }
+        } catch (e) {
+            console.warn('Could not update visited profile membership card', e);
+        }
         // "Arkadaş Olarak Ekle" butonunu göster/güncelle
         if (visitorUid && auth.currentUser) {
             const addFriendBtn = document.getElementById('addFriendBtn');

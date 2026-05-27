@@ -96,9 +96,24 @@
   </style>
   <style>
     /* Profil Sekme Stilleri */
-    .profile-top-pairs { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; justify-content: center; margin-bottom: 18px; align-items: start; width: 100%; }
+    .profile-top-pairs { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; justify-content: center; margin-bottom: 18px; align-items: stretch; width: 100%; }
     .profile-top-pairs > .tebrik-card,
-    .profile-top-pairs > .membership-card { width: 100%; max-width: 100%; }
+    .profile-top-pairs > .membership-card { width: 100%; max-width: 100%; height: 100%; box-sizing: border-box; }
+
+    /* Make inner cards use flex so their bodies can expand to equal height */
+    .tebrik-card, .membership-card { display: flex; flex-direction: column; }
+    .tebrik-card .tebrik-card-body { flex: 1 1 auto; display: flex; flex-direction: column; justify-content: space-between; }
+    /* membership card second child is the content grid; let it grow */
+    .membership-card > div:nth-child(2) { flex: 1 1 auto; display: flex; flex-direction: column; }
+    /* Membership card styles to match tebrik look */
+    .membership-card { background: linear-gradient(180deg, rgba(255,255,255,0.02), transparent); border-radius: 18px; }
+    .membership-card-header, .tebrik-card-header { padding: 16px 18px; gap: 10px; align-items: center; justify-content: space-between; display:flex; }
+    .membership-card-title, .tebrik-card-title { font-weight:800; font-size:1rem; color: var(--primary); }
+    .membership-card-subtitle, .tebrik-card-subtitle { font-size:0.85rem; color: var(--text-muted); }
+    .membership-card-tag, .tebrik-card-tag { background: rgba(0,0,0,0.04); padding:6px 10px; border-radius:12px; font-weight:700; font-size:0.8rem; color:var(--text-main); }
+    .membership-card .membership-card-body { padding: 14px 18px 18px; display:flex; flex-direction:column; gap:12px; }
+    .membership-metrics { display:flex; gap:12px; align-items:center; justify-content:space-between; }
+    .membership-metric { display:flex; flex-direction:column; align-items:flex-end; gap:4px; }
     .profile-tabs { display: flex; gap: 10px; margin: 20px 0; padding-bottom: 10px; overflow-x: auto; width: 100%; box-sizing: border-box; white-space: nowrap; -ms-overflow-style: none; scrollbar-width: none; }
     .profile-tabs::-webkit-scrollbar { display: none; }
     .tab-btn { background: #fff; border: none; padding: 10px 20px; color: var(--text-muted); font-weight: 600; cursor: pointer; border-radius: 10px; transition: all 0.3s; display: flex; align-items: center; gap: 8px; flex-shrink: 0; min-width: 0; text-decoration: none; white-space: normal; }
@@ -142,7 +157,7 @@
         /* gallery grid default to 2 columns on small screens */
         .gallery-grid { grid-template-columns: repeat(3, 1fr); }
         /* two-column profile top blocks stack on mobile */
-        .profile-top-pairs { flex-direction: column; }
+        .profile-top-pairs { grid-template-columns: 1fr; }
         .profile-top-pairs > .tebrik-card,
         .profile-top-pairs > .membership-card { max-width: 100%; }
         /* make edit form inputs full width */
@@ -269,34 +284,37 @@
           </div>
         </div>
       </div>
-      <div class="membership-card glass-card" style="width: 100%; max-width: 360px; padding: 18px; border-radius: 18px; border: 1px solid var(--border); box-sizing: border-box; text-align: left;">
-        <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom: 14px;">
+      <div class="membership-card glass-card" style="width: 100%; max-width: 360px; padding: 0; border-radius: 18px; border: 1px solid var(--border); box-sizing: border-box; text-align: left; overflow: hidden;">
+        <div class="tebrik-card-header" style="padding: 16px 18px; gap: 10px; align-items: center; justify-content: space-between; display:flex;">
           <div>
-            <div style="font-size:1rem; font-weight:800; color: var(--primary);">Üyelik Bilgileriniz</div>
-            <div style="font-size:0.85rem; color: var(--text-muted);">Profilinizin temel hesap detayları</div>
+            <div class="membership-card-title">Üye Bilgileri</div>
+            <div class="membership-card-subtitle">Profil sahibinin hesap bilgileri ve istatistikleri</div>
           </div>
-          <i class="fa-solid fa-id-card" style="font-size:1.3rem; color: var(--primary);"></i>
+          <span id="profileRoleBadge" class="tebrik-card-tag">Kullanıcı</span>
         </div>
-        <div style="display:grid; gap: 12px;">
-          <div style="display:flex; justify-content:space-between; align-items:center; gap:10px;">
-            <span style="color: var(--text-muted); font-size:0.85rem;"><i class="fa-solid fa-calendar-days"></i> Kayıt Tarihi</span>
-            <strong id="profileJoinDate" style="color: var(--text-main);">—</strong>
+        <div class="tebrik-card-body" style="padding: 14px 18px 18px;">
+          <div class="tebrik-score-row">
+            <div class="tebrik-score">
+              <span id="membershipPercent">%0</span>
+              <small>Üyelik</small>
+            </div>
+            <div class="tebrik-metrics">
+              <div class="tebrik-metric">
+                <strong id="profileFriendCount">0</strong>
+                <span>Arkadaş</span>
+              </div>
+              <div class="tebrik-metric">
+                <strong id="profileRole">Kullanıcı</strong>
+                <span>Rol</span>
+              </div>
+            </div>
           </div>
-          <div style="display:flex; justify-content:space-between; align-items:center; gap:10px;">
-            <span style="color: var(--text-muted); font-size:0.85rem;"><i class="fa-solid fa-envelope"></i> E-Posta</span>
-            <strong id="profileSignupInfo" style="color: var(--text-main);">—</strong>
+          <div class="tebrik-meter">
+            <div id="membershipProgress" class="tebrik-meter-fill" style="width:0%"></div>
           </div>
-          <div style="display:flex; justify-content:space-between; align-items:center; gap:10px;">
-            <span style="color: var(--text-muted); font-size:0.85rem;"><i class="fa-solid fa-user-tag"></i> Rol</span>
-            <strong id="profileRole" style="color: var(--text-main);">Kullanıcı</strong>
-          </div>
-          <div style="display:flex; justify-content:space-between; align-items:center; gap:10px;">
-            <span style="color: var(--text-muted); font-size:0.85rem;"><i class="fa-solid fa-users"></i> Arkadaşlar</span>
-            <strong id="profileFriendCount" style="color: var(--text-main);">0</strong>
-          </div>
-          <div style="display:flex; justify-content:space-between; align-items:center; gap:10px;">
-            <span style="color: var(--text-muted); font-size:0.85rem;"><i class="fa-solid fa-user-clock"></i> İstekler</span>
-            <strong id="profilePendingRequests" style="color: var(--text-main);">0</strong>
+          <div class="tebrik-label-row">
+            <span id="membershipSummaryText" class="tebrik-summary-text">Profil bilgileri güncelleniyor.</span>
+            <button type="button" onclick="handleProfileAction()" class="admin-btn" style="padding:8px 14px; font-size:0.8rem; white-space:nowrap;">Sohbet Et</button>
           </div>
         </div>
       </div>

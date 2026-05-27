@@ -298,6 +298,39 @@ header::after {
     font-family: inherit;
 }
 .timer-title { font-weight: 800; font-size: 1.1rem; text-transform: uppercase; margin-bottom: 5px; }
+
+/* Tebrik / Üye Bilgileri kart ortak stilleri */
+.tebrik-card, .membership-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    box-shadow: var(--glass-shadow);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+.tebrik-card-header, .tebrik-card .tebrik-card-header {
+    padding: 16px 18px;
+    display:flex;
+    gap:10px;
+    align-items:center;
+    justify-content:space-between;
+}
+.tebrik-card-title { font-weight:800; font-size:1rem; color:var(--primary); }
+.tebrik-card-subtitle { font-size:0.85rem; color:var(--text-muted); }
+.tebrik-card-tag { background: linear-gradient(90deg, rgba(99,102,241,0.12), rgba(139,92,246,0.08)); padding:6px 10px; border-radius:12px; font-weight:700; font-size:0.8rem; color:var(--text-main); }
+.tebrik-card-body { padding: 14px 18px 18px; display:flex; flex-direction:column; gap:12px; flex:1 1 auto; }
+.tebrik-score-row { display:flex; justify-content:space-between; align-items:center; gap:12px; }
+.tebrik-score { font-size:1.6rem; font-weight:800; color:var(--text-main); }
+.tebrik-metrics { display:flex; gap:12px; }
+.tebrik-metric { display:flex; flex-direction:column; align-items:flex-end; font-size:0.9rem; color:var(--text-muted); }
+.tebrik-meter { height:10px; background:var(--border); border-radius:999px; overflow:hidden; }
+.tebrik-meter-fill { height:100%; width:0%; background: linear-gradient(135deg, var(--primary), #8b5cf6); transition: width 0.6s ease; }
+.tebrik-label-row { display:flex; justify-content:space-between; align-items:center; gap:12px; }
+
+/* Make sure top pair cards are equal height */
+.profile-top-pairs > * { height: 100%; }
+
 .current-city-label { font-size: 0.8rem; opacity: 0.9; margin-bottom: 10px; display: block; }
 .ramadan-timer { display: flex; justify-content: center; gap: 10px; margin-bottom: 15px; }
 .timer-item { display: flex; flex-direction: column; align-items: center; }
