@@ -33,6 +33,51 @@ function updateCommentCount(postId) {
     counter.textContent = `${len}/500`;
 }
 
+window.commentReplyContext = {};
+
+window.prepareReply = function(button) {
+    if (!button) return;
+    const postId = button.dataset.postId;
+    const commentTime = Number(button.dataset.commentTime);
+    const author = button.dataset.commentAuthor || '';
+    const snippet = button.dataset.commentSnippet ? decodeURIComponent(button.dataset.commentSnippet) : '';
+    if (!postId || !commentTime) return;
+    window.commentReplyContext[postId] = { commentTime, author, snippet };
+    window.updateReplyTargetDisplay(postId);
+    const input = document.getElementById(`input-${postId}`);
+    if (input) {
+        setTimeout(() => input.focus(), 80);
+    }
+};
+
+window.clearReply = function(postId) {
+    if (window.commentReplyContext[postId]) {
+        delete window.commentReplyContext[postId];
+        window.updateReplyTargetDisplay(postId);
+    }
+};
+
+window.updateReplyTargetDisplay = function(postId) {
+    const infoBox = document.getElementById(`reply-info-${postId}`);
+    const input = document.getElementById(`input-${postId}`);
+    if (!infoBox || !input) return;
+    const ctx = window.commentReplyContext[postId];
+    const defaultPlaceholder = input.dataset.defaultPlaceholder || 'Yorum yaz...';
+    if (ctx && ctx.commentTime) {
+        const snippet = ctx.snippet ? ` — ${escapeHtml(ctx.snippet)}` : '';
+        infoBox.style.display = 'flex';
+        infoBox.innerHTML = `
+            <span><strong>${escapeHtml(ctx.author)}</strong> yanıtlanıyor${snippet}</span>
+            <button type="button" onclick="clearReply('${postId}')">İptal</button>
+        `;
+        input.placeholder = `${defaultPlaceholder} (Yanıt @${ctx.author})`;
+    } else {
+        infoBox.style.display = 'none';
+        infoBox.innerHTML = '';
+        input.placeholder = defaultPlaceholder;
+    }
+};
+
 // Track length for main post box (share)
 function updatePostCount() {
     const input = document.getElementById('postInput');
@@ -60,6 +105,31 @@ function decodeEntities(str) {
 function getVisitedProfileUsername() {
     const params = new URLSearchParams(location.search);
     return params.get('id') || params.get('u') || params.get('username') || null;
+}
+
+function removeRetractTebrikButton() {
+    const btn = document.getElementById('retractTebrikBtn');
+    if (btn && btn.parentNode) {
+        btn.parentNode.removeChild(btn);
+    }
+}
+
+function renderRetractTebrikButton(targetUid, targetUsername) {
+    if (!auth.currentUser || !targetUid) return;
+    const existing = document.getElementById('retractTebrikBtn');
+    if (existing) return existing;
+    const referenceBtn = document.querySelector('button[onclick="window.openTebrikModalForProfile()"]');
+    if (!referenceBtn || !referenceBtn.parentNode) return null;
+
+    const btn = document.createElement('button');
+    btn.id = 'retractTebrikBtn';
+    btn.type = 'button';
+    btn.className = 'admin-btn';
+    btn.style.cssText = 'padding:8px 14px; font-size:0.8rem; white-space:nowrap; margin-left:8px; background:#ef4444;';
+    btn.innerHTML = '<i class="fa-solid fa-undo"></i> Tebriği Geri Al';
+    btn.onclick = () => window.retractTebrikFromProfile(targetUid, targetUsername);
+    referenceBtn.parentNode.appendChild(btn);
+    return btn;
 }
 
 // Request card'ı sil
@@ -321,15 +391,27 @@ async function loadSuggestions() {
         // Diziyi rastgele karıştır (Her yenilemede farklı kişiler gelsin)
         usersArray.sort(() => Math.random() - 0.5);
 
+        // Geçersiz placeholder kullanıcıları çıkar
+        const filteredUsers = usersArray.filter(u => {
+            const displayName = String(u.displayName || '').trim();
+            const username = String(u.username || '').trim();
+            return displayName && username && username.toLowerCase() !== 'user' && displayName.toLowerCase() !== 'isimsiz';
+        });
+
+        if (filteredUsers.length === 0) {
+            suggestionsContainer.innerHTML = '<div style="font-size:0.7rem; color:var(--text-muted);">Önerilecek kullanıcı bulunamadı.</div>';
+            return;
+        }
+
         // Sadece ilk 5 kişiyi seç
-        const selectedUsers = usersArray.slice(0, 5);
+        const selectedUsers = filteredUsers.slice(0, 5);
         // Eğer giriş yapan kullanıcı seçilmediyse en son elemana kendisini koy
         if (auth.currentUser) {
             const currentUid = auth.currentUser.uid;
             if (!selectedUsers.some(u => u.id === currentUid)) {
-                const selfIdx = usersArray.findIndex(u => u.id === currentUid);
+                const selfIdx = filteredUsers.findIndex(u => u.id === currentUid);
                 if (selfIdx !== -1) {
-                    selectedUsers[selectedUsers.length - 1] = usersArray[selfIdx];
+                    selectedUsers[selectedUsers.length - 1] = filteredUsers[selfIdx];
                 }
             }
         }
@@ -614,6 +696,7 @@ await updateDoc(currentUserRef, {
   createdAt: null,
   friendCount: 0,
   pendingRequests: 0,
+  tebrikCount: 0,
     isAdmin: false,
     isModerator: false
 };
@@ -694,6 +777,7 @@ onAuthStateChanged(auth, async (fbUser) => {
                 }
                 user.friendCount = Array.isArray(data.friends) ? data.friends.length : 0;
                 user.pendingRequests = Array.isArray(data.friendRequests) ? data.friendRequests.length : 0;
+                user.tebrikCount = typeof data.tebrikCount === 'number' ? data.tebrikCount : 0;
             } else {
                 // User document doesn't exist yet; create with timestamp
                 user.avatarUrl = "assets/img/strendsaydamv2.png";
@@ -729,6 +813,7 @@ onAuthStateChanged(auth, async (fbUser) => {
         
         // UI Güncelleme (Profil resmi, isimler vb.)
         updateUIWithUser();
+        updateSidebarCongratsPercent();
         // also update sidebar statistics such as total users and last signup
         updateSidebarStats();
         loadPollWidget();
@@ -767,6 +852,10 @@ onAuthStateChanged(auth, async (fbUser) => {
                     user.pendingRequests = userData.friendRequests.length;
                     updateUIWithUser();
                 }
+                if (typeof userData.tebrikCount === 'number') {
+                    user.tebrikCount = userData.tebrikCount;
+                    updateUIWithUser();
+                }
                 // Bildirimleri (arkadaş istekleri + diğer bildirimler) güncelle
                 loadNotifications(userData);
                 updateBanOverlay(userData);
@@ -791,6 +880,7 @@ onAuthStateChanged(auth, async (fbUser) => {
                     localStorage.setItem('st_isPrivate', isPrivate);
                     updateUIWithUser();
                 }
+                updateSidebarCongratsPercent();
             }
         });
         
@@ -828,6 +918,22 @@ onAuthStateChanged(auth, async (fbUser) => {
         if (typeof value.toMillis === 'function') return new Date(value.toMillis());
         if (value.seconds) return new Date(value.seconds * 1000);
         return new Date(value);
+    }
+
+    async function updateSidebarCongratsPercent() {
+        const el = document.getElementById('sidebarCongratsRank');
+        if (!el) return;
+        const count = user.tebrikCount || 0;
+        try {
+            const topQ = query(collection(db, 'users'), orderBy('tebrikCount', 'desc'), limit(1));
+            const topSnap = await getDocs(topQ);
+            const topCount = topSnap.empty ? 0 : (topSnap.docs[0].data().tebrikCount || 0);
+            const percent = topCount > 0 ? Math.min(100, Math.round((count / topCount) * 100)) : 0;
+            el.innerText = `%${percent}`;
+        } catch (e) {
+            console.error('updateSidebarCongratsPercent hata:', e);
+            el.innerText = '%0';
+        }
     }
 
     function updateBanOverlay(userData) {
@@ -1789,6 +1895,7 @@ function getAvatarUrl(avatarUrlOrSeed, type = 'user') {
     const sMa = document.getElementById('sidebarMembershipAge');
     const sFc = document.getElementById('sidebarFriendCount');
     const sPr = document.getElementById('sidebarPendingRequests');
+    const sCr = document.getElementById('sidebarCongratsRank');
     const pJd = document.getElementById('profileJoinDate');
     const pSi = document.getElementById('profileSignupInfo');
     const pRo = document.getElementById('profileRole');
@@ -1841,6 +1948,7 @@ function getAvatarUrl(avatarUrlOrSeed, type = 'user') {
     if(sFc) sFc.innerText = user.friendCount;
     if (isOwnProfile && pFc) pFc.innerText = user.friendCount;
     if(sPr) sPr.innerText = user.pendingRequests;
+    if(sCr) sCr.innerText = '%0';
     if (isOwnProfile && pPr) pPr.innerText = user.pendingRequests;
     if (isOwnProfile && pVerified) pVerified.innerText = (user.emailVerified === true) ? 'Doğrulandı' : (user.emailVerified === false ? 'Doğrulanmadı' : '—');
     // show/hide blog creation and my posts links depending on auth state
@@ -2815,84 +2923,106 @@ window.likePost = async (id, isLiked, btn) => {
   };  window.toggleCommentSection = (id) => { const el = document.getElementById(`comments-${id}`); if(el) {
         el.style.display = el.style.display === 'none' ? 'block' : 'none';
         // update counter when opened
-        if (el.style.display === 'block') updateCommentCount(id);
+        if (el.style.display === 'block') {
+            updateCommentCount(id);
+            setTimeout(() => {
+                const inp = document.getElementById(`input-${id}`);
+                if (inp) inp.focus();
+            }, 80);
+        }
     } };
   
   window.addComment = async (id) => {
 
       const input = document.getElementById(`input-${id}`);
-      const text = input.value.trim();
+      const text = input?.value.trim();
       if(!text) return;
       try {
           const postRef = doc(db, "posts", id);
-          const commentObj = {
-              username: user.username,
-              displayName: user.displayName,
-              avatarUrl: user.avatarUrl,
-              text: text,
-              time: Date.now(),
-              replies: []
-          };
-
-          await updateDoc(postRef, { comments: arrayUnion(commentObj) });
-
-          // Bildirim: gönderi sahibi farklıysa bildir
           const postSnap = await getDoc(postRef);
-          if (postSnap.exists()) {
-              const postData = postSnap.data();
+          if (!postSnap.exists()) return;
+          const postData = postSnap.data();
+          const comments = Array.isArray(postData.comments) ? [...postData.comments] : [];
+          const replyContext = window.commentReplyContext[id];
+
+          if (replyContext && replyContext.commentTime) {
+              const index = comments.findIndex(c => c.time === replyContext.commentTime);
+              if (index !== -1) {
+                  if (!Array.isArray(comments[index].replies)) comments[index].replies = [];
+                  const replyObj = {
+                      username: user.username,
+                      displayName: user.displayName,
+                      avatarUrl: user.avatarUrl,
+                      text: text,
+                      time: Date.now()
+                  };
+                  comments[index].replies.push(replyObj);
+                  await updateDoc(postRef, { comments: comments });
+
+                  const parentComment = comments[index];
+                  if (parentComment.username && parentComment.username !== user.username) {
+                      try {
+                          const uQuery = query(collection(db, "users"), where("username", "==", parentComment.username), limit(1));
+                          const uSnap = await getDocs(uQuery);
+                          if (!uSnap.empty) {
+                              const recipientUid = uSnap.docs[0].id;
+                              await sendNotification(recipientUid, 'comment_reply', user.displayName, { postId: id, commentText: text });
+                          }
+                      } catch (err) {
+                          console.error('reply notification error:', err);
+                      }
+                  }
+              } else {
+                  // Fallback: hedef yorum bulunamadıysa normal yorum olarak ekle
+                  const commentObj = {
+                      username: user.username,
+                      displayName: user.displayName,
+                      avatarUrl: user.avatarUrl,
+                      text: text,
+                      time: Date.now(),
+                      replies: []
+                  };
+                  await updateDoc(postRef, { comments: arrayUnion(commentObj) });
+              }
+          } else {
+              const commentObj = {
+                  username: user.username,
+                  displayName: user.displayName,
+                  avatarUrl: user.avatarUrl,
+                  text: text,
+                  time: Date.now(),
+                  replies: []
+              };
+              await updateDoc(postRef, { comments: arrayUnion(commentObj) });
+
               if (postData.username && postData.username !== user.username) {
                   const uQuery = query(collection(db, "users"), where("username", "==", postData.username), limit(1));
                   const uSnap = await getDocs(uQuery);
                   if (!uSnap.empty) {
                       const recipientUid = uSnap.docs[0].id;
-                      // Send notification
                       await sendNotification(recipientUid, 'post_comment', user.displayName, { postId: id, commentText: text });
                   }
               }
           }
 
           input.value = "";
+          window.clearReply(id);
+          window.updateCommentCount(id);
       } catch (e) {
           console.error('addComment hatası:', e);
       }
   };
 
-window.addReply = async (postId, commentTime) => {
-      const replyText = prompt("Yanıtınızı yazın:");
-      if (!replyText) return;
-
-      const ref = doc(db, "posts", postId);
-      const snap = await getDoc(ref);
-      if (snap.exists()) {
-          const comments = snap.data().comments;
-          const index = comments.findIndex(c => c.time === commentTime);
-          if (index !== -1) {
-              if (!comments[index].replies) comments[index].replies = [];
-              comments[index].replies.push({
-                  username: user.username,
-                  displayName: user.displayName,
-                  avatarUrl: user.avatarUrl,
-                  text: replyText,
-                  time: Date.now()
-              });
-              await updateDoc(ref, { comments: comments });
-
-              // Bildirim: eğer yorum sahibi biz değilsek, ona bir reply bildirimi gönder
-              const parentComment = comments[index];
-              if (parentComment.username && parentComment.username !== user.username) {
-                  try {
-                      const uQuery = query(collection(db, "users"), where("username", "==", parentComment.username), limit(1));
-                      const uSnap = await getDocs(uQuery);
-                      if (!uSnap.empty) {
-                          const recipientUid = uSnap.docs[0].id;
-                          await sendNotification(recipientUid, 'comment_reply', user.displayName, { postId: postId, commentText: replyText });
-                      }
-                  } catch (err) {
-                      console.error('reply notification error:', err);
-                  }
-              }
-          }
-      }
+window.addReply = async (postId, commentTime, author = '', snippet = '') => {
+      const input = document.getElementById(`input-${postId}`);
+      if (!input) return;
+      window.commentReplyContext[postId] = {
+          commentTime,
+          author,
+          snippet: snippet ? decodeURIComponent(snippet) : ''
+      };
+      window.updateReplyTargetDisplay(postId);
+      setTimeout(() => input.focus(), 80);
   };
 
 window.deleteComment = async (postId, commentTime, commentText) => {
@@ -3064,60 +3194,68 @@ window.loadPostsFeed = (showAll = false) => {
         <div id="comments-${d.id}" class="comment-area" style="display:none;">
               <div id="list-${d.id}">
                   ${(p.comments || []).map(c => `
-                      <div class="comment-item" style="flex-direction: column; align-items: flex-start; gap: 5px;">
-                          <div style="display: flex; align-items: center; width: 100%; gap: 10px;">
-                              <img src="${getAvatarUrl(c.avatarUrl || c.avatarSeed || 'assets/img/strendsaydamv2.png', 'user')}" style="width: 24px; height: 24px; border-radius: 50%; cursor:pointer;" onclick="${c.username === user.username ? "navigateTo('profil')" : `location.href='profil.html?id=${encodeURIComponent(c.username)}'`}">
-                              <div style="flex: 1;">
-                                  <span class="comment-meta" style="cursor:pointer;" onclick="${c.username === user.username ? "navigateTo('profil')" : `location.href='profil.html?id=${encodeURIComponent(c.username)}'`}">${c.displayName}</span> 
-                                  <span style="font-size: 0.8rem;">${c.text}</span>
-                                  ${c.isEdited ? `<small style="font-size: 0.65rem; color: var(--text-muted); margin-left: 4px;">(düzenlendi)</small>` : ''}
+                      <div class="comment-item">
+                          <div class="comment-header">
+                              <div class="comment-author">
+                                  <img src="${getAvatarUrl(c.avatarUrl || c.avatarSeed || 'assets/img/strendsaydamv2.png', 'user')}" class="comment-author-avatar" style="width:32px; height:32px; border-radius:50%; cursor:pointer;" onclick="${c.username === user.username ? "navigateTo('profil')" : `location.href='profil.html?id=${encodeURIComponent(c.username)}'`}">
+                                  <div>
+                                      <div>
+                                          <span class="comment-meta" style="cursor:pointer;" onclick="${c.username === user.username ? "navigateTo('profil')" : `location.href='profil.html?id=${encodeURIComponent(c.username)}'`}">${c.displayName}</span>
+                                          <span class="comment-time">• ${formatTime(c.time)}</span>
+                                      </div>
+                                  </div>
                               </div>
-                              <div class="comment-actions" style="display: flex; gap: 5px;">
+                              <div class="comment-actions">
                                 ${(c.username === user.username) ? `
-                                    <button onclick="openEditModal('${d.id}', \`${c.text.replace(/`/g, '\\`').replace(/"/g, '&quot;').replace(/\n/g, '\\n')}\`, 'comment', ${c.time})" style="background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:0.75rem;">
+                                    <button onclick="openEditModal('${d.id}', \`${c.text.replace(/`/g, '\\`').replace(/"/g, '&quot;').replace(/\n/g, '\\n')}\`, 'comment', ${c.time})" title="Düzenle">
                                         <i class="fa-solid fa-pen"></i>
                                     </button>
                                 ` : ''}
                                 ${(c.username === user.username || user.isAdmin) ? `
-                                    <button class="comment-del-btn" onclick="deleteComment('${d.id}', ${c.time}, '${c.text.replace(/'/g, "\\'")}')">
+                                    <button class="comment-del-btn" onclick="deleteComment('${d.id}', ${c.time}, '${c.text.replace(/'/g, "\\'")}')" title="Sil">
                                         <i class="fa-solid fa-trash-can"></i>
                                     </button>
                                 ` : ''}
                               </div>
                           </div>
-                          <div style="margin-left: 34px; width: calc(100% - 34px);">
+                          <div class="comment-body">${c.text}</div>
+                          ${c.isEdited ? `<small style="font-size: 0.65rem; color: var(--text-muted);">(düzenlendi)</small>` : ''}
+                          <div>
                               ${(c.replies || []).map(r => `
-                                  <div class="comment-reply" style="display: flex; align-items: center; gap: 8px; margin-top: 5px; background: rgba(0,0,0,0.03); padding: 5px; border-radius: 8px;">
-                                      <img src="${getAvatarUrl(r.avatarUrl || r.avatarSeed || 'assets/img/strendsaydamv2.png', 'user')}" style="width: 18px; height: 18px; border-radius: 50%; cursor:pointer;" onclick="${r.username === user.username ? "navigateTo('profil')" : `location.href='profil.html?id=${encodeURIComponent(r.username)}'`}">
-                                      <div style="font-size: 0.75rem; flex: 1;">
-                                          <b style="color:var(--primary); cursor:pointer;" onclick="${r.username === user.username ? "navigateTo('profil')" : `location.href='profil.html?id=${encodeURIComponent(r.username)}'`}">${r.displayName}</b> ${r.text}
-                                          ${r.isEdited ? `<small style="font-size: 0.6rem; color: var(--text-muted); margin-left: 4px;">(düzenlendi)</small>` : ''}
+                                  <div class="comment-reply">
+                                      <img src="${getAvatarUrl(r.avatarUrl || r.avatarSeed || 'assets/img/strendsaydamv2.png', 'user')}" style="width: 22px; height: 22px; border-radius: 50%; cursor:pointer;" onclick="${r.username === user.username ? "navigateTo('profil')" : `location.href='profil.html?id=${encodeURIComponent(r.username)}'`}">
+                                      <div style="flex:1;">
+                                          <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+                                              <b style="color:var(--primary); cursor:pointer;" onclick="${r.username === user.username ? "navigateTo('profil')" : `location.href='profil.html?id=${encodeURIComponent(r.username)}'`}">${r.displayName}</b>
+                                              <span class="comment-time">• ${formatTime(r.time)}</span>
+                                          </div>
+                                          <div style="margin-top:4px; font-size:0.9rem; color:var(--text-main);">${r.text}</div>
+                                          ${r.isEdited ? `<small style="font-size: 0.65rem; color: var(--text-muted);">(düzenlendi)</small>` : ''}
                                       </div>
-                                      <div class="comment-actions" style="display: flex; gap: 5px; align-items: center;">
+                                      <div class="comment-actions">
                                           ${(r.username === user.username) ? `
-                                              <button onclick="openEditModal('${d.id}', \`${r.text.replace(/`/g, '\\`').replace(/"/g, '&quot;').replace(/\n/g, '\\n')}\`, 'reply', ${c.time}, ${r.time})" style="background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:0.7rem;">
+                                              <button onclick="openEditModal('${d.id}', \`${r.text.replace(/`/g, '\\`').replace(/"/g, '&quot;').replace(/\n/g, '\\n')}\`, 'reply', ${c.time}, ${r.time})" title="Düzenle">
                                                   <i class="fa-solid fa-pen"></i>
                                               </button>
                                           ` : ''}
                                           ${(r.username === user.username || user.isAdmin) ? `
-                                              <button class="comment-del-btn" style="font-size:0.6rem; position:static; background:none; border:none; color:#ef4444; cursor:pointer;" onclick="deleteReply('${d.id}', ${c.time}, ${r.time})">
+                                              <button class="comment-del-btn" onclick="deleteReply('${d.id}', ${c.time}, ${r.time})" title="Sil">
                                                   <i class="fa-solid fa-xmark"></i>
                                               </button>
                                           ` : ''}
                                       </div>
                                   </div>
                               `).join('')}
-                              <button class="reply-btn" onclick="addReply('${d.id}', ${c.time})" style="background:none; border:none; color:var(--text-muted); font-size:0.7rem; cursor:pointer; margin-top:5px; font-weight:bold;">Yanıtla</button>
                           </div>
+                          <button class="reply-btn" data-post-id="${d.id}" data-comment-time="${c.time}" data-comment-author="${escapeHtml(c.displayName)}" data-comment-snippet="${encodeURIComponent(c.text ? c.text.slice(0, 80) : '')}" onclick="prepareReply(this)">Yanıtla</button>
                       </div>`).join('')}
               </div>
-              <div style="display:flex; flex-direction:column; gap:4px; margin-top:10px;">
+              <div style="display:flex; flex-direction:column; gap:8px; margin-top:10px;">
+                  <div id="reply-info-${d.id}" class="comment-reply-info"></div>
                   <div style="display:flex; gap:8px;">
-                      <input type="text" id="input-${d.id}" placeholder="${t.commentPlaceholder}" oninput="updateCommentCount('${d.id}')" maxlength="200" style="flex:1; padding:8px 12px; border-radius:10px; border:1px solid var(--border); outline:none; background: var(--input-bg); color: var(--text-main);">
+                      <input type="text" id="input-${d.id}" aria-label="Yorum girin" data-default-placeholder="${t.commentPlaceholder}" placeholder="${t.commentPlaceholder}" oninput="updateCommentCount('${d.id}')" onkeydown="if(event.key==='Enter'){ addComment('${d.id}'); }" maxlength="200" style="flex:1; padding:8px 12px; border-radius:10px; border:1px solid var(--border); outline:none; background: var(--input-bg); color: var(--text-main);">
                       <button onclick="addComment('${d.id}')" style="background:var(--primary); color:white; border:none; padding:0 15px; border-radius:10px; cursor:pointer;">${t.sendComment}</button>
                   </div>
-              <button class="tool-btn" onclick="window.openShareMenu('${d.id}')" style="gap:5px; margin-left:auto;"><i class="fa-solid fa-share"></i></button>
-              <button class="tool-btn" onclick="sendTebrikToUsernameQuick('${p.username}', '${d.id}', this)" style="gap:5px; color:#f97316; margin-left:8px;" title="Tebrik Gönder"><i class="fa-solid fa-gift"></i></button>
               </div>
         </div>
     </div>`;
@@ -3651,8 +3789,8 @@ async function loadVisitorProfile() {
         if (idx === 1 || idx === 2) { // 1 = Beğendiklerim, 2 = Kaydedilenler
             btn.style.display = 'none';
         }
-        // ayrıca gönderiler ve bildirimler sekmelerini de gizle (ziyaretçi profili)
-        if (idx === 0 || btn.getAttribute('onclick')?.includes('my-notifs-tab')) {
+        // ayrıca gönderiler, tebrikler ve bildirimler sekmelerini de gizle (ziyaretçi profili)
+        if (idx === 0 || btn.getAttribute('onclick')?.includes('my-notifs-tab') || btn.getAttribute('onclick')?.includes('my-congrats-tab')) {
             btn.style.display = 'none';
         }
     });
@@ -3661,10 +3799,12 @@ async function loadVisitorProfile() {
     const likedTab = document.getElementById('my-likes-tab');
     const savesTab = document.getElementById('my-saves-tab');
     const postsTab = document.getElementById('my-posts-tab');
+    const congratsTab = document.getElementById('my-congrats-tab');
     const notifsTab = document.getElementById('my-notifs-tab');
     if (likedTab) likedTab.style.display = 'none';
     if (savesTab) savesTab.style.display = 'none';
     if (postsTab) postsTab.style.display = 'none';
+    if (congratsTab) congratsTab.style.display = 'none';
     if (notifsTab) notifsTab.style.display = 'none';
     
     try {
@@ -3755,7 +3895,8 @@ async function loadVisitorProfile() {
                     const pPr = document.getElementById('profilePendingRequests');
                     const pLa = document.getElementById('profileLastActive');
                     const pVerified = document.getElementById('profileVerified');
-                    const roleText = visitedData?.isAdmin ? 'Admin' : 'Kullanıcı';
+                    const isAdminProfile = visitedData?.isAdmin === true || String(visitedData?.email || '').toLowerCase() === ADMIN_EMAIL.toLowerCase();
+                    const roleText = isAdminProfile ? 'Admin' : 'Kullanıcı';
                     if (pSi) pSi.innerText = '—';
                     if (pRo) pRo.innerText = roleText;
                     if (pRoleBadge) pRoleBadge.innerText = roleText;
@@ -3783,7 +3924,14 @@ async function loadVisitorProfile() {
 
         // Update tebrik badge for this profile
         if (typeof updateProfileTebrikUI === 'function') updateProfileTebrikUI(visitedUsername);
-        
+
+        const hasSentProfileTebrik = auth.currentUser && Array.isArray(visitedData.tebrikGivers) && visitedData.tebrikGivers.some(g => g.uid === auth.currentUser.uid && !g.postId);
+        if (hasSentProfileTebrik) {
+            renderRetractTebrikButton(visitorUid, visitedUsername);
+        } else {
+            removeRetractTebrikButton();
+        }
+
         const profileAvatar = document.getElementById('profilePageAvatar');
         if (profileAvatar) {
             // use avatar that we determined above (already includes fallback)
@@ -3802,7 +3950,8 @@ async function loadVisitorProfile() {
             const pVerified = document.getElementById('profileVerified');
 
             if (pSi) pSi.innerText = visitedData.email ? shortenEmail(visitedData.email) : '—';
-            const roleText = visitedData.isAdmin ? 'Admin' : 'Kullanıcı';
+            const isAdminProfile = visitedData.isAdmin === true || String(visitedData.email || '').toLowerCase() === ADMIN_EMAIL.toLowerCase();
+            const roleText = isAdminProfile ? 'Admin' : 'Kullanıcı';
             if (pRo) pRo.innerText = roleText;
             if (pRoleBadge) pRoleBadge.innerText = roleText;
             const fc = typeof visitedData.friendCount === 'number' ? visitedData.friendCount : (Array.isArray(visitedData.friends) ? visitedData.friends.length : 0);
@@ -3980,7 +4129,6 @@ window.loadProfileSections = async (section = 'all', showAllPosts = false, showA
     // console.log removed
 
     if (!auth.currentUser) {
-        console.warn('loadProfileSections: no auth user');
         return;
     }
     
@@ -4012,11 +4160,13 @@ window.loadProfileSections = async (section = 'all', showAllPosts = false, showA
             posts: 'my-posts-tab',
             likes: 'my-likes-tab',
             saves: 'my-saves-tab',
+            tebrikler: 'my-congrats-tab',
             friends: 'my-friends-tab',
             notifs: 'my-notifs-tab',
             'my-posts-tab': 'my-posts-tab',
             'my-likes-tab': 'my-likes-tab',
             'my-saves-tab': 'my-saves-tab',
+            'my-congrats-tab': 'my-congrats-tab',
             'my-friends-tab': 'my-friends-tab',
             'my-notifs-tab': 'my-notifs-tab'
         };
@@ -4035,11 +4185,18 @@ window.loadProfileSections = async (section = 'all', showAllPosts = false, showA
     const myPostsList = document.getElementById('my-posts-list');
     const myLikesList = document.getElementById('my-liked-list');
     const bookmarkList = document.getElementById('bookmark-items');
+    const myCongratsList = document.getElementById('my-congrats-list');
     
     // always clear the containers to avoid stale content
     if (myPostsList && (section === 'all' || section === 'posts')) myPostsList.innerHTML = '';
     if (myLikesList && (section === 'all' || section === 'likes')) myLikesList.innerHTML = '';
     if (bookmarkList && (section === 'all' || section === 'saves')) bookmarkList.innerHTML = '';
+    if (myCongratsList && (section === 'all' || section === 'tebrikler')) myCongratsList.innerHTML = '';
+
+    if (section === 'tebrikler' || section === 'my-congrats-tab') {
+        await loadProfileCongrats();
+        return;
+    }
 
     try {
         const q = query(collection(db, 'posts'), orderBy('timestamp','desc'));
@@ -5726,19 +5883,30 @@ async function loadProfileNotifications() {
             const nDiv = document.createElement('div');
             nDiv.style.cssText = `padding:15px; border-radius:12px; background:var(--input-bg); border:1px solid var(--border); display:grid; grid-template-columns:auto 1fr auto; gap:12px; align-items:start; cursor:pointer; transition:all 0.2s ease; ${n.read ? 'opacity:0.65;' : 'background:var(--card-bg); border:1px solid var(--primary);'}`;
 
-            const icon = (n.type && n.type.includes('like')) ? 'fa-heart' : (n.type && n.type.includes('comment') ? 'fa-comment' : (n.type && n.type.includes('friend') ? 'fa-user-check' : 'fa-info-circle'));
+            const icon = (n.type === 'tebrik') ? 'fa-gift' : (n.type && n.type.includes('like')) ? 'fa-heart' : (n.type && n.type.includes('comment') ? 'fa-comment' : (n.type && n.type.includes('friend') ? 'fa-user-check' : 'fa-info-circle'));
             const iconColors = {
                 'fa-heart': '#ef4444',
                 'fa-comment': '#3b82f6',
                 'fa-user-check': '#10b981',
-                'fa-info-circle': '#8b5cf6'
+                'fa-info-circle': '#8b5cf6',
+                'fa-gift': '#f97316'
             };
             const iconColor = iconColors[icon] || 'var(--primary)';
 
             let mainText = '';
             let detailText = '';
 
-            if (n.type === 'post_like' || n.type === 'like') {
+            if (n.type === 'tebrik') {
+                mainText = `${n.fromName} size tebrik gönderdi`;
+                if (n.cardType) {
+                    detailText = `Kart: ${n.cardType}`;
+                    if (n.message && n.message !== n.cardType) {
+                        detailText += ` • ${n.message}`;
+                    }
+                } else {
+                    detailText = n.message || 'Tebrik gönderildi.';
+                }
+            } else if (n.type === 'post_like' || n.type === 'like') {
                 mainText = `${n.fromName} gönderinizi beğendi`;
                 detailText = n.postContent ? `"${n.postContent}${n.postContent.length >= 50 ? '...' : ''}"` : 'Gönderi hakkında daha fazla bilgi görmek için tıkla.';
             } else if (n.type === 'saved_self') {
@@ -6246,10 +6414,34 @@ function handleProfileAction() {
   }
 }
 
+function getGiftCardType(message) {
+    if (!message) return null;
+    const normalized = message.trim().toLowerCase();
+    if (normalized === 'muhteşem yazıların için tebrikler!') return 'Muhteşem!';
+    if (normalized === 'yazıların ilham veriyor, tebrikler!') return 'İlham Verici';
+    if (normalized === 'paylaşımlarının çok değerli, başarılar!') return 'Değerli Paylaşımlar';
+    return null;
+}
+
+function formatTebrikDate(value) {
+    if (!value) return '';
+    let date;
+    if (typeof value.toDate === 'function') {
+        date = value.toDate();
+    } else if (value.seconds) {
+        date = new Date(value.seconds * 1000);
+    } else if (typeof value === 'number') {
+        date = new Date(value);
+    } else {
+        date = new Date(value);
+    }
+    return date.toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+}
+
 // --- Tebrik (congrats) feature ---
 // Send a tebrik to a user by UID
 // send tebrik with optional message
-window.sendTebrikToUid = async function(targetUid, targetUsername, message = '') {
+window.sendTebrikToUid = async function(targetUid, targetUsername, message = '', { postId = null, cardType = null } = {}) {
     if (!auth.currentUser) {
         alert('Tebrik göndermek için giriş yapın.');
         return;
@@ -6270,28 +6462,33 @@ window.sendTebrikToUid = async function(targetUid, targetUsername, message = '')
         const targetSnap = await getDoc(targetRef);
         const targetData = targetSnap.exists() ? targetSnap.data() : null;
         const givers = Array.isArray(targetData?.tebrikGivers) ? targetData.tebrikGivers : [];
-        if (givers.some(g => g.uid === auth.currentUser.uid)) {
-            alert('Zaten bu kullanıcıya tebrik gönderdiniz.');
+        if (givers.some(g => g.uid === auth.currentUser.uid && g.postId === postId)) {
+            alert('Zaten bu kullanıcıya bu hedef için tebrik gönderdiniz.');
             return;
         }
 
+        const resolvedCardType = cardType || getGiftCardType(message);
         const giverInfo = {
             uid: auth.currentUser.uid,
             username: user.username,
             displayName: user.displayName,
             message: message || '',
+            cardType: resolvedCardType || null,
+            postId: postId || null,
             at: Timestamp.now()
         };
 
         await updateDoc(targetRef, {
             tebrikCount: increment(1),
             tebrikGivers: arrayUnion(giverInfo),
-            tebrikMessages: arrayUnion({ fromUid: auth.currentUser.uid, fromUsername: user.username, message: message || '', at: Timestamp.now() })
+            tebrikMessages: arrayUnion({ fromUid: auth.currentUser.uid, fromUsername: user.username, message: message || '', cardType: resolvedCardType || null, at: Timestamp.now(), postId: postId || null })
         });
 
         // send notification to recipient
         await sendNotification(targetUid, 'tebrik', user.displayName || user.username || 'Bir kullanıcı', {
-            message: message ? `${user.displayName || user.username} size tebrik gönderdi: ${message}` : `${user.displayName || user.username} size tebrik gönderdi.`
+            message: message ? `${user.displayName || user.username} size tebrik gönderdi: ${message}` : `${user.displayName || user.username} size tebrik gönderdi.`,
+            postId: postId || null,
+            cardType: resolvedCardType || null
         });
 
         alert('Tebrik gönderildi — kullanıcı tebrik puanına sahip oldu.');
@@ -6306,6 +6503,144 @@ window.sendTebrikToUid = async function(targetUid, targetUsername, message = '')
     } catch (e) {
         console.error('Tebrik gönderme hatası:', e);
         alert('Tebrik gönderilemedi. Lütfen tekrar deneyin.');
+    }
+};
+
+window.sendBlogTebrikToAuthor = async function(authorUid, authorUsername, blogId) {
+    if (!auth.currentUser) {
+        alert('Yazıya yapılan tebrik göndermek için giriş yapın.');
+        return;
+    }
+    if (!authorUid && !authorUsername) {
+        alert('Yazı yazarı bulunamadı.');
+        return;
+    }
+    try {
+        let targetUid = authorUid;
+        if (!targetUid && authorUsername) {
+            const q = query(collection(db, 'users'), where('username', '==', authorUsername), limit(1));
+            const snap = await getDocs(q);
+            if (snap.empty) {
+                alert('Yazı yazarı bulunamadı.');
+                return;
+            }
+            targetUid = snap.docs[0].id;
+        }
+        await window.sendTebrikToUid(targetUid, authorUsername || '', 'yazıya yapılan tebrik', { postId: blogId, cardType: 'yazıya yapılan tebrik' });
+        alert('Yazıya yapılan tebrik gönderildi.');
+        if (typeof loadProfileCongrats === 'function') loadProfileCongrats();
+    } catch (e) {
+        console.error('Gönderi yazısı tebrik hatası:', e);
+        alert('Yazıya yapılan tebrik gönderilemedi.');
+    }
+};
+
+window.sendTebrikThanksForUser = async function(thankKey, senderUid) {
+    if (!auth.currentUser) {
+        alert('Tebriğe teşekkür etmek için giriş yapın.');
+        return;
+    }
+    if (!thankKey || !senderUid) {
+        alert('Geçersiz teşekkür bilgisi.');
+        return;
+    }
+    try {
+        const userRef = doc(db, 'users', auth.currentUser.uid);
+        const userSnap = await getDoc(userRef);
+        if (!userSnap.exists()) {
+            alert('Kullanıcı bilgisi bulunamadı.');
+            return;
+        }
+        const userData = userSnap.data() || {};
+        const tebrikThanks = Array.isArray(userData.tebrikThanks) ? userData.tebrikThanks : [];
+        if (tebrikThanks.includes(thankKey)) {
+            alert('Bu tebriğe zaten teşekkür ettiniz.');
+            return;
+        }
+
+        await updateDoc(userRef, {
+            thankPoints: increment(0.25),
+            tebrikThanks: arrayUnion(thankKey)
+        });
+
+        await sendNotification(senderUid, 'thank', user.displayName || user.username || 'Bir kullanıcı', {
+            message: `${user.displayName || user.username} size teşekkür gönderdi.`
+        });
+
+        // Increment recipient's received-thanks counter so we can display it in Top 10 lists
+        try {
+            if (senderUid) {
+                const recipientRef = doc(db, 'users', senderUid);
+                await updateDoc(recipientRef, { thanksReceived: increment(1) });
+            }
+        } catch (err) {
+            console.warn('Recipient thanks increment failed:', err);
+        }
+
+        alert('Teşekkür gönderildi, +%0,25 puan kazandınız.');
+        if (typeof loadProfileCongrats === 'function') loadProfileCongrats();
+    } catch (e) {
+        console.error('Teşekkür gönderme hatası:', e);
+        alert('Teşekkür gönderilemedi. Lütfen tekrar deneyin.');
+    }
+};
+
+window.retractTebrikFromProfile = async function(targetUid, targetUsername) {
+    if (!auth.currentUser) {
+        alert('Tebriği geri almak için giriş yapın.');
+        return;
+    }
+
+    try {
+        if (!targetUid && targetUsername) {
+            const q = query(collection(db, 'users'), where('username', '==', targetUsername), limit(1));
+            const snap = await getDocs(q);
+            if (snap.empty) {
+                alert('Hedef kullanıcı bulunamadı.');
+                return;
+            }
+            targetUid = snap.docs[0].id;
+        }
+
+        if (!targetUid) {
+            alert('Geri alınacak hedef kullanıcı bulunamadı.');
+            return;
+        }
+
+        const targetRef = doc(db, 'users', targetUid);
+        const targetSnap = await getDoc(targetRef);
+        if (!targetSnap.exists()) {
+            alert('Hedef kullanıcı bulunamadı.');
+            return;
+        }
+
+        const targetData = targetSnap.data() || {};
+        const currentUid = auth.currentUser.uid;
+        const existingGivers = Array.isArray(targetData.tebrikGivers) ? targetData.tebrikGivers : [];
+        const existingMessages = Array.isArray(targetData.tebrikMessages) ? targetData.tebrikMessages : [];
+
+        const filteredGivers = existingGivers.filter(g => !(g.uid === currentUid && !g.postId));
+        const filteredMessages = existingMessages.filter(m => !(m.fromUid === currentUid && !m.postId));
+        const removedCount = existingGivers.length - filteredGivers.length;
+
+        if (removedCount === 0) {
+            alert('Bu kullanıcıya gönderilmiş bir profil tebriki bulunamadı.');
+            return;
+        }
+
+        await updateDoc(targetRef, {
+            tebrikCount: increment(-removedCount),
+            tebrikGivers: filteredGivers,
+            tebrikMessages: filteredMessages
+        });
+
+        alert('Tebrik başarıyla geri alındı.');
+        if (typeof loadVisitorProfile === 'function') loadVisitorProfile();
+        if (typeof updateProfileTebrikUI === 'function' && targetUsername) updateProfileTebrikUI(targetUsername);
+        if (typeof loadTopTebrikList === 'function') loadTopTebrikList();
+    } catch (e) {
+        console.error('Tebriği geri alma hatası:', e);
+        alert('Tebrik geri alınamadı. Lütfen tekrar deneyin.');
     }
 };
 
@@ -6435,7 +6770,7 @@ window.sendTebrikToUsernameQuick = async function(username, postId, btnEl) {
 
         const giverInfo = { uid: auth.currentUser.uid, username: user.username, displayName: user.displayName || '', message: '', at: Timestamp.now(), postId: postId || null };
         // increment tebrik count by 1 for the user and record giver
-        await updateDoc(targetRef, { tebrikCount: increment(1), tebrikGivers: arrayUnion(giverInfo), tebrikMessages: arrayUnion({ fromUid: auth.currentUser.uid, fromUsername: user.username, message: '', at: Timestamp.now(), postId }) });
+        await updateDoc(targetRef, { tebrikCount: increment(1), tebrikGivers: arrayUnion(giverInfo), tebrikMessages: arrayUnion({ fromUid: auth.currentUser.uid, fromUsername: user.username, message: '', cardType: null, at: Timestamp.now(), postId }) });
         // if a postId is provided, also increment tebrikCount on the post document
         if (postId) {
             try {
@@ -6447,7 +6782,9 @@ window.sendTebrikToUsernameQuick = async function(username, postId, btnEl) {
         }
         // send notification to recipient for quick tebrik
         await sendNotification(userDoc.id, 'tebrik', user.displayName || user.username || 'Bir kullanıcı', {
-            message: `${user.displayName || user.username} size tebrik gönderdi.`
+            message: `${user.displayName || user.username} size tebrik gönderdi.`,
+            postId: postId || null,
+            cardType: null
         });
 
         // show +1 animation on top of the tebrik icon/button
@@ -6530,7 +6867,15 @@ window.loadTopTebrikList = async function() {
         }
         const users = [];
         snap.forEach(d => users.push({ id: d.id, ...d.data() }));
-        const max = users[0].tebrikCount || 1;
+        // determine maximum tebrik count among top users
+        const max = users.reduce((m, u) => Math.max(m, (u.tebrikCount || 0)), 0);
+        // if the maximum is 0, there are no tebrikler to show — hide the widget
+        if (max === 0) {
+            container.innerHTML = '';
+            container.style.display = 'none';
+            return;
+        }
+        container.style.display = '';
         container.innerHTML = '';
         users.forEach((u, idx) => {
             const pct = Math.round(((u.tebrikCount || 0) / max) * 100);
@@ -6542,7 +6887,7 @@ window.loadTopTebrikList = async function() {
                     <img src="${avatar}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;border:1px solid var(--border);cursor:pointer;" onclick="location.href='profil.html?id=${encodeURIComponent(u.username)}'">
                     <div style="font-size:0.85rem;">
                         <div style="font-weight:700;">${escapeHtml(u.displayName||u.username)}</div>
-                        <div style="font-size:0.75rem; color:var(--text-muted);">%${pct} · ${u.tebrikCount||0} tebrik</div>
+                        <div style="font-size:0.75rem; color:var(--text-muted);">%${pct} · ${u.tebrikCount||0} tebrik · ${u.thanksReceived || 0} teşekkür</div>
                     </div>
                 </div>
                 <div style="font-size:0.85rem; font-weight:700; color:var(--primary);">#${idx+1}</div>
@@ -6628,6 +6973,273 @@ window.updateProfileTebrikUI = async function(username) {
         }
     } catch (e) {
         console.error('updateProfileTebrikUI hata:', e);
+    }
+};
+
+window.CONGRATS_VALUE_ROWS = [
+    { label: 'Teşekkür etme', value: '%0,25' },
+    { label: 'Profilden yapılan tebrik', value: '%0,50' },
+    { label: 'Gönderi yazısına tebrik', value: '%2,50' }
+];
+
+window.renderCongratsValueTable = function() {
+    const body = document.getElementById('congrats-values-table-body');
+    if (!body) return;
+    body.innerHTML = window.CONGRATS_VALUE_ROWS.map(row => `
+        <tr>
+            <td style="padding:12px 16px; border-top:1px solid var(--border); font-size:0.9rem;">${row.label}</td>
+            <td style="padding:12px 16px; border-top:1px solid var(--border); font-size:0.9rem;">${row.value}</td>
+        </tr>
+    `).join('');
+};
+
+window.toggleCongratsValueTable = function() {
+    const panel = document.getElementById('congrats-values-panel');
+    const button = document.getElementById('congratsValuesBtn');
+    if (!panel) return;
+    const isVisible = panel.style.display === 'block';
+    panel.style.display = isVisible ? 'none' : 'block';
+    if (!isVisible) {
+        if (button) button.innerText = 'Tabloyu Gizle';
+        window.renderCongratsValueTable();
+    } else if (button) {
+        button.innerText = 'Tebrik Değerleri';
+    }
+};
+
+window.CONGRATS_PAGE_SIZE = 5;
+window.congratsShowAll = false;
+
+window.loadProfileCongrats = async function() {
+    const list = document.getElementById('my-congrats-list');
+    const emptyMessage = document.getElementById('no-tebrikler-msg');
+    if (!list) return;
+    list.innerHTML = '';
+    if (emptyMessage) {
+        emptyMessage.innerText = 'Yükleniyor...';
+        emptyMessage.style.display = 'block';
+    }
+
+    if (!auth.currentUser) {
+        if (emptyMessage) {
+            emptyMessage.innerText = 'Giriş yapın';
+        }
+        return;
+    }
+
+    try {
+        const userRef = doc(db, 'users', auth.currentUser.uid);
+        const userSnap = await getDoc(userRef);
+        if (!userSnap.exists()) {
+            if (emptyMessage) {
+                emptyMessage.innerText = 'Kullanıcı bulunamadı';
+            }
+            return;
+        }
+
+        const data = userSnap.data() || {};
+        const tebrikGivers = Array.isArray(data.tebrikGivers) ? data.tebrikGivers : [];
+        const tebrikMessages = Array.isArray(data.tebrikMessages) ? data.tebrikMessages : [];
+        const tebrikThanks = Array.isArray(data.tebrikThanks) ? data.tebrikThanks : [];
+
+        const normalizedItems = new Map();
+        const normalize = (item) => ({
+            uid: item.fromUid || item.uid || null,
+            username: item.fromUsername || item.username || null,
+            displayName: item.fromName || item.displayName || item.username || item.fromUsername || 'Bir kullanıcı',
+            message: item.message || '',
+            cardType: item.cardType || null,
+            postId: item.postId || null,
+            commentText: item.commentText || null,
+            at: item.at || item.timestamp || item.createdAt || null
+        });
+
+        const makeItemKey = (normalized) => `${normalized.uid || 'anon'}|${normalized.postId || 'profile'}|${normalized.commentText || 'none'}|${normalized.cardType || 'none'}|${normalized.message || 'none'}`;
+
+        const addItem = (item) => {
+            const normalized = normalize(item);
+            const key = makeItemKey(normalized);
+            normalized.key = key;
+            if (!normalizedItems.has(key)) {
+                normalizedItems.set(key, normalized);
+            } else {
+                const existing = normalizedItems.get(key);
+                if (!existing.displayName && normalized.displayName) existing.displayName = normalized.displayName;
+                if (!existing.message && normalized.message) existing.message = normalized.message;
+                if (!existing.cardType && normalized.cardType) existing.cardType = normalized.cardType;
+                if (!existing.postId && normalized.postId) existing.postId = normalized.postId;
+                if (!existing.commentText && normalized.commentText) existing.commentText = normalized.commentText;
+                if (!existing.at && normalized.at) existing.at = normalized.at;
+            }
+        };
+
+        tebrikGivers.forEach(addItem);
+        tebrikMessages.forEach(addItem);
+
+        const items = Array.from(normalizedItems.values());
+
+        if (items.length === 0) {
+            if (emptyMessage) {
+                emptyMessage.innerText = 'Henüz tebrik yok';
+            }
+            return;
+        }
+
+        if (emptyMessage) {
+            emptyMessage.style.display = 'none';
+        }
+
+        items.sort((a, b) => {
+            const aAt = a.at?.seconds ? a.at.seconds : (typeof a.at === 'number' ? a.at : 0);
+            const bAt = b.at?.seconds ? b.at.seconds : (typeof b.at === 'number' ? b.at : 0);
+            return bAt - aAt;
+        });
+
+        const statistics = {
+            total: items.length,
+            profile: items.filter(item => !item.postId).length,
+            posts: items.filter(item => item.postId && !item.commentText).length,
+            comments: items.filter(item => item.postId && item.commentText).length,
+            uniqueSenders: new Set(items.map(item => item.uid || item.username || 'anon')).size
+        };
+        const summaryContainer = document.getElementById('my-congrats-summary');
+        if (summaryContainer) {
+            summaryContainer.innerHTML = `
+                <div style="display:grid; gap:10px; grid-template-columns:repeat(auto-fit, minmax(160px, 1fr));">
+                    <div style="padding:14px; border-radius:16px; background:rgba(99,102,241,0.08); border:1px solid var(--border);">
+                        <div style="font-size:0.75rem; color:var(--text-muted);">Toplam Tebrik</div>
+                        <div style="margin-top:6px; font-size:1.15rem; font-weight:800;">${statistics.total}</div>
+                    </div>
+                    <div style="padding:14px; border-radius:16px; background:rgba(16,185,129,0.08); border:1px solid var(--border);">
+                        <div style="font-size:0.75rem; color:var(--text-muted);">Profil Tebriği</div>
+                        <div style="margin-top:6px; font-size:1.15rem; font-weight:800;">${statistics.profile}</div>
+                    </div>
+                    <div style="padding:14px; border-radius:16px; background:rgba(249,115,22,0.08); border:1px solid var(--border);">
+                        <div style="font-size:0.75rem; color:var(--text-muted);">Yazı Tebriği</div>
+                        <div style="margin-top:6px; font-size:1.15rem; font-weight:800;">${statistics.posts}</div>
+                    </div>
+                    <div style="padding:14px; border-radius:16px; background:rgba(59,130,246,0.08); border:1px solid var(--border);">
+                        <div style="font-size:0.75rem; color:var(--text-muted);">Yorum Tebriği</div>
+                        <div style="margin-top:6px; font-size:1.15rem; font-weight:800;">${statistics.comments}</div>
+                    </div>
+                </div>
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; padding:14px 18px; border-radius:16px; background:var(--card-bg); border:1px solid var(--border);">
+                    <div style="font-size:0.9rem; color:var(--text-main);">${statistics.uniqueSenders} farklı kişiden tebrik aldı.</div>
+                    <div style="font-size:0.8rem; color:var(--text-muted);">En güncel tebrik ilk sırada gösteriliyor.</div>
+                </div>
+            `;
+        }
+
+        const postIds = [...new Set(items.filter(item => item.postId).map(item => item.postId))];
+        const postsMap = {};
+        if (postIds.length > 0) {
+            const postDocs = await Promise.all(postIds.map(id => getDoc(doc(db, 'posts', id))));
+            postDocs.forEach(docSnap => {
+                if (docSnap.exists()) {
+                    postsMap[docSnap.id] = docSnap.data();
+                }
+            });
+        }
+        const blogIds = [...new Set(items.filter(item => item.postId && !postsMap[item.postId]).map(item => item.postId))];
+        const blogsMap = {};
+        if (blogIds.length > 0) {
+            const blogDocs = await Promise.all(blogIds.map(id => getDoc(doc(db, 'blogs', id))));
+            blogDocs.forEach(docSnap => {
+                if (docSnap.exists()) {
+                    blogsMap[docSnap.id] = docSnap.data();
+                }
+            });
+        }
+
+        for (const item of items) {
+            const senderName = item.displayName || item.username || 'Bir kullanıcı';
+            const profileLink = item.username ? `profil.html?id=${encodeURIComponent(item.username)}` : '#';
+            const senderHtml = item.username ? `<a href="${profileLink}" style="color:var(--text-main); font-weight:800; text-decoration:none;">${escapeHtml(senderName)}</a>` : `<span style="font-weight:800; color:var(--text-main);">${escapeHtml(senderName)}</span>`;
+            const rawCardType = item.cardType || '';
+            let displayCardType = '';
+            try {
+                const lower = rawCardType.toString().toLowerCase();
+                // match blog + tebrik/tebriği/tebri... variants
+                if (lower.includes('blog') && lower.includes('tebri')) {
+                    displayCardType = 'Yazıya yapılan tebrik';
+                } else if (rawCardType) {
+                    displayCardType = rawCardType;
+                } else {
+                    displayCardType = 'Standart Tebrik Kartı';
+                }
+            } catch (e) {
+                displayCardType = rawCardType || 'Standart Tebrik Kartı';
+            }
+            const cardTypeLabel = escapeHtml(displayCardType);
+            const post = item.postId ? (postsMap[item.postId] || blogsMap[item.postId] || null) : null;
+            const isBlogTarget = item.postId && !postsMap[item.postId] && blogsMap[item.postId];
+            const rawPostContent = post ? (post.title || post.content || '') : '';
+            const postTitle = rawPostContent ? `${escapeHtml(rawPostContent.slice(0, 80))}${rawPostContent.length > 80 ? '...' : ''}` : null;
+            const targetLabel = item.postId ? (item.commentText ? 'Yorumlu yazıya' : (isBlogTarget ? 'Gönderi yazısına' : 'Yazıya')) : 'Profil';
+            const commentLabel = item.commentText ? `<div style="font-size:0.9rem; color:var(--text-muted);"><strong>Hangi yorum:</strong> "${escapeHtml(item.commentText.slice(0, 80))}${item.commentText.length > 80 ? '...' : ''}"</div>` : `<div style="font-size:0.9rem; color:var(--text-muted);"><strong>Yorum:</strong> Yok</div>`;
+            const postLabel = post ? `<div style="font-size:0.9rem; color:var(--text-muted);"><strong>Hangi ${isBlogTarget ? 'gönderi yazısı' : 'yazı'}:</strong> "${postTitle || (isBlogTarget ? 'Başlıksız gönderi yazısı' : 'Başlıksız yazı')}"</div>` : (item.postId ? `<div style="font-size:0.9rem; color:var(--text-muted);"><strong>${isBlogTarget ? 'Gönderi yazısı ID' : 'Yazı ID'}:</strong> ${escapeHtml(item.postId)}</div>` : `<div style="font-size:0.9rem; color:var(--text-muted);"><strong>Hedef:</strong> Profil</div>`);
+            const messageLabel = item.message ? `<div style="font-size:0.9rem; color:var(--text-muted);"><strong>Mesaj:</strong> ${escapeHtml(item.message)}</div>` : `<div style="font-size:0.9rem; color:var(--text-muted);"><strong>Mesaj:</strong> Yok</div>`;
+            const dateText = formatTebrikDate(item.at);
+            const postLink = item.postId && post ? `<a href="index.html#post-${item.postId}" style="color:var(--primary); text-decoration:none; font-weight:700;">Gönderiye Git</a>` : '';
+            const hasThanked = tebrikThanks.includes(item.key);
+            const thankButton = item.uid ? `
+                <button type="button" ${hasThanked ? 'disabled' : ''} data-thank-key="${escapeHtml(item.key)}" data-thank-uid="${escapeHtml(item.uid)}" class="profile-thank-btn" style="background:${hasThanked ? 'rgba(16,185,129,0.15)' : 'var(--primary)'}; color:${hasThanked ? 'var(--text-muted)' : '#fff'}; border:none; padding:10px 14px; border-radius:12px; font-weight:700; cursor:${hasThanked ? 'default' : 'pointer'}; font-size:0.85rem;">${hasThanked ? 'Teşekkür edildi' : 'Teşekkür Gönder'}</button>
+            ` : '';
+
+            const card = document.createElement('div');
+            card.style.cssText = 'display:flex; flex-direction:column; gap:14px; padding:20px; border-radius:20px; background:var(--bg); border:1px solid rgba(99,102,241,0.15); box-shadow:0 10px 24px rgba(15,23,42,0.04);';
+            card.innerHTML = `
+                <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap;">
+                    <div style="display:flex; align-items:center; gap:10px; font-weight:700; color:var(--text-main);">
+                        <span style="width:34px; height:34px; display:flex; align-items:center; justify-content:center; border-radius:12px; background:rgba(249,115,22,0.12); color:#f97316;"><i class="fa-solid fa-gift"></i></span>
+                        <span>${senderHtml} size tebrik gönderdi</span>
+                    </div>
+                    <div style="font-size:0.82rem; color:var(--text-muted);">${escapeHtml(dateText)}</div>
+                </div>
+                <div style="display:flex; justify-content:space-between; gap:20px; align-items:flex-start; flex-wrap:wrap;">
+                    <div style="flex:1 1 320px; display:grid; gap:8px; font-size:0.95rem; color:var(--text-main);">
+                        <div><strong>Hangi kartı gönderdi:</strong> ${cardTypeLabel}</div>
+                        ${item.postId ? `<div><strong>Hangi hedefe gönderildi:</strong> ${escapeHtml(targetLabel)}</div>` : ''}
+                        ${postLabel}
+                        ${commentLabel}
+                        ${messageLabel}
+                        ${postLink ? `<div style="margin-top:10px;">${postLink}</div>` : ''}
+                    </div>
+                    ${thankButton ? `
+                        <div style="min-width:180px; display:flex; flex-direction:column; align-items:flex-end; gap:14px;">
+                            <div style="display:flex; align-items:center; justify-content:center; width:76px; height:76px; border-radius:50%; background:#fff8ed; border:2px solid #16a34a; color:#dc2626; font-size:0.95rem; font-weight:800; margin-bottom:-6px;">
+                                +%0,25
+                            </div>
+                            <div style="width:100%; display:flex; justify-content:flex-end; margin-top:8px;">
+                                ${thankButton}
+                            </div>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+            list.appendChild(card);
+
+            const thankBtnEl = card.querySelector('.profile-thank-btn');
+            if (thankBtnEl) {
+                thankBtnEl.addEventListener('click', async () => {
+                    const key = thankBtnEl.dataset.thankKey;
+                    const uid = thankBtnEl.dataset.thankUid;
+                    if (!key || !uid) {
+                        alert('Geçersiz teşekkür bilgisi.');
+                        return;
+                    }
+                    if (thankBtnEl.disabled) return;
+                    thankBtnEl.disabled = true;
+                    await window.sendTebrikThanksForUser(key, uid);
+                });
+            }
+        }
+    } catch (e) {
+        console.error('loadProfileCongrats error:', e);
+        if (emptyMessage) {
+            emptyMessage.innerText = 'Tebrikler yüklenemedi';
+            emptyMessage.style.display = 'block';
+        }
     }
 };
 
@@ -8434,9 +9046,9 @@ function showBlogView(view, options = {}) {
 
     if (titleEl) {
         if (view === 'create') {
-            titleEl.textContent = 'Yeni Blog Yazısı';
+            titleEl.textContent = 'Yeni Normal Gönderi';
         } else if (view === 'post') {
-            titleEl.textContent = 'Blog Yazısı';
+            titleEl.textContent = 'Normal Gönderi';
         } else {
             titleEl.textContent = mineMode ? 'Yazılarım' : 'Blog Yazıları';
         }
@@ -8463,7 +9075,7 @@ function showBlogView(view, options = {}) {
             if (contentEl) contentEl.value = '';
             if (status) status.textContent = '';
             if (publishBtn) publishBtn.textContent = 'Yayınla';
-            if (pageTitle) pageTitle.textContent = 'Yeni Blog Yazısı';
+            if (pageTitle) pageTitle.textContent = 'Yeni Normal Gönderi';
         }
     }
 }
@@ -8628,7 +9240,7 @@ function renderMyBlogSummary(posts = []) {
             <div class="glass-card" style="flex:1; min-width:220px; padding:16px;">
                 <h4 style="margin:0 0 10px 0;">İstatistikler</h4>
                 <div style="display:flex; flex-direction:column; gap:8px; font-size:0.9rem;">
-                    <div>Blog yazısı sayısı: <strong>${totalPosts}</strong></div>
+                    <div>Normal gönderi sayısı: <strong>${totalPosts}</strong></div>
                     <div>En çok okunan yazınız: <strong>${escapeHtml(mostReadPost?.title || '—')}</strong> (${mostReadPost?.views || 0})</div>
                 </div>
             </div>
@@ -8665,7 +9277,7 @@ async function loadBlogPosts(options = {}) {
         }
 
         if (allSnap.empty) {
-            container.innerHTML = `<p style="color:var(--text-muted);">${mineMode ? 'Henüz kendi yazınız yok.' : 'Henüz yayımlanmış bir blog yazısı yok.'}</p>`;
+            container.innerHTML = `<p style="color:var(--text-muted);">${mineMode ? 'Henüz kendi yazınız yok.' : 'Henüz yayımlanmış bir gönderi yok.'}</p>`;
             if (mineMode && mostReadContainer) {
                 renderMyBlogSummary([]);
             }
@@ -8713,7 +9325,7 @@ async function loadBlogPosts(options = {}) {
         }
 
         if (filtered.length === 0) {
-            container.innerHTML = `<p style="color:var(--text-muted);">${mineMode ? 'Henüz kendi yazınız yok.' : 'Henüz yayımlanmış bir blog yazısı yok.'}</p>`;
+            container.innerHTML = `<p style="color:var(--text-muted);">${mineMode ? 'Henüz kendi yazınız yok.' : 'Henüz yayımlanmış bir gönderi yok.'}</p>`;
             return;
         }
 
@@ -8772,11 +9384,16 @@ async function loadBlogPosts(options = {}) {
                         ${data.status === 'draft' ? '<span style="background: rgba(245, 158, 11, 0.15); color: #92400e; padding: 2px 10px; border-radius: 999px; font-size: 0.75rem;">Taslak</span>' : ''}
                     </h3>
                     <p style="color:var(--text-muted); font-size:0.95rem; line-height:1.6; margin-top:10px;">${escapeHtml(excerpt)}${excerpt.length>=200?'...':''}</p>
-                    <div class="post-action-row" style="margin-top:14px;">
+                    <div class="post-action-row" style="margin-top:14px; gap:10px; align-items:center;">
                         <a href="blog.html?id=${doc.id}" class="mini-link-btn post-action-btn">
                             <i class="fa-solid fa-arrow-right" style="font-size:0.85rem;"></i>
                             <span>Devamını Oku</span>
                         </a>
+                        ${!isAuthor ? `
+                            <button class="mini-link-btn post-action-btn" type="button" title="Normal gönderiye tebrik gönder" onclick="window.sendBlogTebrikToAuthor('${data.authorUid || ''}', '${(data.authorUsername || data.author || '').replace(/'/g, "\\'")}', '${doc.id}')">
+                                <i class="fa-solid fa-gift" style="font-size:0.85rem;"></i>
+                            </button>
+                        ` : ''}
                         ${isAuthor ? `
                             <button class="mini-link-btn post-action-btn" type="button" title="Düzenle" onclick="startEditingBlogPost('${doc.id}')">
                                 <i class="fa-solid fa-pen" style="font-size:0.85rem;"></i>
@@ -8899,6 +9516,15 @@ async function loadBlogPostById(id) {
                 actionsEl.appendChild(delBtn);
                 actionsEl.dataset.blogActionFor = id;
             }
+
+            if (!isAuthor && actionsEl) {
+                const blogTebrikBtn = document.createElement('button');
+                blogTebrikBtn.className = 'blog-action-btn';
+                blogTebrikBtn.title = 'Gönderi yazısına tebrik gönder';
+                blogTebrikBtn.innerHTML = '<i class="fa-solid fa-gift"></i>';
+                blogTebrikBtn.onclick = () => window.sendBlogTebrikToAuthor(data.authorUid, data.authorUsername || data.author || '', id);
+                actionsEl.appendChild(blogTebrikBtn);
+            }
         }
 
         // Setup share / copy link buttons inside blog post view
@@ -8936,7 +9562,7 @@ async function loadBlogPostById(id) {
                 try {
                     if (navigator.share) {
                         await navigator.share({
-                            title: data.title || 'Blog Yazısı',
+                            title: data.title || 'Gönderi yazısı',
                             text: data.title || '',
                             url: postUrl
                         });
@@ -9275,7 +9901,7 @@ async function startEditingBlogPost(id, data) {
     if (contentEl) contentEl.value = data.content || '';
     if (categoryEl) categoryEl.value = data.category || 'Genel';
     if (status) status.textContent = 'Düzenleme modunda. Kaydetmek için Güncelle\'ye basın.';
-    if (pageTitle) pageTitle.textContent = 'Blog Yazısını Düzenle';
+    if (pageTitle) pageTitle.textContent = 'Gönderi yazısını Düzenle';
     if (publishBtn) publishBtn.textContent = 'Güncelle';
 }
 

@@ -340,6 +340,7 @@
       <a class="tab-btn active" href="#posts" onclick="openTab(event, 'my-posts-tab')"><i class="fa-solid fa-feather"></i> Gönderiler</a>
       <a class="tab-btn" href="#likes" onclick="openTab(event, 'my-likes-tab')"><i class="fa-solid fa-heart"></i> Beğeniler</a>
       <a class="tab-btn" href="#saves" onclick="openTab(event, 'my-saves-tab')"><i class="fa-solid fa-bookmark"></i> Kayıtlar</a>
+      <a class="tab-btn" href="#tebrikler" onclick="openTab(event, 'my-congrats-tab')"><i class="fa-solid fa-gift"></i> Tebrikler</a>
       <a class="tab-btn" id="friends-tab-btn" href="#friends" onclick="openTab(event, 'my-friends-tab')"><i class="fa-solid fa-users"></i> Arkadaşlar</a>
       <a class="tab-btn" href="#notifs" onclick="openTab(event, 'my-notifs-tab')"><i class="fa-solid fa-bell"></i> Bildirimler</a>
     </nav>
@@ -363,6 +364,31 @@
       <div id="no-saves-msg" style="display:none; text-align:center; color:var(--text-muted); padding:40px 20px;">
         <i class="fa-solid fa-bookmark" style="font-size:3rem; margin-bottom:10px; display:block;"></i>
         Henüz kayıtlı gönderi yok
+      </div>
+    </div>
+    <div id="my-congrats-tab" class="tab-content">
+      <div class="glass-card" style="padding:20px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:10px;">
+          <div>
+            <h3 style="margin:0; font-size:0.95rem; font-weight:800;">Tebrikler</h3>
+            <p style="margin:4px 0 0; font-size:0.85rem; color:var(--text-muted);">Profilinize gelen tebrikleri, gönderiyi ve yorumu gösteren detaylı kartlarla inceleyin.</p>
+          </div>
+          <button id="congratsValuesBtn" type="button" onclick="window.toggleCongratsValueTable()" style="background:var(--primary); color:#fff; border:none; padding:8px 12px; border-radius:8px; font-weight:700; cursor:pointer; font-size:0.8rem;">Tebrik Değerleri</button>
+        </div>
+        <div id="congrats-values-panel" style="display:none; margin-bottom:16px;">
+            <table style="width:100%; border-collapse:collapse; background:var(--input-bg); border:1px solid var(--border); border-radius:14px; overflow:hidden;">
+                <thead style="background:rgba(99,102,241,0.08); color:var(--text-main);">
+                    <tr>
+                        <th style="text-align:left; padding:12px 16px; font-size:0.9rem;">Tebrik Türü</th>
+                        <th style="text-align:left; padding:12px 16px; font-size:0.9rem;">Değer</th>
+                    </tr>
+                </thead>
+                <tbody id="congrats-values-table-body"></tbody>
+            </table>
+        </div>
+        <div id="my-congrats-summary" style="display:grid; gap:10px; margin-bottom:16px;"></div>
+        <div id="my-congrats-list" style="display:flex; flex-direction:column; gap:12px; min-height:120px;"></div>
+        <div id="no-tebrikler-msg" style="text-align:center; color:var(--text-muted); padding:30px; display:none;">Henüz tebrik yok</div>
       </div>
     </div>
 
@@ -425,6 +451,7 @@ function openProfileTabByHash(hash) {
     posts: 'my-posts-tab',
     likes: 'my-likes-tab',
     saves: 'my-saves-tab',
+    tebrikler: 'my-congrats-tab',
     friends: 'my-friends-tab',
     notifs: 'my-notifs-tab'
   };
@@ -502,8 +529,8 @@ window.addEventListener('hashchange', function() {
     }
     
     // Sadece kendi profilimizse verileri yükle
-    if (['my-posts-tab','my-likes-tab','my-saves-tab'].includes(tabName) && isOwnProfile) {
-        const section = tabName === 'my-posts-tab' ? 'posts' : (tabName === 'my-likes-tab' ? 'likes' : 'saves');
+    if (['my-posts-tab','my-likes-tab','my-saves-tab','my-congrats-tab'].includes(tabName) && isOwnProfile) {
+        const section = tabName === 'my-posts-tab' ? 'posts' : (tabName === 'my-likes-tab' ? 'likes' : (tabName === 'my-saves-tab' ? 'saves' : 'tebrikler'));
         requestAnimationFrame(() => {
             if (window.loadProfileSections && typeof window.loadProfileSections === 'function') {
                 try {
@@ -642,7 +669,9 @@ window.addEventListener('load', () => {
             // 2. Bölümleri render et (sadece aktif sekme yüklesin)
             const hash = window.location.hash.replace('#', '');
             const section = hash || 'posts';
-            await window.loadProfileSections(section);
+            if (window.auth && window.auth.currentUser) {
+                await window.loadProfileSections(section);
+            }
 
             // 3. Sekme Belirleme (URL Hash'i varsa o, yoksa my-posts)
             const urlHash = window.location.hash.replace('#', '');

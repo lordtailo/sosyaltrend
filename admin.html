@@ -161,6 +161,7 @@
                     <button class="subtab-btn" onclick="switchUserManagementSubtab('banned', this)">Banlananlar</button>
                     <button class="subtab-btn" onclick="switchUserManagementSubtab('appeals', this)">Ban İtirazları</button>
                     <button class="subtab-btn" onclick="switchUserManagementSubtab('deleted', this)">Silinen Üyeler</button>
+                    <!-- 'Tebrikler & Teşekkürler' alt sekmesi taşındı: artık Sayfa bölümünde yer alıyor -->
                 </div>
 
                 <div id="userManagement-subsection-managed" class="admin-subsection active">
@@ -188,17 +189,56 @@
                         <tbody id="deleted-users-body"></tbody>
                     </table>
                 </div>
+                <!-- 'Tebrikler & Teşekkürler' alt sekmesi taşındı: ilgili içerik Sayfa bölümüne eklendi -->
             </div>
         </div>
 
-        <div class="admin-block admin-block-page">
+            <!-- Üst seviye 'Tebrikler & Teşekkürler' bloğu admin tarafından kaldırıldı. Kullanıcı yönetimindeki ilgili alt sekme korunuyor. -->
+
+            <div class="admin-block admin-block-page">
             <h2>Sayfa</h2>
             <div class="admin-tabs">
                 <button class="tab-btn active" onclick="switchTab('moderation', this)">İçerik Denetimi</button>
+                <button class="tab-btn" onclick="switchTab('tebrikpage', this)">Tebrikler & Teşekkürler</button>
+                <button class="tab-btn" onclick="switchTab('contenttebrik', this)">İçerik Tebrikleri</button>
             </div>
             <div id="section-moderation" class="admin-section active">
-                <div class="section-subtitle">Tüm Paylaşımları Yönet</div>
-                <div id="admin-feed-list"></div>
+                <div class="admin-block" style="padding:16px; margin-top:6px;">
+                    <div class="section-subtitle">Tüm Paylaşımları Yönet</div>
+                    <div id="admin-feed-list"></div>
+                </div>
+            </div>
+
+            <div id="section-tebrikpage" class="admin-section">
+                <div class="admin-block" style="padding:16px; margin-top:6px;">
+                    <div class="section-subtitle">Tebrikler ve Teşekkürler Yönetimi</div>
+                    <div style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:12px; margin-bottom:16px;">
+                        <div style="color:var(--text-muted);">Kullanıcıların tebrik ve teşekkür sayıları burada listelenir. Hızlı sıfırlama yapabilirsiniz.</div>
+                        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                            <button class="form-btn" onclick="loadUserManagementTebrikThanks()">Yenile</button>
+                        </div>
+                    </div>
+                    <table class="data-table">
+                        <thead><tr><th>Kullanıcı</th><th>Kullanıcı Adı</th><th>Tebrik</th><th>Teşekkür</th><th>İşlem</th></tr></thead>
+                        <tbody id="user-management-tebrik-table-body"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="section-contenttebrik" class="admin-section">
+                <div class="admin-block" style="padding:16px; margin-top:6px;">
+                    <div class="section-subtitle">İçerik Tebrikleri Yönetimi</div>
+                    <div style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:12px; margin-bottom:16px;">
+                        <div style="color:var(--text-muted);">Gönderi ve yazılardaki tebrik sayıları burada listelenir. İçerik bazlı tebrikleri buradan sıfırlayabilirsiniz.</div>
+                        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                            <button class="form-btn" onclick="loadContentTebrikList()">Yenile</button>
+                        </div>
+                    </div>
+                    <table class="data-table">
+                        <thead><tr><th>Tür</th><th>Başlık / Gönderi</th><th>Kullanıcı</th><th>Tebrik</th><th>İşlem</th></tr></thead>
+                        <tbody id="content-tebrik-table-body"></tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
@@ -207,7 +247,7 @@
 <script type="module">
     // Firebase importları ve config aynı kalıyor
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getFirestore, collection, getDocs, getDoc, addDoc, setDoc, serverTimestamp, query, orderBy, limit, deleteDoc, doc, onSnapshot, updateDoc, where } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getFirestore, collection, getDocs, getDoc, addDoc, setDoc, serverTimestamp, query, orderBy, limit, deleteDoc, doc, onSnapshot, updateDoc, where, writeBatch } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
     const firebaseConfig = {
@@ -292,6 +332,8 @@
         loadBannedUsers();
         loadBanAppeals();
         loadPollsAdmin();
+        // Yeni Sayfa sekmesindeki tebrik/teşekkür listesini yalnızca kullanıcı seçerse yükle
+        // loadTebrikThanksAdmin();
     }
 
     // ---------------- Kullanıcı Yönetimi ----------------
@@ -656,6 +698,97 @@
         }
     };
 
+    // ---------------- Tebrik / Teşekkür Sıfırlama ----------------
+    window.resetUserTebrik = async (userDocId) => {
+        if (!userDocId) return;
+        if (!confirm('Bu kullanıcının tüm tebrik sayacı ve tebrik kayıtlarını sıfırlamak istediğinize emin misiniz?')) return;
+        try {
+            const userRef = doc(db, 'users', userDocId);
+            const userSnap = await getDoc(userRef);
+            if (!userSnap.exists()) {
+                alert('Kullanıcı bulunamadı.');
+                return;
+            }
+            const batch = writeBatch(db);
+            batch.update(userRef, {
+                tebrikCount: 0,
+                tebrikGivers: [],
+                tebrikMessages: [],
+                tebrikThanks: []
+            });
+
+            const userData = userSnap.data() || {};
+            const username = (userData.username || (userData.email || '').split('@')[0] || '').toString().trim();
+            const email = (userData.email || '').toString().trim();
+            const postIds = new Set();
+            const blogIds = new Set();
+
+            const addPostIdsFromQuery = async (field, value) => {
+                if (!value) return;
+                const snap = await getDocs(query(collection(db, 'posts'), where(field, '==', value)));
+                snap.forEach(p => postIds.add(p.id));
+            };
+            const addBlogIdsFromQuery = async (field, value) => {
+                if (!value) return;
+                const snap = await getDocs(query(collection(db, 'blogs'), where(field, '==', value)));
+                snap.forEach(b => blogIds.add(b.id));
+            };
+
+            await addPostIdsFromQuery('username', username);
+            await addPostIdsFromQuery('author', username);
+            await addPostIdsFromQuery('authorUsername', username);
+            await addPostIdsFromQuery('authorUid', userDocId);
+            await addPostIdsFromQuery('uid', userDocId);
+            await addPostIdsFromQuery('authorEmail', email);
+
+            postIds.forEach(id => {
+                batch.update(doc(db, 'posts', id), { tebrikCount: 0 });
+            });
+
+            await addBlogIdsFromQuery('authorUsername', username);
+            await addBlogIdsFromQuery('author', username);
+            await addBlogIdsFromQuery('authorUid', userDocId);
+            await addBlogIdsFromQuery('uid', userDocId);
+            await addBlogIdsFromQuery('authorEmail', email);
+
+            blogIds.forEach(id => {
+                batch.update(doc(db, 'blogs', id), { tebrikCount: 0 });
+            });
+
+            await batch.commit();
+            loadAllRegisteredUsers();
+            if (typeof loadUserManagementTebrikThanks === 'function') loadUserManagementTebrikThanks();
+            if (typeof refreshTebrikList === 'function') refreshTebrikList();
+            alert('Kullanıcının tebrik değerleri ve içerikteki tebrik sayıları sıfırlandı.');
+        } catch (e) {
+            console.error('Tebrik sıfırlama hatası:', e);
+            alert('Tebrikler sıfırlanamadı. Konsolu kontrol edin.');
+        }
+    };
+
+    window.resetUserThanks = async (userDocId) => {
+        if (!userDocId) return;
+        if (!confirm('Bu kullanıcının teşekkür sayacını ve teşekkür kayıtlarını sıfırlamak istediğinize emin misiniz?')) return;
+        try {
+            const userRef = doc(db, 'users', userDocId);
+            const userSnap = await getDoc(userRef);
+            if (!userSnap.exists()) {
+                alert('Kullanıcı bulunamadı.');
+                return;
+            }
+            await updateDoc(userRef, {
+                thanksReceived: 0,
+                thanksGiven: [],
+                tebrikThanks: []
+            });
+            loadAllRegisteredUsers();
+            alert('Kullanıcının teşekkür değerleri sıfırlandı.');
+        } catch (e) {
+            console.error('Teşekkür sıfırlama hatası:', e);
+            alert('Teşekkürler sıfırlanamadı. Konsolu kontrol edin.');
+        }
+    };
+
     async function loadBanAppeals() {
         try {
             const appealsSnap = await getDocs(query(collection(db, 'banAppeals'), orderBy('sentAt', 'desc'), limit(50)));
@@ -710,6 +843,632 @@
         } catch (e) {
             console.error('Kullanıcı silme hatası:', e);
             alert('Kullanıcı silinirken hata oluştu.');
+        }
+    };
+
+    // ---- View Tebrik / Thanks ----
+    window.viewUserTebrik = async (userDocId) => {
+        try {
+            const userRef = doc(db, 'users', userDocId);
+            const userSnap = await getDoc(userRef);
+            if (!userSnap.exists()) {
+                alert('Kullanıcı bulunamadı.');
+                return;
+            }
+            const data = userSnap.data();
+            const title = data.username || data.displayName || userDocId;
+            document.getElementById('tebrikModalTitle').textContent = `${title} - Tebrikler`;
+            const container = document.getElementById('tebrikModalContent');
+            container.innerHTML = '';
+
+            // Gelen tebrikler
+            const incoming = data.tebrikGivers || data.tebrikMessages || data.receivedTebriks || [];
+            container.innerHTML += `<div style="margin-bottom:8px;"><strong>Gelen Tebrikler (${Array.isArray(incoming) ? incoming.length : '—'})</strong></div>`;
+            if (Array.isArray(incoming) && incoming.length > 0) {
+                incoming.forEach(item => {
+                    container.innerHTML += `<div style="padding:8px 10px; border-bottom:1px solid var(--border);">${escapeHtml(typeof item === 'string' ? item : JSON.stringify(item))}</div>`;
+                });
+            } else {
+                container.innerHTML += `<div style="color:var(--text-muted);">Gelen tebrik kaydı yok.</div>`;
+            }
+
+            // Eğer kullanıcı yaptığı tebrik kayıtları varsa (outgoing)
+            const outgoing = data.tebrikGiven || data.tebrikSent || [];
+            container.innerHTML += `<div style="margin-top:12px; margin-bottom:8px;"><strong>Yapılan Tebrikler (${Array.isArray(outgoing) ? outgoing.length : '—'})</strong></div>`;
+            if (Array.isArray(outgoing) && outgoing.length > 0) {
+                outgoing.forEach(item => {
+                    container.innerHTML += `<div style="padding:8px 10px; border-bottom:1px solid var(--border);">${escapeHtml(typeof item === 'string' ? item : JSON.stringify(item))}</div>`;
+                });
+            } else {
+                container.innerHTML += `<div style="color:var(--text-muted);">Yapılan tebrik kaydı yok.</div>`;
+            }
+
+            document.getElementById('tebrikModal').style.display = 'flex';
+        } catch (e) {
+            console.error('Tebrik görüntüleme hatası:', e);
+            alert('Tebrikler görüntülenirken hata oluştu.');
+        }
+    };
+
+    window.viewUserThanks = async (userDocId) => {
+        try {
+            const userRef = doc(db, 'users', userDocId);
+            const userSnap = await getDoc(userRef);
+            if (!userSnap.exists()) {
+                alert('Kullanıcı bulunamadı.');
+                return;
+            }
+            const data = userSnap.data();
+            const title = data.username || data.displayName || userDocId;
+            document.getElementById('thanksModalTitle').textContent = `${title} - Teşekkürler`;
+            const container = document.getElementById('thanksModalContent');
+            container.innerHTML = '';
+
+            const incoming = data.thanksReceivedList || data.tebrikThanks || data.thanksReceived || [];
+            container.innerHTML += `<div style="margin-bottom:8px;"><strong>Gelen Teşekkürler (${Array.isArray(incoming) ? incoming.length : '—'})</strong></div>`;
+            if (Array.isArray(incoming) && incoming.length > 0) {
+                incoming.forEach(item => {
+                    container.innerHTML += `<div style="padding:8px 10px; border-bottom:1px solid var(--border);">${escapeHtml(typeof item === 'string' ? item : JSON.stringify(item))}</div>`;
+                });
+            } else {
+                container.innerHTML += `<div style="color:var(--text-muted);">Gelen teşekkür kaydı yok.</div>`;
+            }
+
+            const outgoing = data.thanksGiven || [];
+            container.innerHTML += `<div style="margin-top:12px; margin-bottom:8px;"><strong>Yapılan Teşekkürler (${Array.isArray(outgoing) ? outgoing.length : '—'})</strong></div>`;
+            if (Array.isArray(outgoing) && outgoing.length > 0) {
+                outgoing.forEach(item => {
+                    container.innerHTML += `<div style="padding:8px 10px; border-bottom:1px solid var(--border);">${escapeHtml(typeof item === 'string' ? item : JSON.stringify(item))}</div>`;
+                });
+            } else {
+                container.innerHTML += `<div style="color:var(--text-muted);">Yapılan teşekkür kaydı yok.</div>`;
+            }
+
+            document.getElementById('thanksModal').style.display = 'flex';
+        } catch (e) {
+            console.error('Teşekkür görüntüleme hatası:', e);
+            alert('Teşekkürler görüntülenirken hata oluştu.');
+        }
+    };
+
+    window.closeTebrikModal = () => { document.getElementById('tebrikModal').style.display = 'none'; };
+    window.closeThanksModal = () => { document.getElementById('thanksModal').style.display = 'none'; };
+
+    // ---- Aggregated Tebrik / Thanks Admin Functions ----
+    window.switchTebrikTab = (tab, btn) => {
+        document.querySelectorAll('.admin-block-tebrik .tab-btn').forEach(b => b.classList.remove('active'));
+        if (btn) btn.classList.add('active');
+        document.getElementById('section-tebrik').classList.toggle('active', tab === 'tebrik');
+        document.getElementById('section-thanks').classList.toggle('active', tab === 'thanks');
+    };
+
+    async function loadTebrikThanksAdmin() {
+        await Promise.all([loadTebriksList(), loadThanksList()]);
+    }
+
+    window.refreshTebrikList = async () => {
+        const container = document.getElementById('tebrik-admin-list');
+        if (container) container.innerHTML = '<div style="color:var(--text-muted)">Yükleniyor...</div>';
+        await loadTebriksList();
+    };
+    window.refreshThanksList = async () => {
+        const container = document.getElementById('thanks-admin-list');
+        if (container) container.innerHTML = '<div style="color:var(--text-muted)">Yükleniyor...</div>';
+        await loadThanksList();
+    };
+
+    async function loadTebriksList() {
+        try {
+            const container = document.getElementById('tebrik-admin-list');
+            if (!container) return;
+            container.innerHTML = '';
+            // Collect from users (incoming/outgoing) and posts/blogs tebrikCount
+            const usersSnap = await getDocs(query(collection(db, 'users'), orderBy('tebrikCount', 'desc')));
+            if (usersSnap.empty) {
+                container.innerHTML = '<div style="color:var(--text-muted);">Tebrik verisi bulunamadı.</div>';
+                return;
+            }
+            // Store data for filtering/export
+            window.tebrikAdminData = [];
+            usersSnap.forEach(u => {
+                const d = u.data();
+                window.tebrikAdminData.push({ id: u.id, username: d.username || d.email?.split('@')[0] || u.id, displayName: d.displayName || d.name || '', tebrikCount: d.tebrikCount || 0, tebrikGivers: Array.isArray(d.tebrikGivers) ? d.tebrikGivers : (d.tebrikGivers || []), tebrikMessages: Array.isArray(d.tebrikMessages) ? d.tebrikMessages : (d.tebrikMessages || []) });
+            });
+            renderTebriksFromData(window.tebrikAdminData);
+        } catch (e) {
+            console.error('Tebrik listesi yüklenemedi:', e);
+            document.getElementById('tebrik-admin-list').innerHTML = '<div style="color:var(--danger);">Tebrik verileri yüklenemedi.</div>';
+        }
+    }
+
+    function renderTebriksFromData(data) {
+        const container = document.getElementById('tebrik-admin-list');
+        container.innerHTML = '';
+        if (!data || data.length === 0) {
+            container.innerHTML = '<div style="color:var(--text-muted);">Tebrik verisi bulunamadı.</div>';
+            return;
+        }
+        const list = document.createElement('div');
+        list.style.display = 'grid';
+        list.style.gap = '8px';
+        data.forEach(item => {
+            const row = document.createElement('div');
+            row.style.display = 'flex';
+            row.style.justifyContent = 'space-between';
+            row.style.alignItems = 'center';
+            row.style.padding = '10px';
+            row.style.border = '1px solid var(--border)';
+            row.innerHTML = `<div><strong>${escapeHtml(item.username)}</strong> <small style="color:var(--text-muted);">${escapeHtml(item.displayName || '')}</small><div style="color:var(--text-muted); font-size:0.9rem;">Tebrik: ${item.tebrikCount} (Gelen: ${item.tebrikGivers.length})</div></div>`;
+            const actions = document.createElement('div');
+            actions.style.display = 'flex';
+            actions.style.gap = '8px';
+            actions.innerHTML = `<button class="action-btn" onclick="viewUserTebrik('${item.id}')">Görüntüle</button><button class="action-btn" onclick="resetUserTebrik('${item.id}')">Sıfırla</button>`;
+            // checkbox for bulk actions
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.style.marginLeft = '8px';
+            checkbox.dataset.userid = item.id;
+            actions.appendChild(checkbox);
+            row.appendChild(actions);
+            list.appendChild(row);
+        });
+        container.appendChild(list);
+    }
+
+    window.applyTebrikFilter = () => {
+        const q = (document.getElementById('tebrikSearchInput')?.value || '').toLowerCase().trim();
+        if (!window.tebrikAdminData) return;
+        if (!q) {
+            renderTebriksFromData(window.tebrikAdminData);
+            return;
+        }
+        const filtered = window.tebrikAdminData.filter(i => (i.username && i.username.toLowerCase().includes(q)) || (i.displayName && i.displayName.toLowerCase().includes(q)) || (String(i.tebrikCount || '').includes(q)));
+        renderTebriksFromData(filtered);
+    };
+
+    window.exportTebriksCSV = () => {
+        const data = window.tebrikAdminData || [];
+        if (data.length === 0) return alert('Dışa aktarılacak tebrik verisi yok.');
+        const rows = [['uid','username','displayName','tebrikCount','tebrikGiversCount','tebrikMessagesCount']];
+        data.forEach(d => rows.push([d.id, d.username, d.displayName || '', d.tebrikCount || 0, (d.tebrikGivers || []).length, (d.tebrikMessages || []).length]));
+        const csv = rows.map(r=>r.map(c=>('"'+String(c).replace(/"/g,'""')+'"')).join(',')).join('\n');
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `tebrikler_${new Date().toISOString().slice(0,10)}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+    };
+
+    // ---- Suspicious users detection and bulk delete ----
+    window.findSuspiciousUsers = async () => {
+        try {
+            const container = document.getElementById('tebrik-admin-list');
+            container.innerHTML = '<div style="color:var(--text-muted)">Şüpheli kullanıcılar aranıyor...</div>';
+            // Define suspicious patterns
+            const suspiciousUsernames = ['user', '(user)', 'guest', 'test'];
+            const usersSnap = await getDocs(query(collection(db, 'users')));
+            const suspects = [];
+            usersSnap.forEach(u => {
+                const d = u.data();
+                const uname = (d.username || '').toString().toLowerCase();
+                const display = (d.displayName || '').toString().toLowerCase();
+                if (!uname || suspiciousUsernames.includes(uname) || uname === '(user)' || uname.startsWith('user') || uname.includes('test') || display.includes('(user)')) {
+                    suspects.push({ id: u.id, username: d.username || '', displayName: d.displayName || '' });
+                }
+            });
+            window.suspiciousUsers = suspects;
+            if (suspects.length === 0) {
+                container.innerHTML = '<div style="color:var(--text-muted)">Şüpheli kullanıcı bulunamadı.</div>';
+                return;
+            }
+            // render suspects with checkboxes
+            const list = document.createElement('div');
+            list.style.display = 'grid';
+            list.style.gap = '8px';
+            suspects.forEach(s => {
+                const row = document.createElement('div');
+                row.style.display = 'flex';
+                row.style.justifyContent = 'space-between';
+                row.style.alignItems = 'center';
+                row.style.padding = '10px';
+                row.style.border = '1px solid var(--border)';
+                row.innerHTML = `<div><strong>${escapeHtml(s.username || s.id)}</strong> <small style="color:var(--text-muted);">${escapeHtml(s.displayName || '')}</small></div>`;
+                const controls = document.createElement('div');
+                controls.style.display = 'flex'; controls.style.gap = '8px';
+                const cb = document.createElement('input'); cb.type = 'checkbox'; cb.dataset.userid = s.id; cb.checked = true;
+                controls.appendChild(cb);
+                const viewBtn = document.createElement('button'); viewBtn.className = 'action-btn'; viewBtn.textContent = 'Görüntüle'; viewBtn.onclick = () => viewUserTebrik(s.id);
+                controls.appendChild(viewBtn);
+                row.appendChild(controls);
+                list.appendChild(row);
+            });
+            container.innerHTML = '';
+            container.appendChild(list);
+        } catch (e) {
+            console.error('Şüpheli kullanıcı arama hatası:', e);
+            alert('Şüpheli kullanıcılar aranırken hata oluştu. Konsolu kontrol edin.');
+        }
+    };
+
+    window.loadContentTebrikList = async () => {
+        try {
+            const tbody = document.getElementById('content-tebrik-table-body');
+            if (!tbody) return;
+            tbody.innerHTML = '';
+
+            const rows = [];
+            const postsSnap = await getDocs(query(collection(db, 'posts'), where('tebrikCount', '>', 0), orderBy('tebrikCount', 'desc')));
+            postsSnap.forEach(docSnap => {
+                const d = docSnap.data();
+                rows.push({
+                    id: docSnap.id,
+                    type: 'post',
+                    label: (d.content || '').toString().substring(0, 80).replace(/\n/g, ' '),
+                    username: d.username || d.author || '',
+                    tebrikCount: d.tebrikCount || 0
+                });
+            });
+
+            const blogsSnap = await getDocs(query(collection(db, 'blogs'), where('tebrikCount', '>', 0), orderBy('tebrikCount', 'desc')));
+            blogsSnap.forEach(docSnap => {
+                const d = docSnap.data();
+                rows.push({
+                    id: docSnap.id,
+                    type: 'blog',
+                    label: (d.title || d.content || '').toString().substring(0, 80).replace(/\n/g, ' '),
+                    username: d.authorUsername || d.author || '',
+                    tebrikCount: d.tebrikCount || 0
+                });
+            });
+
+            if (rows.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color: var(--text-muted);">İçerik tebrik verisi bulunamadı.</td></tr>';
+                return;
+            }
+
+            rows.sort((a, b) => b.tebrikCount - a.tebrikCount);
+            rows.forEach(item => {
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${item.type === 'blog' ? 'Yazı' : 'Gönderi'}</td>
+                        <td>${escapeHtml(item.label)}</td>
+                        <td>@${escapeHtml(item.username)}</td>
+                        <td>${item.tebrikCount}</td>
+                        <td><button class="action-btn" onclick="deleteContentTebrik('${item.id}', '${item.type}')">Tebriği Sil</button></td>
+                    </tr>`;
+            });
+        } catch (e) {
+            console.error('İçerik tebrik listesi yüklenemedi:', e);
+            const tbody = document.getElementById('content-tebrik-table-body');
+            if (tbody) tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color: var(--danger);">İçerik tebrik verileri yüklenemedi.</td></tr>';
+        }
+    };
+
+    window.deleteContentTebrik = async (contentId, contentType) => {
+        if (!contentId) return;
+        if (!confirm('Bu içeriğin tebrik sayısını sıfırlamak istediğinize emin misiniz?')) return;
+        try {
+            const ref = doc(db, contentType === 'blog' ? 'blogs' : 'posts', contentId);
+            await updateDoc(ref, { tebrikCount: 0 });
+            alert('İçerik tebrik sayısı sıfırlandı.');
+            loadContentTebrikList();
+        } catch (e) {
+            console.error('İçerik tebrik silme hatası:', e);
+            alert('İçerik tebrik silinemedi. Konsolu kontrol edin.');
+        }
+    };
+
+    window.bulkDeleteSelectedSuspicious = async () => {
+        try {
+            const container = document.getElementById('tebrik-admin-list');
+            const checked = Array.from(container.querySelectorAll('input[type="checkbox"][data-userid]:checked')).map(i => i.dataset.userid);
+            if (!checked.length) return alert('Önce silinecek kullanıcıları seçin.');
+            if (!confirm(`${checked.length} kullanıcı kalıcı olarak silinecek ve gönderileri anonimleştirilecek. Devam edilsin mi?`)) return;
+
+            const CHUNK = 400;
+            let batch = writeBatch(db);
+            let opCount = 0;
+            const commits = [];
+
+            for (const uid of checked) {
+                // delete user doc
+                const uref = doc(db, 'users', uid);
+                batch.delete(uref);
+                opCount++;
+                // anonymize posts where username matches uid? safer to update posts with user id reference if exists
+                // Find posts with user id
+                const postsSnap = await getDocs(query(collection(db, 'posts'), where('uid', '==', uid)));
+                postsSnap.forEach(p => {
+                    const pref = doc(db, 'posts', p.id);
+                    batch.update(pref, { username: 'deleted_user', displayName: 'Silinmiş Kullanıcı', avatarUrl: null });
+                    opCount++;
+                    if (opCount >= CHUNK) { commits.push(batch.commit()); batch = writeBatch(db); opCount = 0; }
+                });
+
+                const blogsSnap = await getDocs(query(collection(db, 'blogs'), where('uid', '==', uid)));
+                blogsSnap.forEach(b => {
+                    const bref = doc(db, 'blogs', b.id);
+                    batch.update(bref, { username: 'deleted_user', displayName: 'Silinmiş Kullanıcı', avatarUrl: null });
+                    opCount++;
+                    if (opCount >= CHUNK) { commits.push(batch.commit()); batch = writeBatch(db); opCount = 0; }
+                });
+
+                if (opCount >= CHUNK) { commits.push(batch.commit()); batch = writeBatch(db); opCount = 0; }
+            }
+
+            if (opCount > 0) commits.push(batch.commit());
+
+            for (let i = 0; i < commits.length; i++) {
+                await commits[i];
+                console.log(`Committed delete batch ${i+1}/${commits.length}`);
+            }
+
+            alert('Seçilen kullanıcılar silindi ve gönderileri anonimleştirildi.');
+            refreshTebrikList();
+        } catch (e) {
+            console.error('Toplu silme hatası:', e);
+            alert('Toplu silme sırasında hata oluştu. Konsolu kontrol edin.');
+        }
+    };
+
+    // Delete users by comma-separated identifiers (uid or username)
+    window.deleteUsersByIdentifiers = async () => {
+        const raw = (document.getElementById('directDeleteInput')?.value || '').trim();
+        if (!raw) return alert('Lütfen en az bir uid veya username girin (virgülle ayır).');
+        const ids = raw.split(',').map(s => s.trim()).filter(Boolean);
+        if (!ids.length) return alert('Geçerli değer yok.');
+        if (!confirm(`${ids.length} tanımlayıcı için arama yapılacak. Devam edilsin mi?`)) return;
+
+        try {
+            const found = [];
+            for (const ident of ids) {
+                // try doc by id
+                const docRef = doc(db, 'users', ident);
+                const docSnap = await getDoc(docRef);
+                if (docSnap.exists()) {
+                    found.push(docSnap.id);
+                    continue;
+                }
+                // otherwise try username match
+                const q = query(collection(db, 'users'), where('username', '==', ident), limit(1));
+                const snap = await getDocs(q);
+                if (!snap.empty) found.push(snap.docs[0].id);
+            }
+
+            if (!found.length) return alert('Hiç kullanıcı bulunamadı.');
+            if (!confirm(`${found.length} kullanıcı bulundu: ${found.join(', ')}. Silmek istiyor musunuz? (Gönderiler anonimleştirilecek)`)) return;
+
+            // perform deletion similar to bulkDeleteSelectedSuspicious
+            const CHUNK = 400;
+            let batch = writeBatch(db);
+            let opCount = 0;
+            const commits = [];
+
+            for (const uid of found) {
+                batch.delete(doc(db, 'users', uid));
+                opCount++;
+
+                const postsSnap = await getDocs(query(collection(db, 'posts'), where('uid', '==', uid)));
+                postsSnap.forEach(p => {
+                    batch.update(doc(db, 'posts', p.id), { username: 'deleted_user', displayName: 'Silinmiş Kullanıcı', avatarUrl: null });
+                    opCount++;
+                    if (opCount >= CHUNK) { commits.push(batch.commit()); batch = writeBatch(db); opCount = 0; }
+                });
+
+                const blogsSnap = await getDocs(query(collection(db, 'blogs'), where('uid', '==', uid)));
+                blogsSnap.forEach(b => {
+                    batch.update(doc(db, 'blogs', b.id), { username: 'deleted_user', displayName: 'Silinmiş Kullanıcı', avatarUrl: null });
+                    opCount++;
+                    if (opCount >= CHUNK) { commits.push(batch.commit()); batch = writeBatch(db); opCount = 0; }
+                });
+
+                if (opCount >= CHUNK) { commits.push(batch.commit()); batch = writeBatch(db); opCount = 0; }
+            }
+
+            if (opCount > 0) commits.push(batch.commit());
+            for (let i = 0; i < commits.length; i++) { await commits[i]; }
+
+            alert('Belirtilen kullanıcılar silindi ve gönderileri anonimleştirildi.');
+            refreshTebrikList();
+        } catch (e) {
+            console.error('deleteUsersByIdentifiers hatası:', e);
+            alert('Kullanıcılar silinirken hata oluştu. Konsolu kontrol edin.');
+        }
+    };
+
+    async function loadThanksList() {
+        try {
+            const container = document.getElementById('thanks-admin-list');
+            if (!container) return;
+            container.innerHTML = '';
+            const usersSnap = await getDocs(query(collection(db, 'users'), orderBy('thanksReceived', 'desc')));
+            if (usersSnap.empty) {
+                container.innerHTML = '<div style="color:var(--text-muted);">Teşekkür verisi bulunamadı.</div>';
+                return;
+            }
+            // Store data for filtering/export
+            window.thanksAdminData = [];
+            usersSnap.forEach(u => {
+                const d = u.data();
+                window.thanksAdminData.push({ id: u.id, username: d.username || d.email?.split('@')[0] || u.id, displayName: d.displayName || d.name || '', thanksReceived: d.thanksReceived || 0, thanksGiven: Array.isArray(d.thanksGiven) ? d.thanksGiven : (d.thanksGiven || []), tebrikThanks: Array.isArray(d.tebrikThanks) ? d.tebrikThanks : (d.tebrikThanks || []) });
+            });
+            renderThanksFromData(window.thanksAdminData);
+        } catch (e) {
+            console.error('Teşekkür listesi yüklenemedi:', e);
+            document.getElementById('thanks-admin-list').innerHTML = '<div style="color:var(--danger);">Teşekkür verileri yüklenemedi.</div>';
+        }
+    }
+
+    function renderThanksFromData(data) {
+        const container = document.getElementById('thanks-admin-list');
+        container.innerHTML = '';
+        if (!data || data.length === 0) {
+            container.innerHTML = '<div style="color:var(--text-muted);">Teşekkür verisi bulunamadı.</div>';
+            return;
+        }
+        const list = document.createElement('div');
+        list.style.display = 'grid';
+        list.style.gap = '8px';
+        data.forEach(item => {
+            const row = document.createElement('div');
+            row.style.display = 'flex';
+            row.style.justifyContent = 'space-between';
+            row.style.alignItems = 'center';
+            row.style.padding = '10px';
+            row.style.border = '1px solid var(--border)';
+            row.innerHTML = `<div><strong>${escapeHtml(item.username)}</strong> <small style="color:var(--text-muted);">${escapeHtml(item.displayName || '')}</small><div style="color:var(--text-muted); font-size:0.9rem;">Teşekkür: ${item.thanksReceived} (Yapılan: ${item.thanksGiven.length})</div></div>`;
+            const actions = document.createElement('div');
+            actions.style.display = 'flex';
+            actions.style.gap = '8px';
+            actions.innerHTML = `<button class="action-btn" onclick="viewUserThanks('${item.id}')">Görüntüle</button><button class="action-btn" onclick="resetUserThanks('${item.id}')">Sıfırla</button>`;
+            row.appendChild(actions);
+            list.appendChild(row);
+        });
+        container.appendChild(list);
+    }
+
+    window.applyThanksFilter = () => {
+        const q = (document.getElementById('thanksSearchInput')?.value || '').toLowerCase().trim();
+        if (!window.thanksAdminData) return;
+        if (!q) {
+            renderThanksFromData(window.thanksAdminData);
+            return;
+        }
+        const filtered = window.thanksAdminData.filter(i => (i.username && i.username.toLowerCase().includes(q)) || (i.displayName && i.displayName.toLowerCase().includes(q)) || (String(i.thanksReceived || '').includes(q)));
+        renderThanksFromData(filtered);
+    };
+
+    window.exportThanksCSV = () => {
+        const data = window.thanksAdminData || [];
+        if (data.length === 0) return alert('Dışa aktarılacak teşekkür verisi yok.');
+        const rows = [['uid','username','displayName','thanksReceived','thanksGivenCount','tebrikThanksCount']];
+        data.forEach(d => rows.push([d.id, d.username, d.displayName || '', d.thanksReceived || 0, (d.thanksGiven || []).length, (d.tebrikThanks || []).length]));
+        const csv = rows.map(r=>r.map(c=>('"'+String(c).replace(/"/g,'""')+'"')).join(',')).join('\n');
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `tesekkurler_${new Date().toISOString().slice(0,10)}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+    };
+
+    window.resetAllTebriks = async () => {
+        if (!confirm('Tüm kullanıcıların tebrik sayaçlarını ve tebrik kayıtlarını sıfırlamak istediğinize emin misiniz? Bu işlem geri alınamaz.')) return;
+        try {
+            const usersSnap = await getDocs(query(collection(db, 'users')));
+            if (usersSnap.empty) {
+                alert('Hiç kullanıcı bulunamadı.');
+                return;
+            }
+            if (!confirm(`${usersSnap.size} kullanıcı için tebrik alanları sıfırlanacak. Devam edilsin mi?`)) return;
+
+            const commits = [];
+            let batch = writeBatch(db);
+            let opCount = 0;
+            const CHUNK = 400; // safety under 500
+
+            usersSnap.forEach(u => {
+                const uref = doc(db, 'users', u.id);
+                batch.update(uref, { tebrikCount: 0, tebrikGivers: [], tebrikMessages: [] });
+                opCount++;
+                if (opCount >= CHUNK) {
+                    commits.push(batch.commit());
+                    batch = writeBatch(db);
+                    opCount = 0;
+                }
+            });
+            if (opCount > 0) commits.push(batch.commit());
+
+            for (let i = 0; i < commits.length; i++) {
+                await commits[i];
+                console.log(`Committed tebrik batch ${i+1}/${commits.length}`);
+            }
+
+            // Reset tebrik counts on all posts and blogs as well
+            const postDocs = await getDocs(query(collection(db, 'posts'), where('tebrikCount', '>', 0)));
+            const blogDocs = await getDocs(query(collection(db, 'blogs'), where('tebrikCount', '>', 0)));
+            if (!postDocs.empty || !blogDocs.empty) {
+                let itemBatch = writeBatch(db);
+                let itemCount = 0;
+                const itemCommits = [];
+
+                postDocs.forEach(p => {
+                    itemBatch.update(doc(db, 'posts', p.id), { tebrikCount: 0 });
+                    itemCount++;
+                    if (itemCount >= CHUNK) {
+                        itemCommits.push(itemBatch.commit());
+                        itemBatch = writeBatch(db);
+                        itemCount = 0;
+                    }
+                });
+                blogDocs.forEach(b => {
+                    itemBatch.update(doc(db, 'blogs', b.id), { tebrikCount: 0 });
+                    itemCount++;
+                    if (itemCount >= CHUNK) {
+                        itemCommits.push(itemBatch.commit());
+                        itemBatch = writeBatch(db);
+                        itemCount = 0;
+                    }
+                });
+                if (itemCount > 0) itemCommits.push(itemBatch.commit());
+                for (let i = 0; i < itemCommits.length; i++) {
+                    await itemCommits[i];
+                    console.log(`Committed content tebrik reset batch ${i+1}/${itemCommits.length}`);
+                }
+            }
+
+            alert('Tüm kullanıcıların tebrik değerleri ve içerikteki tebrik sayıları sıfırlandı.');
+            window.refreshTebrikList();
+        } catch (e) {
+            console.error('Tüm tebrikleri sıfırlama hatası:', e);
+            alert('Tüm tebrikler sıfırlanamadı. Konsolu kontrol edin.');
+        }
+    };
+
+    window.resetAllThanks = async () => {
+        if (!confirm('Tüm kullanıcıların teşekkür sayaçlarını ve kayıtlarını sıfırlamak istediğinize emin misiniz?')) return;
+        try {
+            const usersSnap = await getDocs(query(collection(db, 'users')));
+            if (usersSnap.empty) {
+                alert('Hiç kullanıcı bulunamadı.');
+                return;
+            }
+            if (!confirm(`${usersSnap.size} kullanıcı için teşekkür alanları sıfırlanacak. Devam edilsin mi?`)) return;
+
+            const commits = [];
+            let batch = writeBatch(db);
+            let opCount = 0;
+            const CHUNK = 400;
+
+            usersSnap.forEach(u => {
+                const uref = doc(db, 'users', u.id);
+                batch.update(uref, { thanksReceived: 0, thanksGiven: [] });
+                opCount++;
+                if (opCount >= CHUNK) {
+                    commits.push(batch.commit());
+                    batch = writeBatch(db);
+                    opCount = 0;
+                }
+            });
+            if (opCount > 0) commits.push(batch.commit());
+
+            for (let i = 0; i < commits.length; i++) {
+                await commits[i];
+                console.log(`Committed thanks batch ${i+1}/${commits.length}`);
+            }
+
+            alert('Tüm kullanıcıların teşekkür değerleri sıfırlandı.');
+            window.refreshThanksList();
+        } catch (e) {
+            console.error('Tüm teşekkürleri sıfırlama hatası:', e);
+            alert('Tüm teşekkürler sıfırlanamadı. Konsolu kontrol edin.');
         }
     };
 
@@ -1054,22 +1813,28 @@
             if (button) button.classList.add('active');
         }
 
-        if (!isAlreadyActive) {
-            if (tabId === 'registered') {
-                loadAllRegisteredUsers();
+            if (!isAlreadyActive) {
+                if (tabId === 'registered') {
+                    loadAllRegisteredUsers();
+                }
+                if (tabId === 'loginTimes') {
+                    loadLoginTimes();
+                }
+                if (tabId === 'userManagement') {
+                    loadAllRegisteredUsers();
+                    loadBannedUsers();
+                    loadBanAppeals();
+                }
+                if (tabId === 'polls') {
+                    loadPollsAdmin();
+                }
+                if (tabId === 'tebrikpage') {
+                    loadUserManagementTebrikThanks();
+                }
+                if (tabId === 'contenttebrik') {
+                    loadContentTebrikList();
+                }
             }
-            if (tabId === 'loginTimes') {
-                loadLoginTimes();
-            }
-            if (tabId === 'userManagement') {
-                loadAllRegisteredUsers();
-                loadBannedUsers();
-                loadBanAppeals();
-            }
-            if (tabId === 'polls') {
-                loadPollsAdmin();
-            }
-        }
     };
 
     window.switchUserSubtab = (subtabId, button) => {
@@ -1112,6 +1877,9 @@
         if (!isAlreadyActive && subtabId === 'deleted') {
             loadDeletedUsers();
         }
+        if (!isAlreadyActive && subtabId === 'tebrikthanks') {
+            loadUserManagementTebrikThanks();
+        }
     };
 
 
@@ -1131,6 +1899,43 @@
                     </div>`;
             });
         });
+    }
+
+    window.loadUserManagementTebrikThanks = async () => {
+        try {
+            const tbody = document.getElementById('user-management-tebrik-table-body');
+            if (!tbody) return;
+            tbody.innerHTML = '';
+            const usersSnap = await getDocs(query(collection(db, 'users'), orderBy('tebrikCount', 'desc')));
+            if (usersSnap.empty) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color: var(--text-muted);">Tebrik/Teşekkür verisi bulunamadı</td></tr>';
+                return;
+            }
+            usersSnap.forEach(docSnap => {
+                const d = docSnap.data();
+                const rawEmail = d.email || '';
+                const username = d.username || (rawEmail ? rawEmail.split('@')[0] : 'Bilinmiyor');
+                const name = d.displayName || d.name || username;
+                const tebrikCount = d.tebrikCount || 0;
+                const thanksReceived = d.thanksReceived || 0;
+                const row = `
+                    <tr class="user-row">
+                        <td><b>${escapeHtml(name)}</b></td>
+                        <td>@${escapeHtml(username)}</td>
+                        <td>${tebrikCount}</td>
+                        <td>${thanksReceived}</td>
+                        <td style="display:flex; flex-direction:column; gap:6px; align-items:flex-start;">
+                            <button class="action-btn" style="width:100%;" onclick="viewUserTebrik('${docSnap.id}')">Tebrikleri Gör</button>
+                            <button class="action-btn" style="width:100%;" onclick="resetUserTebrik('${docSnap.id}')">Tebrikleri Sıfırla</button>
+                            <button class="action-btn" style="width:100%;" onclick="viewUserThanks('${docSnap.id}')">Teşekkürleri Gör</button>
+                            <button class="action-btn" style="width:100%;" onclick="resetUserThanks('${docSnap.id}')">Teşekkürleri Sıfırla</button>
+                        </td>
+                    </tr>`;
+                tbody.innerHTML += row;
+            });
+        } catch (e) {
+            console.error('Kullanıcı tebrik/teşekkür listesi yüklenemedi:', e);
+        }
     }
 
     window.deletePostAdmin = async (id) => {
@@ -1182,6 +1987,31 @@
     </div>
 </div>
 
+<div id="tebrikModal" class="modal-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2100; align-items: center; justify-content: center;">
+    <div class="glass-card" style="width: 92%; max-width: 720px; padding: 20px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+            <h3 style="margin:0;" id="tebrikModalTitle">Tebrikler</h3>
+            <button onclick="closeTebrikModal()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-main);">&times;</button>
+        </div>
+        <div id="tebrikModalContent" style="max-height:60vh; overflow:auto; font-size:0.95rem; color:var(--text-main);"></div>
+        <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:12px;">
+            <button onclick="closeTebrikModal()" style="padding:8px 16px; border-radius:12px; border:1px solid var(--border); background:transparent;">Kapat</button>
+        </div>
+    </div>
+</div>
+
+<div id="thanksModal" class="modal-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2100; align-items: center; justify-content: center;">
+    <div class="glass-card" style="width: 92%; max-width: 720px; padding: 20px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+            <h3 style="margin:0;" id="thanksModalTitle">Teşekkürler</h3>
+            <button onclick="closeThanksModal()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-main);">&times;</button>
+        </div>
+        <div id="thanksModalContent" style="max-height:60vh; overflow:auto; font-size:0.95rem; color:var(--text-main);"></div>
+        <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:12px;">
+            <button onclick="closeThanksModal()" style="padding:8px 16px; border-radius:12px; border:1px solid var(--border); background:transparent;">Kapat</button>
+        </div>
+    </div>
+</div>
 <div id="editModal" class="modal-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; align-items: center; justify-content: center;">
     <div class="glass-card" style="width: 90%; max-width: 500px; padding: 20px;">
         <div style="display: flex; justify-content: space-between; margin-bottom: 15px;">
