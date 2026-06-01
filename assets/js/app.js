@@ -4921,6 +4921,7 @@ window.toggleLeftSidebar = function() {
     if (!sidebar) return;
     const isActive = sidebar.classList.toggle('active');
     if (overlay) overlay.classList.toggle('active', isActive);
+    updatePanelCloseButton();
 }
 
 window.toggleRightSidebar = function() {
@@ -4929,6 +4930,20 @@ window.toggleRightSidebar = function() {
     if (!rightPanel) return;
     const isActive = rightPanel.classList.toggle('active');
     if (overlay) overlay.classList.toggle('active', isActive);
+    updatePanelCloseButton();
+}
+
+function updatePanelCloseButton() {
+    const closeBtn = document.getElementById('closePanelBtn');
+    const sidebar = document.querySelector('aside');
+    const rightPanel = document.querySelector('.right-panel');
+    const leftActive = sidebar && sidebar.classList.contains('active');
+    const rightActive = rightPanel && rightPanel.classList.contains('active');
+    if (!closeBtn) return;
+    closeBtn.classList.toggle('active', !!(leftActive || rightActive));
+    // Close button should appear on opposite side of the open panel
+    closeBtn.classList.toggle('left-active', !!rightActive);
+    closeBtn.classList.toggle('right-active', !!leftActive);
 }
 
 window.closeSideMenus = function() {
@@ -4938,6 +4953,7 @@ window.closeSideMenus = function() {
     if (sidebar) sidebar.classList.remove('active');
     if (rightPanel) rightPanel.classList.remove('active');
     if (overlay) overlay.classList.remove('active');
+    updatePanelCloseButton();
 }
 
 // 4. Global Tıklama Dinleyicisi (Event Delegation)
@@ -6867,32 +6883,38 @@ window.loadTopTebrikList = async function() {
         }
         const users = [];
         snap.forEach(d => users.push({ id: d.id, ...d.data() }));
-        // determine maximum tebrik count among top users
         const max = users.reduce((m, u) => Math.max(m, (u.tebrikCount || 0)), 0);
-        // if the maximum is 0, there are no tebrikler to show — hide the widget
-        if (max === 0) {
-            container.innerHTML = '';
-            container.style.display = 'none';
-            return;
-        }
         container.style.display = '';
         container.innerHTML = '';
+        if (max === 0) {
+            container.innerHTML = '<div style="color:var(--text-muted); font-size:0.85rem; text-align:center;">Henüz tebrik alan kullanıcı yok.</div>';
+            return;
+        }
         users.forEach((u, idx) => {
-            const pct = Math.round(((u.tebrikCount || 0) / max) * 100);
-            const avatar = u.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.displayName||u.username||'User')}&background=random&color=fff`;
-            const el = document.createElement('div');
-            el.style.display = 'flex'; el.style.alignItems = 'center'; el.style.justifyContent = 'space-between'; el.style.gap = '8px';
-            el.innerHTML = `
-                <div style="display:flex; gap:8px; align-items:center;">
-                    <img src="${avatar}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;border:1px solid var(--border);cursor:pointer;" onclick="location.href='profil.html?id=${encodeURIComponent(u.username)}'">
-                    <div style="font-size:0.85rem;">
-                        <div style="font-weight:700;">${escapeHtml(u.displayName||u.username)}</div>
-                        <div style="font-size:0.75rem; color:var(--text-muted);">%${pct} · ${u.tebrikCount||0} tebrik · ${u.thanksReceived || 0} teşekkür</div>
+            const count = u.tebrikCount || 0;
+            const pct = Math.round((count / max) * 100);
+            const profileUsername = u.username || u.id;
+            const avatar = u.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.displayName || profileUsername || 'User')}&background=6366f1&color=fff`;
+            const item = document.createElement('div');
+            item.className = 'top-tebrik-item';
+            item.innerHTML = `
+                <div class="top-tebrik-rank">#${idx + 1}</div>
+                <div class="top-tebrik-user">
+                    <img class="top-tebrik-avatar" src="${avatar}" alt="${escapeHtml(u.displayName || profileUsername)}">
+                    <div class="top-tebrik-user-meta">
+                        <div class="top-tebrik-name">${escapeHtml(u.displayName || profileUsername)}</div>
+                        <div class="top-tebrik-stats">${count} tebrik · ${u.thanksReceived || 0} teşekkür</div>
+                        <div class="top-tebrik-progress-bar"><span style="width:${pct}%"></span></div>
                     </div>
                 </div>
-                <div style="font-size:0.85rem; font-weight:700; color:var(--primary);">#${idx+1}</div>
             `;
-            container.appendChild(el);
+            const avatarEl = item.querySelector('.top-tebrik-avatar');
+            if (avatarEl) {
+                avatarEl.addEventListener('click', () => {
+                    location.href = `profil.html?id=${encodeURIComponent(profileUsername)}`;
+                });
+            }
+            container.appendChild(item);
         });
     } catch (e) {
         console.error('loadTopTebrikList hata:', e);

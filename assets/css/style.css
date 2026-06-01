@@ -249,6 +249,124 @@ header {
     box-sizing: border-box;
 }
 
+.header-logo-link {
+    color: var(--text-main);
+    text-decoration: none;
+}
+
+.logo-container {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+}
+
+.header-center {
+    flex: 1;
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    gap: 12px;
+}
+
+.header-tools {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;
+}
+
+.header-right {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+.header-close-panel {
+    position: absolute;
+    top: 100%;
+    left: 16px;
+    margin-top: 8px;
+    display: none;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    background: rgba(255,255,255,0.95);
+    color: var(--text-main);
+    font-size: 1.2rem;
+    font-weight: 700;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    z-index: 10005;
+}
+
+.header-close-panel.active {
+    display: inline-flex;
+}
+
+.header-close-panel.left-active {
+    left: 16px;
+    right: auto;
+}
+
+.header-close-panel.right-active {
+    left: auto;
+    right: 16px;
+}
+
+@media (max-width: 768px) {
+    .header-close-panel {
+        right: auto;
+        left: 12px;
+    }
+    .header-close-panel.right-active {
+        right: 12px;
+        left: auto;
+    }
+}
+
+.notification-wrapper {
+    position: relative;
+}
+
+@media (max-width: 768px) {
+    .header-center {
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+    .logo-container {
+        align-items: center;
+        text-align: center;
+    }
+    .header-tools {
+        margin-left: 0;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+    .header-right {
+        min-width: 48px;
+    }
+}
+
+.logo {
+    font-weight: 800;
+    font-size: 1.15rem;
+    letter-spacing: 0.02em;
+    background: linear-gradient(90deg, #6366f1, #a855f7);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.logo-tagline {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    line-height: 1.1;
+}
+
 header::after { 
     content: ""; 
     position: absolute; 
@@ -538,8 +656,6 @@ body.dark-mode .most-read-table tr:nth-child(even) {
     .main-content, .page-content { font-size: 0.9rem; }
 }
 
-.header-center { display: flex; justify-content: center; align-items: center; gap: 10px; }
-
 /* ensure header areas align properly */
 .header-left, .header-right { display: flex; align-items: center; gap: 14px; }
 .header-right { flex-wrap: nowrap; }
@@ -565,8 +681,43 @@ body.dark-mode .most-read-table tr:nth-child(even) {
     pointer-events: none;
 }
 
-.profile-trigger { width: 42px; height: 42px; cursor: pointer; border-radius: 50%; border: none; overflow: hidden; }
-.profile-trigger img { width: 100%; height: 100%; object-fit: cover; }
+.profile-trigger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(99,102,241,0.16);
+    cursor: pointer;
+    overflow: hidden;
+    transition: transform 0.25s ease, box-shadow 0.25s ease, background-color 0.25s ease;
+}
+.profile-trigger:hover {
+    transform: scale(1.04);
+    background: rgba(99,102,241,0.24);
+    box-shadow: 0 10px 18px rgba(99,102,241,0.16);
+}
+.profile-trigger .avatar-wrap {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    padding: 0;
+    border: 0 !important;
+    overflow: hidden;
+    background: transparent;
+    box-shadow: none !important;
+}
+.profile-trigger .avatar-wrap img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+.profile-trigger .avatar-wrap .status-badge {
+    display: none;
+}
 
 .dropdown-menu {
     position: absolute; top: 55px; right: 0; width: 220px; background: var(--card-bg);
@@ -638,6 +789,70 @@ input:checked + .slider:before {
     padding-bottom: 8px;
     border-bottom: 1px solid var(--border);
     margin-bottom: 8px;
+}
+.top-tebrik-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(99, 102, 241, 0.08);
+}
+.top-tebrik-item:last-child {
+    border-bottom: none;
+}
+.top-tebrik-rank {
+    min-width: 30px;
+    font-size: 0.85rem;
+    font-weight: 800;
+    color: var(--primary);
+    text-align: center;
+    margin-top: 4px;
+}
+.top-tebrik-user {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+    min-width: 0;
+}
+.top-tebrik-avatar {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    object-fit: cover;
+    cursor: pointer;
+    border: 1px solid rgba(99, 102, 241, 0.18);
+}
+.top-tebrik-user-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+}
+.top-tebrik-name {
+    font-weight: 700;
+    font-size: 0.9rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.top-tebrik-stats {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+}
+.top-tebrik-progress-bar {
+    width: 100%;
+    height: 6px;
+    border-radius: 999px;
+    background: rgba(99, 102, 241, 0.12);
+    overflow: hidden;
+}
+.top-tebrik-progress-bar span {
+    display: block;
+    height: 100%;
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    border-radius: 999px;
+    transition: width 0.2s ease;
 }
 /* submenu details styling */
 details.menu-details {
@@ -1944,32 +2159,30 @@ font-size: 0.9rem; font-weight: 800; color: var(--primary); margin: 20px 0 10px;
 
 @media (max-width: 768px) {
     .side-trigger {
-        position: fixed;
-        top: 13%;
-        transform: translateY(-50%);
+        position: static;
+        top: auto;
+        transform: none;
         width: 40px;
         height: 40px;
         background: var(--primary);
         color: white;
         border: none;
-        z-index: 4000; 
         cursor: pointer;
         display: flex;
         align-items: center;
         justify-content: center;
         transition: all 0.3s ease;
+        margin: 0;
     }
 
     .left-trigger {
-        left: 0;
-        border-radius: 0 10px 10px 0;
-        box-shadow: 2px 0 5px rgba(0,0,0,0.2);
+        border-radius: 50%;
+        box-shadow: none;
     }
 
     .right-trigger {
-        right: 0;
-        border-radius: 10px 0 0 10px;
-        box-shadow: -2px 0 5px rgba(0,0,0,0.2);
+        border-radius: 50%;
+        box-shadow: none;
     }
 
     aside, .right-panel {
@@ -2394,25 +2607,22 @@ font-size: 0.9rem; font-weight: 800; color: var(--primary); margin: 20px 0 10px;
 /* MOBILE - Facebook-like adjustments */
 @media (max-width: 768px) {
     /* Header smaller and more compact */
-    header { height: 56px; padding: 0 12px; top: 32px; }
-    .header-center { display: none; } /* hide wide search */
+    header { height: 56px; padding: 0 12px; top: 0; }
+    .header-center { display: flex; }
     .header-left { gap: 8px; }
     .header-right { gap: 8px; }
     .logo { font-size: 1.1rem; }
 
     /* App container becomes single column and full width */
-    .app-container { grid-template-columns: 1fr; padding: 120px 12px 110px 12px; gap: 12px; }
+    .app-container { grid-template-columns: 1fr; padding: 88px 12px 110px 12px; gap: 12px; }
 
     /* Make cards full width and increase tap targets */
     .glass-card, .post { padding: 14px; border-radius: 12px; }
     .post { padding-bottom: 18px; }
     .post img.user-avatar, .profile-trigger { width:48px; height:48px; }
 
-    /* Hide wide search bar earlier */
-    .header-center { display: none; }
-
     /* Smaller top bar font */
-    .top-bar { font-size: 0.6rem; }
+    .top-bar { display: none; font-size: 0.6rem; }
 
     /* Make main content flush with container edges */
     .main-content, .page-content { padding: 0 5px; width: 100%; }
@@ -2452,8 +2662,8 @@ font-size: 0.9rem; font-weight: 800; color: var(--primary); margin: 20px 0 10px;
 
 /* Small devices - fixed bottom navigation like Facebook */
 @media (max-width: 480px) {
-    header { top: 28px; }
-    .top-bar { height: 28px; }
+    header { top: 0; }
+    .top-bar { display: none; height: 0; }
 
 }
 
