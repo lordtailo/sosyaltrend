@@ -41,17 +41,17 @@
             <div class="post-composer-header">
                 <div class="post-composer-profile">
                     <div class="post-composer-avatar">
-                        <img src="assets/img/strendsaydamv2.png" alt="Profil">
+                        <img id="composerAvatar" src="assets/img/strendsaydamv2.png" alt="Profil">
                     </div>
                     <div>
                         <div class="post-composer-title">Yeni paylaşımınız hazır mı?</div>
                         <div class="post-composer-subtitle">Hikaye, fotoğraf veya fikirlerinizi hemen arkadaşlarınızla paylaşın.</div>
                     </div>
                 </div>
-                <div class="post-charcount">0/280</div>
+                <div id="post-charcount" class="post-charcount">0/280</div>
             </div>
             <div class="post-composer-area">
-                <div id="postInput" contenteditable="true" oninput="updatePostCount()" data-placeholder="Gönderinizi buraya yazın..." data-i18n-placeholder="postPlaceholder"></div>
+                <div id="postInput" contenteditable="true" oninput="updatePostCount()" onkeyup="updatePostCount()" onpaste="setTimeout(updatePostCount, 0)" data-placeholder="Gönderinizi buraya yazın..." data-i18n-placeholder="postPlaceholder"></div>
             </div>
             <div class="post-composer-row">
                 <div class="post-composer-actions">
@@ -61,11 +61,11 @@
                         Fotoğraf
                     </button>
                     <div class="emoji-wrapper">
-                        <button class="post-action-btn icon-btn" id="emojiToggle" type="button">
+                        <button class="post-action-btn icon-btn emoji-toggle-btn" id="emojiToggle" type="button">
                             <i class="fa-regular fa-face-smile"></i>
                             Emoji
                         </button>
-                        <div id="emojiPicker" class="emoji-picker" style="display:none;"></div>
+                        <div id="emojiPickerPanel" class="emoji-picker"></div>
                     </div>
                 </div>
                 <button id="shareBtn" class="post-action-btn primary" type="button">Paylaş</button>
@@ -117,6 +117,6 @@
 <div id="footer-placeholder"></div>
 
 <script src="assets/js/include.js"></script>
-<script type="module" src="assets/js/home.js"></script>
+<script type="module" src="assets/js/home.js?v=20260603"></script>
 </body>
 </html>

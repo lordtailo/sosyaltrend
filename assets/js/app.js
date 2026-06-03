@@ -81,7 +81,7 @@ window.updateReplyTargetDisplay = function(postId) {
 // Track length for main post box (share)
 function updatePostCount() {
     const input = document.getElementById('postInput');
-    const counter = document.getElementById('post-charcount');
+    const counter = document.getElementById('post-charcount') || document.querySelector('.post-charcount');
     const helpText = document.getElementById('post-help');
     if (!input || !counter) return;
     let text = input.innerText || input.textContent || '';
@@ -98,6 +98,14 @@ function updatePostCount() {
     updateShareButtonState();
 }
 window.updatePostCount = updatePostCount;
+
+window.addEventListener('DOMContentLoaded', () => {
+    const postInput = document.getElementById('postInput');
+    if (postInput) {
+        postInput.addEventListener('keyup', updatePostCount);
+        postInput.addEventListener('paste', () => setTimeout(updatePostCount, 0));
+    }
+});
 
 function updateShareButtonState() {
     const shareBtn = document.getElementById('shareBtn');
@@ -2076,6 +2084,10 @@ function getAvatarUrl(avatarUrlOrSeed, type = 'user') {
     if(sDn) sDn.innerText = user.displayName || 'Misafir';
     if(sUn) sUn.innerText = user.username ? `@${user.username}` : '@kullanici';
     if(sJd && !sJd.innerText) sJd.innerText = '—';
+
+    // Post composer avatar güncelleme
+    const composerAvatar = document.getElementById('composerAvatar');
+    if (composerAvatar) composerAvatar.src = avatarUrl;
     if(pJd && !pJd.innerText) pJd.innerText = '—';
     if(sSi) sSi.innerText = user.email ? shortenEmail(user.email) : '—';
     if (isOwnProfile && pSi) pSi.innerText = user.email ? shortenEmail(user.email) : '—';
@@ -3526,16 +3538,18 @@ if (typeof updatePostCount === 'function') updatePostCount();
   if(shareBtn) {
     shareBtn.onclick = async () => {
         const btn = shareBtn;
-        let val = document.getElementById('postInput').innerText.trim();
-        if (val.length > 500) val = val.substring(0, 500);
+        const postInputEl = document.getElementById('postInput');
+        let val = postInputEl ? (postInputEl.innerText || postInputEl.textContent || '').trim() : '';
+        if (val.length > 280) val = val.substring(0, 280);
         if (!val && !selectedImageBase64) return;
 
         try {
             disableButton(btn, 'Paylaşılıyor...');
             await addDoc(collection(db, "posts"), {
+                    authorUid: auth.currentUser?.uid || null,
                     name: user.displayName,
                     username: user.username,
-                    avatarUrl: user.avatarUrl,
+                    avatarUrl: user.avatarUrl || user.photoURL || 'assets/img/strendsaydamv2.png',
                     content: val,
                     image: selectedImageBase64 || null,
                     timestamp: serverTimestamp(),
@@ -4788,48 +4802,172 @@ document.addEventListener('DOMContentLoaded', () => {
 /* ============================ */
 
 /* EMOJİ KODU */
-// Gönderi oluşturma alanındaki emoji picker dinamiğe taşındı ve kodlar
-// düzgün şekilde çözümlenecek hâle getirildi. Böylece hem HTML içinde
-// yanlışlıkla entite yazıldığında (&#128512; gibi) hem de normal yazımda
-// kullanıcıya daima gerçek emoji karakteri giriliyor.
+// Emoji picker panelini basitleştirip daha güvenilir hale getiriyoruz.
+// Panel, düğmenin altına sabitlenir ve içerik temizlenmiş şekilde yeniden çizilir.
 document.addEventListener('DOMContentLoaded', () => {
     const emojiToggle = document.getElementById('emojiToggle');
-    const emojiPicker = document.getElementById('emojiPicker');
+    const emojiPickerPanel = document.getElementById('emojiPickerPanel');
     const postInput = document.getElementById('postInput');
 
-    if (!emojiToggle || !emojiPicker || !postInput) return;
+    if (!emojiToggle || !emojiPickerPanel || !postInput) return;
 
-    // Minimal, pratik emoji listesi
-    const postEmojis = [
-        '😊','😂','😢','❤️','👍',
-        '🔥','🚀','🎉','🙏','✨',
-        '😎','💯','🙌','😇','🍕'
+    const emojis = [
+        { symbol: '😊', keywords: ['gülen', 'smile', 'happy', 'mutlu'] },
+        { symbol: '😂', keywords: ['gülmek', 'laugh', 'lol', 'komik'] },
+        { symbol: '😢', keywords: ['ağlamak', 'cry', 'sad', 'üzgün'] },
+        { symbol: '❤️', keywords: ['aşk', 'love', 'heart', 'kalp'] },
+        { symbol: '👍', keywords: ['beğen', 'like', 'good', 'tamam'] },
+        { symbol: '🔥', keywords: ['alev', 'fire', 'hot', 'harika'] },
+        { symbol: '🚀', keywords: ['roket', 'rocket', 'hızlı', 'başarı'] },
+        { symbol: '🎉', keywords: ['kutlama', 'party', 'celebrate', 'tebrik'] },
+        { symbol: '🙏', keywords: ['dua', 'pray', 'thanks', 'teşekkür'] },
+        { symbol: '✨', keywords: ['parıltı', 'sparkle', 'shine', 'ışıltı'] },
+        { symbol: '😎', keywords: ['cool', 'sunglasses', 'havalı', 'karizma'] },
+        { symbol: '💯', keywords: ['tam', 'perfect', '100', 'mükemmel'] },
+        { symbol: '🙌', keywords: ['alkış', 'celebrate', 'tebrik', 'bağırma'] },
+        { symbol: '😇', keywords: ['melek', 'angel', 'masum', 'iyi'] },
+        { symbol: '🍕', keywords: ['pizza', 'yemek', 'food', 'lezzet'] },
+        { symbol: '🥳', keywords: ['parti', 'party', 'kutlama', 'birthday'] },
+        { symbol: '🥰', keywords: ['aşık', 'love', 'romantik', 'kalp'] },
+        { symbol: '😅', keywords: ['gülmek', 'sweat', 'komik', 'utanç'] },
+        { symbol: '🤩', keywords: ['hayran', 'starstruck', 'wow', 'şok'] },
+        { symbol: '🫶', keywords: ['kalp', 'hands', 'love', 'sevgili'] },
+        { symbol: '🥺', keywords: ['rica', 'please', 'cute', 'yakarmak'] },
+        { symbol: '🌟', keywords: ['yıldız', 'star', 'parlak', 'başarı'] },
+        { symbol: '🍔', keywords: ['burger', 'yemek', 'food', 'fast food'] },
+        { symbol: '🍦', keywords: ['dondurma', 'ice cream', 'tatlı', 'şeker'] },
+        { symbol: '🎶', keywords: ['müzik', 'music', 'şarkı', 'melodi'] },
+        { symbol: '⚡', keywords: ['yıldırım', 'bolt', 'energy', 'güç'] },
+        { symbol: '🧠', keywords: ['zihin', 'brain', 'akıl', 'beyin'] },
+        { symbol: '💡', keywords: ['fikir', 'idea', 'akıl', 'ışık'] },
+        { symbol: '🛠️', keywords: ['tool', 'araç', 'tamir', 'setup'] },
+        { symbol: '📸', keywords: ['fotoğraf', 'camera', 'kamera', 'foto'] }
     ];
 
-    // Helper: HTML entitelerini metne çevirir
-    const decodeEntities = str => {
-        const txt = document.createElement('textarea');
-        txt.innerHTML = str;
-        return txt.value;
+    const createPicker = () => {
+        emojiPickerPanel.innerHTML = `
+            <div class="emoji-picker-header">
+                <div class="emoji-picker-title">Emoji seç</div>
+                <button type="button" class="emoji-picker-close" aria-label="Kapat">×</button>
+            </div>
+            <input type="search" class="emoji-search" placeholder="Emoji ara..." autocomplete="off" />
+            <div class="emoji-picker-grid"></div>
+            <div class="emoji-picker-empty" style="display:none;">Eşleşen emoji bulunamadı.</div>
+        `;
+
+        const grid = emojiPickerPanel.querySelector('.emoji-picker-grid');
+        const search = emojiPickerPanel.querySelector('.emoji-search');
+        const closeBtn = emojiPickerPanel.querySelector('.emoji-picker-close');
+        const emptyMessage = emojiPickerPanel.querySelector('.emoji-picker-empty');
+
+        if (emojiPickerPanel.parentNode !== document.body) {
+            document.body.appendChild(emojiPickerPanel);
+        }
+
+        const render = list => {
+            grid.innerHTML = '';
+            if (!list.length) {
+                emptyMessage.style.display = 'block';
+                return;
+            }
+            emptyMessage.style.display = 'none';
+            list.forEach(item => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'emoji-picker-item';
+                btn.textContent = item.symbol;
+                btn.title = item.keywords.join(', ');
+                grid.appendChild(btn);
+            });
+        };
+
+        const filterEmojis = () => {
+            const query = search.value.trim().toLowerCase();
+            if (!query) return emojis;
+            return emojis.filter(item => {
+                if (item.symbol.includes(query)) return true;
+                return item.keywords.some(keyword => keyword.toLowerCase().includes(query));
+            });
+        };
+
+        render(emojis);
+
+        const closePanel = () => {
+            emojiPickerPanel.classList.remove('open');
+            emojiPickerPanel.style.display = 'none';
+            emojiPickerPanel.style.opacity = '0';
+            emojiPickerPanel.style.visibility = 'hidden';
+        };
+
+        const openPanel = () => {
+            emojiPickerPanel.style.position = 'fixed';
+            emojiPickerPanel.style.display = 'grid';
+            emojiPickerPanel.style.opacity = '1';
+            emojiPickerPanel.style.visibility = 'visible';
+            emojiPickerPanel.style.zIndex = '9999';
+            emojiPickerPanel.classList.add('open');
+            requestAnimationFrame(positionPicker);
+        };
+
+        const positionPicker = () => {
+            const rect = emojiToggle.getBoundingClientRect();
+            const pickerRect = emojiPickerPanel.getBoundingClientRect();
+            const viewportWidth = window.innerWidth;
+            const viewportHeight = window.innerHeight;
+
+            let left = rect.left;
+            if (left + pickerRect.width + 12 > viewportWidth) {
+                left = Math.max(viewportWidth - pickerRect.width - 12, 12);
+            }
+
+            let top = rect.bottom + 10;
+            if (top + pickerRect.height + 12 > viewportHeight) {
+                top = rect.top - pickerRect.height - 10;
+                if (top < 12) top = 12;
+            }
+
+            emojiPickerPanel.style.left = `${left}px`;
+            emojiPickerPanel.style.top = `${top}px`;
+        };
+
+        emojiToggle.addEventListener('click', event => {
+            event.stopPropagation();
+            if (emojiPickerPanel.classList.contains('open')) {
+                closePanel();
+            } else {
+                openPanel();
+            }
+        });
+
+        closeBtn.addEventListener('click', () => {
+            closePanel();
+        });
+
+        search.addEventListener('input', () => render(filterEmojis()));
+
+        grid.addEventListener('click', event => {
+            const item = event.target.closest('.emoji-picker-item');
+            if (!item) return;
+            insertAtCaret(item.textContent || '');
+            closePanel();
+            postInput.focus();
+            if (typeof updatePostCount === 'function') updatePostCount();
+        });
+
+        document.addEventListener('click', event => {
+            if (!emojiPickerPanel.contains(event.target) && event.target !== emojiToggle) {
+                closePanel();
+            }
+        });
+
+        window.addEventListener('resize', () => {
+            if (emojiPickerPanel.classList.contains('open')) {
+                positionPicker();
+            }
+        });
     };
 
-    // picker içeriğini (varsa önceden yazılmış) yenileyelim
-    emojiPicker.innerHTML = '';
-    postEmojis.forEach(e => {
-        const span = document.createElement('span');
-        span.textContent = e;
-        span.style.cursor = 'pointer';
-        emojiPicker.appendChild(span);
-    });
-
-    emojiToggle.addEventListener('click', e => {
-        e.stopPropagation();
-        emojiPicker.style.display =
-            emojiPicker.style.display === 'grid' ? 'none' : 'grid';
-    });
-
-    // tek bir listener, delegation kullanarak span'lara tıkı yönet
-    function insertAtCaret(text) {
+    const insertAtCaret = text => {
         postInput.focus();
         const selection = window.getSelection();
         if (!selection || selection.rangeCount === 0) {
@@ -4843,32 +4981,15 @@ document.addEventListener('DOMContentLoaded', () => {
             range.collapse(false);
         }
         range.deleteContents();
-        const textNode = document.createTextNode(text);
-        range.insertNode(textNode);
-        range.setStartAfter(textNode);
+        const node = document.createTextNode(text);
+        range.insertNode(node);
+        range.setStartAfter(node);
         range.collapse(true);
         selection.removeAllRanges();
         selection.addRange(range);
-    }
+    };
 
-    emojiPicker.addEventListener('click', evt => {
-        evt.stopPropagation();
-        const target = evt.target;
-        if (target && target.tagName === 'SPAN') {
-            let val = target.textContent || target.innerText || '';
-            if (val.includes('&#')) {
-                val = decodeEntities(val);
-            }
-            insertAtCaret(val);
-            emojiPicker.style.display = 'none';
-            postInput.focus();
-            if (typeof updatePostCount === 'function') updatePostCount();
-        }
-    });
-
-    document.addEventListener('click', () => {
-        emojiPicker.style.display = 'none';
-    });
+    createPicker();
 });
 /* ============================ */
 
