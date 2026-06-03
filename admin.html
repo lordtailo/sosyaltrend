@@ -199,6 +199,7 @@
             <h2>Sayfa</h2>
             <div class="admin-tabs">
                 <button class="tab-btn active" onclick="switchTab('moderation', this)">İçerik Denetimi</button>
+                <button class="tab-btn" onclick="switchTab('pagepolls', this)">Anketler</button>
                 <button class="tab-btn" onclick="switchTab('tebrikpage', this)">Tebrikler & Teşekkürler</button>
                 <button class="tab-btn" onclick="switchTab('contenttebrik', this)">İçerik Tebrikleri</button>
             </div>
@@ -222,6 +223,19 @@
                         <thead><tr><th>Kullanıcı</th><th>Kullanıcı Adı</th><th>Tebrik</th><th>Teşekkür</th><th>İşlem</th></tr></thead>
                         <tbody id="user-management-tebrik-table-body"></tbody>
                     </table>
+                </div>
+            </div>
+
+            <div id="section-pagepolls" class="admin-section">
+                <div class="admin-block" style="padding:16px; margin-top:6px;">
+                    <div class="section-subtitle">Kullanıcı Gönderisi Anketleri</div>
+                    <div style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:12px; margin-bottom:16px;">
+                        <div style="color:var(--text-muted);">Kullanıcıların paylaştığı anketler burada listelenir. Anketleri bitirebilir veya silebilirsiniz.</div>
+                        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                            <button class="form-btn" onclick="loadPagePolls()">Yenile</button>
+                        </div>
+                    </div>
+                    <div id="admin-pagepolls-list"></div>
                 </div>
             </div>
 
@@ -1763,7 +1777,7 @@
                                 <div style="font-size:0.85rem; color: var(--text-muted);">${statusText} · Toplam oy: ${totalVotes}</div>
                             </div>
                             <div style="display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end;">
-                                <button class="action-btn" style="background:#6366f1; color:white;" onclick="forceExpirePoll('${pollDoc.id}')">Bitir</button>
+                                <button class="action-btn" style="background:#6366f1; color:white; min-width:140px; padding:12px 18px;" onclick="forceExpirePoll('${pollDoc.id}')">Bitir</button>
                                 <button class="action-btn btn-delete" onclick="deletePollAdmin('${pollDoc.id}')">Sil</button>
                             </div>
                         </div>
@@ -1827,6 +1841,9 @@
                 }
                 if (tabId === 'polls') {
                     loadPollsAdmin();
+                }
+                if (tabId === 'pagepolls') {
+                    loadPagePolls();
                 }
                 if (tabId === 'tebrikpage') {
                     loadUserManagementTebrikThanks();
@@ -1899,6 +1916,70 @@
                     </div>`;
             });
         });
+    }
+
+    async function loadPagePolls() {
+        try {
+            const pollsList = document.getElementById('admin-pagepolls-list');
+            if (!pollsList) return;
+            pollsList.innerHTML = '<div style="color: var(--text-muted); padding: 12px;">Yükleniyor...</div>';
+
+            const q = query(collection(db, 'posts'), orderBy('timestamp', 'desc'), limit(500));
+            const snap = await getDocs(q);
+            const pollPosts = [];
+            snap.forEach(docSnap => {
+                const data = docSnap.data();
+                if (data && data.poll && typeof data.poll === 'object') {
+                    pollPosts.push({ id: docSnap.id, ...data });
+                }
+            });
+
+            if (pollPosts.length === 0) {
+                pollsList.innerHTML = '<div style="color: var(--text-muted); padding: 12px;">Henüz kullanıcı anketi bulunamadı.</div>';
+                return;
+            }
+
+            pollsList.innerHTML = '';
+            pollPosts.forEach(post => {
+                const poll = post.poll || {};
+                const question = poll.question || 'Anket verisi yok';
+                const expiresAt = poll.expiresAt?.toDate ? poll.expiresAt.toDate() : new Date(poll.expiresAt);
+                const isExpired = expiresAt <= new Date();
+                const totalVotes = Object.values(poll.counts || {}).reduce((sum, v) => sum + (v || 0), 0);
+                const statusText = isExpired ? 'Süresi doldu' : `Aktif - bitiş: ${expiresAt.toLocaleString('tr-TR')}`;
+                const optionRows = (poll.options || []).map(opt => {
+                    const voteCount = poll.counts?.[opt.id] || 0;
+                    const percentage = totalVotes ? Math.round((voteCount / totalVotes) * 100) : 0;
+                    return `
+                        <div style="margin-bottom:8px;">
+                            <div style="display:flex; justify-content:space-between; gap:10px; font-size:0.92rem;">
+                                <span>${escapeHtml(opt.label)}</span>
+                                <span>${voteCount} oy · ${percentage}%</span>
+                            </div>
+                            <div style="height:6px; background: var(--border); border-radius:999px; overflow:hidden; margin-top:6px;"><div style="width:${percentage}%; height:100%; background: linear-gradient(135deg, var(--primary), #8b5cf6);"></div></div>
+                        </div>`;
+                }).join('');
+
+                pollsList.innerHTML += `
+                    <div class="glass-card" style="padding:18px; margin-bottom:14px; border-left: 4px solid ${isExpired ? '#94a3b8' : 'var(--primary)'};">
+                        <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px; margin-bottom:12px; flex-wrap:wrap;">
+                            <div style="max-width:calc(100% - 220px);">
+                                <strong style="display:block; margin-bottom:8px;">${escapeHtml(question)}</strong>
+                                <div style="font-size:0.9rem; color: var(--text-muted);">@${escapeHtml(post.username || 'anonim')} · ${statusText} · Toplam oy: ${totalVotes}</div>
+                            </div>
+                            <div style="display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end;">
+                                ${!isExpired ? `<button class="action-btn" style="background:#ef4444; color:white; min-width:140px; padding:12px 18px;" onclick="finishPostPoll('${post.id}')">Bitir</button>` : ''}
+                                <button class="action-btn btn-delete" onclick="deletePostAdmin('${post.id}')">Sil</button>
+                            </div>
+                        </div>
+                        ${optionRows}
+                    </div>`;
+            });
+        } catch (e) {
+            console.error('Page polls yüklenirken hata:', e);
+            const pollsList = document.getElementById('admin-pagepolls-list');
+            if (pollsList) pollsList.innerHTML = '<div style="color: var(--danger); padding: 12px;">Kullanıcı anketleri yüklenemedi.</div>';
+        }
     }
 
     window.loadUserManagementTebrikThanks = async () => {

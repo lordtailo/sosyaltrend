@@ -67,10 +67,36 @@
                         </button>
                         <div id="emojiPickerPanel" class="emoji-picker"></div>
                     </div>
+                    <button class="post-action-btn icon-btn poll-toggle-btn" id="pollToggle" type="button">
+                        <i class="fa-solid fa-square-poll-vertical"></i>
+                        Anket
+                    </button>
                 </div>
                 <button id="shareBtn" class="post-action-btn primary" type="button">Paylaş</button>
             </div>
             <div id="post-help" class="post-help-text">Yazınızı yazın, resim ekleyin ve ardından hızlıca paylaşın.</div>
+            <div id="pollForm" class="poll-form" style="display: none;">
+                <div class="poll-form-grid">
+                    <label for="pollQuestionComposer">Anket sorusu</label>
+                    <input id="pollQuestionComposer" type="text" placeholder="Anket sorusunu yazın...">
+                    <label>Seçenekler</label>
+                    <input id="pollOption1Composer" type="text" placeholder="Seçenek 1">
+                    <input id="pollOption2Composer" type="text" placeholder="Seçenek 2">
+                    <input id="pollOption3Composer" type="text" placeholder="Seçenek 3 (isteğe bağlı)">
+                    <input id="pollOption4Composer" type="text" placeholder="Seçenek 4 (isteğe bağlı)">
+                    <div class="poll-form-row">
+                        <label for="pollDaysComposer">Gün</label>
+                        <input id="pollDaysComposer" type="number" min="0" max="30" value="0">
+                        <label for="pollHoursComposer">Saat</label>
+                        <input id="pollHoursComposer" type="number" min="1" max="168" value="24">
+                    </div>
+                </div>
+                <div class="poll-form-actions">
+                    <button id="cancelPollBtn" class="post-action-btn icon-btn" type="button">İptal</button>
+                    <button id="createPollFromComposerBtn" class="post-action-btn primary" type="button">Anket Oluştur</button>
+                </div>
+                <div id="pollFormMessage" class="poll-form-message"></div>
+            </div>
             <div id="imagePreviewContainer" class="post-composer-preview" style="display: none;">
                 <img id="imagePreview" src="" alt="Gönderi resmi önizlemesi">
                 <button type="button" onclick="clearImagePreview()" class="post-preview-remove">

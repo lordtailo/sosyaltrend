@@ -213,6 +213,77 @@ body.dark-mode .post-composer {
     background: linear-gradient(145deg, rgba(99,102,241,0.16), rgba(147,51,234,0.18));
 }
 
+.poll-toggle-btn {
+    background: linear-gradient(145deg, rgba(16,185,129,0.12), rgba(34,197,94,0.14));
+    border-color: rgba(34,197,94,0.28);
+    color: #16a34a;
+    box-shadow: 0 12px 24px rgba(34,197,94,0.14);
+}
+
+.poll-toggle-btn:hover {
+    background: linear-gradient(145deg, rgba(16,185,129,0.16), rgba(34,197,94,0.18));
+}
+
+.poll-toggle-btn.active {
+    box-shadow: 0 16px 28px rgba(34,197,94,0.22);
+}
+
+.poll-form {
+    margin-top: 16px;
+    border: 1px solid rgba(99,102,241,0.18);
+    border-radius: 24px;
+    padding: 18px;
+    background: rgba(255,255,255,0.04);
+}
+
+.poll-form-grid {
+    display: grid;
+    gap: 12px;
+}
+
+.poll-form-grid label {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+}
+
+.poll-form-grid input {
+    width: 100%;
+    padding: 12px 14px;
+    border-radius: 14px;
+    border: 1px solid rgba(99,102,241,0.16);
+    background: transparent;
+    color: var(--text-main);
+}
+
+.poll-form-row {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.poll-form-row label {
+    min-width: 48px;
+}
+
+.poll-form-row input {
+    width: 120px;
+}
+
+.poll-form-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: flex-end;
+    margin-top: 12px;
+}
+
+.poll-form-message {
+    margin-top: 10px;
+    font-size: 0.9rem;
+    color: var(--danger);
+}
+
 .post-action-btn.primary {
     background: linear-gradient(135deg, #6366f1, #7c3aed);
     color: #fff;
@@ -1103,6 +1174,115 @@ input:checked + .slider:before {
     padding-bottom: 8px;
     border-bottom: 1px solid var(--border);
     margin-bottom: 8px;
+}
+.sidebar-poll-card {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+.sidebar-poll-block {
+    margin-bottom: 14px;
+    padding: 16px;
+    border-radius: 18px;
+    background: rgba(99,102,241,0.05);
+    border: 1px solid rgba(99,102,241,0.16);
+}
+.sidebar-poll-header {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    align-items: flex-start;
+}
+.sidebar-poll-meta {
+    font-size: 0.82rem;
+    color: var(--text-muted);
+}
+.sidebar-poll-options {
+    display: grid;
+    gap: 10px;
+}
+.sidebar-poll-option {
+    padding: 12px 14px;
+    border-radius: 18px;
+    border: 1px solid rgba(255,255,255,0.08);
+    background: rgba(255,255,255,0.03);
+    display: grid;
+    gap: 10px;
+}
+.sidebar-poll-option.active {
+    border-color: rgba(99,102,241,0.4);
+    background: rgba(99,102,241,0.1);
+}
+.sidebar-poll-option-header,
+.sidebar-poll-option-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+}
+.sidebar-poll-progress {
+    width: 100%;
+    height: 8px;
+    border-radius: 999px;
+    overflow: hidden;
+    background: var(--border);
+}
+.sidebar-poll-progress-bar {
+    height: 100%;
+    background: linear-gradient(135deg, var(--primary), #8b5cf6);
+    border-radius: 999px;
+}
+.sidebar-poll-avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 1px solid rgba(255,255,255,0.18);
+}
+.sidebar-poll-button-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+.sidebar-poll-button {
+    width: 100%;
+}
+.sidebar-poll-finished {
+    display: grid;
+    gap: 10px;
+}
+.sidebar-poll-finished-card {
+    padding: 12px 14px;
+    border-radius: 18px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.08);
+}
+.sidebar-finished-section {
+    padding: 16px;
+    border-radius: 20px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+}
+.sidebar-finished-section hr {
+    margin: 0 0 8px;
+    border: none;
+    border-top: 1px solid rgba(255,255,255,0.12);
+}
+.sidebar-poll-empty {
+    text-align: center;
+    font-size: 0.9rem;
+    color: var(--text-muted);
+}
+.sidebar-voter-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: rgba(99,102,241,0.08);
+    border: 1px solid rgba(99,102,241,0.16);
+    font-size: 0.82rem;
+    color: var(--text);
 }
 .top-tebrik-item {
     display: flex;
@@ -2219,6 +2399,41 @@ color: var(--primary); font-weight: 600; cursor: pointer; text-decoration: none;
 }
 .tool-btn:hover { background: var(--premium-gradient); color: white; transform: rotate(8deg); }
 
+.poll-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    border: none;
+    border-radius: 16px;
+    padding: 12px 18px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform 0.18s ease, filter 0.18s ease, box-shadow 0.18s ease;
+    box-shadow: 0 14px 28px rgba(15, 23, 42, 0.08);
+}
+.poll-btn:hover {
+    transform: translateY(-1px);
+    filter: brightness(1.04);
+}
+.poll-btn-primary {
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    color: white;
+}
+.poll-btn-warning {
+    background: linear-gradient(135deg, #f97316, #fb923c);
+    color: white;
+}
+.poll-btn-danger {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    color: white;
+}
+.poll-btn-outline {
+    background: rgba(255, 255, 255, 0.05);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+}
+
 #shareBtn {
     background: var(--premium-gradient) !important;
     box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4);
@@ -2484,12 +2699,13 @@ font-size: 0.9rem; font-weight: 800; color: var(--primary); margin: 20px 0 10px;
     aside, .right-panel {
         position: fixed;
         top: 0;
-        width: min(280px, 100%);
+        width: 100%;
+        max-width: none;
         height: 100vh;
         background: var(--card-bg);
         z-index: 10002;
         transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-        padding: 32px;
+        padding: 32px 16px 16px;
         overflow-y: auto;
         box-sizing: border-box; 
         display: block !important;
@@ -2505,7 +2721,7 @@ font-size: 0.9rem; font-weight: 800; color: var(--primary); margin: 20px 0 10px;
         right: 0;
         left: auto;
         transform: translateX(100%);
-        max-width: 280px;
+        max-width: none;
         background: var(--card-bg);
     }
     

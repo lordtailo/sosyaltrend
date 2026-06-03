@@ -1,5 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, Timestamp, doc, updateDoc, setDoc, arrayUnion, arrayRemove, deleteDoc, getDoc, getDocs, limit, where, increment } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, Timestamp, doc, updateDoc, setDoc, arrayUnion, arrayRemove, deleteDoc, getDoc, getDocs, limit, where, increment, runTransaction } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { ozelGunler, tarihteBugun, ramazanTakvimi } from "./calendarDays.js";
 import { getAuth, onAuthStateChanged, signOut, updateEmail, updatePassword, sendPasswordResetEmail, updateProfile, deleteUser } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
@@ -99,12 +99,192 @@ function updatePostCount() {
 }
 window.updatePostCount = updatePostCount;
 
-window.addEventListener('DOMContentLoaded', () => {
+function getComposerPollElements() {
+    return {
+        pollToggleBtn: document.getElementById('pollToggle'),
+        pollForm: document.getElementById('pollForm'),
+        cancelPollBtn: document.getElementById('cancelPollBtn'),
+        createPollButton: document.getElementById('createPollFromComposerBtn'),
+        pollFormMessage: document.getElementById('pollFormMessage'),
+        questionInput: document.getElementById('pollQuestionComposer'),
+        optionInputs: [
+            document.getElementById('pollOption1Composer'),
+            document.getElementById('pollOption2Composer'),
+            document.getElementById('pollOption3Composer'),
+            document.getElementById('pollOption4Composer')
+        ],
+        daysInput: document.getElementById('pollDaysComposer'),
+        hoursInput: document.getElementById('pollHoursComposer')
+    };
+}
+
+function clearPollForm() {
+    const {
+        pollForm,
+        pollToggleBtn,
+        questionInput,
+        optionInputs,
+        daysInput,
+        hoursInput,
+        pollFormMessage
+    } = getComposerPollElements();
+    if (questionInput) questionInput.value = '';
+    optionInputs.forEach(opt => { if (opt) opt.value = ''; });
+    if (daysInput) daysInput.value = '0';
+    if (hoursInput) hoursInput.value = '24';
+    if (pollFormMessage) pollFormMessage.textContent = '';
+    if (pollForm) pollForm.style.display = 'none';
+    if (pollToggleBtn) pollToggleBtn.classList.remove('active');
+}
+
+function initComposerPollControls() {
+    if (window.__composerPollControlsInitialized) return;
+    window.__composerPollControlsInitialized = true;
+
     const postInput = document.getElementById('postInput');
     if (postInput) {
         postInput.addEventListener('keyup', updatePostCount);
         postInput.addEventListener('paste', () => setTimeout(updatePostCount, 0));
     }
+
+    const pollToggleBtn = document.getElementById('pollToggle');
+    if (pollToggleBtn) {
+        pollToggleBtn.addEventListener('click', togglePollForm);
+    }
+
+    const cancelPollBtn = document.getElementById('cancelPollBtn');
+    if (cancelPollBtn) {
+        cancelPollBtn.addEventListener('click', clearPollForm);
+    }
+
+    const createPollBtn = document.getElementById('createPollFromComposerBtn');
+    if (createPollBtn) {
+        createPollBtn.addEventListener('click', createPollPostFromComposer);
+    }
+}
+
+function showPollForm() {
+    const { pollForm, pollToggleBtn } = getComposerPollElements();
+    if (pollForm) pollForm.style.display = 'block';
+    if (pollToggleBtn) pollToggleBtn.classList.add('active');
+}
+
+function togglePollForm() {
+    const { pollForm } = getComposerPollElements();
+    if (!pollForm) return;
+    if (pollForm.style.display === 'block') {
+        clearPollForm();
+    } else {
+        showPollForm();
+    }
+}
+
+function getComposerPollData() {
+    const {
+        questionInput,
+        optionInputs,
+        daysInput,
+        hoursInput,
+        pollFormMessage
+    } = getComposerPollElements();
+    if (!questionInput || optionInputs.length < 2 || !daysInput || !hoursInput) {
+        return { error: 'Anket formu eksik.' };
+    }
+    const question = questionInput.value.trim();
+    const options = optionInputs
+        .map((input, index) => ({
+            id: `option_${index + 1}`,
+            label: input?.value.trim() || ''
+        }))
+        .filter(opt => opt.label);
+    const days = parseInt(daysInput.value, 10) || 0;
+    const hours = parseInt(hoursInput.value, 10) || 0;
+    const totalHours = (days * 24) + hours;
+    if (!question) {
+        return { error: 'Anket sorusunu girin.' };
+    }
+    if (options.length < 2) {
+        return { error: 'En az iki geçerli seçenek girin.' };
+    }
+    if (totalHours <= 0) {
+        return { error: 'Lütfen anket süresi için geçerli bir zaman girin.' };
+    }
+    if (totalHours > 720) {
+        return { error: 'Maksimum süre 30 gün (720 saat) olmalıdır.' };
+    }
+    const expiresAt = Timestamp.fromDate(new Date(Date.now() + totalHours * 3600 * 1000));
+    const counts = options.reduce((acc, opt) => {
+        acc[opt.id] = 0;
+        return acc;
+    }, {});
+    return {
+        question,
+        options,
+        expiresAt,
+        counts,
+        durationHours: totalHours
+    };
+}
+
+async function createPollPostFromComposer() {
+    const { createPollButton, pollFormMessage } = getComposerPollElements();
+    const postInputEl = document.getElementById('postInput');
+    if (!createPollButton || !postInputEl) return;
+    const pollData = getComposerPollData();
+    if (pollData.error) {
+        if (pollFormMessage) pollFormMessage.textContent = pollData.error;
+        return;
+    }
+    if (!auth.currentUser) {
+        if (pollFormMessage) pollFormMessage.textContent = 'Oy kullanmak için lütfen giriş yapın.';
+        return;
+    }
+
+    let val = (postInputEl.innerText || postInputEl.textContent || '').trim();
+    if (val.length > 280) val = val.substring(0, 280);
+
+    try {
+        disableButton(createPollButton, 'Oluşturuluyor...');
+        await addDoc(collection(db, 'posts'), {
+            authorUid: auth.currentUser.uid,
+            name: user.displayName,
+            username: user.username,
+            avatarUrl: user.avatarUrl || user.photoURL || 'assets/img/strendsaydamv2.png',
+            content: val || '',
+            image: selectedImageBase64 || null,
+            poll: {
+                question: pollData.question,
+                options: pollData.options,
+                counts: pollData.counts,
+                voters: [],
+                expiresAt: pollData.expiresAt,
+                authorUid: auth.currentUser.uid
+            },
+            timestamp: serverTimestamp(),
+            likes: [],
+            savedBy: [],
+            comments: []
+        });
+
+        clearPollForm();
+        document.getElementById('postInput').innerText = '';
+        if (typeof updatePostCount === 'function') updatePostCount();
+        window.clearImagePreview();
+        if (pollFormMessage) pollFormMessage.textContent = 'Anket yayına alındı!';
+        setTimeout(() => { if (pollFormMessage) pollFormMessage.textContent = ''; }, 3000);
+        if (typeof loadPostsFeed === 'function') {
+            setTimeout(loadPostsFeed, 800);
+        }
+    } catch (error) {
+        console.error('Anket gönderi oluşturma hatası:', error);
+        if (pollFormMessage) pollFormMessage.textContent = 'Anket oluşturulamadı. Lütfen tekrar deneyin.';
+    } finally {
+        enableButton(createPollButton, 'Anket Oluştur');
+    }
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+    initComposerPollControls();
 });
 
 function updateShareButtonState() {
@@ -349,50 +529,70 @@ async function loadTopReadBlogs() {
 function renderActivePoll(container, activePoll, now, finishedPolls = []) {
     const pollExpired = activePoll.expiresAt <= now;
     const totalVotes = Object.values(activePoll.counts || {}).reduce((sum, count) => sum + (count || 0), 0);
-    const userVoted = auth.currentUser && (activePoll.voters || []).some(v => v.uid === auth.currentUser.uid);
+    const currentUserVote = auth.currentUser && (activePoll.voters || []).find(v => v.uid === auth.currentUser.uid);
+    const votedOptionId = currentUserVote?.optionId;
+    const votedAvatarUrl = getAvatarUrl(
+        currentUserVote?.avatarUrl || currentUserVote?.avatar || currentUserVote?.photoURL || user.avatarUrl || auth.currentUser?.photoURL || 'assets/img/strendsaydamv2.png',
+        'user'
+    );
+    const userVoted = !!currentUserVote;
     const canVote = !pollExpired && auth.currentUser && !userVoted;
+    const canUnvote = !pollExpired && userVoted;
+    const canFinish = auth.currentUser && (activePoll.authorUid === auth.currentUser.uid || user.isAdmin);
 
-    const optionButtons = (activePoll.options || []).map(opt => {
+    const optionsHtml = (activePoll.options || []).map(opt => {
         const count = activePoll.counts?.[opt.id] || 0;
         const percent = totalVotes ? Math.round((count / totalVotes) * 100) : 0;
+        const selectedAvatarHtml = opt.id === votedOptionId ? `<img src="${votedAvatarUrl}" alt="Oyunuz" class="sidebar-poll-avatar">` : '';
         return `
             <div style="margin-bottom: 12px;">
                 <div style="display:flex; justify-content:space-between; gap:10px; align-items:center; font-size:0.95rem;">
                     <span>${escapeHtml(opt.label)}</span>
-                    <span>${count} oy</span>
+                    <span style="display:flex; align-items:center; gap:8px;">${count} oy · ${percent}%${selectedAvatarHtml ? ` ${selectedAvatarHtml}` : ''}</span>
                 </div>
                 <div style="height: 10px; background: var(--border); border-radius: 999px; overflow:hidden; margin-top:6px;">
                     <div style="width: ${percent}%; height:100%; background: linear-gradient(135deg, var(--primary), #8b5cf6);"></div>
                 </div>
-                ${canVote ? `<button onclick="votePoll('${activePoll.id}', '${opt.id}')" style="margin-top:10px; width:100%; background: var(--primary); color:white; border:none; border-radius:12px; padding:10px; cursor:pointer;">Oy ver</button>` : ''}
+                ${canVote ? `<button class="poll-btn poll-btn-primary sidebar-poll-button" style="display:block; margin-top:8px; width:100%;" onclick="votePoll('${activePoll.id}', '${opt.id}')">Bu seçeneğe oy ver</button>` : ''}
             </div>`;
     }).join('');
 
-    const votersHtml = (activePoll.voters || []).slice(0, 12).map(v => `<span style="display:inline-flex; margin:2px 4px; padding:6px 10px; border-radius:999px; border:1px solid var(--border); background: rgba(99,102,241,0.08);">${escapeHtml(v.displayName || v.username || 'Anonim')}</span>`).join('') || '<div style="color: var(--text-muted);">Henüz oy kullanan yok.</div>';
+    const votersHtml = (activePoll.voters || []).slice(0, 12).map(v => `<span style="display:inline-flex; margin:2px 4px; padding:6px 10px; border-radius:999px; border:1px solid rgba(99,102,241,0.3); background: rgba(99,102,241,0.08);">${escapeHtml(v.displayName || v.username || 'Anonim')}</span>`).join('') || '<div style="color: var(--text-muted);">Henüz oy kullanan yok.</div>';
 
     container.innerHTML = `
-        <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px; margin-bottom: 10px;">
-            <div>
-                <strong style="font-size:0.95rem;">${escapeHtml(activePoll.question)}</strong>
-                <div style="font-size:0.8rem; color: var(--text-muted); margin-top:4px;">${pollExpired ? 'Anket süresi doldu' : `Bitiş: ${activePoll.expiresAt.toLocaleString('tr-TR')}`}</div>
+        <div class="sidebar-poll-block">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px; margin-bottom:12px; flex-wrap:wrap;">
+                <div>
+                    <strong style="font-size:0.95rem;">${escapeHtml(activePoll.question)}</strong>
+                    <div style="font-size:0.82rem; color: var(--text-muted); margin-top:4px;">${pollExpired ? 'Anket süresi doldu' : `Bitiş: ${activePoll.expiresAt.toLocaleString('tr-TR')}`}</div>
+                </div>
+                <div style="display:flex; gap:10px; flex-wrap:wrap; justify-content:flex-end; align-items:flex-end;">
+                    ${canUnvote ? `<button class="poll-btn poll-btn-warning" style="min-width:150px;" onclick="removePollVote('${activePoll.id}')">Oyumu Kaldır</button>` : ''}
+                    ${canFinish && !pollExpired ? `<button class="poll-btn poll-btn-danger" style="min-width:150px;" onclick="finishPoll('${activePoll.id}')">Anketi Bitir</button>` : ''}
+                </div>
             </div>
-            <div style="font-size:0.8rem; color: var(--text-muted);">${totalVotes} oy</div>
+            <div style="font-size:0.85rem; color: var(--text-muted); margin-bottom:12px;">Toplam oy: ${totalVotes}</div>
+            <div>${optionsHtml}</div>
+            <div style="margin-top: 14px; font-size:0.85rem; color: var(--text-muted);">Oy kullananlar:</div>
+            <div style="margin-top: 8px; display:flex; flex-wrap:wrap; gap:4px;">${votersHtml}</div>
+            ${!auth.currentUser ? '<div class="sidebar-poll-empty">Oy vermek için giriş yapın.</div>' : ''}
+            ${auth.currentUser && userVoted && !pollExpired ? '<div class="sidebar-poll-empty" style="color: var(--success);">Oyunuz kaydedildi. Sonuçları görebilirsiniz.</div>' : ''}
         </div>
-        <div>${optionButtons}</div>
-        <div style="font-size:0.85rem; color: var(--text-muted); margin-top: 8px;">Oy kullananlar:</div>
-        <div style="margin-top: 8px; display:flex; flex-wrap:wrap; gap:4px;">${votersHtml}</div>
-        ${!auth.currentUser ? '<div style="margin-top:10px; color:var(--danger); font-size:0.9rem;">Oy vermek için giriş yapın.</div>' : ''}
-        ${auth.currentUser && userVoted && !pollExpired ? '<div style="margin-top:10px; color:var(--success); font-size:0.9rem;">Oyunuz kaydedildi. Sonuçları görebilirsiniz.</div>' : ''}
-        ${finishedPolls.length ? `<div style="margin-top: 18px; font-size:0.92rem; font-weight:700; text-align:center;">Biten anketler</div>` : ''}
-        ${finishedPolls.map(poll => {
-            const total = Object.values(poll.counts || {}).reduce((sum, count) => sum + (count || 0), 0);
-            return `
-                <div style="margin-top: 10px; padding: 12px 14px; background: rgba(255,255,255,0.03); border-radius: 14px; border: 1px solid var(--border);">
-                    <div style="font-size:0.92rem; font-weight:700; margin-bottom:6px;">${escapeHtml(poll.question)}</div>
-                    <div style="font-size:0.8rem; color: var(--text-muted); margin-bottom: 8px;">Toplam oy: ${total} · Bitiş: ${poll.expiresAt.toLocaleString('tr-TR')}</div>
-                    <button onclick="showPollResults('${poll.id}')" style="width:100%; background: var(--primary); color:white; border:none; border-radius:12px; padding:10px; cursor:pointer;">Sonuçları Göster</button>
-                </div>`;
-        }).join('')}
+        ${finishedPolls.length ? `<div class="sidebar-finished-section">
+                <div style="display:flex; justify-content:center; margin: 16px 0 8px;">
+                    <strong style="font-size:1.08rem; font-weight:900; text-align:center; color: #ef4444;">Biten Anketler</strong>
+                </div>
+                <hr>
+                ${finishedPolls.map(poll => {
+                    const total = Object.values(poll.counts || {}).reduce((sum, count) => sum + (count || 0), 0);
+                    return `
+                        <div class="sidebar-poll-finished-card">
+                            <div style="font-size:0.92rem; font-weight:700; margin-bottom:6px;">${escapeHtml(poll.question)}</div>
+                            <div class="sidebar-poll-meta" style="margin-bottom: 8px;">Toplam oy: ${total} · Bitiş: ${poll.expiresAt.toLocaleString('tr-TR')}</div>
+                            <button class="poll-btn poll-btn-primary sidebar-poll-button" onclick="showPollResults('${poll.id}')">Sonuçları Göster</button>
+                        </div>`;
+                }).join('')}
+            </div>` : ''}
     `;
 }
 
@@ -405,16 +605,22 @@ window.renderFinishedPollList = function(container, finishedPolls, now) {
     const listHtml = finishedPolls.map(poll => {
         const totalVotes = Object.values(poll.counts || {}).reduce((sum, count) => sum + (count || 0), 0);
         return `
-            <div style="margin-bottom: 14px; padding: 14px; background: rgba(255,255,255,0.03); border-radius: 16px; border: 1px solid var(--border);">
+            <div class="sidebar-poll-finished-card">
                 <div style="font-size:0.95rem; font-weight:700; margin-bottom: 6px;">${escapeHtml(poll.question)}</div>
-                <div style="font-size:0.82rem; color: var(--text-muted); margin-bottom: 10px;">Toplam oy: ${totalVotes} · Bitiş: ${poll.expiresAt.toLocaleString('tr-TR')}</div>
-                <button onclick="showPollResults('${poll.id}')" style="width:100%; background: var(--primary); color:white; border:none; border-radius:12px; padding:10px; cursor:pointer;">Sonuçları Göster</button>
+                <div class="sidebar-poll-meta" style="margin-bottom: 10px;">Toplam oy: ${totalVotes} · Bitiş: ${poll.expiresAt.toLocaleString('tr-TR')}</div>
+                <button class="poll-btn poll-btn-primary sidebar-poll-button" onclick="showPollResults('${poll.id}')">Sonuçları Göster</button>
             </div>`;
     }).join('');
 
     container.innerHTML = `
         <div style="margin-bottom: 12px; font-size:0.95rem; font-weight:700; text-align:center;"><span style="color: #22c55e;">Aktif anket bulunmuyor.</span><br>Geçmiş anketler aşağıdadır.</div>
-        ${listHtml}
+        <div class="sidebar-finished-section">
+            <div style="display:flex; justify-content:center; margin: 16px 0 8px;">
+                <strong style="font-size:1.08rem; font-weight:900; text-align:center; color: #ef4444;">Biten Anketler</strong>
+            </div>
+            <hr>
+            ${listHtml}
+        </div>
     `;
 }
 
@@ -496,6 +702,7 @@ window.votePoll = async function(pollId, optionId) {
             uid: currentUser.uid,
             username: user.username || currentUser.email?.split('@')[0] || 'Anonim',
             displayName: user.displayName || currentUser.displayName || currentUser.email?.split('@')[0] || 'Anonim',
+            avatarUrl: user.avatarUrl || currentUser.photoURL || 'assets/img/strendsaydamv2.png',
             optionId,
             votedAt: new Date()
         };
@@ -507,6 +714,297 @@ window.votePoll = async function(pollId, optionId) {
     } catch (error) {
         console.error('Oy verme hatası:', error);
         alert('Oyunuz kaydedilemedi. Lütfen tekrar deneyin.');
+    }
+};
+
+function renderPostPoll(poll, postId) {
+    const expiresAt = poll.expiresAt?.toDate ? poll.expiresAt.toDate() : new Date(poll.expiresAt);
+    const pollExpired = expiresAt <= new Date();
+    const totalVotes = Object.values(poll.counts || {}).reduce((sum, count) => sum + (count || 0), 0);
+    const currentUserVote = auth.currentUser && (poll.voters || []).find(v => v.uid === auth.currentUser.uid);
+    const votedOptionId = currentUserVote?.optionId;
+    const votedAvatarUrl = getAvatarUrl(
+        currentUserVote?.avatarUrl || currentUserVote?.avatar || currentUserVote?.photoURL || user.avatarUrl || auth.currentUser?.photoURL || 'assets/img/strendsaydamv2.png',
+        'user'
+    );
+    const userVoted = !!currentUserVote;
+    const canVote = !pollExpired && auth.currentUser && !userVoted;
+    const canUnvote = !pollExpired && userVoted;
+    const canFinish = auth.currentUser && (poll.authorUid === auth.currentUser.uid || user.isAdmin);
+    const votersHtml = (poll.voters || []).slice(0, 12).map(v => `<span style="display:inline-flex; margin:2px 4px; padding:6px 10px; border-radius:999px; border:1px solid rgba(99,102,241,0.3); background: rgba(99,102,241,0.08);">${escapeHtml(v.displayName || v.username || 'Anonim')}</span>`).join('') || '<div style="color: var(--text-muted);">Henüz oy kullanan yok.</div>';
+    const optionsHtml = (poll.options || []).map(opt => {
+        const count = poll.counts?.[opt.id] || 0;
+        const percent = totalVotes ? Math.round((count / totalVotes) * 100) : 0;
+        const selectedAvatarHtml = opt.id === votedOptionId ? `<img src="${votedAvatarUrl}" alt="Oyunuz" style="width:26px; height:26px; border-radius:50%; object-fit:cover; border:1px solid rgba(255,255,255,0.16);">` : '';
+        return `
+            <div style="margin-bottom: 12px;">
+                <div style="display:flex; justify-content:space-between; gap:10px; align-items:center; font-size:0.95rem;">
+                    <span>${escapeHtml(opt.label)}</span>
+                    <span style="display:flex; align-items:center; gap:8px;">${count} oy · ${percent}%${selectedAvatarHtml ? ` ${selectedAvatarHtml}` : ''}</span>
+                </div>
+                <div style="height: 10px; background: var(--border); border-radius: 999px; overflow:hidden; margin-top:6px;">
+                    <div style="width: ${percent}%; height:100%; background: linear-gradient(135deg, var(--primary), #8b5cf6);"></div>
+                </div>
+                ${canVote ? `<button class="poll-btn poll-btn-primary" style="display:block; margin-top:8px; width:100%;" onclick="votePostPoll('${postId}', '${opt.id}')">Bu seçeneğe oy ver</button>` : ''}
+            </div>`;
+    }).join('');
+    return `
+        <div class="post-poll-block" style="margin-bottom:14px; padding:16px; border-radius:18px; background: rgba(99,102,241,0.05); border:1px solid rgba(99,102,241,0.16);">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px; margin-bottom:12px; flex-wrap:wrap;">
+                <div>
+                    <strong style="font-size:0.95rem;">${escapeHtml(poll.question)}</strong>
+                    <div style="font-size:0.82rem; color: var(--text-muted); margin-top:4px;">Bitiş: ${expiresAt.toLocaleString('tr-TR')}</div>
+                </div>
+                <div style="display:flex; gap:10px; flex-wrap:wrap; justify-content:flex-end;">
+                    ${canUnvote ? `<button class="poll-btn poll-btn-warning" style="min-width:150px;" onclick="removePostPollVote('${postId}')">Oyumu Kaldır</button>` : ''}
+                    ${canFinish && !pollExpired ? `<button class="poll-btn poll-btn-danger" style="min-width:150px;" onclick="finishPostPoll('${postId}')">Anketi Bitir</button>` : ''}
+                </div>
+            </div>
+            <div style="font-size:0.85rem; color: var(--text-muted); margin-bottom:12px;">Toplam oy: ${totalVotes}</div>
+            <div>${optionsHtml}</div>
+            <div style="margin-top: 14px; font-size:0.85rem; color: var(--text-muted);">Oy kullananlar:</div>
+            <div style="margin-top: 8px; display:flex; flex-wrap:wrap; gap:4px;">${votersHtml}</div>
+        </div>`;
+}
+
+window.votePostPoll = async function(postId, optionId) {
+    const currentUser = auth.currentUser;
+    if (!currentUser) {
+        alert('Oy kullanmak için giriş yapın.');
+        return;
+    }
+    try {
+        const postRef = doc(db, 'posts', postId);
+        const postDoc = await getDoc(postRef);
+        if (!postDoc.exists()) {
+            alert('Gönderi bulunamadı.');
+            return;
+        }
+        const post = postDoc.data();
+        const poll = post.poll;
+        if (!poll) {
+            alert('Bu gönderide anket yok.');
+            return;
+        }
+        const expiresAt = poll.expiresAt?.toDate ? poll.expiresAt.toDate() : new Date(poll.expiresAt);
+        if (expiresAt <= new Date()) {
+            alert('Anket süresi dolmuş.');
+            return;
+        }
+        if ((poll.voters || []).some(v => v.uid === currentUser.uid)) {
+            alert('Bu ankete zaten oy verdiniz.');
+            return;
+        }
+        const voter = {
+            uid: currentUser.uid,
+            username: user.username || currentUser.email?.split('@')[0] || 'Anonim',
+            displayName: user.displayName || currentUser.displayName || user.username || 'Anonim',
+            avatarUrl: user.avatarUrl || currentUser.photoURL || 'assets/img/strendsaydamv2.png',
+            optionId,
+            votedAt: new Date()
+        };
+        await updateDoc(postRef, {
+            [`poll.counts.${optionId}`]: increment(1),
+            [`poll.voters`]: arrayUnion(voter)
+        });
+        if (typeof loadPostsFeed === 'function') {
+            loadPostsFeed();
+        }
+    } catch (error) {
+        console.error('Anket oy hatası:', error);
+        alert('Oy kullanılamadı. Lütfen tekrar deneyin.');
+    }
+};
+
+window.finishPostPoll = async function(postId) {
+    const currentUser = auth.currentUser;
+    if (!currentUser) {
+        alert('Anketi bitirmek için giriş yapın.');
+        return;
+    }
+    try {
+        const postRef = doc(db, 'posts', postId);
+        const postSnap = await getDoc(postRef);
+        if (!postSnap.exists()) {
+            alert('Gönderi bulunamadı.');
+            return;
+        }
+        const post = postSnap.data();
+        const poll = post.poll;
+        if (!poll) {
+            alert('Bu gönderide anket yok.');
+            return;
+        }
+        if (poll.authorUid !== currentUser.uid && !user.isAdmin) {
+            alert('Bu anketi bitirme yetkiniz yok.');
+            return;
+        }
+        await updateDoc(postRef, {
+            'poll.expiresAt': serverTimestamp()
+        });
+        if (typeof loadPostsFeed === 'function') loadPostsFeed();
+    } catch (error) {
+        console.error('Anket bitirme hatası:', error);
+        alert('Anket bitirilemedi. Lütfen tekrar deneyin.');
+    }
+};
+
+window.votePoll = async function(pollId, optionId) {
+    const currentUser = auth.currentUser;
+    if (!currentUser) {
+        alert('Oy kullanmak için giriş yapın.');
+        return;
+    }
+    try {
+        const pollRef = doc(db, 'polls', pollId);
+        const pollSnap = await getDoc(pollRef);
+        if (!pollSnap.exists()) {
+            alert('Anket bulunamadı.');
+            return;
+        }
+        const poll = pollSnap.data();
+        if (!poll) {
+            alert('Anket verisi bulunamadı.');
+            return;
+        }
+        const expiresAt = poll.expiresAt?.toDate ? poll.expiresAt.toDate() : new Date(poll.expiresAt);
+        if (expiresAt <= new Date()) {
+            alert('Anket süresi dolmuş.');
+            return;
+        }
+        if ((poll.voters || []).some(v => v.uid === currentUser.uid)) {
+            alert('Bu ankete zaten oy verdiniz.');
+            return;
+        }
+        const voter = {
+            uid: currentUser.uid,
+            username: user.username || currentUser.email?.split('@')[0] || 'Anonim',
+            displayName: user.displayName || currentUser.displayName || user.username || 'Anonim',
+            optionId,
+            votedAt: new Date()
+        };
+        await updateDoc(pollRef, {
+            [`counts.${optionId}`]: increment(1),
+            voters: arrayUnion(voter)
+        });
+        if (typeof loadPollWidget === 'function') loadPollWidget();
+    } catch (error) {
+        console.error('Anket oy hatası:', error);
+        alert('Oy kullanılamadı. Lütfen tekrar deneyin.');
+    }
+};
+
+window.finishPoll = async function(pollId) {
+    const currentUser = auth.currentUser;
+    if (!currentUser) {
+        alert('Anketi bitirmek için giriş yapın.');
+        return;
+    }
+    try {
+        const pollRef = doc(db, 'polls', pollId);
+        const pollSnap = await getDoc(pollRef);
+        if (!pollSnap.exists()) {
+            alert('Anket bulunamadı.');
+            return;
+        }
+        const poll = pollSnap.data();
+        if (!poll) {
+            alert('Anket verisi bulunamadı.');
+            return;
+        }
+        if (poll.createdBy !== (user.username || (currentUser.email || '').split('@')[0]) && !user.isAdmin) {
+            alert('Bu anketi bitirme yetkiniz yok.');
+            return;
+        }
+        await updateDoc(pollRef, {
+            expiresAt: new Date(),
+            isActive: false
+        });
+        if (typeof loadPollWidget === 'function') loadPollWidget();
+    } catch (error) {
+        console.error('Anket bitirme hatası:', error);
+        alert('Anket bitirilemedi. Lütfen tekrar deneyin.');
+    }
+};
+
+window.removePostPollVote = async function(postId) {
+    const currentUser = auth.currentUser;
+    if (!currentUser) {
+        alert('Oy kullanmak için giriş yapın.');
+        return;
+    }
+
+    try {
+        const postRef = doc(db, 'posts', postId);
+        await runTransaction(db, async (transaction) => {
+            const postSnap = await transaction.get(postRef);
+            if (!postSnap.exists()) {
+                throw new Error('Gönderi bulunamadı.');
+            }
+            const post = postSnap.data();
+            const poll = post.poll;
+            if (!poll) {
+                throw new Error('Bu gönderide anket yok.');
+            }
+
+            const voter = (poll.voters || []).find(v => v.uid === currentUser.uid);
+            if (!voter) {
+                throw new Error('Oyunuz bulunamadı.');
+            }
+
+            const optionId = voter.optionId;
+            const currentCount = poll.counts?.[optionId] || 0;
+            const updates = {
+                [`poll.voters`]: arrayRemove(voter)
+            };
+            updates[`poll.counts.${optionId}`] = currentCount > 0 ? increment(-1) : 0;
+            transaction.update(postRef, updates);
+        });
+
+        if (typeof loadPostsFeed === 'function') {
+            loadPostsFeed();
+        }
+    } catch (error) {
+        console.error('Oy kaldırma hatası:', error);
+        alert(error.message || 'Oy kaldırma işlemi başarısız oldu.');
+    }
+};
+
+window.removePollVote = async function(pollId) {
+    const currentUser = auth.currentUser;
+    if (!currentUser) {
+        alert('Oy kullanmak için giriş yapın.');
+        return;
+    }
+
+    try {
+        const pollRef = doc(db, 'polls', pollId);
+        await runTransaction(db, async (transaction) => {
+            const pollSnap = await transaction.get(pollRef);
+            if (!pollSnap.exists()) {
+                throw new Error('Anket bulunamadı.');
+            }
+            const poll = pollSnap.data();
+            const voter = (poll.voters || []).find(v => v.uid === currentUser.uid);
+            if (!voter) {
+                throw new Error('Oyunuz bulunamadı.');
+            }
+
+            const optionId = voter.optionId;
+            const currentCount = poll.counts?.[optionId] || 0;
+            const updates = {
+                voters: arrayRemove(voter)
+            };
+            updates[`counts.${optionId}`] = currentCount > 0 ? increment(-1) : 0;
+            transaction.update(pollRef, updates);
+        });
+
+        if (typeof loadPollWidget === 'function') {
+            loadPollWidget();
+        }
+    } catch (error) {
+        console.error('Oy kaldırma hatası:', error);
+        alert(error.message || 'Oy kaldırma işlemi başarısız oldu.');
     }
 };
 
@@ -3333,6 +3831,13 @@ window.loadPostsFeed = (showAll = false) => {
     </div>
 ` : "";
 
+        const pollHtml = p.poll ? renderPostPoll(p.poll, d.id) : '';
+        const postContentHtml = decoded ? `
+        <div class="post-content-block" style="margin-bottom:12px;">
+            <p id="post-preview-${d.id}" class="post-text${decoded.length > 280 ? ' post-text-clamp' : ''}" style="white-space: pre-wrap; margin:0;">${contentWithLinks}</p>
+            ${decoded.length > 280 ? `<button id="toggle-${d.id}" class="read-more-btn" onclick="togglePostContent('${d.id}')" style="border:none; background:none; color: var(--primary); display:flex; align-items:center; gap:8px; font-weight:700; padding:0; margin-top:10px; cursor:pointer;"><i class="fa-solid fa-chevron-down"></i> Daha fazlasını gör</button>` : ''}
+        </div>` : '';
+
         const postHtmlBase = `
     <div class="glass-card post" style="${p.username === 'official_system' ? 'border: 2px solid var(--primary); background: rgba(99, 102, 241, 0.05);' : ''}; position: relative;">
         <div style="position: absolute; top: 15px; right: 15px; display: flex; gap: 8px;">
@@ -3357,10 +3862,7 @@ window.loadPostsFeed = (showAll = false) => {
               </div>
         </div>
         
-        <div class="post-content-block" style="margin-bottom:12px;">
-            <p id="post-preview-${d.id}" class="post-text${decoded.length > 280 ? ' post-text-clamp' : ''}" style="white-space: pre-wrap; margin:0;">${contentWithLinks}</p>
-            ${decoded.length > 280 ? `<button id="toggle-${d.id}" class="read-more-btn" onclick="togglePostContent('${d.id}')" style="border:none; background:none; color: var(--primary); display:flex; align-items:center; gap:8px; font-weight:700; padding:0; margin-top:10px; cursor:pointer;"><i class="fa-solid fa-chevron-down"></i> Daha fazlasını gör</button>` : ''}
-        </div>${postImageHtml}
+        ${postContentHtml}${pollHtml}${postImageHtml}
 
         <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:10px; min-height:28px;">
             <div id="likers-${d.id}" style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;"></div>
@@ -4990,7 +5492,8 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     createPicker();
-});
+    initComposerPollControls();
+    });
 /* ============================ */
 
 async function kontrolEtVeOtomatikPostAt() {
