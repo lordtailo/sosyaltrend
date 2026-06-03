@@ -179,6 +179,210 @@ function togglePollForm() {
     }
 }
 
+function getSidebarPollElements() {
+    return {
+        pollQuestion: document.getElementById('sidebarPollQuestion'),
+        pollOption1: document.getElementById('sidebarPollOption1'),
+        pollOption2: document.getElementById('sidebarPollOption2'),
+        pollOption3: document.getElementById('sidebarPollOption3'),
+        pollOption4: document.getElementById('sidebarPollOption4'),
+        pollDays: document.getElementById('sidebarPollDays'),
+        pollHours: document.getElementById('sidebarPollHours'),
+        pollMessage: document.getElementById('sidebarPollFormMessage')
+    };
+}
+
+function getSidebarPollData() {
+    const {
+        pollQuestion,
+        pollOption1,
+        pollOption2,
+        pollOption3,
+        pollOption4,
+        pollDays,
+        pollHours,
+        pollMessage
+    } = getSidebarPollElements();
+
+    const question = pollQuestion?.value.trim() || '';
+    const options = [pollOption1, pollOption2, pollOption3, pollOption4]
+        .filter(Boolean)
+        .map((input, index) => ({ id: `opt${index + 1}`, label: input.value.trim() }))
+        .filter(opt => opt.label);
+
+    const days = parseInt(pollDays?.value, 10) || 0;
+    const hours = parseInt(pollHours?.value, 10) || 0;
+    const totalHours = (days * 24) + hours;
+
+    if (!question) {
+        return { error: 'Anket sorusunu girin.' };
+    }
+    if (options.length < 2) {
+        return { error: 'En az iki geçerli seçenek girin.' };
+    }
+    if (totalHours <= 0) {
+        return { error: 'Lütfen geçerli bir süre girin.' };
+    }
+    if (totalHours > 720) {
+        return { error: 'Maksimum süre 30 gün (720 saat) olmalıdır.' };
+    }
+
+    const expiresAt = Timestamp.fromDate(new Date(Date.now() + totalHours * 3600 * 1000));
+    const counts = options.reduce((acc, opt) => {
+        acc[opt.id] = 0;
+        return acc;
+    }, {});
+
+    return {
+        question,
+        options,
+        expiresAt,
+        counts,
+        durationHours: totalHours
+    };
+}
+
+function clearSidebarPollForm() {
+    const {
+        pollQuestion,
+        pollOption1,
+        pollOption2,
+        pollOption3,
+        pollOption4,
+        pollDays,
+        pollHours,
+        pollMessage
+    } = getSidebarPollElements();
+
+    if (pollQuestion) pollQuestion.value = '';
+    if (pollOption1) pollOption1.value = '';
+    if (pollOption2) pollOption2.value = '';
+    if (pollOption3) pollOption3.value = '';
+    if (pollOption4) pollOption4.value = '';
+    if (pollDays) pollDays.value = '0';
+    if (pollHours) pollHours.value = '24';
+    if (pollMessage) pollMessage.textContent = '';
+}
+
+window.openSidebarPollCreator = function() {
+    if (!auth.currentUser || !user?.isAdmin) return;
+
+    const container = document.getElementById('poll-widget-content');
+    if (!container) return;
+
+    container.innerHTML = `
+        <div class="sidebar-poll-block">
+            <div class="sidebar-poll-header">
+                <div><strong>Anket Oluştur</strong></div>
+            </div>
+            <div class="sidebar-poll-form-grid">
+                <div class="sidebar-poll-field">
+                    <label class="sidebar-poll-label" for="sidebarPollQuestion">Anket Sorusu</label>
+                    <input id="sidebarPollQuestion" type="text" placeholder="Anket sorusunu yazın..." class="sidebar-poll-input">
+                </div>
+                <div class="sidebar-poll-field">
+                    <label class="sidebar-poll-label" for="sidebarPollOption1">Seçenek 1</label>
+                    <input id="sidebarPollOption1" type="text" placeholder="Seçenek 1" class="sidebar-poll-input">
+                </div>
+                <div class="sidebar-poll-field">
+                    <label class="sidebar-poll-label" for="sidebarPollOption2">Seçenek 2</label>
+                    <input id="sidebarPollOption2" type="text" placeholder="Seçenek 2" class="sidebar-poll-input">
+                </div>
+                <div class="sidebar-poll-field">
+                    <label class="sidebar-poll-label" for="sidebarPollOption3">Seçenek 3</label>
+                    <input id="sidebarPollOption3" type="text" placeholder="Seçenek 3 (isteğe bağlı)" class="sidebar-poll-input">
+                </div>
+                <div class="sidebar-poll-field">
+                    <label class="sidebar-poll-label" for="sidebarPollOption4">Seçenek 4</label>
+                    <input id="sidebarPollOption4" type="text" placeholder="Seçenek 4 (isteğe bağlı)" class="sidebar-poll-input">
+                </div>
+                <div class="sidebar-poll-duration-row">
+                    <div class="sidebar-poll-duration-group">
+                        <label class="sidebar-poll-label" for="sidebarPollDays">Gün</label>
+                        <input id="sidebarPollDays" type="number" min="0" max="30" value="0" class="sidebar-poll-input">
+                    </div>
+                    <div class="sidebar-poll-duration-group">
+                        <label class="sidebar-poll-label" for="sidebarPollHours">Saat</label>
+                        <input id="sidebarPollHours" type="number" min="1" max="168" value="24" class="sidebar-poll-input">
+                    </div>
+                </div>
+                <div class="sidebar-poll-form-actions">
+                    <button class="post-action-btn primary sidebar-poll-button sidebar-poll-action-btn" type="button" onclick="closeSidebarPollCreator()">İptal</button>
+                    <button class="post-action-btn primary sidebar-poll-button sidebar-poll-action-btn" type="button" onclick="createPollFromSidebar()">Oluştur</button>
+                </div>
+                <div id="sidebarPollFormMessage" class="sidebar-poll-empty sidebar-poll-form-message"></div>
+            </div>
+        </div>
+    `;
+};
+
+window.closeSidebarPollCreator = function() {
+    loadPollWidget();
+};
+
+window.createPollFromSidebar = async function() {
+    const { pollMessage } = getSidebarPollElements();
+    const pollData = getSidebarPollData();
+
+    if (pollData.error) {
+        if (pollMessage) pollMessage.textContent = pollData.error;
+        return;
+    }
+    if (!auth.currentUser) {
+        if (pollMessage) pollMessage.textContent = 'Anket oluşturmak için giriş yapmalısınız.';
+        return;
+    }
+    if (!user?.isAdmin) {
+        if (pollMessage) pollMessage.textContent = 'Bu işlemi sadece yöneticiler gerçekleştirebilir.';
+        return;
+    }
+
+    if (pollMessage) pollMessage.textContent = 'Oluşturuluyor...';
+
+    try {
+        const currentUser = auth.currentUser;
+        const createdBy = user.username || currentUser.email?.split('@')[0] || 'admin';
+
+        await addDoc(collection(db, 'polls'), {
+            question: pollData.question,
+            options: pollData.options,
+            counts: pollData.counts,
+            voters: [],
+            createdAt: serverTimestamp(),
+            expiresAt: pollData.expiresAt,
+            createdBy,
+            isActive: true
+        });
+
+        await cleanupOldPolls();
+
+        if (pollMessage) pollMessage.textContent = 'Anket oluşturuldu!';
+        setTimeout(() => {
+            if (pollMessage) pollMessage.textContent = '';
+            loadPollWidget();
+        }, 1200);
+    } catch (error) {
+        console.error('Sidebar anket oluşturma hatası:', error);
+        if (pollMessage) pollMessage.textContent = 'Anket oluşturulamadı. Lütfen tekrar deneyin.';
+    }
+};
+
+async function cleanupOldPolls() {
+    try {
+        const pollsSnap = await getDocs(query(collection(db, 'polls'), orderBy('createdAt', 'desc')));
+        const polls = [];
+        pollsSnap.forEach(docSnap => {
+            polls.push({ id: docSnap.id });
+        });
+
+        if (polls.length <= 10) return;
+        const toDelete = polls.slice(10);
+        await Promise.all(toDelete.map(p => deleteDoc(doc(db, 'polls', p.id))));
+    } catch (e) {
+        console.error('Sidebar anket temizleme hatası:', e);
+    }
+}
+
 function getComposerPollData() {
     const {
         questionInput,
@@ -545,51 +749,50 @@ function renderActivePoll(container, activePoll, now, finishedPolls = []) {
         const percent = totalVotes ? Math.round((count / totalVotes) * 100) : 0;
         const selectedAvatarHtml = opt.id === votedOptionId ? `<img src="${votedAvatarUrl}" alt="Oyunuz" class="sidebar-poll-avatar">` : '';
         return `
-            <div style="margin-bottom: 12px;">
-                <div style="display:flex; justify-content:space-between; gap:10px; align-items:center; font-size:0.95rem;">
+            <div class="sidebar-poll-option${opt.id === votedOptionId ? ' active' : ''}">
+                <div class="sidebar-poll-option-header">
                     <span>${escapeHtml(opt.label)}</span>
                     <span style="display:flex; align-items:center; gap:8px;">${count} oy · ${percent}%${selectedAvatarHtml ? ` ${selectedAvatarHtml}` : ''}</span>
                 </div>
-                <div style="height: 10px; background: var(--border); border-radius: 999px; overflow:hidden; margin-top:6px;">
-                    <div style="width: ${percent}%; height:100%; background: linear-gradient(135deg, var(--primary), #8b5cf6);"></div>
-                </div>
-                ${canVote ? `<button class="poll-btn poll-btn-primary sidebar-poll-button" style="display:block; margin-top:8px; width:100%;" onclick="votePoll('${activePoll.id}', '${opt.id}')">Bu seçeneğe oy ver</button>` : ''}
+                <div class="sidebar-poll-progress"><div class="sidebar-poll-progress-bar" style="width: ${percent}%;"></div></div>
+                ${canVote ? `<button class="poll-btn poll-btn-primary sidebar-poll-button" onclick="votePoll('${activePoll.id}', '${opt.id}')">Bu seçeneğe oy ver</button>` : ''}
             </div>`;
     }).join('');
 
-    const votersHtml = (activePoll.voters || []).slice(0, 12).map(v => `<span style="display:inline-flex; margin:2px 4px; padding:6px 10px; border-radius:999px; border:1px solid rgba(99,102,241,0.3); background: rgba(99,102,241,0.08);">${escapeHtml(v.displayName || v.username || 'Anonim')}</span>`).join('') || '<div style="color: var(--text-muted);">Henüz oy kullanan yok.</div>';
+    const votersHtml = (activePoll.voters || []).slice(0, 12).map(v => `<span class="sidebar-voter-pill">${escapeHtml(v.displayName || v.username || 'Anonim')}</span>`).join('') || '<div class="sidebar-poll-empty">Henüz oy kullanan yok.</div>';
 
     container.innerHTML = `
         <div class="sidebar-poll-block">
-            <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px; margin-bottom:12px; flex-wrap:wrap;">
+            <div class="sidebar-poll-header">
                 <div>
-                    <strong style="font-size:0.95rem;">${escapeHtml(activePoll.question)}</strong>
-                    <div style="font-size:0.82rem; color: var(--text-muted); margin-top:4px;">${pollExpired ? 'Anket süresi doldu' : `Bitiş: ${activePoll.expiresAt.toLocaleString('tr-TR')}`}</div>
+                    <strong>${escapeHtml(activePoll.question)}</strong>
+                    <div class="sidebar-poll-meta">${pollExpired ? 'Anket süresi doldu' : `Bitiş: ${activePoll.expiresAt.toLocaleString('tr-TR')}`}</div>
                 </div>
-                <div style="display:flex; gap:10px; flex-wrap:wrap; justify-content:flex-end; align-items:flex-end;">
-                    ${canUnvote ? `<button class="poll-btn poll-btn-warning" style="min-width:150px;" onclick="removePollVote('${activePoll.id}')">Oyumu Kaldır</button>` : ''}
-                    ${canFinish && !pollExpired ? `<button class="poll-btn poll-btn-danger" style="min-width:150px;" onclick="finishPoll('${activePoll.id}')">Anketi Bitir</button>` : ''}
+                <div class="sidebar-poll-button-row">
+                    ${canUnvote ? `<button class="poll-btn poll-btn-warning sidebar-poll-button" onclick="removePollVote('${activePoll.id}')">Oyumu Kaldır</button>` : ''}
+                    ${canFinish && !pollExpired ? `<button class="poll-btn poll-btn-danger sidebar-poll-button" onclick="finishPoll('${activePoll.id}')">Anketi Bitir</button>` : ''}
+                    ${canFinish ? `<button class="poll-btn poll-btn-danger sidebar-poll-button" onclick="deletePollFromWidget('${activePoll.id}')">Sil</button>` : ''}
                 </div>
             </div>
-            <div style="font-size:0.85rem; color: var(--text-muted); margin-bottom:12px;">Toplam oy: ${totalVotes}</div>
-            <div>${optionsHtml}</div>
-            <div style="margin-top: 14px; font-size:0.85rem; color: var(--text-muted);">Oy kullananlar:</div>
-            <div style="margin-top: 8px; display:flex; flex-wrap:wrap; gap:4px;">${votersHtml}</div>
+            <div class="sidebar-poll-meta">Toplam oy: ${totalVotes}</div>
+            <div class="sidebar-poll-options">${optionsHtml}</div>
+            <div class="sidebar-poll-meta" style="margin-top: 14px;">Oy kullananlar:</div>
+            <div style="display:flex; flex-wrap:wrap; gap:4px;">${votersHtml}</div>
             ${!auth.currentUser ? '<div class="sidebar-poll-empty">Oy vermek için giriş yapın.</div>' : ''}
             ${auth.currentUser && userVoted && !pollExpired ? '<div class="sidebar-poll-empty" style="color: var(--success);">Oyunuz kaydedildi. Sonuçları görebilirsiniz.</div>' : ''}
         </div>
         ${finishedPolls.length ? `<div class="sidebar-finished-section">
-                <div style="display:flex; justify-content:center; margin: 16px 0 8px;">
-                    <strong style="font-size:1.08rem; font-weight:900; text-align:center; color: #ef4444;">Biten Anketler</strong>
-                </div>
-                <hr>
+                <div class="sidebar-finished-section-title">Biten Anketler</div>
                 ${finishedPolls.map(poll => {
                     const total = Object.values(poll.counts || {}).reduce((sum, count) => sum + (count || 0), 0);
                     return `
                         <div class="sidebar-poll-finished-card">
-                            <div style="font-size:0.92rem; font-weight:700; margin-bottom:6px;">${escapeHtml(poll.question)}</div>
-                            <div class="sidebar-poll-meta" style="margin-bottom: 8px;">Toplam oy: ${total} · Bitiş: ${poll.expiresAt.toLocaleString('tr-TR')}</div>
-                            <button class="poll-btn poll-btn-primary sidebar-poll-button" onclick="showPollResults('${poll.id}')">Sonuçları Göster</button>
+                            <div class="sidebar-poll-finished-title">${escapeHtml(poll.question)}</div>
+                            <div class="sidebar-poll-meta sidebar-poll-finished-meta">Toplam oy: ${total} · Bitiş: ${poll.expiresAt.toLocaleString('tr-TR')}</div>
+                            <div style="display:flex; gap:8px; margin-top:10px;">
+                                <button class="poll-btn poll-btn-primary sidebar-poll-button" style="flex:1;" onclick="showPollResults('${poll.id}')">Sonuçları Göster</button>
+                                ${auth.currentUser && user.isAdmin ? `<button class="poll-btn poll-btn-danger sidebar-poll-button" style="width:auto; min-width:50px;" onclick="deletePollFromWidget('${poll.id}')">Sil</button>` : ''}
+                            </div>
                         </div>`;
                 }).join('')}
             </div>` : ''}
@@ -608,21 +811,39 @@ window.renderFinishedPollList = function(container, finishedPolls, now) {
             <div class="sidebar-poll-finished-card">
                 <div style="font-size:0.95rem; font-weight:700; margin-bottom: 6px;">${escapeHtml(poll.question)}</div>
                 <div class="sidebar-poll-meta" style="margin-bottom: 10px;">Toplam oy: ${totalVotes} · Bitiş: ${poll.expiresAt.toLocaleString('tr-TR')}</div>
-                <button class="poll-btn poll-btn-primary sidebar-poll-button" onclick="showPollResults('${poll.id}')">Sonuçları Göster</button>
+                <div style="display:flex; gap:8px;">
+                    <button class="poll-btn poll-btn-primary sidebar-poll-button" style="flex:1;" onclick="showPollResults('${poll.id}')">Sonuçları Göster</button>
+                    ${auth.currentUser && user.isAdmin ? `<button class="poll-btn poll-btn-danger sidebar-poll-button" style="width:auto; min-width:50px;" onclick="deletePollFromWidget('${poll.id}')">Sil</button>` : ''}
+                </div>
             </div>`;
     }).join('');
 
+    const adminCreateButton = auth.currentUser && user.isAdmin ? `<div style="display:flex; justify-content:center; margin-top:12px;"><button class="post-action-btn primary sidebar-poll-button sidebar-poll-create-btn" onclick="openSidebarPollCreator()">Anket Oluştur</button></div>` : '';
+
     container.innerHTML = `
         <div style="margin-bottom: 12px; font-size:0.95rem; font-weight:700; text-align:center;"><span style="color: #22c55e;">Aktif anket bulunmuyor.</span><br>Geçmiş anketler aşağıdadır.</div>
+        ${adminCreateButton}
         <div class="sidebar-finished-section">
-            <div style="display:flex; justify-content:center; margin: 16px 0 8px;">
-                <strong style="font-size:1.08rem; font-weight:900; text-align:center; color: #ef4444;">Biten Anketler</strong>
-            </div>
-            <hr>
+            <div class="sidebar-finished-section-title">Biten Anketler</div>
             ${listHtml}
         </div>
     `;
 }
+
+window.deletePollFromWidget = async (pollId) => {
+    if (!confirm('Bu anketi silmek istediğinizden emin misiniz?')) return;
+    if (!auth.currentUser || !user?.isAdmin) {
+        alert('Bu işlemi sadece yöneticiler gerçekleştirebilir.');
+        return;
+    }
+    try {
+        await deleteDoc(doc(db, 'polls', pollId));
+        loadPollWidget();
+    } catch (e) {
+        console.error('Anket silme hatası:', e);
+        alert('Anket silinemedi.');
+    }
+};
 
 window.showPollResults = async function(pollId) {
     const container = document.getElementById('poll-widget-content');

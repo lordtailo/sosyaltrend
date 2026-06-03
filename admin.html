@@ -64,7 +64,7 @@
             <h2>Yönetim</h2>
             <div class="admin-tabs">
                 <button class="tab-btn active" onclick="switchTab('announcement', this)">Sistem Duyurusu</button>
-                <button class="tab-btn" onclick="switchTab('polls', this)">Anket Yönetimi</button>
+                <button id="pollsTabBtn" class="tab-btn" onclick="switchTab('polls', this)">Anket Yönetimi</button>
             </div>
 
             <div id="section-announcement" class="admin-section active">
@@ -2025,6 +2025,19 @@
             alert("Silindi.");
         }
     }
+
+    function activateAdminTabFromQuery() {
+        const params = new URLSearchParams(window.location.search);
+        const tab = params.get('tab');
+        if (!tab) return;
+        const button = document.getElementById(`${tab}TabBtn`);
+        if (button) {
+            switchTab(tab, button);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    }
+
+    window.addEventListener('DOMContentLoaded', activateAdminTabFromQuery);
 </script>
 
 <div data-include="partials/right-aside.html"></div>
