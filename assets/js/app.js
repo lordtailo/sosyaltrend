@@ -82,17 +82,34 @@ window.updateReplyTargetDisplay = function(postId) {
 function updatePostCount() {
     const input = document.getElementById('postInput');
     const counter = document.getElementById('post-charcount');
+    const helpText = document.getElementById('post-help');
     if (!input || !counter) return;
     let text = input.innerText || input.textContent || '';
     // enforce max length
-    if (text.length > 500) {
-        input.innerText = text.substring(0, 500);
+    if (text.length > 280) {
+        input.innerText = text.substring(0, 280);
         text = input.innerText;
+        if (helpText) helpText.textContent = '280 karakter sınırını aştınız. Lütfen kısaltın.';
+    } else if (helpText) {
+        helpText.textContent = 'Açıklama ekleyebilir, fotoğraf seçebilir veya emoji ile daha canlı bir gönderi oluşturabilirsiniz.';
     }
     const len = text.length;
-    counter.textContent = `${len}/500`;
+    counter.textContent = `${len}/280`;
+    updateShareButtonState();
 }
 window.updatePostCount = updatePostCount;
+
+function updateShareButtonState() {
+    const shareBtn = document.getElementById('shareBtn');
+    const input = document.getElementById('postInput');
+    if (!shareBtn || !input) return;
+    const text = (input.innerText || input.textContent || '').trim();
+    const enable = text.length > 0 || selectedImageBase64;
+    shareBtn.disabled = !enable;
+    shareBtn.style.opacity = enable ? '1' : '0.6';
+    shareBtn.style.cursor = enable ? 'pointer' : 'not-allowed';
+}
+window.updateShareButtonState = updateShareButtonState;
 
 // tüm yerlerde kullanılabilecek genel yardımcı: HTML entitelerini çözerek
 // gerçek karakter (örneğin emoji) haline getirir.
@@ -204,6 +221,122 @@ window.loadPollWidget = function() {
         if (containerErr) containerErr.innerHTML = '<div style="color: var(--danger);">Anketler yüklenemedi.</div>';
     });
 };
+
+async function loadTopLikedPosts() {
+    const container = document.getElementById('top-liked-posts-list');
+    if (!container) return;
+    container.innerHTML = '<div style="font-size:0.9rem; color: var(--text-muted); text-align:center;">Yükleniyor...</div>';
+    try {
+        const snap = await getDocs(collection(db, 'posts'));
+        const posts = snap.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() }));
+        const topPosts = posts
+            .sort((a, b) => ((b.likes?.length || 0) - (a.likes?.length || 0)))
+            .slice(0, 1);
+
+        if (!topPosts.length) {
+            container.innerHTML = '<div style="font-size:0.9rem; color: var(--text-muted); text-align:center;">Henüz paylaşım bulunamadı.</div>';
+            return;
+        }
+
+        container.innerHTML = topPosts.map((post, idx) => {
+            const authorAvatar = getAvatarUrl(post.avatarUrl || post.avatarSeed || 'assets/img/strendsaydamv2.png', 'user');
+            const authorName = escapeHtml(post.displayName || post.name || post.username || 'Anonim');
+            const authorHandle = post.username ? `@${escapeHtml(post.username)}` : '';
+            const content = escapeHtml((post.content || post.description || '').toString().trim());
+            const snippet = content.length > 110 ? `${content.substring(0, 110)}...` : content;
+            const likeCount = post.likes?.length || 0;
+            const commentsCount = Array.isArray(post.comments) ? post.comments.length : 0;
+            const timestamp = formatPostTimestamp(post.createdAt || post.timestamp);
+            const topComment = Array.isArray(post.comments) && post.comments.length ? post.comments[0] : null;
+            const commentAuthor = topComment ? escapeHtml(topComment.displayName || topComment.username || 'Anonim') : '';
+            const commentText = topComment ? escapeHtml((topComment.text || '').toString().trim()) : '';
+            const commentAvatar = topComment ? getAvatarUrl(topComment.avatarUrl || topComment.avatarSeed || 'assets/img/strendsaydamv2.png', 'user') : '';
+
+            return `
+                <div style="border:1px solid rgba(255,255,255,0.12); border-radius: 24px; background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03)); box-shadow: 0 18px 36px rgba(0,0,0,0.08); overflow:hidden;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; padding:18px 18px 0;">
+                        <div style="display:flex; align-items:center; gap:12px; min-width:0;">
+                            <img src="${authorAvatar}" alt="${authorName}" style="width:48px; height:48px; border-radius:50%; object-fit:cover; border:1px solid rgba(255,255,255,0.18);">
+                            <div style="min-width:0;">
+                                <div style="font-size:0.98rem; font-weight:800; color: var(--text-main); line-height:1.2;">${authorName}</div>
+                                ${authorHandle ? `<div style="font-size:0.82rem; color: var(--text-muted); margin-top:4px;">${authorHandle}</div>` : ''}
+                            </div>
+                        </div>
+                        <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; justify-content:flex-end;">
+                            <span style="display:inline-flex; align-items:center; gap:6px; padding:8px 12px; background: rgba(239,68,68,0.14); color:#ef4444; border-radius:999px; font-size:0.82rem; font-weight:700;">❤️ ${likeCount}</span>
+                            <span style="display:inline-flex; align-items:center; gap:6px; padding:8px 12px; background: rgba(59,130,246,0.14); color:#3b82f6; border-radius:999px; font-size:0.82rem; font-weight:700;">💬 ${commentsCount}</span>
+                        </div>
+                    </div>
+                    <div style="padding:0 18px 18px;">
+                        <div style="margin-top:16px; font-size:0.98rem; color: var(--text-main); line-height:1.75;">${snippet || 'Görsel veya metin içerikli gönderi.'}</div>
+                        ${topComment ? `
+                            <div style="margin-top:18px; padding:16px; border-radius: 20px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12);">
+                                <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
+                                    <img src="${commentAvatar}" alt="${commentAuthor}" style="width:34px; height:34px; border-radius:50%; object-fit:cover; border:1px solid rgba(255,255,255,0.16);">
+                                    <div>
+                                        <div style="font-size:0.86rem; font-weight:700; color: var(--text-main);">${commentAuthor}’ın yorumu</div>
+                                        <div style="font-size:0.78rem; color: var(--text-muted);">En beğenilen yorum</div>
+                                    </div>
+                                </div>
+                                <div style="font-size:0.9rem; color: var(--text-muted); line-height:1.6;">${commentText || 'Gönderiye bir yorum eklendi.'}</div>
+                            </div>
+                        ` : ''}
+                        <div style="margin-top:18px; display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:12px;">
+                            <span style="font-size:0.82rem; color: var(--text-muted);">${timestamp}</span>
+                            <button onclick="window.location.href='#post-${post.id}'" style="background: linear-gradient(135deg, #6366f1, #4f46e5); color: white; border:none; padding:12px 18px; border-radius:16px; cursor:pointer; font-weight:700; transition: transform 0.2s ease;">Gönderiyi Gör</button>
+                        </div>
+                    </div>
+                </div>`;
+        }).join('');
+    } catch (e) {
+        console.error('loadTopLikedPosts hata:', e);
+        container.innerHTML = '<div style="font-size:0.9rem; color: var(--danger); text-align:center;">Beğeni sıralaması yüklenemedi.</div>';
+    }
+}
+
+async function loadTopReadBlogs() {
+    const container = document.getElementById('top-read-blogs');
+    if (!container) return;
+    container.innerHTML = '<div style="font-size:0.9rem; color: var(--text-muted); text-align:center;">Yükleniyor...</div>';
+    try {
+        const q = query(collection(db, 'blogs'), orderBy('views', 'desc'), limit(5));
+        const snap = await getDocs(q);
+        if (snap.empty) {
+            container.innerHTML = '<div style="font-size:0.9rem; color: var(--text-muted); text-align:center;">Henüz blog yazısı bulunamadı.</div>';
+            return;
+        }
+        const items = snap.docs.map((docSnap, idx) => {
+            const post = docSnap.data();
+            const title = escapeHtml(post.title || post.headline || 'Başlıksız yazı');
+            const shortTitle = title.length > 56 ? `${title.substring(0, 53)}...` : title;
+            const views = post.views || 0;
+            const authorDisplay = post.authorDisplayName || post.author || post.displayName || post.name || '';
+            const authorUsername = post.authorUsername || post.username || '';
+            const authorName = escapeHtml(authorDisplay || authorUsername || 'Yazar');
+            const authorLabel = authorDisplay && authorUsername ? `${authorName} · @${escapeHtml(authorUsername)}` : authorName;
+            const slug = post.slug || docSnap.id;
+            const url = `blog.html?id=${encodeURIComponent(slug)}`;
+            return `
+                <a href="${url}" style="display:flex; justify-content:space-between; align-items:center; gap:14px; text-decoration:none; color: inherit; padding:18px 18px; border-radius:22px; background: rgba(255,255,255,0.05); border:1px solid rgba(99,102,241,0.16); box-shadow: 0 20px 45px rgba(0,0,0,0.05); transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;">
+                    <div style="display:flex; gap:14px; align-items:center; min-width:0; flex:1;">
+                        <div style="width:38px; min-width:38px; height:38px; border-radius:14px; background: rgba(99,102,241,0.18); color: var(--primary); display:flex; align-items:center; justify-content:center; font-weight:800; font-size:0.95rem;">${idx + 1}</div>
+                        <div style="min-width:0;">
+                            <div style="font-size:0.98rem; font-weight:700; line-height:1.35; color: var(--text-main);">${shortTitle}</div>
+                            <div style="font-size:0.78rem; color: var(--text-muted); margin-top:6px;">${authorLabel} · ${views} okuma</div>
+                        </div>
+                    </div>
+                    <div style="display:flex; flex-direction:column; align-items:flex-end; gap:6px;">
+                        <span style="font-size:0.84rem; color: var(--primary); font-weight:700;">Detay</span>
+                        <span style="font-size:0.72rem; color: var(--text-muted); letter-spacing:0.4px;">Hemen oku</span>
+                    </div>
+                </a>`;
+        });
+        container.innerHTML = items.join('');
+    } catch (e) {
+        console.error('loadTopReadBlogs hata:', e);
+        container.innerHTML = '<div style="font-size:0.9rem; color: var(--danger); text-align:center;">Blog sıralaması yüklenemedi.</div>';
+    }
+}
 
 function renderActivePoll(container, activePoll, now, finishedPolls = []) {
     const pollExpired = activePoll.expiresAt <= now;
@@ -329,7 +462,8 @@ window.showPollResults = async function(pollId) {
 };
 
 window.votePoll = async function(pollId, optionId) {
-    if (!auth.currentUser) {
+    const currentUser = auth.currentUser;
+    if (!currentUser) {
         alert('Oy kullanmak için giriş yapın.');
         return;
     }
@@ -346,14 +480,14 @@ window.votePoll = async function(pollId, optionId) {
             alert('Anket süresi dolmuş.');
             return;
         }
-        if ((poll.voters || []).some(v => v.uid === auth.currentUser.uid)) {
+        if ((poll.voters || []).some(v => v.uid === currentUser.uid)) {
             alert('Bu ankete zaten oy verdiniz.');
             return;
         }
         const voter = {
-            uid: auth.currentUser.uid,
-            username: user.username,
-            displayName: user.displayName,
+            uid: currentUser.uid,
+            username: user.username || currentUser.email?.split('@')[0] || 'Anonim',
+            displayName: user.displayName || currentUser.displayName || currentUser.email?.split('@')[0] || 'Anonim',
             optionId,
             votedAt: new Date()
         };
@@ -689,6 +823,7 @@ await updateDoc(currentUserRef, {
   }
 
   let user = {
+  username: '',
   displayName: "Misafir",
   avatarUrl: "assets/img/strendsaydamv2.png",
   email: null,
@@ -818,6 +953,8 @@ onAuthStateChanged(auth, async (fbUser) => {
         updateSidebarStats();
         loadPollWidget();
         loadTopTebrikList();
+        loadTopLikedPosts();
+        loadTopReadBlogs();
         updateBanOverlay(userData);
         // Ensure feed is loaded with current user context so profile tabs populate
         try { loadPostsFeed(); } catch(e) { console.warn('loadPostsFeed retry failed', e); }
@@ -1683,6 +1820,7 @@ if (imageInput) {
             if (file.size > 1024 * 1024) { 
                 alert("Lütfen 1MB'dan küçük bir fotoğraf seçin.");
                 this.value = "";
+                updateShareButtonState();
                 return;
             }
             const reader = new FileReader();
@@ -1693,6 +1831,7 @@ if (imageInput) {
                 
                 if(previewImg) previewImg.src = selectedImageBase64;
                 if(previewContainer) previewContainer.style.display = 'block';
+                updateShareButtonState();
             };
             reader.readAsDataURL(file);
         }
@@ -1704,6 +1843,7 @@ window.clearImagePreview = () => {
     selectedImageBase64 = null;
     document.getElementById('imageInput').value = "";
     document.getElementById('imagePreviewContainer').style.display = 'none';
+    updateShareButtonState();
 };
   
 // --- ÇEVİRİLER VE KAYDETME ÖZELLİĞİ ---
@@ -2824,6 +2964,38 @@ function formatTime(timestamp) {
     }
 }
 
+function formatPostTimestamp(timestamp) {
+    if (!timestamp) return "...";
+
+    let date;
+    if (typeof timestamp === 'number') {
+        date = new Date(timestamp);
+    } else if (timestamp instanceof Date) {
+        date = timestamp;
+    } else if (timestamp && typeof timestamp.toDate === 'function') {
+        date = timestamp.toDate();
+    } else if (timestamp && typeof timestamp.seconds === 'number') {
+        date = new Date(timestamp.seconds * 1000);
+    } else {
+        return "...";
+    }
+
+    try {
+        const now = new Date();
+        const diffSeconds = Math.floor((now - date) / 1000);
+        let dayCount = Math.floor(diffSeconds / 86400) + 1;
+        if (dayCount < 1) dayCount = 1;
+        const formattedDate = date.toLocaleDateString('tr-TR', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric'
+        });
+        return `${formattedDate}/${dayCount}.gün`;
+    } catch (e) {
+        return "...";
+    }
+}
+
 /* --- SEARCH SON --- */
     
 window.likePost = async (id, isLiked, btn) => {
@@ -3166,7 +3338,7 @@ window.loadPostsFeed = (showAll = false) => {
               <div>
                   <div style="font-weight:700; display:flex; align-items:center; gap:5px; cursor:pointer;" onclick="${isMine ? "navigateTo('profil')" : `location.href='profil.html?id=${encodeURIComponent(p.username)}'`}">
                       ${p.name} ${isPage ? '<i class="fa-solid fa-circle-check" style="color:var(--primary); font-size:0.7rem;"></i>' : ''}
-                      <span class="post-time">• ${formatTime(p.timestamp)}</span>
+                      <span class="post-time">• ${formatPostTimestamp(p.timestamp)}</span>
                       ${p.isEdited ? `<span style="font-size: 0.6rem; color: var(--text-muted); font-weight: normal;">(düzenlendi)</span>` : ''}
                   </div>
                   <div style="font-size:0.75rem; color:var(--text-muted); cursor:pointer;" onclick="${isMine ? "navigateTo('profil')" : `location.href='profil.html?id=${encodeURIComponent(p.username)}'`}">@${p.username}</div>
@@ -4082,7 +4254,7 @@ async function loadVisitorProfile() {
                                 <div>
                                     <div style="font-weight:700; display:flex; align-items:center; gap:5px; cursor:pointer;" onclick="location.href='profil.html?id=${encodeURIComponent(post.username)}'">
                                         ${post.name}
-                                        <span class="post-time">• ${formatTime(post.timestamp)}</span>
+                                        <span class="post-time">• ${formatPostTimestamp(post.timestamp)}</span>
                                     </div>
                                     <div style="font-size:0.75rem; color:var(--text-muted); cursor:pointer;" onclick="location.href='profil.html?id=${encodeURIComponent(post.username)}'">@${post.username}</div>
                                 </div>
@@ -4221,7 +4393,7 @@ window.loadProfileSections = async (section = 'all', showAllPosts = false, showA
                         <div>
                             <div style="font-weight:700; display:flex; align-items:center; gap:5px; cursor:pointer;" onclick="location.href='profil.html?id=${encodeURIComponent(p.username)}'">
                                 ${p.name}
-                                <span class="post-time">• ${formatTime(p.timestamp)}</span>
+                                <span class="post-time">• ${formatPostTimestamp(p.timestamp)}</span>
                             </div>
                             <div style="font-size:0.75rem; color:var(--text-muted); cursor:pointer;" onclick="location.href='profil.html?id=${encodeURIComponent(p.username)}'">@${p.username}</div>
                         </div>
@@ -4627,11 +4799,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (!emojiToggle || !emojiPicker || !postInput) return;
 
-    // Listeyi burada tutuyoruz; ileride ekleme/çıkarma kolay olsun.
+    // Minimal, pratik emoji listesi
     const postEmojis = [
-        '😊','😁','😂','🤣','😡','😠','😭','❤️','💚','💙','💔','💘','💗','💝',
-        '👍','👎','🙌','🙏','✨','📺','🎞️','🔒','🔥','🚀','🎉','💯','😇','🍏',
-        '🍎','🍌','🍐','🍇','🍳','🍔','🚗','🚕','🚌','🚑','🚒','🚢','✈️'
+        '😊','😂','😢','❤️','👍',
+        '🔥','🚀','🎉','🙏','✨',
+        '😎','💯','🙌','😇','🍕'
     ];
 
     // Helper: HTML entitelerini metne çevirir
@@ -4657,19 +4829,37 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // tek bir listener, delegation kullanarak span'lara tıkı yönet
+    function insertAtCaret(text) {
+        postInput.focus();
+        const selection = window.getSelection();
+        if (!selection || selection.rangeCount === 0) {
+            postInput.innerText += text;
+            return;
+        }
+        let range = selection.getRangeAt(0);
+        if (!postInput.contains(range.commonAncestorContainer)) {
+            range = document.createRange();
+            range.selectNodeContents(postInput);
+            range.collapse(false);
+        }
+        range.deleteContents();
+        const textNode = document.createTextNode(text);
+        range.insertNode(textNode);
+        range.setStartAfter(textNode);
+        range.collapse(true);
+        selection.removeAllRanges();
+        selection.addRange(range);
+    }
+
     emojiPicker.addEventListener('click', evt => {
+        evt.stopPropagation();
         const target = evt.target;
         if (target && target.tagName === 'SPAN') {
             let val = target.textContent || target.innerText || '';
             if (val.includes('&#')) {
                 val = decodeEntities(val);
             }
-            // insert text at caret in contenteditable
-            if (document.queryCommandSupported('insertText')) {
-                document.execCommand('insertText', false, val);
-            } else {
-                postInput.innerText += val;
-            }
+            insertAtCaret(val);
             emojiPicker.style.display = 'none';
             postInput.focus();
             if (typeof updatePostCount === 'function') updatePostCount();
@@ -9392,7 +9582,7 @@ async function loadBlogPosts(options = {}) {
                             </div>
                             <div style="font-size:0.85rem; color:var(--text-muted);">
                                 <div style="font-weight:700;">${escapeHtml(authorName)}</div>
-                                <div style="font-size:0.75rem;">Gönderildi: ${formatTime(data.createdAt)}</div>
+                                <div style="font-size:0.75rem;">Gönderildi: ${formatPostTimestamp(data.createdAt)}</div>
                             </div>
                         </div>
                         <div style="text-align:right; font-size:0.78rem; color:var(--text-muted);">

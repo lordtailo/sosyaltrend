@@ -20,7 +20,9 @@
 
 <script>
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js');
+    navigator.serviceWorker.register('sw.js').catch((err) => {
+      console.warn('Service worker register failed:', err);
+    });
   }
 </script>
 
@@ -35,34 +37,59 @@
 
  <main id="main-content">
     <div id="page-feed" class="page-content active">
-        <div class="glass-card">
-            <div style="padding: 20px;">
-                <div id="postInput" contenteditable="true" oninput="updatePostCount()" style="width:100%; border:none; outline:none; resize:none; font-size:1.1rem; min-height:80px;" data-placeholder="Gönderinizi buraya yazın..." data-i18n-placeholder="postPlaceholder"></div>
-                <div style="text-align:right; font-size:0.75rem; color:var(--text-muted);" id="post-charcount">0/280</div>
-                
-                <div id="imagePreviewContainer" style="display: none; position: relative; margin-top: 10px; width: fit-content;">
-                    <img id="imagePreview" src="" alt="Gönderi resmi önizlemesi" style="max-width: 200px; max-height: 200px; border-radius: 12px; border: 1px solid var(--border);">
-                    <button type="button" onclick="clearImagePreview()" style="position: absolute; top: -10px; right: -10px; background: #ff4d4d; color: white; border: none; border-radius: 50%; width: 25px; height: 25px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
-                        <i class="fa-solid fa-xmark"></i>
-                    </button>
-                </div>
-            </div>
-            
-            <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border); padding: 15px 20px;">
-                <div style="display:flex; gap:8px; position: relative;">
-                    <input type="file" id="imageInput" accept="image/*" style="display: none;">
-                    
-                    <button class="tool-btn" type="button" onclick="document.getElementById('imageInput').click()">
-                        <i class="fa-regular fa-image"></i>
-                    </button>
-                    <button class="tool-btn" id="emojiToggle" type="button"><i class="fa-regular fa-face-smile"></i></button>
-                    
-                    <div id="emojiPicker" class="glass-card" style="display: none; position: absolute; top: -143px; left: 126px; z-index: 100; padding: 4px; width: 200px; grid-template-columns: repeat(7, 1fr); gap: 6px;">
-                        <!-- içerik JavaScript tarafından dolduruluyor -->
+        <div class="glass-card post-composer">
+            <div class="post-composer-header">
+                <div class="post-composer-profile">
+                    <div class="post-composer-avatar">
+                        <img src="assets/img/strendsaydamv2.png" alt="Profil">
+                    </div>
+                    <div>
+                        <div class="post-composer-title">Yeni paylaşımınız hazır mı?</div>
+                        <div class="post-composer-subtitle">Hikaye, fotoğraf veya fikirlerinizi hemen arkadaşlarınızla paylaşın.</div>
                     </div>
                 </div>
-                <button id="shareBtn" style="background: var(--primary); color: white; border: none; padding: 10px 25px; border-radius: 50px; font-weight: 700; cursor: pointer;" data-i18n="shareBtn">Paylaş</button>
-                
+                <div class="post-charcount">0/280</div>
+            </div>
+            <div class="post-composer-area">
+                <div id="postInput" contenteditable="true" oninput="updatePostCount()" data-placeholder="Gönderinizi buraya yazın..." data-i18n-placeholder="postPlaceholder"></div>
+            </div>
+            <div class="post-composer-row">
+                <div class="post-composer-actions">
+                    <input type="file" id="imageInput" accept="image/*" style="display: none;">
+                    <button class="post-action-btn icon-btn" type="button" onclick="document.getElementById('imageInput').click()">
+                        <i class="fa-regular fa-image"></i>
+                        Fotoğraf
+                    </button>
+                    <div class="emoji-wrapper">
+                        <button class="post-action-btn icon-btn" id="emojiToggle" type="button">
+                            <i class="fa-regular fa-face-smile"></i>
+                            Emoji
+                        </button>
+                        <div id="emojiPicker" class="emoji-picker" style="display:none;"></div>
+                    </div>
+                </div>
+                <button id="shareBtn" class="post-action-btn primary" type="button">Paylaş</button>
+            </div>
+            <div id="post-help" class="post-help-text">Yazınızı yazın, resim ekleyin ve ardından hızlıca paylaşın.</div>
+            <div id="imagePreviewContainer" class="post-composer-preview" style="display: none;">
+                <img id="imagePreview" src="" alt="Gönderi resmi önizlemesi">
+                <button type="button" onclick="clearImagePreview()" class="post-preview-remove">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+        </div>
+        <div style="display:flex; gap:16px; flex-wrap:wrap; margin-top:16px;">
+            <div id="top-liked-posts" class="glass-card" style="flex:1 1 320px; min-width:280px; padding:16px;">
+                <div class="sidebar-title" style="margin-bottom: 12px;"><i class="fa-solid fa-heart"></i> En çok beğeni alan gönderi</div>
+                <div id="top-liked-posts-list" style="display:flex; flex-direction:column; gap:12px;">
+                    <div style="font-size:0.9rem; color: var(--text-muted); text-align:center;">Yükleniyor...</div>
+                </div>
+            </div>
+            <div id="top-read-blogs-widget" class="glass-card" style="flex:1 1 320px; min-width:280px; padding:16px;">
+                <div class="sidebar-title" style="margin-bottom: 12px;"><i class="fa-solid fa-book-open"></i> Top 5 en çok okunan blog yazısı</div>
+                <div id="top-read-blogs" style="display:flex; flex-direction:column; gap:12px; padding: 0; min-height: 60px;">
+                    <div style="font-size:0.9rem; color: var(--text-muted); text-align:center;">Yükleniyor...</div>
+                </div>
             </div>
         </div>
         <div id="feed-items"></div>
