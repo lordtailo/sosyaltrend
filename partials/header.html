@@ -18,9 +18,10 @@
         <span>Ana Sayfa</span>
       </button>
       <div class="friends-dropdown-wrapper">
-        <button id="friendsBtn" type="button" class="header-nav-btn" onclick="toggleFriendsDropdown(); return false;" title="Arkadaşlar">
+        <button id="friendsBtn" type="button" class="header-nav-btn" onclick="toggleFriendsDropdown(); return false;" title="Arkadaşlar" aria-expanded="false">
           <i class="fa-solid fa-user-friends"></i>
           <span>Arkadaşlar</span>
+          <span id="friendsOnlineCount" class="header-friends-online-count">(0)</span>
         </button>
         <div id="friendsDropdown" class="friends-dropdown" style="display:none;">
           <div class="friends-dropdown-title">
@@ -81,6 +82,7 @@
       <button id="sendHeaderMessageBtn" class="header-msg-btn" onclick="openChatsList()" title="Mesaj Gönder">
         <i class="fa-solid fa-comments"></i>
         <span>Sohbet Et</span>
+        <span id="header-chat-unread" class="nav-badge" style="display:none; margin-left:8px;">0</span>
       </button>
       <div class="profile-trigger" id="profileTrigger">
         <div class="avatar-wrap offline" id="headerAvatarWrap">

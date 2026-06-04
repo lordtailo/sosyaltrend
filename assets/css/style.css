@@ -866,6 +866,28 @@ header {
     transition: background 0.2s ease, border-color 0.2s ease, transform 0.15s ease;
 }
 
+.header-nav-btn.active {
+    background: rgba(99,102,241,0.18);
+    border-color: rgba(99,102,241,0.35);
+}
+
+.header-nav-btn.active i {
+    color: var(--text-main);
+}
+
+.header-friends-online-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 28px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: rgba(16,185,129,0.14);
+    color: var(--success);
+    font-size: 0.78rem;
+    font-weight: 700;
+}
+
 .header-nav-btn i {
     font-size: 0.95rem;
 }
@@ -873,6 +895,26 @@ header {
 .header-nav-btn:hover {
     background: rgba(99,102,241,0.16);
     border-color: rgba(99,102,241,0.25);
+}
+
+.header-msg-btn {
+    position: relative;
+}
+
+#header-chat-unread {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    background: var(--danger);
+    color: white;
+    padding: 2px 6px;
+    border-radius: 999px;
+    font-weight: 700;
+    font-size: 0.68rem;
+    min-width: 18px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .header-search {

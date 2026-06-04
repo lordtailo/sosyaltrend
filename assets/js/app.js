@@ -635,7 +635,8 @@ async function loadTopLikedPosts() {
             const authorName = escapeHtml(post.displayName || post.name || post.username || 'Anonim');
             const authorHandle = post.username ? `@${escapeHtml(post.username)}` : '';
             const content = escapeHtml((post.content || post.description || '').toString().trim());
-            const snippet = content.length > 110 ? `${content.substring(0, 110)}...` : content;
+            // Uzunluğu artırıldı: sadece en çok beğeni alan (ilk) gönderi için daha uzun önizleme göster
+            const snippet = content.length > 250 ? `${content.substring(0, 250)}...` : content;
             const likeCount = post.likes?.length || 0;
             const commentsCount = Array.isArray(post.comments) ? post.comments.length : 0;
             const timestamp = formatPostTimestamp(post.createdAt || post.timestamp);
@@ -691,7 +692,7 @@ async function loadTopReadBlogs() {
     if (!container) return;
     container.innerHTML = '<div style="font-size:0.9rem; color: var(--text-muted); text-align:center;">Yükleniyor...</div>';
     try {
-        const q = query(collection(db, 'blogs'), orderBy('views', 'desc'), limit(5));
+        const q = query(collection(db, 'blogs'), orderBy('views', 'desc'), limit(3));
         const snap = await getDocs(q);
         if (snap.empty) {
             container.innerHTML = '<div style="font-size:0.9rem; color: var(--text-muted); text-align:center;">Henüz blog yazısı bulunamadı.</div>';
@@ -1600,6 +1601,56 @@ const ADMIN_EMAIL = "officialfthuzun@gmail.com";
 // Avatar sistemini otomatik olarak strendsaydamv2'ye initialize et
 localStorage.setItem('st_avatar', 'strendsaydamv2');
 
+async function updateUserPresence(userRef, online) {
+    if (!userRef) return;
+    try {
+        await setDoc(userRef, {
+            isOnline: online,
+            lastActiveAt: serverTimestamp()
+        }, { merge: true });
+    } catch (err) {
+        console.warn('Kullanıcı çevrimiçi durumu güncellenemedi:', err);
+    }
+}
+
+// Presence heartbeat to keep lastActiveAt updated periodically
+let presenceHeartbeatInterval = null;
+const PRESENCE_HEARTBEAT_INTERVAL = 20000; // 20 seconds
+
+function startPresenceHeartbeat() {
+    if (!auth.currentUser) return;
+    stopPresenceHeartbeat();
+    const userRef = doc(db, 'users', auth.currentUser.uid);
+    // mark online immediately
+    updateUserPresence(userRef, true).catch(() => {});
+    presenceHeartbeatInterval = setInterval(() => {
+        if (!auth.currentUser) return;
+        const ref = doc(db, 'users', auth.currentUser.uid);
+        updateUserPresence(ref, true).catch(() => {});
+    }, PRESENCE_HEARTBEAT_INTERVAL);
+}
+
+function stopPresenceHeartbeat() {
+    if (presenceHeartbeatInterval) {
+        clearInterval(presenceHeartbeatInterval);
+        presenceHeartbeatInterval = null;
+    }
+}
+
+window.setCurrentUserOnline = async function() {
+    if (!auth.currentUser) return;
+    const userRef = doc(db, 'users', auth.currentUser.uid);
+    await updateUserPresence(userRef, true);
+    startPresenceHeartbeat();
+};
+
+window.setCurrentUserOffline = async function() {
+    if (!auth.currentUser) return;
+    const userRef = doc(db, 'users', auth.currentUser.uid);
+    await updateUserPresence(userRef, false);
+    stopPresenceHeartbeat();
+};
+
 onAuthStateChanged(auth, async (fbUser) => {
     if (!fbUser) {
         localStorage.removeItem('st_isAdmin');
@@ -1702,6 +1753,9 @@ onAuthStateChanged(auth, async (fbUser) => {
         }
         // update tebrik badge for own profile
         if (typeof updateProfileTebrikUI === 'function' && user.username) updateProfileTebrikUI(user.username);
+        if (typeof window.loadHeaderFriendsList === 'function') {
+            window.loadHeaderFriendsList();
+        }
         
         // Real-time kullanıcı profili listener - Avatar değişikliklerini senkronize et
         onSnapshot(doc(db, "users", fbUser.uid), (docSnapshot) => {
@@ -1874,6 +1928,7 @@ onAuthStateChanged(auth, async (fbUser) => {
 
         logoutBtn.addEventListener('click', async () => {
             try {
+                await window.setCurrentUserOffline();
                 await signOut(auth);
             } catch (err) {
                 console.error('Çıkış yapılamadı:', err);
@@ -1940,6 +1995,18 @@ onAuthStateChanged(auth, async (fbUser) => {
             // yükle (isOwnProfile=false)
             loadFriendsList(null, false);
         }
+    }
+});
+
+window.addEventListener('beforeunload', () => {
+    if (auth.currentUser) {
+        window.setCurrentUserOffline();
+    }
+});
+
+window.addEventListener('pagehide', () => {
+    if (auth.currentUser) {
+        window.setCurrentUserOffline();
     }
 });
 
@@ -2541,6 +2608,14 @@ window.handleUrlInput = async (input) => {
   window.logout = async () => {
     // clear admin marker on sign out
     localStorage.removeItem('st_isAdmin');
+    if (auth.currentUser) {
+      try {
+        await window.setCurrentUserOffline();
+      } catch (err) {
+        console.warn('Çıkışta kullanıcı offline yaparken hata:', err);
+      }
+      await signOut(auth).catch(() => {});
+    }
     window.location.href = 'login.html';
   };
 
@@ -6260,6 +6335,11 @@ document.addEventListener('click', (e) => {
         }
         if (friendsDropdown && friendsDropdown.style.display !== 'none' && !friendsDropdown.contains(e.target)) {
             friendsDropdown.style.display = 'none';
+            const friendsBtn = document.getElementById('friendsBtn');
+            if (friendsBtn) {
+                friendsBtn.classList.remove('active');
+                friendsBtn.setAttribute('aria-expanded', 'false');
+            }
         }
     }
 });
@@ -7490,6 +7570,7 @@ window.toggleNotifications = function() {
 window.toggleFriendsDropdown = function() {
     const dropdown = document.getElementById('friendsDropdown');
     const notificationsDropdown = document.getElementById('notificationsDropdown');
+    const friendsBtn = document.getElementById('friendsBtn');
     const searchInput = document.getElementById('friendsSearchInput');
     if (!dropdown) return;
     if (!auth.currentUser) {
@@ -7499,13 +7580,22 @@ window.toggleFriendsDropdown = function() {
     if (notificationsDropdown) {
         notificationsDropdown.style.display = 'none';
     }
-    if (dropdown.style.display === 'none' || dropdown.style.display === '') {
+    const isOpen = dropdown.style.display !== 'none' && dropdown.style.display !== '';
+    if (!isOpen) {
         if (searchInput) searchInput.value = '';
         dropdown.style.display = 'flex';
         dropdown.style.flexDirection = 'column';
+        if (friendsBtn) {
+            friendsBtn.classList.add('active');
+            friendsBtn.setAttribute('aria-expanded', 'true');
+        }
         loadHeaderFriendsList();
     } else {
         dropdown.style.display = 'none';
+        if (friendsBtn) {
+            friendsBtn.classList.remove('active');
+            friendsBtn.setAttribute('aria-expanded', 'false');
+        }
     }
 };
 
@@ -7571,10 +7661,13 @@ window.loadHeaderFriendsList = async function() {
             list.innerHTML = '<div class="friends-dropdown-empty">Henüz arkadaşınız yok.</div>';
             const badge = document.getElementById('friendsCountBadge');
             if (badge) badge.textContent = '0';
+            const onlineBadge = document.getElementById('friendsOnlineCount');
+            if (onlineBadge) onlineBadge.textContent = '(0)';
             window.headerFriendsListData = [];
             return;
         }
         const friendsData = [];
+        let onlineCount = 0;
         for (const friendId of friendsIds) {
             try {
                 const friendRef = doc(db, 'users', friendId);
@@ -7586,6 +7679,9 @@ window.loadHeaderFriendsList = async function() {
                 const username = friendData.username || '';
                 const presence = resolvePresenceStatus(friendData);
                 const profileUrl = username ? `profil.html?id=${encodeURIComponent(username)}` : `profil.html?id=${encodeURIComponent(friendId)}`;
+                if (presence.status === 'online') {
+                    onlineCount += 1;
+                }
                 friendsData.push({
                     displayName,
                     username,
@@ -7598,6 +7694,8 @@ window.loadHeaderFriendsList = async function() {
             }
         }
         window.headerFriendsListData = friendsData;
+        const onlineBadge = document.getElementById('friendsOnlineCount');
+        if (onlineBadge) onlineBadge.textContent = `(${onlineCount})`;
         renderHeaderFriendsList(friendsData, friendsIds.length);
     } catch (error) {
         console.error('Arkadaşlar yüklenirken hata:', error);
@@ -9336,6 +9434,21 @@ async function updateChatUnreadIndicator() {
                 unreadBtn.style.display = 'none';
             }
         }
+
+        // Update header 'Sohbet Et' badge
+        const headerBadge = document.getElementById('header-chat-unread');
+        const headerBtn = document.getElementById('sendHeaderMessageBtn');
+        if (headerBadge) {
+            if (totalUnread > 0) {
+                headerBadge.style.display = 'inline-flex';
+                headerBadge.textContent = totalUnread === 1 ? '1' : `${totalUnread}`;
+                if (headerBtn) headerBtn.classList.add('has-unread');
+            } else {
+                headerBadge.style.display = 'none';
+                headerBadge.textContent = '0';
+                if (headerBtn) headerBtn.classList.remove('has-unread');
+            }
+        }
     } catch (error) {
         console.warn('Okunmamış mesaj göstergesi güncellenirken hata:', error);
     }
@@ -9921,16 +10034,23 @@ function formatRelativePresence(timestamp) {
     return `${Math.floor(diffSeconds / 86400)}g önce`;
 }
 
+function isRecentActivity(timestamp, thresholdSeconds = 60) {
+    if (!timestamp) return false;
+    const date = timestamp.toDate ? timestamp.toDate() : (timestamp.seconds != null ? new Date(timestamp.seconds * 1000) : new Date(timestamp));
+    const diffSeconds = Math.floor((Date.now() - date.getTime()) / 1000);
+    return diffSeconds >= 0 && diffSeconds <= thresholdSeconds;
+}
+
 function resolvePresenceStatus(userData) {
     if (!userData) return { status: 'offline', label: 'Çevrimdışı' };
-    const isOnline = userData.isOnline === true || userData.online === true;
+    const isOnline = userData.isOnline === true || userData.isOnline === 'true' || userData.online === true || userData.online === 'true' || userData.status === 'online' || userData.status === 'Online' || userData.presence === 'online';
     const lastActiveAt = userData.lastActiveAt || userData.lastSeen || userData.lastOnline;
     if (isOnline) {
         return { status: 'online', label: 'Çevrimiçi' };
     }
     if (lastActiveAt) {
         const rel = formatRelativePresence(lastActiveAt);
-        if (rel === 'şimdi') {
+        if (rel === 'şimdi' || isRecentActivity(lastActiveAt, 60)) {
             return { status: 'online', label: 'Çevrimiçi' };
         }
         return { status: 'offline', label: `Son aktif ${rel}` };
@@ -11617,6 +11737,16 @@ window.addEventListener('visibilitychange', () => {
             restoreUnreadChatNotifications();
         }
     }
+    // Toggle presence when page visibility changes to better reflect actual online state
+    try {
+        if (auth.currentUser) {
+            if (document.hidden) {
+                window.setCurrentUserOffline();
+            } else {
+                window.setCurrentUserOnline();
+            }
+        }
+    } catch (e) {}
 });
 
 // The back button has an inline onclick attribute that calls backToFriendList().
