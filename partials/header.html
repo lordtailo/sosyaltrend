@@ -7,19 +7,42 @@
   <div class="header-center">
     <a href="javascript:void(0)" onclick="navigateTo('feed'); return false;" class="header-logo-link">
       <div class="logo-container">
-        <span class="logo">SosyaLTrend</span>
-        <span class="logo-tagline">Paylaş, Keşfet, Trend Ol</span>
+        <div class="logo-icon">
+          <img src="assets/img/strendsaydamv2.png" alt="ST logo" />
+        </div>
       </div>
     </a>
-    <div class="header-tools">
-      <button id="themeToggleBtn" class="theme-btn" onclick="toggleDarkMode()" title="Tema Değiştir"><i class="fa-solid fa-moon"></i></button>
-      <div class="notification-wrapper" style="position:relative;">
-        <button id="notificationsBtn" class="theme-btn" onclick="toggleNotifications()" title="Bildirimler" style="position:relative; display: flex; align-items: center; gap: 5px;">
-          <i class="fa-solid fa-bell"></i>
-          <span id="notificationCountBadge" class="notificationCountBadge" style="display:none; font-size: 0.8rem; font-weight: 700;">0 okunmamış</span>
-          <span id="notificationBadge" style="display:none; position:absolute; top:2px; right:2px; background:#ef4444; width:8px; height:8px; border-radius:50%; border: 2px solid var(--header-bg);"></span>
+    <div class="header-nav-buttons">
+      <button type="button" class="header-nav-btn" onclick="navigateTo('feed'); return false;" title="Ana Sayfa">
+        <i class="fa-solid fa-house"></i>
+        <span>Ana Sayfa</span>
+      </button>
+      <div class="friends-dropdown-wrapper">
+        <button id="friendsBtn" type="button" class="header-nav-btn" onclick="toggleFriendsDropdown(); return false;" title="Arkadaşlar">
+          <i class="fa-solid fa-user-friends"></i>
+          <span>Arkadaşlar</span>
         </button>
-        <div id="notificationsDropdown" style="display:none; position:fixed; top:45px; right:0; background:var(--card-bg); border:1px solid var(--border); border-radius:12px; width:340px; max-height:450px; overflow:hidden; z-index:1000; box-shadow:0 10px 30px rgba(0,0,0,0.2); flex-direction:column;">
+        <div id="friendsDropdown" class="friends-dropdown" style="display:none;">
+          <div class="friends-dropdown-title">
+            <span>Arkadaşlarım</span>
+            <button type="button" class="friends-dropdown-close" onclick="toggleFriendsDropdown()" aria-label="Kapat">×</button>
+          </div>
+          <div id="headerFriendsList" class="friends-dropdown-list">
+            <div class="friends-dropdown-empty">Arkadaşlar yükleniyor...</div>
+          </div>
+          <div class="friends-dropdown-footer">
+            <a href="profil.html#friends">Tümünü Gör</a>
+          </div>
+        </div>
+      </div>
+      <div class="notification-wrapper">
+        <button id="notificationsBtn" type="button" class="header-nav-btn" onclick="toggleNotifications(); return false;" title="Bildirimler">
+          <i class="fa-solid fa-bell"></i>
+          <span>Bildirim</span>
+          <span id="notificationCountBadge" class="notificationCountBadge nav-badge" style="display:none;">0 okunmamış</span>
+          <span id="notificationBadge" class="nav-dot-badge" style="display:none;"></span>
+        </button>
+        <div id="notificationsDropdown" class="notifications-dropdown" style="display:none;">
           <div style="padding:12px 15px; border-bottom:1px solid var(--border); background:linear-gradient(135deg, var(--primary), #8b5cf6); color:white; border-radius:12px 12px 0 0; flex-shrink:0; display:flex; align-items:center; gap:10px; justify-content:space-between;">
             <div style="display:flex; align-items:center; gap:10px; flex:1;">
               <i class="fa-solid fa-bell"></i>
@@ -37,6 +60,25 @@
           </div>
         </div>
       </div>
+    </div>
+    <div class="header-search" id="headerSearchWrapper">
+      <button id="headerSearchButton" class="theme-btn" type="button" title="Ara" onclick="toggleHeaderSearch(event)">
+        <i class="fa-solid fa-magnifying-glass"></i>
+      </button>
+      <div id="headerSearchBox" class="search-wrapper" style="display:none;">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <input id="headerSearchInput" type="search" placeholder="Ara..." aria-label="Site içinde ara" />
+        <button id="headerSearchSubmit" class="header-search-submit" type="button" title="Arama yap">
+          Ara
+        </button>
+      </div>
+    </div>
+    <div class="header-tools">
+      <button id="themeToggleBtn" class="theme-btn" onclick="toggleDarkMode()" title="Tema Değiştir"><i class="fa-solid fa-moon"></i></button>
+      <button id="sendHeaderMessageBtn" class="header-msg-btn" onclick="openChatsList()" title="Mesaj Gönder">
+        <i class="fa-solid fa-comments"></i>
+        <span>Sohbet Et</span>
+      </button>
       <div class="profile-trigger" id="profileTrigger">
         <div class="avatar-wrap offline" id="headerAvatarWrap">
           <img id="headerAvatar" src="" alt="Kullanıcı avatar">
@@ -64,3 +106,12 @@
   </div>
   <button id="closePanelBtn" class="header-close-panel" onclick="closeSideMenus()" aria-label="Menüyü kapat">×</button>
 </header>
+<div id="headerInlineSearchResults" class="header-search-results" style="display:none;">
+  <div class="header-search-results-card">
+    <div class="header-search-results-title">
+      <span id="headerSearchResultsTitle">Arama sonuçları</span>
+      <button type="button" id="headerSearchResultsClose" class="header-search-results-close" aria-label="Kapat">×</button>
+    </div>
+    <div id="headerSearchResultsList" class="header-search-results-list"></div>
+  </div>
+</div>

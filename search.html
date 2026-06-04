@@ -23,19 +23,34 @@
     <div id="page-search" class="page-content active">
     <div class="glass-card" style="padding: 25px;">
         <div class="search-header" style="margin-bottom: 25px;">
-            <h2 id="result-text" style="margin-bottom: 5px;">Arama Sonuçları</h2>
-            <p id="searchStatus" style="color:var(--text-muted); font-size:0.9rem;">
+            <h2 id="result-text" style="margin-bottom: 10px;">Arama Sonuçları</h2>
+            <p id="searchStatus" style="color:var(--text-muted); font-size:0.95rem; margin-bottom: 18px;">
                 <i class="fa-solid fa-circle-notch fa-spin"></i> Arama yapılıyor...
             </p>
+            <div class="search-page-toolbar">
+                <div class="search-page-input-wrapper">
+                    <input id="globalSearch" type="search" class="search-page-input" placeholder="Kullanıcı, sayfa veya içerik ara..." autocomplete="off">
+                    <button id="mainSearchBtn" type="button" class="btn search-page-btn"><i class="fa-solid fa-magnifying-glass"></i> Ara</button>
+                </div>
+                <p class="search-page-note">Arama sonuçları kullanıcılar, sayfalar ve site içi bölümler için ayrı ayrı gösterilir.</p>
+            </div>
         </div>
 
-        <div id="search-results-container">
-            <div id="section-users" style="display:none; margin-bottom: 35px;">
+        <div id="search-results-container" class="search-results-grid">
+            <div id="section-users" class="search-results-section" style="display:none; margin-bottom: 35px;">
                 <h3 class="section-subtitle" style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px; border-bottom: 1px solid var(--border); padding-bottom: 10px;">
                     <i class="fa-solid fa-user-group" style="color: var(--primary);"></i> 
                     <span>Kişiler</span>
                 </h3>
                 <div id="search-results-users" class="search-grid-layout"></div>
+            </div>
+
+            <div id="section-pages" class="search-results-section" style="display:none; margin-bottom: 35px;">
+                <h3 class="section-subtitle" style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px; border-bottom: 1px solid var(--border); padding-bottom: 10px;">
+                    <i class="fa-solid fa-book-open" style="color: var(--primary);"></i>
+                    <span>Sayfalar</span>
+                </h3>
+                <div id="search-results-pages" class="search-grid-layout"></div>
             </div>
 
             <div id="search-no-results" style="display:none; text-align:center; padding: 60px 20px;">

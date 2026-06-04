@@ -137,8 +137,31 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Akordeon işlevi
     const faqQuestions = document.querySelectorAll('.faq-question');
+    const categoryBtns = document.querySelectorAll('.category-btn');
+    const faqItems = document.querySelectorAll('.faq-item');
+    const searchInput = document.getElementById('help-search');
+
+    let currentCategory = 'all';
+
+    function updateHelpItems() {
+        const query = (searchInput.value || '').trim().toLowerCase();
+
+        faqItems.forEach(item => {
+            const category = item.getAttribute('data-category');
+            const question = item.querySelector('.faq-question').textContent.toLowerCase();
+            const answer = item.querySelector('.faq-answer').textContent.toLowerCase();
+            const matchesQuery = query === '' || question.includes(query) || answer.includes(query);
+            const matchesCategory = currentCategory === 'all' || category === currentCategory;
+
+            if (matchesQuery && matchesCategory) {
+                item.style.display = 'block';
+            } else {
+                item.style.display = 'none';
+            }
+        });
+    }
+
     faqQuestions.forEach(question => {
         question.addEventListener('click', function() {
             const item = this.parentElement;
@@ -146,41 +169,20 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Kategori filtreleme
-    const categoryBtns = document.querySelectorAll('.category-btn');
-    const faqItems = document.querySelectorAll('.faq-item');
-
     categoryBtns.forEach(btn => {
         btn.addEventListener('click', function() {
-            // Aktif buton değiştir
             document.querySelector('.category-btn.active').classList.remove('active');
             this.classList.add('active');
-
-            const category = this.getAttribute('data-category');
-            faqItems.forEach(item => {
-                if (category === 'all' || item.getAttribute('data-category') === category) {
-                    item.style.display = 'block';
-                } else {
-                    item.style.display = 'none';
-                }
-            });
+            currentCategory = this.getAttribute('data-category');
+            updateHelpItems();
         });
     });
 
-    // Arama işlevi
-    const searchInput = document.getElementById('help-search');
-    searchInput.addEventListener('input', function() {
-        const query = this.value.toLowerCase();
-        faqItems.forEach(item => {
-            const question = item.querySelector('.faq-question').textContent.toLowerCase();
-            const answer = item.querySelector('.faq-answer').textContent.toLowerCase();
-            if (question.includes(query) || answer.includes(query)) {
-                item.style.display = 'block';
-            } else {
-                item.style.display = 'none';
-            }
-        });
-    });
+    if (searchInput) {
+        searchInput.addEventListener('input', updateHelpItems);
+    }
+
+    updateHelpItems();
 });
 </script>
 

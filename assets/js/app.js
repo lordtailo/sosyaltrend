@@ -648,7 +648,7 @@ async function loadTopLikedPosts() {
                 <div style="border:1px solid rgba(255,255,255,0.12); border-radius: 24px; background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03)); box-shadow: 0 18px 36px rgba(0,0,0,0.08); overflow:hidden;">
                     <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; padding:18px 18px 0;">
                         <div style="display:flex; align-items:center; gap:12px; min-width:0;">
-                            <img src="${authorAvatar}" alt="${authorName}" style="width:48px; height:48px; border-radius:50%; object-fit:cover; border:1px solid rgba(255,255,255,0.18);">
+                            <img src="${authorAvatar}" alt="${authorName}" style="width:40px; height:40px; border-radius:50%; object-fit:cover; border:1px solid rgba(255,255,255,0.18);">
                             <div style="min-width:0;">
                                 <div style="font-size:0.98rem; font-weight:800; color: var(--text-main); line-height:1.2;">${authorName}</div>
                                 ${authorHandle ? `<div style="font-size:0.82rem; color: var(--text-muted); margin-top:4px;">${authorHandle}</div>` : ''}
@@ -664,7 +664,7 @@ async function loadTopLikedPosts() {
                         ${topComment ? `
                             <div style="margin-top:18px; padding:16px; border-radius: 20px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12);">
                                 <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
-                                    <img src="${commentAvatar}" alt="${commentAuthor}" style="width:34px; height:34px; border-radius:50%; object-fit:cover; border:1px solid rgba(255,255,255,0.16);">
+                                    <img src="${commentAvatar}" alt="${commentAuthor}" style="width:28px; height:28px; border-radius:50%; object-fit:cover; border:1px solid rgba(255,255,255,0.16);">
                                     <div>
                                         <div style="font-size:0.86rem; font-weight:700; color: var(--text-main);">${commentAuthor}’ın yorumu</div>
                                         <div style="font-size:0.78rem; color: var(--text-muted);">En beğenilen yorum</div>
@@ -3529,6 +3529,14 @@ window.addEventListener('hashchange', () => {
 //* SEARCH ARAMA FONKSIYONLARI *//
 const staticDatabase = {
     pages: [
+        { name: "Ana Sayfa", link: "index.html", icon: "fa-house" },
+        { name: "Blog", link: "blog.html", icon: "fa-newspaper" },
+        { name: "İletişim", link: "contact.html", icon: "fa-envelope" },
+        { name: "Kariyer", link: "kariyer.html", icon: "fa-briefcase" },
+        { name: "Giriş", link: "login.html", icon: "fa-right-to-bracket" },
+        { name: "Ayarlar", link: "settings.html", icon: "fa-gear" },
+        { name: "Profil", link: "profil.html", icon: "fa-user" },
+        { name: "Arama", link: "search.html", icon: "fa-magnifying-glass" },
         { name: "Yardım Merkezi", link: "yardim.html", icon: "fa-life-ring" },
         { name: "Topluluk Kuralları", link: "kurallar.html", icon: "fa-gavel" },
         { name: "Hakkımızda", link: "hakkimizda.html", icon: "fa-info-circle" }
@@ -3541,16 +3549,25 @@ document.addEventListener('DOMContentLoaded', function() {
     const searchQuery = urlParams.get('q');
     
     if (searchQuery && window.location.pathname.includes('search.html')) {
-        const globalSearchInput = document.getElementById('globalSearch');
+        const globalSearchInput = document.getElementById('globalSearch') || document.getElementById('headerSearchInput');
         if(globalSearchInput) globalSearchInput.value = searchQuery;
         performGlobalSearch(searchQuery);
+    }
+
+    const headerSearchInput = document.getElementById('headerSearchInput');
+    if (headerSearchInput) {
+        headerSearchInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && window.location.pathname.includes('search.html')) {
+                performGlobalSearch();
+            }
+        });
     }
 });
 
 // 3. Ana Arama Fonksiyonu (Dinamik & Statik)
 window.performGlobalSearch = async (forcedQuery = null) => {
-    const searchInput = document.getElementById('globalSearch');
-    const queryStr = (forcedQuery || searchInput.value).trim().toLowerCase();
+    const searchInput = document.getElementById('globalSearch') || document.getElementById('headerSearchInput');
+    const queryStr = (forcedQuery || (searchInput?.value || '')).trim().toLowerCase();
     
     if (!queryStr) return;
 
@@ -3563,6 +3580,8 @@ window.performGlobalSearch = async (forcedQuery = null) => {
     // Element Seçimleri
     const usersContainer = document.getElementById('search-results-users');
     const secUsers = document.getElementById('section-users');
+    const pagesContainer = document.getElementById('search-results-pages');
+    const secPages = document.getElementById('section-pages');
     const noResults = document.getElementById('search-no-results');
     const status = document.getElementById('searchStatus');
     const resultText = document.getElementById('result-text');
@@ -3570,7 +3589,9 @@ window.performGlobalSearch = async (forcedQuery = null) => {
 
     // Arayüz Sıfırlama
     if(usersContainer) usersContainer.innerHTML = "";
+    if(pagesContainer) pagesContainer.innerHTML = "";
     if(secUsers) secUsers.style.display = "none";
+    if(secPages) secPages.style.display = "none";
     if(noResults) noResults.style.display = "none";
     if(resultText) resultText.innerText = `"${queryStr}" için sonuçlar`;
     if(status) status.innerText = `Aranıyor...`;
@@ -3582,55 +3603,73 @@ window.performGlobalSearch = async (forcedQuery = null) => {
         const filteredStatic = staticDatabase.pages.filter(p => p.name.toLowerCase().includes(queryStr));
         filteredStatic.forEach(p => {
             totalFound++;
-            secPages.style.display = "block";
-            pagesContainer.innerHTML += `
-                <div class="result-item" style="padding:15px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:12px;">
-                    <i class="fa-solid ${p.icon}" style="color:var(--primary); font-size:1.2rem;"></i>
-                    <a href="${p.link}" style="text-decoration:none; color:var(--text-main); font-weight:600;">${p.name}</a>
-                </div>`;
+            if (secPages) secPages.style.display = "block";
+            if (pagesContainer) {
+                pagesContainer.innerHTML += `
+                    <a href="${p.link}" class="search-result-card">
+                        <div class="search-result-card-icon"><i class="fa-solid ${p.icon}"></i></div>
+                        <div>
+                            <div class="search-result-card-title">${p.name}</div>
+                            <div class="search-result-card-subtitle">${p.link}</div>
+                        </div>
+                    </a>`;
+            }
         });
 
         // --- B. FIREBASE SAYFA ARAMASI ---
-    const pagesSnap = await getDocs(collection(db, "pages"));
-    pagesSnap.forEach(docSnap => {
+        const pagesSnap = await getDocs(collection(db, "pages"));
+        pagesSnap.forEach(docSnap => {
     const data = docSnap.data();
     
     // Sadece tam eşleşme istiyorsan .includes yerine === kullanabilirsin
     // Veya belirli bir sayfayı hariç tutmak istiyorsan: if (data.name === "İstemediğim Sayfa") return;
 
-    if (data.name && data.name.toLowerCase().includes(queryStr)) {
+    const pageName = (data.name || data.title || data.pageName || '').trim();
+    if (pageName && pageName.toLowerCase().includes(queryStr)) {
                 totalFound++;
                 secPages.style.display = "block";
                 const isSub = (data.subscribers || []).includes(user?.username);
+                const pageIconUrl = getAvatarUrl(data.avatarSeed || data.avatar || 'page', 'page');
                 pagesContainer.innerHTML += `
-                <div class="glass-card page-card" style="margin-top:10px;">
-                    <img src="${getAvatarUrl(data.avatarSeed, 'page')}" class="page-icon" style="width: 50px; height: 50px; border-radius: 8px; margin: 10px auto; display: block;">
-                    <div style="font-weight:800; text-align:center;">${data.name}</div>
-                    <div style="font-size:0.7rem; color:var(--text-muted); margin-bottom:10px; text-align:center;">Topluluk • ${(data.subscribers || []).length} Takipçi</div>
-                    <button class="btn-subscribe ${isSub ? 'subscribed' : ''}" onclick="toggleSubscription('${docSnap.id}', ${isSub})">${isSub ? t.unsubBtn : t.subBtn}</button>
+                <div class="search-result-card" style="align-items:flex-start; padding:20px;">
+                    <div class="search-result-card-icon" style="border-radius:16px; overflow:hidden; width:60px; height:60px;">
+                        <img src="${pageIconUrl}" alt="${pageName} avatar" style="width:100%; height:100%; object-fit:cover;">
+                    </div>
+                    <div style="flex:1; min-width:0;">
+                        <div class="search-result-card-title">${pageName}</div>
+                        <div class="search-result-card-subtitle">Topluluk • ${(data.subscribers || []).length} takipçi</div>
+                    </div>
+                    <div style="margin-top:auto;">
+                        <button class="btn-subscribe ${isSub ? 'subscribed' : ''}" onclick="toggleSubscription('${docSnap.id}', ${isSub})">${isSub ? t.unsubBtn : t.subBtn}</button>
+                    </div>
                 </div>`;
             }
         });
 
         // --- C. FIREBASE KULLANICI ARAMASI ---
-        const postsSnap = await getDocs(collection(db, "posts"));
-        let processedUsers = new Set();
+        const usersSnap = await getDocs(collection(db, "users"));
+        usersSnap.forEach(docSnap => {
+            const userData = docSnap.data();
+            const username = userData.username || userData.uid || '';
+            const name = userData.name || userData.displayName || '';
+            const usernameMatch = username.toLowerCase().includes(queryStr);
+            const nameMatch = name.toLowerCase().includes(queryStr);
 
-        postsSnap.forEach(pDoc => {
-            const p = pDoc.data();
-            const usernameMatch = p.username && p.username.toLowerCase().includes(queryStr);
-            const nameMatch = p.name && p.name.toLowerCase().includes(queryStr);
-            
-            if (p.username && !p.username.startsWith('page_') && (usernameMatch || nameMatch) && !processedUsers.has(p.username)) {
-                processedUsers.add(p.username);
+            if ((usernameMatch || nameMatch) && secUsers && usersContainer) {
                 totalFound++;
                 secUsers.style.display = "block";
                 usersContainer.innerHTML += `
-                <div class="glass-card page-card" style="margin-top:10px;">
-                    <img src="${getAvatarUrl(p.avatarSeed, 'user')}" class="page-icon" style="border-radius:50%; width: 50px; height: 50px; margin: 10px auto; display: block; cursor:pointer;" onclick="window.location.href='profil.html?u=${p.username}'">
-                    <div style="font-weight:800; text-align:center;">${p.name || 'Kullanıcı'}</div>
-                    <div style="font-size:0.7rem; color:var(--text-muted); margin-bottom:10px; text-align:center;">@${p.username}</div>
-                    <button class="btn-subscribe" onclick="window.location.href='profil.html?u=${p.username}'">Profiline Git</button>
+                <div class="search-user-card">
+                    <div class="search-user-avatar">
+                        <img src="${getAvatarUrl(userData.avatarUrl || userData.avatarSeed || userData.avatar || 'default', 'user')}" alt="${name || username} avatar">
+                    </div>
+                    <div class="search-user-info">
+                        <div class="search-user-name">${name || 'Kullanıcı'}</div>
+                        <div class="search-user-handle">@${username}</div>
+                    </div>
+                    <div class="search-user-action">
+                        <button class="btn-subscribe" onclick="window.location.href='profil.html?u=${username}'">Profiline Git</button>
+                    </div>
                 </div>`;
             }
         });
@@ -5862,7 +5901,192 @@ function initHeaderInteractions() {
             window.toggleNotifications?.();
         };
     }
+
+    const headerSearchBtn = document.getElementById('headerSearchButton');
+    const headerSearchBox = document.getElementById('headerSearchBox');
+    const headerSearchInput = document.getElementById('headerSearchInput');
+    const headerSearchWrapper = document.getElementById('headerSearchWrapper');
+
+    if (headerSearchBtn && headerSearchBox && headerSearchInput && headerSearchWrapper) {
+        const setSearchOpen = (open) => {
+            headerSearchBox.style.display = open ? 'flex' : 'none';
+            headerSearchBtn.innerHTML = open ? '<i class="fa-solid fa-xmark"></i>' : '<i class="fa-solid fa-magnifying-glass"></i>';
+            if (open) {
+                headerSearchInput.focus();
+            }
+        };
+
+        const toggleSearch = (event) => {
+            event.stopPropagation();
+            setSearchOpen(headerSearchBox.style.display !== 'flex');
+        };
+
+        headerSearchBtn.addEventListener('click', toggleSearch);
+        headerSearchBox.addEventListener('click', (e) => e.stopPropagation());
+
+        let headerSearchTimeout = null;
+        headerSearchInput.addEventListener('input', () => {
+            clearTimeout(headerSearchTimeout);
+            headerSearchTimeout = setTimeout(() => {
+                window.performInlineHeaderSearch();
+            }, 250);
+        });
+
+        headerSearchInput.addEventListener('keydown', async (event) => {
+            if (event.key === 'Escape') {
+                setSearchOpen(false);
+            }
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                await window.performInlineHeaderSearch();
+            }
+        });
+
+        const headerSearchSubmit = document.getElementById('headerSearchSubmit');
+        if (headerSearchSubmit) {
+            headerSearchSubmit.addEventListener('click', async (event) => {
+                event.preventDefault();
+                await window.performInlineHeaderSearch();
+            });
+        }
+
+        const headerSearchResultsClose = document.getElementById('headerSearchResultsClose');
+        if (headerSearchResultsClose) {
+            headerSearchResultsClose.addEventListener('click', () => {
+                const resultsPanel = document.getElementById('headerInlineSearchResults');
+                if (resultsPanel) {
+                    resultsPanel.style.display = 'none';
+                }
+            });
+        }
+
+        document.addEventListener('click', (event) => {
+            if (!headerSearchWrapper.contains(event.target) && headerSearchBox.style.display === 'flex') {
+                if (!headerSearchInput.value.trim()) {
+                    setSearchOpen(false);
+                }
+            }
+        });
+    }
 }
+
+window.toggleHeaderSearch = function(event) {
+    event = event || window.event;
+    if (event && typeof event.stopPropagation === 'function') {
+        event.stopPropagation();
+    }
+    const headerSearchBtn = document.getElementById('headerSearchButton');
+    const headerSearchBox = document.getElementById('headerSearchBox');
+    const headerSearchInput = document.getElementById('headerSearchInput');
+    const headerSearchResults = document.getElementById('headerInlineSearchResults');
+    if (!headerSearchBtn || !headerSearchBox || !headerSearchInput) return;
+
+    const open = headerSearchBox.style.display !== 'flex';
+    headerSearchBox.style.display = open ? 'flex' : 'none';
+    headerSearchBtn.innerHTML = open ? '<i class="fa-solid fa-xmark"></i>' : '<i class="fa-solid fa-magnifying-glass"></i>';
+    if (headerSearchResults && !open) {
+        headerSearchResults.style.display = 'none';
+    }
+    if (open) {
+        headerSearchInput.focus();
+    }
+};
+
+window.performInlineHeaderSearch = async (forcedQuery = null) => {
+    const input = document.getElementById('headerSearchInput');
+    const resultsPanel = document.getElementById('headerInlineSearchResults');
+    const resultsTitle = document.getElementById('headerSearchResultsTitle');
+    const resultsList = document.getElementById('headerSearchResultsList');
+    if (!input || !resultsPanel || !resultsTitle || !resultsList) return;
+
+    const queryStr = (forcedQuery || input.value || '').trim();
+    if (!queryStr) {
+        resultsPanel.style.display = 'none';
+        return;
+    }
+
+    const normalizedQuery = queryStr.toLowerCase();
+    resultsTitle.textContent = `“${queryStr}” için arama sonuçları`;
+    resultsList.innerHTML = '';
+    resultsPanel.style.display = 'block';
+
+    const matches = staticDatabase.pages.filter(item => item.name.toLowerCase().includes(normalizedQuery));
+    const pageMatches = [];
+    const userMatches = [];
+
+    if (matches.length) {
+        matches.forEach(item => {
+            pageMatches.push({ name: item.name, link: item.link, icon: item.icon });
+        });
+    }
+
+    try {
+        const pagesSnap = await getDocs(collection(db, "pages"));
+        pagesSnap.forEach(docSnap => {
+            const pageData = docSnap.data();
+            const title = (pageData.name || pageData.title || '').toLowerCase();
+            if (title.includes(normalizedQuery)) {
+                pageMatches.push({
+                    name: pageData.name || pageData.title || 'Sayfa',
+                    link: pageData.link || `search.html?q=${encodeURIComponent(queryStr)}`,
+                    icon: pageData.icon || 'fa-book-open'
+                });
+            }
+        });
+    } catch (error) {
+        console.warn('Header search sayfa sorgusu sırasında hata:', error);
+    }
+
+    try {
+        const usersSnap = await getDocs(collection(db, "users"));
+        usersSnap.forEach(docSnap => {
+            const userData = docSnap.data();
+            const username = (userData.username || userData.uid || '').toLowerCase();
+            const displayName = (userData.name || userData.displayName || '').toLowerCase();
+            if (username.includes(normalizedQuery) || displayName.includes(normalizedQuery)) {
+                userMatches.push({ id: docSnap.id, ...userData });
+            }
+        });
+    } catch (error) {
+        console.warn('Header search kullanıcı sorgusu sırasında hata:', error);
+    }
+
+    if (pageMatches.length) {
+        pageMatches.slice(0, 6).forEach(item => {
+            resultsList.innerHTML += `
+                <a href="${item.link}" class="header-search-result-item">
+                    <div class="header-search-result-icon"><i class="fa-solid ${item.icon}"></i></div>
+                    <div class="header-search-result-content">
+                        <span>${item.name}</span>
+                        <small>${item.link}</small>
+                    </div>
+                </a>`;
+        });
+    }
+
+    if (userMatches.length) {
+        userMatches.slice(0, 6).forEach(userData => {
+            const username = userData.username || userData.uid || 'kullanici';
+            const displayName = userData.name || userData.displayName || username;
+            const profileUrl = `profil.html?u=${encodeURIComponent(username)}`;
+            const avatarUrl = getAvatarUrl(userData.avatarUrl || userData.avatarSeed || userData.avatar || 'default', 'user');
+            resultsList.innerHTML += `
+                <a href="${profileUrl}" class="header-search-result-item">
+                    <div class="header-search-result-avatar"><img src="${avatarUrl}" alt="${displayName} avatar"></div>
+                    <div class="header-search-result-content">
+                        <span>${displayName}</span>
+                        <small>@${username}</small>
+                    </div>
+                </a>`;
+        });
+    }
+
+    if (pageMatches.length === 0 && userMatches.length === 0) {
+        resultsList.innerHTML = `<div class="header-search-result-empty">Aramanıza uyan sonuç bulunamadı. Tüm sonuçları görmek için <a href="search.html?q=${encodeURIComponent(queryStr)}">ara sayfasına gidin</a>.</div>`;
+    } else {
+        resultsList.innerHTML += `<div class="header-search-result-footer">Daha fazla sonuç için <a href="search.html?q=${encodeURIComponent(queryStr)}">tüm arama sayfasını açın</a>.</div>`;
+    }
+};
 
 // 2. Sayfa Yüklendiğinde Başlat
 function getPathPrefix() {
@@ -6014,12 +6238,17 @@ document.addEventListener('click', (e) => {
     // Bildirim dropdown'u
     const notificationsBtn = document.getElementById('notificationsBtn');
     const notificationsDropdown = document.getElementById('notificationsDropdown');
+    const friendsBtn = document.getElementById('friendsBtn');
+    const friendsDropdown = document.getElementById('friendsDropdown');
     
-    if (notificationsBtn?.contains(e.target)) {
+    if (notificationsBtn?.contains(e.target) || friendsBtn?.contains(e.target)) {
         e.stopPropagation();
-    } else if (notificationsDropdown && notificationsDropdown.style.display !== 'none') {
-        if (!notificationsDropdown.contains(e.target)) {
+    } else {
+        if (notificationsDropdown && notificationsDropdown.style.display !== 'none' && !notificationsDropdown.contains(e.target)) {
             notificationsDropdown.style.display = 'none';
+        }
+        if (friendsDropdown && friendsDropdown.style.display !== 'none' && !friendsDropdown.contains(e.target)) {
+            friendsDropdown.style.display = 'none';
         }
     }
 });
@@ -6367,8 +6596,8 @@ async function loadFriendsList(userRef, isOwnProfile = true) {
 
                 friendCard.innerHTML = `
                     <div>
-                        <img src="${friendData.avatarUrl || 'assets/img/strendsaydamv2.png'}" 
-                             style="width: 80px; height: 80px; border-radius: 50%; border: 2px solid var(--primary); object-fit: cover; margin-bottom: 10px; cursor:pointer;"
+                            <img src="${friendData.avatarUrl || 'assets/img/strendsaydamv2.png'}" 
+                                style="width: 72px; height: 72px; border-radius: 50%; border: 2px solid var(--primary); object-fit: cover; margin-bottom: 10px; cursor:pointer;"
                              onclick="window.location.href='profil.html?id=${encodeURIComponent(friendData.username)}'">
                         <h4 style="margin: 8px 0; font-size: 0.9rem; word-break: break-word;">${friendData.displayName || friendData.username}</h4>
                         <p style="margin: 5px 0; color: var(--text-muted); font-size: 0.8rem;">@${friendData.username}</p>
@@ -6506,7 +6735,7 @@ async function showMutuals(friendUid) {
                     text-align: center;
                     /* cursor on card removed so only img is clickable */
                     transition: all 0.3s ease;
-                    width: 80px;
+                    width: 72px;
                 `;
                 card.innerHTML = `
                     <div>
@@ -7221,6 +7450,10 @@ window.restoreNotifications = restoreNotifications;
 // Fonksiyonu window nesnesine bağlayarak HTML'den erişilebilir yapıyoruz
 window.toggleNotifications = function() {
     const dropdown = document.getElementById('notificationsDropdown');
+    const friendsDropdown = document.getElementById('friendsDropdown');
+    if (friendsDropdown) {
+        friendsDropdown.style.display = 'none';
+    }
     if (dropdown) {
         // Mevcut durumu kontrol et ve tersine çevir
         if (dropdown.style.display === 'none' || dropdown.style.display === '') {
@@ -7240,6 +7473,83 @@ window.toggleNotifications = function() {
         }
     } else {
         console.warn("notificationsDropdown öğesi bulunamadı!");
+    }
+};
+
+window.toggleFriendsDropdown = function() {
+    const dropdown = document.getElementById('friendsDropdown');
+    const notificationsDropdown = document.getElementById('notificationsDropdown');
+    if (!dropdown) return;
+    if (!auth.currentUser) {
+        alert('Lütfen giriş yapın');
+        return;
+    }
+    if (notificationsDropdown) {
+        notificationsDropdown.style.display = 'none';
+    }
+    if (dropdown.style.display === 'none' || dropdown.style.display === '') {
+        dropdown.style.display = 'flex';
+        dropdown.style.flexDirection = 'column';
+        loadHeaderFriendsList();
+    } else {
+        dropdown.style.display = 'none';
+    }
+};
+
+window.loadHeaderFriendsList = async function() {
+    const list = document.getElementById('headerFriendsList');
+    if (!list) return;
+    list.innerHTML = '<div class="friends-dropdown-empty">Arkadaşlar yükleniyor...</div>';
+    if (!auth.currentUser) {
+        list.innerHTML = '<div class="friends-dropdown-empty">Lütfen giriş yapın.</div>';
+        return;
+    }
+    try {
+        const userRef = doc(db, 'users', auth.currentUser.uid);
+        const userSnap = await getDoc(userRef);
+        if (!userSnap.exists()) {
+            list.innerHTML = '<div class="friends-dropdown-empty">Arkadaş bilgisi bulunamadı.</div>';
+            return;
+        }
+        const userData = userSnap.data();
+        const friendsIds = Array.isArray(userData.friends) ? userData.friends : [];
+        if (friendsIds.length === 0) {
+            list.innerHTML = '<div class="friends-dropdown-empty">Henüz arkadaşınız yok.</div>';
+            return;
+        }
+        let html = '';
+        for (const friendId of friendsIds) {
+            try {
+                const friendRef = doc(db, 'users', friendId);
+                const friendSnap = await getDoc(friendRef);
+                if (!friendSnap.exists()) continue;
+                const friendData = friendSnap.data();
+                const avatarUrl = getAvatarUrl(friendData.avatarUrl || friendData.avatarSeed || 'assets/img/strendsaydamv2.png', 'user');
+                const displayName = friendData.displayName || friendData.username || friendId;
+                const username = friendData.username || '';
+                const presence = resolvePresenceStatus(friendData);
+                const profileUrl = username ? `profil.html?id=${encodeURIComponent(username)}` : `profil.html?id=${encodeURIComponent(friendId)}`;
+                html += `
+                    <a href="${profileUrl}" class="friends-dropdown-item">
+                        <div class="avatar-wrap ${presence.status}">
+                            <img src="${avatarUrl}" alt="${escapeHtml(displayName)}" class="friends-dropdown-avatar" />
+                            <span class="status-badge status-${presence.status}"></span>
+                        </div>
+                        <div>
+                            <span class="friends-dropdown-name">${escapeHtml(displayName)}</span>
+                            ${username ? `<small class="friends-dropdown-username">@${escapeHtml(username)}</small>` : ''}
+                            <p class="friends-dropdown-status">${escapeHtml(presence.label)}</p>
+                        </div>
+                    </a>
+                `;
+            } catch (error) {
+                console.error('Arkadaş yüklenirken hata:', error);
+            }
+        }
+        list.innerHTML = html || '<div class="friends-dropdown-empty">Arkadaşlar yüklenemedi.</div>';
+    } catch (error) {
+        console.error('Arkadaşlar yüklenirken hata:', error);
+        list.innerHTML = '<div class="friends-dropdown-empty">Arkadaşlar yüklenemedi.</div>';
     }
 };
 
@@ -8788,13 +9098,18 @@ window.loadChatFriends = async function() {
                     const avatarUrl = getAvatarUrl(friendData.avatarUrl || 'assets/img/strendsaydamv2.png', 'user');
                     const displayName = friendData.displayName || friendData.username || friendId;
                     const username = friendData.username || 'user';
+                    const presence = resolvePresenceStatus(friendData);
                     
                     friendsHtml += `
                         <div class="chat-friend-item" onclick="openChatWithFriend('${friendId}', '${displayName}', '${username}')">
-                            <img src="${avatarUrl}" class="chat-friend-avatar" alt="">
+                            <div class="chat-friend-avatar-wrap ${presence.status}">
+                                <img src="${avatarUrl}" class="chat-friend-avatar" alt="">
+                                <span class="status-badge status-${presence.status}"></span>
+                            </div>
                             <div class="chat-friend-info">
                                 <p class="chat-friend-name">${escapeHtml(displayName)}</p>
                                 <p class="chat-friend-username">@${escapeHtml(username)}</p>
+                                <p class="chat-friend-status">${escapeHtml(presence.label)}</p>
                             </div>
                         </div>
                     `;
@@ -9542,6 +9857,33 @@ function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
+}
+
+function formatRelativePresence(timestamp) {
+    if (!timestamp) return 'Çevrimdışı';
+    const date = timestamp.toDate ? timestamp.toDate() : (timestamp.seconds != null ? new Date(timestamp.seconds * 1000) : new Date(timestamp));
+    const diffSeconds = Math.floor((Date.now() - date.getTime()) / 1000);
+    if (diffSeconds < 60) return 'şimdi';
+    if (diffSeconds < 3600) return `${Math.floor(diffSeconds / 60)}dk önce`;
+    if (diffSeconds < 86400) return `${Math.floor(diffSeconds / 3600)}sa önce`;
+    return `${Math.floor(diffSeconds / 86400)}g önce`;
+}
+
+function resolvePresenceStatus(userData) {
+    if (!userData) return { status: 'offline', label: 'Çevrimdışı' };
+    const isOnline = userData.isOnline === true || userData.online === true;
+    const lastActiveAt = userData.lastActiveAt || userData.lastSeen || userData.lastOnline;
+    if (isOnline) {
+        return { status: 'online', label: 'Çevrimiçi' };
+    }
+    if (lastActiveAt) {
+        const rel = formatRelativePresence(lastActiveAt);
+        if (rel === 'şimdi') {
+            return { status: 'online', label: 'Çevrimiçi' };
+        }
+        return { status: 'offline', label: `Son aktif ${rel}` };
+    }
+    return { status: 'offline', label: 'Çevrimdışı' };
 }
 
 function shortenEmail(email) {
