@@ -699,27 +699,38 @@ async function loadTopReadBlogs() {
         }
         const items = snap.docs.map((docSnap, idx) => {
             const post = docSnap.data();
-            const title = escapeHtml(post.title || post.headline || 'Başlıksız yazı');
+            const rawTitle = post.title || post.headline || 'Başlıksız yazı';
+            const cappedRawTitle = rawTitle.charAt(0).toUpperCase() + rawTitle.slice(1);
+            const title = escapeHtml(cappedRawTitle);
             const shortTitle = title.length > 56 ? `${title.substring(0, 53)}...` : title;
             const views = post.views || 0;
             const authorDisplay = post.authorDisplayName || post.author || post.displayName || post.name || '';
             const authorUsername = post.authorUsername || post.username || '';
             const authorName = escapeHtml(authorDisplay || authorUsername || 'Yazar');
-            const authorLabel = authorDisplay && authorUsername ? `${authorName} · @${escapeHtml(authorUsername)}` : authorName;
+            const authorIconHtml = `<i class="fa-solid fa-user" style="margin-right:6px; color:var(--primary);"></i>`;
+            const authorLabelHtml = authorDisplay && authorUsername ? `${authorIconHtml}${authorName} · @${escapeHtml(authorUsername)}` : `${authorIconHtml}${authorName}`;
             const slug = post.slug || docSnap.id;
             const url = `blog.html?id=${encodeURIComponent(slug)}`;
+            const postDate = formatPostTimestamp(post.createdAt || post.timestamp || post.publishedAt);
             return `
                 <a href="${url}" style="display:flex; justify-content:space-between; align-items:center; gap:14px; text-decoration:none; color: inherit; padding:18px 18px; border-radius:22px; background: rgba(255,255,255,0.05); border:1px solid rgba(99,102,241,0.16); box-shadow: 0 20px 45px rgba(0,0,0,0.05); transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;">
                     <div style="display:flex; gap:14px; align-items:center; min-width:0; flex:1;">
                         <div style="width:38px; min-width:38px; height:38px; border-radius:14px; background: rgba(99,102,241,0.18); color: var(--primary); display:flex; align-items:center; justify-content:center; font-weight:800; font-size:0.95rem;">${idx + 1}</div>
                         <div style="min-width:0;">
-                            <div style="font-size:0.98rem; font-weight:700; line-height:1.35; color: var(--text-main);">${shortTitle}</div>
-                            <div style="font-size:0.78rem; color: var(--text-muted); margin-top:6px;">${authorLabel} · ${views} okuma</div>
+                            <div style="font-size:0.98rem; font-weight:700; line-height:1.35; color: var(--text-main); display:flex; align-items:center; gap:8px;">
+                                <i class="fa-solid fa-newspaper" style="color:var(--primary); transform: translateY(1px);"></i>
+                                <span>${shortTitle}</span>
+                            </div>
+                            <div style="font-size:0.78rem; color: var(--text-muted); margin-top:6px; display:flex; align-items:center; gap:6px;">
+                                <i class="fa-solid fa-calendar-days" style="color:var(--primary);"></i>
+                                <span>${postDate}</span>
+                            </div>
+                                <div style="font-size:0.78rem; color: var(--text-muted); margin-top:6px;">${authorLabelHtml}</div>
                         </div>
                     </div>
-                    <div style="display:flex; flex-direction:column; align-items:flex-end; gap:6px;">
-                        <span style="font-size:0.84rem; color: var(--primary); font-weight:700;">Detay</span>
-                        <span style="font-size:0.72rem; color: var(--text-muted); letter-spacing:0.4px;">Hemen oku</span>
+                    <div style="display:flex; flex-direction:column; align-items:center; gap:6px;">
+                        <div style="font-size:0.78rem; color: var(--success); margin-bottom:6px; text-align:center; width:100%; font-weight:700;">${views} okuma</div>
+                        <span role="button" onclick="location.href='${url}'; event.stopPropagation();" style="background: var(--primary); color: #fff; padding:8px 12px; border-radius: 10px; font-weight:700; font-size:0.86rem; text-decoration:none; display:inline-flex; align-items:center; gap:8px; cursor:pointer;">Hemen Oku</span>
                     </div>
                 </a>`;
         });
@@ -7479,6 +7490,7 @@ window.toggleNotifications = function() {
 window.toggleFriendsDropdown = function() {
     const dropdown = document.getElementById('friendsDropdown');
     const notificationsDropdown = document.getElementById('notificationsDropdown');
+    const searchInput = document.getElementById('friendsSearchInput');
     if (!dropdown) return;
     if (!auth.currentUser) {
         alert('Lütfen giriş yapın');
@@ -7488,12 +7500,54 @@ window.toggleFriendsDropdown = function() {
         notificationsDropdown.style.display = 'none';
     }
     if (dropdown.style.display === 'none' || dropdown.style.display === '') {
+        if (searchInput) searchInput.value = '';
         dropdown.style.display = 'flex';
         dropdown.style.flexDirection = 'column';
         loadHeaderFriendsList();
     } else {
         dropdown.style.display = 'none';
     }
+};
+
+window.renderHeaderFriendsList = function(friends, totalCount) {
+    const list = document.getElementById('headerFriendsList');
+    const badge = document.getElementById('friendsCountBadge');
+    if (badge) {
+        badge.textContent = `${totalCount}`;
+    }
+    if (!list) return;
+    if (!Array.isArray(friends) || friends.length === 0) {
+        list.innerHTML = '<div class="friends-dropdown-empty">Arama sonuçlarına uygun arkadaş bulunamadı.</div>';
+        return;
+    }
+    const html = friends.map(friend => {
+        return `
+            <a href="${friend.profileUrl}" class="friends-dropdown-item">
+                <div class="avatar-wrap ${friend.presence.status}">
+                    <img src="${friend.avatarUrl}" alt="${escapeHtml(friend.displayName)}" class="friends-dropdown-avatar" />
+                    <span class="status-badge status-${friend.presence.status}"></span>
+                </div>
+                <div>
+                    <span class="friends-dropdown-name">${escapeHtml(friend.displayName)}</span>
+                    ${friend.username ? `<small class="friends-dropdown-username">@${escapeHtml(friend.username)}</small>` : ''}
+                    <p class="friends-dropdown-status">${escapeHtml(friend.presence.label)}</p>
+                </div>
+            </a>
+        `;
+    }).join('');
+    list.innerHTML = html;
+};
+
+window.filterHeaderFriends = function() {
+    const searchInput = document.getElementById('friendsSearchInput');
+    const filter = (searchInput?.value || '').trim().toLowerCase();
+    const friends = window.headerFriendsListData || [];
+    const filtered = !filter ? friends : friends.filter(friend => {
+        const displayName = (friend.displayName || '').toLowerCase();
+        const username = (friend.username || '').toLowerCase();
+        return displayName.includes(filter) || username.includes(filter);
+    });
+    renderHeaderFriendsList(filtered, friends.length);
 };
 
 window.loadHeaderFriendsList = async function() {
@@ -7515,9 +7569,12 @@ window.loadHeaderFriendsList = async function() {
         const friendsIds = Array.isArray(userData.friends) ? userData.friends : [];
         if (friendsIds.length === 0) {
             list.innerHTML = '<div class="friends-dropdown-empty">Henüz arkadaşınız yok.</div>';
+            const badge = document.getElementById('friendsCountBadge');
+            if (badge) badge.textContent = '0';
+            window.headerFriendsListData = [];
             return;
         }
-        let html = '';
+        const friendsData = [];
         for (const friendId of friendsIds) {
             try {
                 const friendRef = doc(db, 'users', friendId);
@@ -7529,24 +7586,19 @@ window.loadHeaderFriendsList = async function() {
                 const username = friendData.username || '';
                 const presence = resolvePresenceStatus(friendData);
                 const profileUrl = username ? `profil.html?id=${encodeURIComponent(username)}` : `profil.html?id=${encodeURIComponent(friendId)}`;
-                html += `
-                    <a href="${profileUrl}" class="friends-dropdown-item">
-                        <div class="avatar-wrap ${presence.status}">
-                            <img src="${avatarUrl}" alt="${escapeHtml(displayName)}" class="friends-dropdown-avatar" />
-                            <span class="status-badge status-${presence.status}"></span>
-                        </div>
-                        <div>
-                            <span class="friends-dropdown-name">${escapeHtml(displayName)}</span>
-                            ${username ? `<small class="friends-dropdown-username">@${escapeHtml(username)}</small>` : ''}
-                            <p class="friends-dropdown-status">${escapeHtml(presence.label)}</p>
-                        </div>
-                    </a>
-                `;
+                friendsData.push({
+                    displayName,
+                    username,
+                    avatarUrl,
+                    presence,
+                    profileUrl
+                });
             } catch (error) {
                 console.error('Arkadaş yüklenirken hata:', error);
             }
         }
-        list.innerHTML = html || '<div class="friends-dropdown-empty">Arkadaşlar yüklenemedi.</div>';
+        window.headerFriendsListData = friendsData;
+        renderHeaderFriendsList(friendsData, friendsIds.length);
     } catch (error) {
         console.error('Arkadaşlar yüklenirken hata:', error);
         list.innerHTML = '<div class="friends-dropdown-empty">Arkadaşlar yüklenemedi.</div>';

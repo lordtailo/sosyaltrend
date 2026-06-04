@@ -13,7 +13,7 @@
       </div>
     </a>
     <div class="header-nav-buttons">
-      <button type="button" class="header-nav-btn" onclick="navigateTo('feed'); return false;" title="Ana Sayfa">
+      <button type="button" class="header-nav-btn home-nav-btn" onclick="navigateTo('feed'); return false;" title="Ana Sayfa">
         <i class="fa-solid fa-house"></i>
         <span>Ana Sayfa</span>
       </button>
@@ -24,8 +24,11 @@
         </button>
         <div id="friendsDropdown" class="friends-dropdown" style="display:none;">
           <div class="friends-dropdown-title">
-            <span>Arkadaşlarım</span>
+            <span>Arkadaşlarım <small id="friendsCountBadge" class="friends-count-badge">0</small></span>
             <button type="button" class="friends-dropdown-close" onclick="toggleFriendsDropdown()" aria-label="Kapat">×</button>
+          </div>
+          <div class="friends-dropdown-search">
+            <input id="friendsSearchInput" type="search" placeholder="Arkadaş ara..." aria-label="Arkadaş ara" oninput="filterHeaderFriends()" />
           </div>
           <div id="headerFriendsList" class="friends-dropdown-list">
             <div class="friends-dropdown-empty">Arkadaşlar yükleniyor...</div>
