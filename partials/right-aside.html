@@ -14,6 +14,11 @@
     </div>
 
     <div class="glass-card sidebar-container" style="margin-bottom:12px;">
+        <div class="sidebar-title"><i class="fa-solid fa-users"></i> Arkadaşlarım</div>
+        <div id="onlineFriendsWidget" class="friends-widget"></div>
+    </div>
+
+    <div class="glass-card sidebar-container" style="margin-bottom:12px;">
         <div class="sidebar-title"><i class="fa-solid fa-calendar-days"></i> Takvim</div>
         <div style="padding: 0 8px;">
             <div id="rightCalendarNav" class="calendar-nav"></div>
@@ -36,18 +41,6 @@
         </div>
         <div style="padding: 0 12px 12px;">
             <a href="contact.html" class="btn" style="display:inline-flex; align-items:center; justify-content:center; width:100%; gap:8px; background: var(--primary); color:#fff; border:none;">Reklam Talep Et</a>
-        </div>
-    </div>
-
-    <!-- son 10 kullanıcı istatistikleri -->
-    <div id="sidebarStats" class="glass-card sidebar-container" style="overflow: visible; margin-bottom: 12px;">
-        <div class="sidebar-title"><i class="fa-solid fa-user-group"></i> En Son Kayıt Olanlar</div>
-        <div id="sidebarTotalUsers" style="text-align: center; font-size: 1.2rem; font-weight: 700;"></div>
-        <p style="text-align: center; font-size: 15px; font-weight: 300;">Kayıtlı kullanıcımız bulunmaktadır.</p>
-        <div class="carousel-wrapper" style="margin-top: 10px; align-items: center; padding-bottom: 10px;">
-            <div class="recent-carousel" id="sidebarRecentList">
-                <!-- JS injects 10 avatars here -->
-            </div>
         </div>
     </div>
 

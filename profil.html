@@ -73,6 +73,11 @@
         border-color: var(--primary);
     }
     .gallery-item img { width: 100%; height: 100%; object-fit: cover; }
+
+    /* Profil sekmesi için gizlenmesi istenen düğmeler */
+    .profile-tabs a[href="#tebrikler"] {
+        display: none !important;
+    }
     
     .delete-overlay {
         position: absolute;
@@ -95,90 +100,148 @@
     }
   </style>
   <style>
-    /* Profil Sekme Stilleri */
-    .profile-top-pairs { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; justify-content: center; margin-bottom: 18px; align-items: stretch; width: 100%; }
-    .profile-top-pairs > .tebrik-card,
-    .profile-top-pairs > .membership-card { width: 100%; max-width: 100%; height: 100%; box-sizing: border-box; }
+    /* Profil sayfası düzeni */
+    #page-profile { width: 100%; max-width: 1300px; margin: 0 auto; padding: 24px 20px 40px; box-sizing: border-box; }
+    .profile-header-card,
+    .profile-card,
+    .profile-tabs-card,
+    .profile-box { background: rgba(255,255,255,0.95); border: 1px solid rgba(0,0,0,0.08); border-radius: 24px; box-shadow: 0 24px 60px rgba(0,0,0,0.08); }
+    .profile-header-card { padding: 28px 28px 22px; margin-bottom: 24px; }
+    .profile-header-inner { display: grid; grid-template-columns: 130px 1fr; gap: 8px; align-items: center; }
+    .profile-avatar-wrap { position: relative; width: 130px; height: 130px; border-radius: 50%; overflow: hidden; border: 4px solid rgba(var(--primary-rgb,99,102,241),0.22); box-shadow: 0 20px 40px rgba(0,0,0,0.08); }
+    .profile-avatar-wrap img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .avatar-camera-overlay {
+      position: absolute;
+      right: 8px;
+      bottom: 8px;
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      border: 2px solid rgba(255,255,255,0.9);
+      background: rgba(var(--primary-rgb,99,102,241),0.95);
+      color: #fff;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.18);
+      z-index: 2;
+    }
+    .avatar-camera-overlay:hover { transform: translateY(-1px) scale(1.05); box-shadow: 0 10px 24px rgba(0,0,0,0.22); }
+    .profile-user-info { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; }
+    .profile-user-info > .profile-meta { grid-column: 1 / -1; }
+    .profile-user-name { margin: 0; font-size: clamp(1.75rem, 2.6vw, 2.4rem); line-height: 1.05; font-weight: 800; }
+    .profile-user-handle { display: none; margin: 0; color: var(--text-muted); font-size: 0.95rem; }
+    .profile-user-handle i { margin-right: 6px; }
+    .profile-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 0; }
+    .profile-action-btn { border: none; border-radius: 999px; padding: 12px 18px; cursor: pointer; font-weight: 700; display: inline-flex; align-items: center; gap: 10px; transition: all 0.25s ease; }
+    .profile-action-btn.primary { background: var(--primary); color: #fff; }
+    .profile-action-btn.secondary { background: rgba(var(--primary-rgb,99,102,241),0.1); color: var(--text-main); }
+    .profile-action-btn:hover { transform: translateY(-1px); }
+    .profile-meta { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 10px; }
+    .profile-meta-item { display: inline-flex; align-items: center; gap: 8px; color: var(--text-muted); font-size: 0.95rem; }
+    .profile-keymetrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-top: 22px; }
+    .metric-card { padding: 18px 20px; border-radius: 18px; background: rgba(var(--primary-rgb,99,102,241),0.08); display: flex; justify-content: space-between; align-items: center; gap: 14px; }
+    .metric-card strong { display: block; font-size: 1.75rem; line-height: 1; color: var(--primary); }
+    .metric-card span { color: var(--text-muted); font-size: 0.92rem; }
+    .profile-main { display: grid; grid-template-columns: 1.2fr 1fr; gap: 24px; }
+    .profile-left-col { display: grid; gap: 22px; }
+    .profile-card { overflow: hidden; }
+    .card-header { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; align-items: center; padding: 22px 24px 18px; background: rgba(var(--primary-rgb,99,102,241),0.08); }
+    .card-title { margin: 0; font-size: 1rem; font-weight: 800; color: var(--primary); }
+    .card-subtitle { margin: 4px 0 0; color: var(--text-muted); font-size: 0.92rem; }
+    .card-body { padding: 20px 24px 24px; display: grid; gap: 16px; }
+    .info-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+    .info-item { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 14px 16px; border-radius: 16px; border: 1px solid rgba(0,0,0,0.06); background: rgba(255,255,255,0.95); }
+    .info-item strong { color: var(--text-main); }
+    .badge-pill { padding: 6px 12px; border-radius: 999px; background: rgba(var(--primary-rgb,99,102,241),0.16); color: var(--primary); font-size: 0.82rem; font-weight: 700; }
+    .badge-pill-button { border: none; background: rgba(var(--primary-rgb,99,102,241),0.16); color: var(--primary); cursor: pointer; font: inherit; padding: 6px 12px; border-radius: 999px; }
+    .badge-pill-button:hover { background: rgba(var(--primary-rgb,99,102,241),0.22); }
+    .profile-tabs-card { padding: 18px 20px; background: #fff; border-radius: 24px; border: 1px solid rgba(0,0,0,0.08); box-shadow: 0 10px 30px rgba(0,0,0,0.06); margin-bottom: 24px; }
+    .profile-tabs { display: flex; flex-wrap: wrap; gap: 12px; }
+    .friends-widget-preview { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .friends-widget-preview .friend-preview-card, .friends-widget-preview .friend-preview-more-card { background: linear-gradient(180deg, rgba(255,255,255,0.8), rgba(255,255,255,0.5)); border-radius: 16px; padding: 14px 12px; text-align: center; height: 160px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); border: 1px solid rgba(0,0,0,0.05); transition: all 0.25s ease; }
+    .friends-widget-preview .friend-preview-card:hover { transform: translateY(-3px); box-shadow: 0 6px 16px rgba(0,0,0,0.08); background: linear-gradient(180deg, rgba(255,255,255,0.95), rgba(255,255,255,0.7)); }
+    .friends-widget-preview .friend-preview-card img { transition: transform 0.25s ease; }
+    .friends-widget-preview .friend-preview-card:hover img { transform: scale(1.04); }
+    .friend-preview-avatar { width: 58px; height: 58px; border-radius: 50%; object-fit: cover; border: none; margin: 0 auto; flex-shrink: 0; }
+    .friend-preview-name { margin: 3px 0 0; font-size: 0.72rem; font-weight: 600; line-height: 1.2; word-break: break-word; max-width: 100%; }
+    .friend-preview-username { margin: 2px 0 0; color: var(--text-muted); font-size: 0.75rem; }
+    .friend-preview-mutual { margin: 3px 0 0; color: var(--text-muted); font-size: 0.68rem; opacity: 0.85; }
+    .friend-preview-more-card { background: linear-gradient(135deg, rgba(var(--primary-rgb,99,102,241),0.1), rgba(255,255,255,0.94)); border-radius: 16px; border: 1px solid rgba(var(--primary-rgb,99,102,241),0.18); color: var(--primary); cursor: pointer; }
+    .friend-preview-more-card:hover { transform: translateY(-3px); box-shadow: 0 6px 16px rgba(0,0,0,0.08); background: linear-gradient(135deg, rgba(var(--primary-rgb,99,102,241),0.18), rgba(255,255,255,0.96)); }
+    .friend-preview-more-count { font-size: 1.5rem; font-weight: 800; line-height: 1; }
+    .friend-preview-more-text { margin: 3px 0 0; font-size: 0.8rem; color: var(--text-main); font-weight: 700; }
+    .friends-widget-header { display: flex; align-items: center; gap: 12px; width: 100%; }
+    .friends-widget-meta { margin-left: auto; text-align: right; display: flex; flex-direction: column; gap: 6px; }
+    .friends-widget-count { font-size: 1rem; font-weight: 800; color: var(--text-main); }
+    .friends-widget-action { display: inline-flex; align-items: center; justify-content: center; gap: 8px; background: rgba(var(--primary-rgb,99,102,241),0.16); color: var(--primary); border: none; border-radius: 999px; padding: 10px 16px; cursor: pointer; text-decoration: none; font-weight: 700; }
+    .friends-widget-action:hover { background: rgba(var(--primary-rgb,99,102,241),0.30); }
+    .friends-widget-empty { grid-column: 1/-1; color: var(--text-muted); font-size: 0.95rem; text-align: center; padding: 30px 0; }
+    .friends-widget-grid { display: grid; grid-template-columns: repeat(3, minmax(140px, 1fr)); gap: 12px; }
+    .friend-card { background: var(--input-bg); padding: 15px; border-radius: 10px; text-align: center; transition: all 0.3s ease; border: none; box-shadow: none; }
+    .friend-card:hover { transform: translateY(-3px); box-shadow: none; }
+    .tebrikler-preview-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+    .tebrik-preview-item { background: linear-gradient(135deg, rgba(var(--primary-rgb,99,102,241),0.08), rgba(255,255,255,0.8)); border-radius: 14px; padding: 12px 10px; text-align: center; border: 1px solid rgba(0,0,0,0.04); transition: all 0.25s ease; min-height: 110px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; }
+    .tebrik-preview-item:hover { transform: translateY(-2px); background: linear-gradient(135deg, rgba(var(--primary-rgb,99,102,241),0.14), rgba(255,255,255,0.9)); }
+    .tebrik-preview-name { font-size: 0.7rem; font-weight: 600; line-height: 1.1; color: var(--text-main); word-break: break-word; }
+    .tebrik-preview-count { font-size: 0.65rem; color: var(--text-muted); margin-top: 2px; }
+    @media (max-width: 880px) {
+      .tebrikler-preview-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 620px) {
+      .tebrikler-preview-grid { grid-template-columns: 1fr; }
+    }
 
-    /* Make inner cards use flex so their bodies can expand to equal height */
-    .tebrik-card, .membership-card { display: flex; flex-direction: column; }
-    .tebrik-card .tebrik-card-body { flex: 1 1 auto; display: flex; flex-direction: column; justify-content: space-between; }
-    /* membership card second child is the content grid; let it grow */
-    .membership-card > div:nth-child(2) { flex: 1 1 auto; display: flex; flex-direction: column; }
-    /* Membership card styles to match tebrik look */
-    .membership-card { background: linear-gradient(180deg, rgba(255,255,255,0.02), transparent); border-radius: 18px; }
-    .membership-card-header, .tebrik-card-header { padding: 16px 18px; gap: 10px; align-items: center; justify-content: space-between; display:flex; }
-    .membership-card-title, .tebrik-card-title { font-weight:800; font-size:1rem; color: var(--primary); }
-    .membership-card-subtitle, .tebrik-card-subtitle { font-size:0.85rem; color: var(--text-muted); }
-    .membership-card-tag, .tebrik-card-tag { background: rgba(0,0,0,0.04); padding:6px 10px; border-radius:12px; font-weight:700; font-size:0.8rem; color:var(--text-main); }
-    .membership-card .membership-card-body { padding: 14px 18px 18px; display:flex; flex-direction:column; gap:12px; }
-    .membership-metrics { display:flex; gap:12px; align-items:center; justify-content:space-between; }
-    .membership-metric { display:flex; flex-direction:column; align-items:flex-end; gap:4px; }
-    .profile-tabs { display: flex; gap: 10px; margin: 20px 0; padding-bottom: 10px; overflow-x: auto; width: 100%; box-sizing: border-box; white-space: nowrap; -ms-overflow-style: none; scrollbar-width: none; }
-    .profile-tabs::-webkit-scrollbar { display: none; }
-    .tab-btn { background: #fff; border: none; padding: 10px 20px; color: var(--text-muted); font-weight: 600; cursor: pointer; border-radius: 10px; transition: all 0.3s; display: flex; align-items: center; gap: 8px; flex-shrink: 0; min-width: 0; text-decoration: none; white-space: normal; }
-    .tab-btn.active { background: var(--primary); color: white; }
-    .tab-content { display: none; animation: fadeIn 0.4s ease; }
+      .friends-widget-grid, .friends-widget-preview { grid-template-columns: repeat(2, minmax(140px, 1fr)); }
+    }
+    @media (max-width: 620px) {
+      .friends-widget-grid, .friends-widget-preview { grid-template-columns: 1fr; }
+    }
+    .profile-tab-btn { text-decoration: none; color: var(--text-muted); border: 1px solid transparent; border-radius: 999px; padding: 10px 16px; display: inline-flex; align-items: center; gap: 8px; transition: all 0.25s ease; background: rgba(255,255,255,0.92); }
+    .friend-card:hover { transform: translateY(-3px); box-shadow: 0 12px 24px rgba(0,0,0,0.08); }
+    @media (max-width: 880px) {
+      .friends-widget-grid, .friends-widget-preview { grid-template-columns: repeat(2, minmax(140px, 1fr)); }
+    }
+    @media (max-width: 620px) {
+      .friends-widget-grid, .friends-widget-preview { grid-template-columns: 1fr; }
+    }
+    .profile-tab-btn:hover { background: rgba(var(--primary-rgb,99,102,241),0.12); }
+    .profile-tab-btn.active { color: var(--primary); background: rgba(var(--primary-rgb,99,102,241),0.18); border-color: rgba(var(--primary-rgb,99,102,241),0.28); }
+    .profile-tab-content { display: grid; gap: 20px; }
+    .tab-content { display: none; animation: fadeIn 0.35s ease; }
     .tab-content.active { display: block; }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-    
-    /* Profil Düzenleme Formu */
-    .edit-profile-form { display: none; margin-top: 20px; animation: slideDown 0.3s ease; }
-    .edit-profile-form.active { display: block; }
-    @keyframes slideDown { from { opacity: 0; max-height: 0; } to { opacity: 1; max-height: 1000px; } }
-    .section-subtitle { font-size: 1rem; font-weight: 700; color: var(--text-main); margin-bottom: 15px; }
-    .form-label { display: block; font-size: 0.85rem; font-weight: 600; color: var(--text-main); margin-bottom: 8px; }
-    .form-input { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--input-bg); color: var(--text-main); outline: none; font-size: 0.9rem; box-sizing: border-box; }
-    .form-btn { background: var(--primary); color: white; border: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.3s; }
-    .form-btn:hover { opacity: 0.9; }
-    .admin-btn { background: var(--primary); color: white; border: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.3s; }
-    .admin-btn:hover { opacity: 0.9; }
-
-    /* Ayarlar menüsü stili */
-    .profile-settings-menu { display: none; position: absolute; top: 100%; right: 0; background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; box-shadow: var(--shadow); z-index: 10000; min-width: 180px; }
-    .profile-settings-menu.visible { display: block; }
-    .profile-settings-item { padding: 10px 15px; font-size: 0.9rem; cursor: pointer; }
-    .profile-settings-item:hover { background: var(--input-bg); }
-
-    /* Mobile adjustments for profile page */
+    .content-card { background: rgba(255,255,255,0.96); border: 1px solid rgba(0,0,0,0.06); border-radius: 20px; padding: 18px 20px; }
+    .edit-profile-form { background: #fff; border: 1px solid rgba(0,0,0,0.08); border-radius: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.06); padding: 24px; }
+    .content-card h3 { margin: 0 0 12px; font-size: 1rem; font-weight: 800; }
+    .content-card p { margin: 0; color: var(--text-muted); font-size: 0.95rem; }
+    @media (max-width: 1040px) {
+      .profile-main { grid-template-columns: 1fr; }
+      .profile-keymetrics { grid-template-columns: 1fr; }
+      .profile-header-inner { grid-template-columns: 1fr; text-align: center; }
+      .profile-actions { justify-content: center; }
+    }
     @media (max-width: 768px) {
-        /* stack action buttons vertically */
-        .profile-actions { flex-direction: column; align-items: stretch; }
-        .profile-actions button { width: 100%; }
-        /* reduce padding on main card */
-        #page-profile > .glass-card { padding: 20px 15px; }
-        /* tabs: 2x2 grid layout on mobile */
-        .profile-tabs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; width: 100%; }
-        .tab-btn { padding: 8px 12px; font-size: 0.75rem; width: 100%; justify-content: center; white-space: normal; }
-        /* friend search full width */
-        #friendSearch { width: 100%; }
-        /* friend list grid for small screens */
-        #friends-list { grid-template-columns: repeat(3, 1fr); }
-        /* gallery grid default to 2 columns on small screens */
-        .gallery-grid { grid-template-columns: repeat(3, 1fr); }
-        /* two-column profile top blocks stack on mobile */
-        .profile-top-pairs { grid-template-columns: 1fr; }
-        .profile-top-pairs > .tebrik-card,
-        .profile-top-pairs > .membership-card { max-width: 100%; }
-        /* make edit form inputs full width */
-        .edit-profile-form .form-input { width: 100%; }
+      .profile-header-card { padding: 22px 18px 18px; }
+      .profile-avatar-wrap { width: 120px; height: 120px; margin: 0 auto; }
+      .profile-header-inner { grid-template-columns: 1fr; }
+      .profile-actions { justify-content: center; }
+      .profile-tabs { justify-content: center; }
+      .profile-tab-btn { width: auto; }
     }
     @media (max-width: 520px) {
-        .profile-tabs { grid-template-columns: 1fr; }
-        .tab-btn { font-size: 0.72rem; }
-        .profile-actions { gap: 8px; }
-        .profile-actions button { max-width: none; }
-        .membership-card, .tebrik-card { width: 100%; }
-        #page-profile img#profilePageAvatar { width: 72px; height: 72px; }
-        #page-profile h2 { font-size: 1.15rem; }
-        .profile-top-pairs { gap: 16px; }
+      .profile-header-card { padding: 18px 14px 16px; }
+      .profile-avatar-wrap { width: 100px; height: 100px; }
+      .profile-user-name { font-size: 2rem; }
+      .profile-action-btn { width: 100%; justify-content: center; }
     }
   </style> 
 </head>
 <body>
 
   <div data-include="partials/topbar.html"></div>
-  <div id="header-placeholder"></div>
+  <div id="header-placeholder"></div><!-- TEST -->
 
 <div class="app-container">
   <div data-include="partials/left-aside.html"></div>
@@ -188,244 +251,226 @@
 
 
   <div id="page-profile" class="page-content active">
-    <div class="glass-card" style="padding: 40px 20px; text-align: center; position: relative; box-sizing: border-box; overflow: visible;">
-      <!-- gizli profil bildirimi -->
-      <div id="selfPrivateBanner" style="position:absolute; top:10px; right:10px; background:var(--danger); padding:4px 8px; border-radius:1rem; font-size:0.75rem; color:#fff; display:none; z-index:10001;" data-i18n="privateBanner">Profiliniz Gizli</div>
-
-      <!-- ziyaretçi görünümündeki gizlilik uyarı kartı (başlangıçta gizli) -->
-      <div id="privateNoticeCard" style="display:none; position:absolute; top:10px; left:10px; padding:8px 12px; font-size:0.8rem; font-weight:600; color:#fff; background:var(--danger); border-radius:1rem; margin:0; z-index:10001;">
-        <span data-i18n="profileHiddenMessage">Bu profil gizlidir.</span>
-      </div>
-
-      <img id="profilePageAvatar" src="" alt="Profil Resmi" style="width: 72px; height: 72px; border-radius: 50%; border: 4px solid var(--primary); object-fit: cover;">
-      <h2 id="profilePageName" style="margin-top: 15px;">...</h2>
-      <p id="profilePageHandle" style="color: var(--text-muted); margin-bottom: 15px;">@... <span id="selfPrivateIndicator" style="display:none; margin-left:5px; font-size:0.8rem; color:var(--text-muted);"><i class="fa-solid fa-lock"></i> <span data-i18n="privateLabel">Gizli</span></span></p>
-      <div class="profile-actions" style="
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        gap: 10px;
-        flex-wrap: wrap;
-        width: 100%;
-        margin-bottom: 24px;">
-          <button id="editProfileBtn" onclick="toggleEditProfile()" style="background: var(--input-bg); border: 1px solid var(--border); padding: 8px 20px; border-radius: 10px; font-size: 0.8rem; font-weight: 600; cursor: pointer; color: var(--text-main);" data-i18n="editProfileBtn">Profili Düzenle</button>
-          <button id="profileActionBtn" onclick="handleProfileAction()" style="background: #3b82f6; align-items:center; text-align: center; gap:6px; color: white; border: none; padding: 8px 20px; border-radius: 10px; font-size: 0.8rem; font-weight: 600; cursor: pointer; position: relative;">
-            <i class="fa-solid fa-envelope"></i><span id="btnText"> Sohbet Et</span>
-            <span id="msgBadge" style="display: none; position: absolute; top: -5px; right: -5px; background: var(--danger); color: white; border-radius: 50%; padding: 2px 6px; font-size: 0.7rem;">0</span>
+    <div class="profile-header-card">
+      <div class="profile-header-inner">
+        <div class="profile-avatar-wrap">
+          <img id="profilePageAvatar" src="assets/img/strendsaydamv2.png" alt="Profil Resmi" onerror="this.onerror=null;this.src='assets/img/strendsaydamv2.png';">
+          <button type="button" class="avatar-camera-overlay" onclick="document.getElementById('fileAvatarInput').click()" title="Profil fotoğrafını değiştir">
+            <i class="fa-solid fa-camera"></i>
           </button>
-          <button id="addFriendBtn" onclick="sendFriendRequest()" style="background: var(--primary); color: white; border: none; padding: 8px 20px; border-radius: 10px; font-size: 0.8rem; font-weight: 600; cursor: pointer;">
-            <i class="fa-solid fa-user-plus"></i> Arkadaş Ol
-          </button>
-      </div>
-      <!-- arkadaşları için not - sol üste, kırmızı arka plan -->
-      <p id="friendViewNotice" style="display:none; position:absolute; top:10px; left:10px; font-size:0.8rem; color:#fff; background:var(--danger); padding:8px 12px; border-radius:1rem; font-weight:600; margin:0;" data-i18n="friendViewNote">Profil arkadaşlara açık</p>
-      
-      <div id="editProfileSection" class="edit-profile-form">
-        <div class="section-subtitle">Profil Bilgileri</div>
-        
-        <div style="margin-bottom: 20px;">
-          <label class="form-label" for="newNameInput">Görünen Ad</label>
-          <input type="text" id="newNameInput" class="form-input" placeholder="Adınızı girin">
         </div>
-
-        <div style="background: var(--bg); padding: 15px; border-radius: 12px; border: 1px solid var(--border);">
-          <label class="form-label" for="fileAvatarInput" style="color: var(--primary); cursor: pointer;">
-  <i class="fa-solid fa-camera"></i> Profil Resmini Güncelle
-</label>
-          
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px;">
-            <button type="button" onclick="document.getElementById('fileAvatarInput').click()" class="admin-btn" style="padding: 10px; height: auto; display: block;">
-              <i class="fa-solid fa-upload"></i><br>Cihazdan Seç
-            </button>
-            <button type="button" onclick="promptDiceBear()" class="admin-btn" style="padding: 10px; height: auto; display: block;">
-              <i class="fa-solid fa-wand-magic-sparkles"></i><br>İsimden Oluştur
-            </button>
+        <div class="profile-user-info">
+          <div>
+            <h1 id="profilePageName" class="profile-user-name">Ad Soyad</h1>
+            <p id="profilePageHandle" class="profile-user-handle">@kullaniciadi</p>
           </div>
-
-<input type="file" id="fileAvatarInput" accept="image/*" style="display: none;" onchange="handleFileSelect(this)">
-
-          <div style="margin-top: 15px;">
-            <label class="form-label" for="newAvatarUrlInput">Veya Görsel URL Yapıştır</label>
-            <input type="text" id="newAvatarUrlInput" class="form-input" style="margin-bottom: 0;" placeholder="https://..." oninput="handleUrlInput(this)">
+          <div class="profile-actions">
+            <button id="editProfileBtn" onclick="toggleEditProfile()" class="profile-action-btn secondary"><i class="fa-solid fa-pen-to-square"></i> Profili Düzenle</button>
+            <button id="profileActionBtn" onclick="handleProfileAction()" class="profile-action-btn primary"><i class="fa-solid fa-envelope"></i> Sohbet Et</button>
+          </div>
+          <div class="profile-meta">
+            <span class="profile-meta-item"><i class="fa-solid fa-users"></i> <strong id="profileFriendCount">0</strong> Arkadaş</span>
           </div>
         </div>
+      </div>
 
-        <div style="margin-top: 25px; display: flex; gap: 10px;">
-          <button type="button" onclick="saveProfileChanges()" class="form-btn" style="flex: 2;">
-            <i class="fa-solid fa-floppy-disk"></i> Değişiklikleri Kaydet
-          </button>
-          <button type="button" onclick="toggleEditProfile()" class="form-btn" style="flex: 1; background: var(--text-muted);">İptal</button>
+    </div>
+
+    <div id="editProfileSection" class="edit-profile-form" style="margin-bottom: 24px;">
+      <div class="section-subtitle">Profil Bilgileri</div>
+      <div style="margin-bottom: 20px;">
+        <label class="form-label" for="newNameInput">Görünen Ad</label>
+        <input type="text" id="newNameInput" class="form-input" placeholder="Adınızı girin">
+      </div>
+      <div style="margin-bottom: 20px;">
+        <label class="form-label" for="newLocationInput">Konum</label>
+        <input type="text" id="newLocationInput" class="form-input" placeholder="Örn. İstanbul">
+      </div>
+      <div style="margin-bottom: 20px;">
+        <label class="form-label" for="newHometownInput">Memleket</label>
+        <input type="text" id="newHometownInput" class="form-input" placeholder="Örn. Ankara">
+      </div>
+      <div style="margin-bottom: 20px;">
+        <label class="form-label" for="newDobInput">Doğum Tarihi</label>
+        <input type="date" id="newDobInput" class="form-input">
+      </div>
+      <div style="background: var(--bg); padding: 15px; border-radius: 12px; border: 1px solid var(--border);">
+        <label class="form-label" for="fileAvatarInput" style="color: var(--primary); cursor: pointer;"><i class="fa-solid fa-camera"></i> Profil Resmini Güncelle</label>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px;">
+          <button type="button" onclick="document.getElementById('fileAvatarInput').click()" class="admin-btn" style="padding: 10px; height: auto; display: block;"><i class="fa-solid fa-upload"></i><br>Cihazdan Seç</button>
+          <button type="button" onclick="promptDiceBear()" class="admin-btn" style="padding: 10px; height: auto; display: block;"><i class="fa-solid fa-wand-magic-sparkles"></i><br>İsimden Oluştur</button>
         </div>
+        <input type="file" id="fileAvatarInput" accept="image/*" style="display: none;" onchange="handleFileSelect(this)">
+        <div style="margin-top: 15px;"><label class="form-label" for="newAvatarUrlInput">Veya Görsel URL Yapıştır</label><input type="text" id="newAvatarUrlInput" class="form-input" style="margin-bottom: 0;" placeholder="https://..." oninput="handleUrlInput(this)"></div>
+      </div>
+      <div style="margin-top: 25px; display: flex; gap: 10px; flex-wrap: wrap;">
+        <button type="button" onclick="saveProfileChanges()" class="form-btn" style="flex: 2;"><i class="fa-solid fa-floppy-disk"></i> Değişiklikleri Kaydet</button>
+        <button type="button" onclick="toggleEditProfile()" class="form-btn" style="flex: 1; background: var(--text-muted);">İptal</button>
       </div>
     </div>
 
-    <div class="profile-top-pairs">
-      <div id="tebrikBadge" class="tebrik-card" style="margin:0; max-width: 360px; width: 100%;">
-        <div class="tebrik-card-header" style="padding: 16px 18px; gap: 10px; align-items: center; justify-content: space-between;">
-          <div>
-            <div class="tebrik-card-title">Tebrik Derecesi</div>
-            <div class="tebrik-card-subtitle">Paylaşımlarına gelen tebriklere göre profil gücünü ölç.</div>
-          </div>
-          <span id="tebrikLevel" class="tebrik-card-tag tebrik-level-pill">Yeni Başlayan</span>
-        </div>
-        <div class="tebrik-card-body" style="padding: 14px 18px 18px;">
-          <div class="tebrik-score-row">
-            <div class="tebrik-score">
-              <span id="tebrikPercent">%0</span>
-              <small>Puan</small>
+    <div class="profile-tabs-card" style="margin-bottom:20px;">
+      <nav class="profile-tabs">
+        <a class="tab-btn profile-tab-btn active" href="#posts" onclick="openTab(event, 'my-posts-tab')"><i class="fa-solid fa-feather"></i> Gönderiler</a>
+        <a class="tab-btn profile-tab-btn" href="#likes" onclick="openTab(event, 'my-likes-tab')"><i class="fa-solid fa-heart"></i> Beğeniler</a>
+        <a class="tab-btn profile-tab-btn" href="#saves" onclick="openTab(event, 'my-saves-tab')"><i class="fa-solid fa-bookmark"></i> Kayıtlar</a>
+        <a class="tab-btn profile-tab-btn" href="#tebrikler" onclick="openTab(event, 'my-congrats-tab')" style="display: none;"><i class="fa-solid fa-gift"></i> Tebrikler</a>
+        <a class="tab-btn profile-tab-btn" href="#friends" onclick="openTab(event, 'my-friends-tab')"><i class="fa-solid fa-users"></i> Arkadaşlar</a>
+        <a class="tab-btn profile-tab-btn" href="#notifs" onclick="openTab(event, 'my-notifs-tab')"><i class="fa-solid fa-bell"></i> Bildirimler</a>
+      </nav>
+    </div>
+
+    <section class="profile-main">
+      <div class="profile-left-col">
+        <article class="profile-card">
+          <div class="card-header">
+            <div>
+              <h2 class="card-title">Kişisel Bilgilerim</h2>
+              <p class="card-subtitle">Profilinizdeki temel bilgiler.</p>
             </div>
-            <div class="tebrik-metrics">
-              <div class="tebrik-metric">
-                <strong id="tebrikCount">0</strong>
-                <span>Tebrik</span>
+            <button type="button" class="badge-pill-button" onclick="toggleEditProfile()">Düzenle</button>
+          </div>
+          <div class="card-body">
+            <ul class="info-list">
+              <li class="info-item"><span><i class="fa-solid fa-location-dot"></i> Konum</span><strong id="profileLocation">—</strong></li>
+              <li class="info-item"><span><i class="fa-solid fa-home"></i> Memleket</span><strong id="profileHometown">—</strong></li>
+              <li class="info-item"><span><i class="fa-solid fa-cake-candles"></i> Doğum Tarihi</span><strong id="profileDob">—</strong></li>
+            </ul>
+          </div>
+        </article>
+
+        <article class="profile-card" style="min-height: auto;">
+          <div class="card-header friends-widget-header" style="align-items: flex-start; gap: 12px; flex-wrap: wrap; justify-content: space-between;">
+            <div>
+              <h2 class="card-title">Arkadaşlarım</h2>
+              <p class="card-subtitle">En yakın arkadaşlarınız</p>
+              <div id="friendsWidgetCount" class="friends-widget-count" style="margin-top: 8px;">0 arkadaş</div>
+            </div>
+            <div class="friends-widget-meta" style="width: auto;">
+              <a id="friendsWidgetViewAll" href="#friends" class="friends-widget-action"><i class="fa-solid fa-users"></i> Arkadaşlar</a>
+            </div>
+          </div>
+          <div class="card-body" style="padding: 22px 24px; min-height: 300px;">
+            <div id="friends-widget-list" class="friends-widget-preview"></div>
+            <div id="friends-widget-empty" class="friends-widget-empty" style="display:none;">
+              <i class="fa-solid fa-user-friends" style="font-size:2.2rem; margin-bottom:12px; color:var(--text-muted);"></i>
+              <p style="margin: 0; color:var(--text-muted); font-size:0.95rem;">Henüz arkadaş yok.</p>
+            </div>
+          </div>
+        </article>
+
+        <article class="profile-card">
+          <div class="card-header">
+            <div>
+              <h2 class="card-title">Tebrik Derecesi</h2>
+              <p class="card-subtitle">Profiliniz için skor bilgisi.</p>
+            </div>
+            <span id="tebrikLevel" class="badge-pill">Yeni Başlayan</span>
+          </div>
+          <div class="card-body">
+            <div style="display:grid; gap:14px;">
+              <div class="info-item" style="justify-content:flex-start;"><span style="color:var(--text-muted);">Tebrik Sayısı</span><strong id="tebrikCount">0</strong></div>
+              <div class="info-item" style="justify-content:flex-start;"><span style="color:var(--text-muted);">Sıralama</span><strong id="tebrikRank">#--</strong></div>
+              <div style="background:rgba(var(--primary-rgb,99,102,241),0.12); border-radius:16px; padding:16px 18px;">
+                <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:10px;">
+                  <span style="font-weight:700; color:var(--primary);">Profil Gücü</span>
+                  <span id="tebrikPercent" style="font-size:0.9rem; color:var(--text-muted);">%0</span>
+                </div>
+                <div style="height:10px; background:rgba(0,0,0,0.08); border-radius:999px; overflow:hidden;"><div id="tebrikProgress" style="width:0%; height:100%; background:var(--primary); border-radius:999px;"></div></div>
               </div>
-              <div class="tebrik-metric">
-                <strong id="tebrikRank">#--</strong>
-                <span>Sıralama</span>
+              <p id="tebrikSummaryText" style="margin: 0; color: var(--text-muted); font-size: 0.95rem; line-height: 1.5;">Henüz tebrik almadı. Şimdi ilk tebriği gönder!</p>
+            </div>
+          </div>
+          <div style="border-top: 1px solid rgba(0,0,0,0.06);"></div>
+          <div style="padding: 16px 20px 0;">
+            <div class="friends-widget-header" style="margin-bottom: 14px; justify-content: space-between;">
+              <div>
+                <h3 style="margin: 0; font-size: 0.95rem; font-weight: 700; color: var(--text-main);">Son Tebrikler</h3>
               </div>
+              <a href="#tebrikler" onclick="openTab(event, 'my-congrats-tab')" style="font-size: 0.75rem; color: var(--primary); text-decoration: none; font-weight: 600; cursor: pointer; background: rgba(var(--primary-rgb,99,102,241),0.16); padding: 8px 12px; border-radius: 999px;">Tümü Gör</a>
+            </div>
+            <div id="latest-tebrikler-preview" class="tebrikler-preview-grid" style="margin-bottom: 12px;"></div>
+            <div id="no-tebrikler-preview-msg" style="display: none; text-align: center; color: var(--text-muted); padding: 20px 12px; font-size: 0.9rem;">
+              <i class="fa-solid fa-gift" style="font-size: 1.8rem; margin-bottom: 8px; display: block; opacity: 0.6;"></i>
+              Henüz tebrik yok.
             </div>
           </div>
-          <div class="tebrik-meter">
-            <div id="tebrikProgress" class="tebrik-meter-fill"></div>
-          </div>
-          <div class="tebrik-label-row">
-            <span id="tebrikSummaryText" class="tebrik-summary-text">Henüz tebrik almadı.</span>
-            <button type="button" onclick="window.openTebrikModalForProfile()" class="admin-btn" style="padding:8px 14px; font-size:0.8rem; white-space:nowrap;">Tebrik Gönder</button>
-          </div>
-        </div>
+        </article>
       </div>
-      <div class="membership-card glass-card" style="width: 100%; max-width: 360px; padding: 0; border-radius: 18px; border: 1px solid var(--border); box-sizing: border-box; text-align: left; overflow: hidden;">
-        <div class="tebrik-card-header" style="padding: 16px 18px; gap: 10px; align-items: center; justify-content: space-between; display:flex;">
-          <div>
-            <div class="membership-card-title">Üye Bilgileri</div>
-            <div class="membership-card-subtitle">Profil sahibinin hesap bilgileri ve istatistikleri</div>
-          </div>
-          <span id="profileRoleBadge" class="tebrik-card-tag">Kullanıcı</span>
-        </div>
-        <div class="tebrik-card-body" style="padding: 14px 18px 18px; display:flex; flex-direction:column; gap:16px;">
-          <div class="tebrik-metrics">
-            <div class="tebrik-metric">
-              <strong id="profileFriendCount">0</strong>
-              <span>Arkadaş</span>
-            </div>
-            <div class="tebrik-metric">
-              <strong id="profileRole">Kullanıcı</strong>
-              <span>Rol</span>
-            </div>
-          </div>
-          <div class="membership-info-grid" style="display:grid; gap:12px;">
-            <div class="membership-info-item" style="display:flex; justify-content:space-between; align-items:center; gap:10px; padding:12px 14px; background: rgba(99,102,241,0.05); border-radius:14px;">
-              <span style="color: var(--text-muted); font-size:0.85rem;"><i class="fa-solid fa-envelope"></i> E-Posta</span>
-              <strong id="profileSignupInfo" style="color: var(--text-main);">—</strong>
-            </div>
-            <div class="membership-info-item" style="display:flex; justify-content:space-between; align-items:center; gap:10px; padding:12px 14px; background: rgba(99,102,241,0.05); border-radius:14px;">
-              <span style="color: var(--text-muted); font-size:0.85rem;"><i class="fa-solid fa-calendar-days"></i> Kayıt Tarihi</span>
-              <strong id="profileJoinDate" style="color: var(--text-main);">—</strong>
-            </div>
-            <div class="membership-info-item" style="display:flex; justify-content:space-between; align-items:center; gap:10px; padding:12px 14px; background: rgba(99,102,241,0.05); border-radius:14px;">
-              <span style="color: var(--text-muted); font-size:0.85rem;"><i class="fa-solid fa-user-clock"></i> Son Aktif</span>
-              <strong id="profileLastActive" style="color: var(--text-main);">—</strong>
-            </div>
-          </div>
-          <div class="tebrik-label-row">
-            <span id="membershipSummaryText" class="tebrik-summary-text">Profil bilgileri güncelleniyor.</span>
-            <button type="button" onclick="handleProfileAction()" class="admin-btn" style="padding:8px 14px; font-size:0.8rem; white-space:nowrap;">Sohbet Et</button>
-          </div>
-        </div>
-      </div>
-    </div>
 
-    <hr style="border:none; border-top:1px solid var(--border); margin:0 0 24px 0;">
-    <nav class="profile-tabs" style="margin-bottom: 24px;">
-      <a class="tab-btn active" href="#posts" onclick="openTab(event, 'my-posts-tab')"><i class="fa-solid fa-feather"></i> Gönderiler</a>
-      <a class="tab-btn" href="#likes" onclick="openTab(event, 'my-likes-tab')"><i class="fa-solid fa-heart"></i> Beğeniler</a>
-      <a class="tab-btn" href="#saves" onclick="openTab(event, 'my-saves-tab')"><i class="fa-solid fa-bookmark"></i> Kayıtlar</a>
-      <a class="tab-btn" href="#tebrikler" onclick="openTab(event, 'my-congrats-tab')"><i class="fa-solid fa-gift"></i> Tebrikler</a>
-      <a class="tab-btn" id="friends-tab-btn" href="#friends" onclick="openTab(event, 'my-friends-tab')"><i class="fa-solid fa-users"></i> Arkadaşlar</a>
-      <a class="tab-btn" href="#notifs" onclick="openTab(event, 'my-notifs-tab')"><i class="fa-solid fa-bell"></i> Bildirimler</a>
-    </nav>
+      <div class="profile-right-col">
+        <div class="profile-tab-content">
+          <section id="my-posts-tab" class="tab-content active content-card">
+            <h3>Gönderiler</h3>
+            <p>Profilinizde paylaşılan gönderiler burada görünecek.</p>
+            <div id="my-posts-list"></div>
+            <div id="no-posts-msg" style="display:none; text-align:center; color:var(--text-muted); padding:30px 0;">
+              <i class="fa-solid fa-clone" style="font-size:2.4rem; margin-bottom:12px; display:block;"></i>
+              Henüz gönderi yok.
+            </div>
+          </section>
 
-    <div id="my-posts-tab" class="tab-content active">
-      <div id="my-posts-list"></div>
-      <div id="no-posts-msg" style="display:none; text-align:center; color:var(--text-muted); padding:40px 20px;">
-        <i class="fa-solid fa-clone" style="font-size:3rem; margin-bottom:10px; display:block;"></i>
-        Henüz gönderi yok
-      </div>
-    </div>
-    <div id="my-likes-tab" class="tab-content">
-      <div id="my-liked-list"></div>
-      <div id="no-likes-msg" style="display:none; text-align:center; color:var(--text-muted); padding:40px 20px;">
-        <i class="fa-solid fa-heart" style="font-size:3rem; margin-bottom:10px; display:block;"></i>
-        Henüz beğendiğiniz gönderi yok
-      </div>
-    </div>
-    <div id="my-saves-tab" class="tab-content">
-      <div id="bookmark-items"></div>
-      <div id="no-saves-msg" style="display:none; text-align:center; color:var(--text-muted); padding:40px 20px;">
-        <i class="fa-solid fa-bookmark" style="font-size:3rem; margin-bottom:10px; display:block;"></i>
-        Henüz kayıtlı gönderi yok
-      </div>
-    </div>
-    <div id="my-congrats-tab" class="tab-content">
-      <div class="glass-card" style="padding:20px;">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:10px;">
-          <div>
-            <h3 style="margin:0; font-size:0.95rem; font-weight:800;">Tebrikler</h3>
-            <p style="margin:4px 0 0; font-size:0.85rem; color:var(--text-muted);">Profilinize gelen tebrikleri, gönderiyi ve yorumu gösteren detaylı kartlarla inceleyin.</p>
-          </div>
-          <button id="congratsValuesBtn" type="button" onclick="window.toggleCongratsValueTable()" style="background:var(--primary); color:#fff; border:none; padding:8px 12px; border-radius:8px; font-weight:700; cursor:pointer; font-size:0.8rem;">Tebrik Değerleri</button>
-        </div>
-        <div id="congrats-values-panel" style="display:none; margin-bottom:16px;">
-            <table style="width:100%; border-collapse:collapse; background:var(--input-bg); border:1px solid var(--border); border-radius:14px; overflow:hidden;">
-                <thead style="background:rgba(99,102,241,0.08); color:var(--text-main);">
-                    <tr>
-                        <th style="text-align:left; padding:12px 16px; font-size:0.9rem;">Tebrik Türü</th>
-                        <th style="text-align:left; padding:12px 16px; font-size:0.9rem;">Değer</th>
-                    </tr>
-                </thead>
-                <tbody id="congrats-values-table-body"></tbody>
-            </table>
-        </div>
-        <div id="my-congrats-summary" style="display:grid; gap:10px; margin-bottom:16px;"></div>
-        <div id="my-congrats-list" style="display:flex; flex-direction:column; gap:12px; min-height:120px;"></div>
-        <div id="no-tebrikler-msg" style="text-align:center; color:var(--text-muted); padding:30px; display:none;">Henüz tebrik yok</div>
-      </div>
-    </div>
+          <section id="my-likes-tab" class="tab-content content-card">
+            <h3>Beğeniler</h3>
+            <p>Beğendiğiniz gönderilerin özeti burada görünür.</p>
+            <div id="my-liked-list"></div>
+            <div id="no-likes-msg" style="display:none; text-align:center; color:var(--text-muted); padding:30px 0;">
+              <i class="fa-solid fa-heart" style="font-size:2.4rem; margin-bottom:12px; display:block;"></i>
+              Henüz beğendiğiniz gönderi yok.
+            </div>
+          </section>
 
-    <div id="my-friends-tab" class="tab-content">
-      <div class="glass-card" style="padding:20px;">
-        <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
-            <h3 id="friends-tab-title" style="margin:0;">Arkadaşlarım</h3>
-            <input type="text" id="friendSearch" placeholder="Arkadaş ara..." style="padding:6px 10px; border:1px solid var(--border); border-radius:8px; width:200px; max-width:100%;">
-        </div>
-        <div id="friends-list" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(150px, 1fr)); gap:15px;"></div>
-        <div id="no-friends-msg" style="text-align:center; color:var(--text-muted); padding:40px 20px;">
-          <i class="fa-solid fa-user-group" style="font-size:3rem; margin-bottom:10px; display:block;"></i>
-          Henüz arkadaş yok
+          <section id="my-saves-tab" class="tab-content content-card">
+            <h3>Kayıtlar</h3>
+            <p>Kaydettiğiniz gönderiler burada yer alır.</p>
+            <div id="bookmark-items"></div>
+            <div id="no-saves-msg" style="display:none; text-align:center; color:var(--text-muted); padding:30px 0;">
+              <i class="fa-solid fa-bookmark" style="font-size:2.4rem; margin-bottom:12px; display:block;"></i>
+              Henüz kayıtlı gönderi yok.
+            </div>
+          </section>
+
+          <section id="my-congrats-tab" class="tab-content content-card">
+            <h3>Tebrikler</h3>
+            <p>Size gelen tebriklerin raporu burada listelenir.</p>
+            <div class="content-card" style="padding:16px; background:rgba(249,250,251,0.95); border:none;">
+              <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:14px;">
+                <span style="font-weight:700; color:var(--primary);">Tebrik Puanları</span>
+                <button id="congratsValuesBtn" type="button" onclick="window.toggleCongratsValueTable()" style="background:var(--primary); color:#fff; border:none; padding:8px 12px; border-radius:12px; font-weight:700; cursor:pointer; font-size:0.9rem;">Tebrik Değerleri</button>
+              </div>
+              <div id="my-congrats-list" style="display:flex; flex-direction:column; gap:12px; min-height:120px;"></div>
+              <div id="no-tebrikler-msg" style="display:none; text-align:center; color:var(--text-muted); padding:24px 0;">Henüz tebrik yok.</div>
+            </div>
+          </section>
+
+          <section id="my-friends-tab" class="tab-content content-card">
+            <h3>Arkadaşlarım</h3>
+            <p>Tüm arkadaşlarınızı buradan yönetebilirsiniz.</p>
+            <div style="margin-top:16px; display:flex; gap:10px; flex-wrap:wrap;"><input type="text" id="friendSearch" placeholder="Arkadaş ara..." style="flex:1; min-width:180px; padding:12px 14px; border:1px solid rgba(0,0,0,0.08); border-radius:16px; background:#fff;"></div>
+            <div id="friends-list" style="display:grid; grid-template-columns: repeat(3, minmax(160px, 1fr)); gap:18px; margin-top:20px;"></div>
+            <div id="no-friends-msg" style="display:none; text-align:center; color:var(--text-muted); padding:30px 0;">
+              <i class="fa-solid fa-user-group" style="font-size:2.4rem; margin-bottom:12px; display:block;"></i>
+              Henüz arkadaş yok.
+            </div>
+          </section>
+
+          <section id="my-notifs-tab" class="tab-content content-card">
+            <h3>Bildirimler</h3>
+            <p>Profil bildirimlerinizi kontrol edin.</p>
+            <div style="margin-top:16px; display:grid; gap:12px;">
+              <div style="display:flex; flex-wrap:wrap; gap:10px;"><button id="markAllNotifsBtn" onclick="markAllNotificationsRead()" style="background:var(--primary); color:#fff; border:none; padding:10px 14px; border-radius:14px; font-weight:700; cursor:pointer;">Tümünü Okundu Yap</button><button id="restoreNotifsBtn" onclick="showRestoreModal()" style="background:#8b5cf6; color:#fff; border:none; padding:10px 14px; border-radius:14px; font-weight:700; cursor:pointer;">Geri Al</button><button id="deleteAllNotifsBtn" onclick="deleteAllNotifications()" style="background:#ef4444; color:#fff; border:none; padding:10px 14px; border-radius:14px; font-weight:700; cursor:pointer;">Tümünü Sil</button></div>
+              <div id="profile-notifications-list" style="display:flex; flex-direction:column; gap:12px; min-height:120px;"></div>
+              <div id="profile-no-notifs" style="display:none; text-align:center; color:var(--text-muted); padding:30px 0;">Henüz bildirim yok.</div>
+            </div>
+          </section>
         </div>
       </div>
-    </div>
-    <div id="my-notifs-tab" class="tab-content">
-      <div class="glass-card" style="padding:20px;">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap: wrap; gap: 10px;">
-          <h3 style="margin:0; font-size:0.95rem; font-weight:800;">Bildirimler</h3>
-          <div style="display:flex; gap:8px; flex-wrap:wrap;">
-            <button id="markAllNotifsBtn" onclick="markAllNotificationsRead()" style="background:var(--primary); color:#fff; border:none; padding:8px 12px; border-radius:8px; font-weight:700; cursor:pointer; font-size: 0.8rem;">Tümünü Okundu Yap</button>
-            <button id="restoreNotifsBtn" onclick="showRestoreModal()" style="background:#8b5cf6; color:#fff; border:none; padding:8px 12px; border-radius:8px; font-weight:700; cursor:pointer; font-size: 0.8rem;"><i class="fa-solid fa-history"></i> Geri Al</button>
-            <button id="deleteAllNotifsBtn" onclick="deleteAllNotifications()" style="background:#ef4444; color:#fff; border:none; padding:8px 12px; border-radius:8px; font-weight:700; cursor:pointer; font-size: 0.8rem;"><i class="fa-solid fa-trash"></i> Tümünü Sil</button>
-          </div>
-        </div>
-        <div id="profile-notifications-list" style="display:flex; flex-direction:column; gap:10px; min-height:120px;"></div>
-        <div id="profile-no-notifs" style="text-align:center; color:var(--text-muted); padding:30px; display:none;">Henüz bildirim yok</div>
-      </div>
-    </div>
+    </section>
   </div>
 </main>
 
 <div data-include="partials/right-aside.html"></div>
 </div>
-
-<div id="footer-placeholder"></div>
 
 <div id="editModal" class="modal-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; align-items: center; justify-content: center;">
     <div class="glass-card" style="width: 90%; max-width: 500px; padding: 20px;">
@@ -458,9 +503,18 @@ function openProfileTabByHash(hash) {
   const tabId = tabMap[hash];
   if (!tabId) return;
 
-  const tabBtn = document.querySelector(`.profile-tabs .tab-btn[href="#${hash}"]`);
+  const visitorDisallowed = ['saves','likes','notifs'];
+  const params = new URLSearchParams(location.search);
+  const visitedUsername = params.get('id');
+  const isOwnProfile = !visitedUsername || (window.user && visitedUsername === window.user.username);
+  let targetHash = hash;
+  if (!isOwnProfile && visitorDisallowed.includes(hash)) {
+    targetHash = 'posts';
+  }
+
+  const tabBtn = document.querySelector(`.profile-tabs .tab-btn[href="#${targetHash}"]`);
   if (tabBtn) {
-    openTab({ currentTarget: tabBtn, preventDefault: () => {} }, tabId);
+    openTab({ currentTarget: tabBtn, preventDefault: () => {} }, tabMap[targetHash] || 'my-posts-tab');
   }
 }
 
@@ -474,6 +528,65 @@ window.addEventListener('hashchange', function() {
   openProfileTabByHash(hash);
 });
 
+// Basit bölüm düzenleyici: prompt ile alanları günceller
+function openEditSection(section) {
+  function setBoth(id, text) {
+    const el = document.getElementById(id);
+    if (el) el.innerText = text;
+    const wEl = document.getElementById('widget-' + id);
+    if (wEl) wEl.innerText = text;
+  }
+  try {
+    if (section === 'personal') {
+      const locEl = document.getElementById('pd-location') || document.getElementById('widget-pd-location');
+      const homeEl = document.getElementById('pd-hometown') || document.getElementById('widget-pd-hometown');
+      const dobEl = document.getElementById('pd-dob') || document.getElementById('widget-pd-dob');
+      const loc = locEl ? locEl.innerText.replace(/^Konum:\s*/,'') : '';
+      const newLoc = prompt('Konum', loc === '—' ? '' : loc);
+      if (newLoc !== null) setBoth('pd-location', 'Konum: ' + (newLoc || '—'));
+      const home = homeEl ? homeEl.innerText.replace(/^Memleketi:\s*/,'') : '';
+      const newHome = prompt('Memleketi', home === '—' ? '' : home);
+      if (newHome !== null) setBoth('pd-hometown', 'Memleketi: ' + (newHome || '—'));
+      const dob = dobEl ? dobEl.innerText.replace(/^Doğum Tarihi:\s*/,'') : '';
+      const newDob = prompt('Doğum Tarihi', dob === '—' ? '' : dob);
+      if (newDob !== null) setBoth('pd-dob', 'Doğum Tarihi: ' + (newDob || '—'));
+      return;
+    }
+    if (section === 'education') {
+      const pEl = document.getElementById('edu-primary') || document.getElementById('widget-edu-primary');
+      const hEl = document.getElementById('edu-high') || document.getElementById('widget-edu-high');
+      const uEl = document.getElementById('edu-uni') || document.getElementById('widget-edu-uni');
+      const pVal = pEl ? pEl.innerText.replace(/^İlk Okul:\s*/,'') : '';
+      const newP = prompt('İlk Okul', pVal === '—' ? '' : pVal);
+      if (newP !== null) setBoth('edu-primary', 'İlk Okul: ' + (newP || '—'));
+      const hVal = hEl ? hEl.innerText.replace(/^Lise \(meslek-düz\):\s*/,'') : '';
+      const newH = prompt('Lise (meslek-düz)', hVal === '—' ? '' : hVal);
+      if (newH !== null) setBoth('edu-high', 'Lise (meslek-düz): ' + (newH || '—'));
+      const uVal = uEl ? uEl.innerText.replace(/^Üniversite \(bölüm\):\s*/,'') : '';
+      const newU = prompt('Üniversite (bölüm)', uVal === '—' ? '' : uVal);
+      if (newU !== null) setBoth('edu-uni', 'Üniversite (bölüm): ' + (newU || '—'));
+      return;
+    }
+    if (section === 'contact') {
+      const wEl = document.getElementById('contact-whatsapp') || document.getElementById('widget-contact-whatsapp');
+      const igEl = document.getElementById('contact-instagram') || document.getElementById('widget-contact-instagram');
+      const emEl = document.getElementById('contact-email-phone') || document.getElementById('widget-contact-email-phone');
+      const wVal = wEl ? wEl.innerText.replace(/^WhatsApp:\s*/,'') : '';
+      const newW = prompt('WhatsApp', wVal === '—' ? '' : wVal);
+      if (newW !== null) setBoth('contact-whatsapp', 'WhatsApp: ' + (newW || '—'));
+      const igVal = igEl ? igEl.innerText.replace(/^Instagram:\s*/,'') : '';
+      const newIg = prompt('Instagram', igVal === '—' ? '' : igVal);
+      if (newIg !== null) setBoth('contact-instagram', 'Instagram: ' + (newIg || '—'));
+      const emVal = emEl ? emEl.innerText.replace(/^E-posta \/ Telefon:\s*/,'') : '';
+      const newEm = prompt('E-posta / Telefon', emVal === '—' ? '' : emVal);
+      if (newEm !== null) setBoth('contact-email-phone', 'E-posta / Telefon: ' + (newEm || '—'));
+      return;
+    }
+  } catch (e) {
+    console.error('openEditSection hata:', e);
+  }
+}
+
     function openTab(evt, tabName) {
     var i, tabcontent, tablinks;
     
@@ -482,9 +595,18 @@ window.addEventListener('hashchange', function() {
     const visitedUsername = params.get('id');
     const isOwnProfile = !visitedUsername || (window.user && visitedUsername === window.user.username);
 
-    // 1. Sekme Gizlilik Kontrolü: Başkasının profilinde bu sekmeler tıklandığında içeriği temizle/engelle
+    // 1. Sekme Gizlilik Kontrolü: Profil gizliyse sadece o zaman ziyaretçilere engelle
     const privateTabs = ['my-posts-tab', 'my-likes-tab', 'my-saves-tab'];
-    if (privateTabs.includes(tabName) && !isOwnProfile) {
+    const isVisitedProfilePrivate = window.visitedProfileIsPrivate === true;
+    const visitorDisallowedTabs = ['my-likes-tab', 'my-saves-tab', 'my-notifs-tab'];
+    if (!isOwnProfile && visitorDisallowedTabs.includes(tabName)) {
+        tabName = 'my-posts-tab';
+        const defaultTab = document.querySelector('.tab-btn[onclick*="my-posts-tab"]');
+        if (defaultTab) {
+            evt.currentTarget = defaultTab;
+        }
+    }
+    if (privateTabs.includes(tabName) && !isOwnProfile && isVisitedProfilePrivate) {
         // Sekmeleri gizle
         tabcontent = document.getElementsByClassName("tab-content");
         for (i = 0; i < tabcontent.length; i++) {
@@ -627,7 +749,13 @@ window.addEventListener('load', () => {
             // hangi sekme yüklenecek?
             const hash = window.location.hash.replace('#', '');
             const section = hash || 'posts';
-            window.loadProfileSections(section);
+            const params = new URLSearchParams(window.location.search);
+            const visitedUsername = params.get('id') || params.get('u') || params.get('username');
+            const isOwnProfile = !visitedUsername || (window.user && visitedUsername === window.user.username);
+
+            if (isOwnProfile) {
+                window.loadProfileSections(section);
+            }
 
             // eğer hash yoksa, varsayılan olarak Gönderiler sekmesini seç
             if (!hash) {
@@ -669,7 +797,9 @@ window.addEventListener('load', () => {
             // 2. Bölümleri render et (sadece aktif sekme yüklesin)
             const hash = window.location.hash.replace('#', '');
             const section = hash || 'posts';
-            if (window.auth && window.auth.currentUser) {
+            const visitedUsername = window.getVisitedProfileUsername ? window.getVisitedProfileUsername() : new URLSearchParams(window.location.search).get('id');
+            const isOwnProfile = !visitedUsername || (window.user && visitedUsername === window.user.username);
+            if (isOwnProfile && window.auth && window.auth.currentUser) {
                 await window.loadProfileSections(section);
             }
 
@@ -706,6 +836,13 @@ window.addEventListener('load', () => {
                             window.openTab({ currentTarget: fallbackBtn }, 'my-friends-tab');
                         }
                     }
+                }
+
+                if (typeof window.loadFriendsList === 'function') {
+                    const params = new URLSearchParams(location.search);
+                    const visitedUsername = params.get('id');
+                    const isOwnProfile = !visitedUsername || (window.user && visitedUsername === window.user.username);
+                    window.loadFriendsList(null, isOwnProfile);
                 }
             }, 200);
 

@@ -1458,6 +1458,17 @@ header {
     border-radius: 999px;
 }
 
+/* Fix: center notifications dropdown on small screens to avoid sticking to the right */
+@media (max-width: 768px) {
+    .notifications-dropdown, #notificationsDropdown {
+        left: 50% !important;
+        right: auto !important;
+        transform: translateX(-50%) !important;
+        width: calc(100vw - 24px) !important;
+        max-width: calc(100vw - 24px) !important;
+    }
+}
+
 .nav-dot-badge {
     position: absolute;
     top: 6px;
@@ -1487,9 +1498,8 @@ header {
         min-width: 48px;
     }
 
-    /* Mobilde header butonlarındaki metinleri gizle, sadece ikonları göster */
-    .header-nav-btn span,
-    .header-tools button span,
+    /* Mobilde ana navigasyon butonlarındaki metinleri gizle (profil menüsü metinleri görünür kalsın) */
+    .header-nav-buttons .header-nav-btn span,
     .header-logo-link .logo-text {
         display: none !important;
     }
@@ -2344,6 +2354,205 @@ details.menu-details[open] summary:after {
 
 .calendar-grid .day.special:hover {
     background: rgba(99, 102, 241, 0.15);
+}
+
+.calendar-online-friends {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(99, 102, 241, 0.12);
+    margin-bottom: 8px;
+}
+
+.calendar-online-friend {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 8px;
+    border: 1px solid rgba(99, 102, 241, 0.2);
+    border-radius: 999px;
+    background: rgba(99, 102, 241, 0.06);
+    color: var(--text-main);
+    cursor: pointer;
+    transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.calendar-online-friend:hover {
+    transform: translateY(-1px);
+    background: rgba(99, 102, 241, 0.12);
+}
+
+.online-friend-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    width: 100%;
+    border: 1px solid rgba(99, 102, 241, 0.18);
+    border-radius: 14px;
+    background: rgba(99, 102, 241, 0.06);
+    padding: 10px 12px;
+    text-align: left;
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+.online-friend-card:hover {
+    transform: translateY(-1px);
+    background: rgba(99, 102, 241, 0.12);
+    box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+}
+
+.online-friend-card-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+    min-width: 0;
+}
+
+.online-friend-card-left img {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 1px solid white;
+}
+
+.online-friend-name {
+    font-size: 0.9rem;
+    font-weight: 700;
+}
+
+.friend-action-group {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 0;
+    flex-shrink: 0;
+}
+
+.friend-action-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-main);
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.friend-action-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-main);
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: background 0.15s ease, transform 0.15s ease, border-color 0.15s ease;
+}
+
+.friend-action-btn i {
+    font-size: 1rem;
+}
+
+.friend-action-btn:hover {
+    background: rgba(99, 102, 241, 0.16);
+    border-color: rgba(99, 102, 241, 0.35);
+    transform: translateY(-1px);
+}
+
+.friend-action-btn:focus {
+    outline: 2px solid rgba(99, 102, 241, 0.35);
+    outline-offset: 2px;
+}
+
+.online-friend-status {
+    font-size: 0.78rem;
+    color: var(--success);
+}
+
+.online-friend-card.offline {
+    border-color: rgba(148, 163, 184, 0.35);
+    background: rgba(148, 163, 184, 0.08);
+}
+
+.online-friend-card.offline .online-friend-status {
+    color: var(--text-muted);
+}
+
+.friends-widget {
+    display: grid;
+    gap: 16px;
+}
+
+.friend-status-group {
+    display: grid;
+    gap: 10px;
+    padding: 10px;
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.friend-status-group-title {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: var(--text-main);
+    padding-bottom: 4px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.friend-count-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 30px;
+    padding: 4px 8px;
+    border-radius: 999px;
+    background: rgba(99, 102, 241, 0.14);
+    color: var(--text-main);
+    font-size: 0.78rem;
+    font-weight: 700;
+}
+
+.offline-badge {
+    background: rgba(148, 163, 184, 0.16);
+}
+
+.friend-list-grid {
+    display: grid;
+    gap: 10px;
+}
+
+.friend-status-empty {
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    padding: 8px 0;
+}
+
+.calendar-online-friend img {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 1px solid white;
 }
 
 /* blog card styling */
