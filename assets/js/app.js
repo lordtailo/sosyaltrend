@@ -86,15 +86,15 @@ function updatePostCount() {
     if (!input || !counter) return;
     let text = input.innerText || input.textContent || '';
     // enforce max length
-    if (text.length > 280) {
-        input.innerText = text.substring(0, 280);
+    if (text.length > 1000) {
+        input.innerText = text.substring(0, 1000);
         text = input.innerText;
-        if (helpText) helpText.textContent = '280 karakter sınırını aştınız. Lütfen kısaltın.';
+        if (helpText) helpText.textContent = '1000 karakter sınırını aştınız. Lütfen kısaltın.';
     } else if (helpText) {
         helpText.textContent = 'Açıklama ekleyebilir, fotoğraf seçebilir veya emoji ile daha canlı bir gönderi oluşturabilirsiniz.';
     }
     const len = text.length;
-    counter.textContent = `${len}/280`;
+    counter.textContent = `${len}/1000`;
     updateShareButtonState();
 }
 window.updatePostCount = updatePostCount;
@@ -445,7 +445,7 @@ async function createPollPostFromComposer() {
     }
 
     let val = (postInputEl.innerText || postInputEl.textContent || '').trim();
-    if (val.length > 280) val = val.substring(0, 280);
+    if (val.length > 1000) val = val.substring(0, 1000);
 
     try {
         disableButton(createPollButton, 'Oluşturuluyor...');
@@ -4476,7 +4476,7 @@ if (typeof updatePostCount === 'function') updatePostCount();
         const btn = shareBtn;
         const postInputEl = document.getElementById('postInput');
         let val = postInputEl ? (postInputEl.innerText || postInputEl.textContent || '').trim() : '';
-        if (val.length > 280) val = val.substring(0, 280);
+        if (val.length > 1000) val = val.substring(0, 1000);
         if (!val && !selectedImageBase64) return;
 
         try {
