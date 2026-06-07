@@ -326,26 +326,29 @@
 
     <section class="profile-main">
       <div class="profile-left-col">
-        <article class="profile-card" style="margin-bottom:20px;">
+        <article id="profileStatusWidget" class="profile-card" style="margin-bottom:20px;">
           <div class="card-header">
             <div>
-              <h2 class="card-title">Durum Paylaş</h2>
-              <p class="card-subtitle">Kişisel bilgilerin üstünde yeni bir durumu hızlıca paylaşın.</p>
+              <h2 id="profileStatusWidgetTitle" class="card-title">Durum Paylaş</h2>
+              <p id="profileStatusWidgetSubtitle" class="card-subtitle">Kişisel bilgilerin üstünde yeni bir durumu hızlıca paylaşın.</p>
             </div>
           </div>
           <div class="card-body" style="display:grid; gap:14px;">
-            <textarea id="profileStatusInput" rows="4" placeholder="Durumunuzu yazın..." class="form-input" style="resize: vertical; min-height: 120px;"></textarea>
-            <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
-              <button type="button" onclick="saveProfileStatus()" class="form-btn" style="background: var(--primary); color: #fff; border:none; padding: 12px 18px; border-radius: 16px;">Paylaş</button>
-              <button type="button" onclick="clearProfileStatus()" class="form-btn" style="background: rgba(0,0,0,0.05); color: var(--text-main); border:none; padding: 12px 18px; border-radius:16px;">Temizle</button>
+            <div id="profileStatusInputSection">
+              <textarea id="profileStatusInput" rows="4" placeholder="Durumunuzu yazın..." class="form-input" style="resize: vertical; min-height: 120px;"></textarea>
+              <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+                <button type="button" onclick="saveProfileStatus()" class="form-btn" style="background: var(--primary); color: #fff; border:none; padding: 12px 18px; border-radius: 16px;">Paylaş</button>
+                <button type="button" onclick="clearProfileStatus()" class="form-btn" style="background: rgba(0,0,0,0.05); color: var(--text-main); border:none; padding: 12px 18px; border-radius:16px;">Temizle</button>
+              </div>
             </div>
             <div id="profileStatusPreview" style="background: rgba(99,102,241,0.06); border-radius: 18px; padding: 16px; display:none;">
               <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px; margin-bottom:10px;">
-                <strong style="font-size:0.95rem;">Son Durumunuz</strong>
+                <strong id="profileStatusPreviewTitle" style="font-size:0.95rem;">Son Durumunuz</strong>
                 <span id="profileStatusSavedTime" style="font-size:0.82rem; color:var(--text-muted);"></span>
               </div>
               <p id="profileStatusText" style="margin:0; color:var(--text-main); line-height:1.6;"></p>
             </div>
+            <div id="profileStatusNoData" style="display:none; color:var(--text-muted); font-size:0.95rem; padding: 12px 0;">Bu kullanıcı henüz durum paylaşmadı.</div>
           </div>
         </article>
         <article class="profile-card">
@@ -767,7 +770,23 @@ window.handleProfileAction = function() {
     }
 };
 
-window.saveProfileStatus = function() {
+window.getProfileStatusUsername = function() {
+    const params = new URLSearchParams(location.search);
+    return params.get('id') || params.get('u') || params.get('username') || null;
+};
+
+window.getProfileStatusStorageKey = function() {
+    const visitedUsername = window.getProfileStatusUsername();
+    const isOwnProfile = !visitedUsername || (window.user && visitedUsername === window.user.username);
+    return isOwnProfile ? 'profileStatusShare' : `profileStatusShare_${visitedUsername}`;
+};
+
+window.isOwnProfile = function() {
+    const visitedUsername = window.getProfileStatusUsername();
+    return !visitedUsername || (window.user && visitedUsername === window.user.username);
+};
+
+window.saveProfileStatus = async function() {
     const textarea = document.getElementById('profileStatusInput');
     if (!textarea) return;
     const value = textarea.value.trim();
@@ -778,44 +797,183 @@ window.saveProfileStatus = function() {
     }
     const savedAt = new Date().toISOString();
     const status = { text: value, savedAt };
+    const primaryKey = window.getProfileStatusStorageKey();
+    const profileUsername = window.getProfileStatusUsername() || (window.user && window.user.username);
+    const usernameKey = profileUsername ? `profileStatusShare_${profileUsername}` : null;
     try {
-        localStorage.setItem('profileStatusShare', JSON.stringify(status));
+        localStorage.setItem(primaryKey, JSON.stringify(status));
+        if (primaryKey !== usernameKey && usernameKey) {
+            localStorage.setItem(usernameKey, JSON.stringify(status));
+        }
     } catch (e) {
         console.warn('Durum kaydedilemedi:', e);
     }
+
+    if (window.auth && window.auth.currentUser && window.user && window.user.username && window.db && window.updateDoc && window.doc) {
+        try {
+            await window.updateDoc(window.doc(window.db, 'users', window.auth.currentUser.uid), {
+                profileStatus: status
+            });
+        } catch (err) {
+            if (err && err.code === 'not-found' && window.setDoc) {
+                try {
+                    await window.setDoc(window.doc(window.db, 'users', window.auth.currentUser.uid), {
+                        profileStatus: status,
+                        username: window.user.username,
+                        displayName: window.user.displayName || window.user.username,
+                        email: window.auth.currentUser.email || null
+                    }, { merge: true });
+                } catch (innerErr) {
+                    console.warn('Durum Firestore kaydedilemedi:', innerErr);
+                }
+            } else {
+                console.warn('Durum Firestore kaydedilemedi:', err);
+            }
+        }
+    }
+
     textarea.value = '';
     renderProfileStatus();
 };
 
-window.clearProfileStatus = function() {
+window.clearProfileStatus = async function() {
     try {
-        localStorage.removeItem('profileStatusShare');
+        localStorage.removeItem(window.getProfileStatusStorageKey());
     } catch (e) {
         console.warn('Durum temizlenemedi:', e);
     }
+
+    if (window.auth && window.auth.currentUser && window.db && window.updateDoc && window.doc) {
+        try {
+            await window.updateDoc(window.doc(window.db, 'users', window.auth.currentUser.uid), {
+                profileStatus: null
+            });
+        } catch (err) {
+            console.warn('Durum Firestore temizlenemedi:', err);
+        }
+    }
+
     renderProfileStatus();
 };
 
-window.renderProfileStatus = function() {
+window.loadSharedProfileStatus = async function(profileUsername) {
+    if (!profileUsername || !window.db || !window.getDocs) {
+        return null;
+    }
+    try {
+        let data = null;
+
+        if (window.query && window.collection && window.where && window.limit) {
+            try {
+                const q = window.query(window.collection(window.db, 'users'), window.where('username', '==', profileUsername), window.limit(1));
+                const snap = await window.getDocs(q);
+                if (!snap.empty) {
+                    data = snap.docs[0].data();
+                }
+            } catch (err) {
+                console.warn('Username lookup for shared profile status failed:', err);
+            }
+        }
+
+        if (!data && window.doc && window.getDoc) {
+            try {
+                const userDoc = await window.getDoc(window.doc(window.db, 'users', profileUsername));
+                if (userDoc.exists()) {
+                    data = userDoc.data();
+                }
+            } catch (err) {
+                // ignore uid lookup failures
+            }
+        }
+
+        if (!data) return null;
+        return data.profileStatus || null;
+    } catch (err) {
+        console.warn('Shared profile status load failed:', err);
+        return null;
+    }
+};
+
+window.renderProfileStatus = async function() {
     const preview = document.getElementById('profileStatusPreview');
     const statusText = document.getElementById('profileStatusText');
     const savedTime = document.getElementById('profileStatusSavedTime');
-    if (!preview || !statusText || !savedTime) return;
+    const noData = document.getElementById('profileStatusNoData');
+    const title = document.getElementById('profileStatusWidgetTitle');
+    const subtitle = document.getElementById('profileStatusWidgetSubtitle');
+    const previewTitle = document.getElementById('profileStatusPreviewTitle');
+    const inputSection = document.getElementById('profileStatusInputSection');
+    if (!preview || !statusText || !savedTime || !noData || !title || !subtitle || !previewTitle) return;
 
+    const ownProfile = window.isOwnProfile();
+    const storageKey = window.getProfileStatusStorageKey();
+    const profileUsername = window.getProfileStatusUsername();
+    const usernameKey = profileUsername ? `profileStatusShare_${profileUsername}` : null;
     let status = null;
     try {
-        status = JSON.parse(localStorage.getItem('profileStatusShare'));
+        status = JSON.parse(localStorage.getItem(storageKey));
     } catch (e) {
         status = null;
     }
 
-    if (status && status.text) {
+    let alternativeStatus = null;
+    if (usernameKey && usernameKey !== storageKey) {
+        try {
+            alternativeStatus = JSON.parse(localStorage.getItem(usernameKey));
+        } catch (e) {
+            alternativeStatus = null;
+        }
+    }
+
+    if ((!status || !status.text) && alternativeStatus) {
+        status = alternativeStatus;
+    }
+
+    if (!ownProfile && (!status || !status.text) && profileUsername) {
+        const sharedStatus = await window.loadSharedProfileStatus(profileUsername);
+        if (sharedStatus) {
+            if (typeof sharedStatus === 'string') {
+                status = { text: sharedStatus, savedAt: null };
+            } else {
+                status = sharedStatus;
+            }
+        }
+    }
+
+    if (ownProfile && storageKey === 'profileStatusShare' && usernameKey && status) {
+        const currentUsernameStatus = alternativeStatus;
+        if (!currentUsernameStatus) {
+            try {
+                localStorage.setItem(usernameKey, JSON.stringify(status));
+            } catch (e) {
+                console.warn('Durum yedeği kaydedilemedi:', e);
+            }
+        }
+    }
+
+    if (ownProfile) {
+        title.textContent = 'Durum Paylaş';
+        subtitle.textContent = 'Kişisel bilgilerin üstünde yeni bir durumu hızlıca paylaşın.';
+        previewTitle.textContent = 'Son Durumunuz';
+        inputSection.style.display = '';
+    } else {
+        title.textContent = 'Paylaşılan Durum';
+        subtitle.textContent = 'Bu kullanıcı tarafından paylaşılan son durumu görün.';
+        previewTitle.textContent = 'Paylaşılan Durum';
+        inputSection.style.display = 'none';
+    }
+
+    const hasStatus = status && status.text;
+    if (hasStatus) {
         preview.style.display = 'block';
+        noData.style.display = 'none';
         statusText.textContent = status.text;
         const date = new Date(status.savedAt);
         savedTime.textContent = isNaN(date.getTime()) ? '' : date.toLocaleString('tr-TR', { dateStyle: 'short', timeStyle: 'short' });
     } else {
         preview.style.display = 'none';
+        noData.style.display = 'block';
+        noData.textContent = ownProfile ? 'Henüz paylaşılmış durum bulunmuyor.' : 'Bu kullanıcı henüz durum paylaşmadı.';
         statusText.textContent = '';
         savedTime.textContent = '';
     }
@@ -824,9 +982,20 @@ window.renderProfileStatus = function() {
 window.addEventListener('load', () => {
     setTimeout(() => {
         if (typeof window.renderProfileStatus === 'function') {
-            window.renderProfileStatus();
+            window.renderProfileStatus().catch((err) => console.warn('renderProfileStatus hata:', err));
         }
     }, 200);
+
+    let renderRetryCount = 0;
+    const renderRetryInterval = setInterval(() => {
+        if (typeof window.renderProfileStatus === 'function') {
+            window.renderProfileStatus().catch((err) => console.warn('renderProfileStatus hata:', err));
+        }
+        renderRetryCount += 1;
+        if ((window.user && window.user.username) || renderRetryCount >= 8) {
+            clearInterval(renderRetryInterval);
+        }
+    }, 300);
 });
 
 // Sayfa ve modüller yüklendikten sonra gönderileri tetikle

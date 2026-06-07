@@ -8,7 +8,7 @@
   <meta name="keywords" content="sosyaltrend,sosyal ağ,sosyal,ağ,sosyalağ,ücretsiz sosyal ağ">
   <title>SosyaLTrend • Sosyal Ağ - Anasayfa</title>
   <link rel="stylesheet" href="assets/fontawesome/css/all.min.css">
-    <link rel="stylesheet" href="assets/css/style.css?v=20260607">
+  <link rel="stylesheet" href="assets/css/style.css?v=20260607">
   <link rel="stylesheet" href="assets/css/chat-widget.css?v=20260240">
   <link rel="icon" type="image/x-icon" href="assets/img/strendsaydamv2.ico">
   <link rel="manifest" href="/manifest.json">
@@ -18,25 +18,23 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="theme-color" content="#6366f1">
 
-<script>
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js').catch((err) => {
-      console.warn('Service worker register failed:', err);
-    });
-  }
-</script>
-
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js').catch((err) => {
+        console.warn('Service worker register failed:', err);
+      });
+    }
+  </script>
 </head>
 <body>
-  
   <div data-include="partials/topbar.html"></div>
   <div id="header-placeholder"></div>
 
-<div class="app-container">
-  <div data-include="partials/left-aside.html"></div>
+  <div class="app-container">
+    <div data-include="partials/left-aside.html"></div>
 
- <main id="main-content">
-    <div id="page-feed" class="page-content active">
+    <main id="main-content">
+      <div id="page-feed" class="page-content active">
         <div class="glass-card post-composer">
             <div class="post-composer-header">
                 <div class="post-composer-profile">
@@ -120,13 +118,12 @@
         </div>
         <div id="feed-items"></div>
     </div>
-</main>
+    </main>
 
-<div data-include="partials/right-aside.html"></div>
-</div>
+    <div data-include="partials/right-aside.html"></div>
+  </div>
 
-
-<div id="editModal" class="modal-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; align-items: center; justify-content: center;">
+  <div id="editModal" class="modal-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; align-items: center; justify-content: center;">
     <div class="glass-card" style="width: 90%; max-width: 500px; padding: 20px;">
         <div style="display: flex; justify-content: space-between; margin-bottom: 15px;">
             <h3 style="margin: 0;">Gönderiyi Düzenle</h3>
@@ -137,10 +134,10 @@
             <button onclick="closeEditModal()" style="padding: 8px 20px; border-radius: 20px; border: 1px solid var(--border); background: transparent; cursor: pointer;">İptal</button>
             <button id="saveEditBtn" style="padding: 8px 20px; border-radius: 20px; border: none; background: var(--primary); color: white; font-weight: bold; cursor: pointer;">Kaydet</button>
         </div>
-    </div>
-</div>
+      </div>
+  </div>
 
-<div id="footer-placeholder"></div>
+  <div id="footer-placeholder"></div>
 
 <script src="assets/js/include.js"></script>
 <script type="module" src="assets/js/home.js?v=20260603"></script>

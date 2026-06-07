@@ -3613,13 +3613,13 @@ footer::before {
    margin: 0 auto;
    display: grid;
    grid-template-columns: 2fr 1fr 1fr 1fr;
-   gap: 34px;
+   gap: 0px;
 }
 
 .footer-brand {
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 12px;
 }
 
 .footer-logo-img {
@@ -3674,7 +3674,7 @@ footer::before {
 .footer-bottom-right {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 8px;
 }
 
 .footer-divider {
@@ -3716,6 +3716,48 @@ footer::before {
 .footer-links a:hover {
     color: var(--primary);
     transform: translateX(2px);
+}
+
+@media (max-width: 768px) {
+    .footer-container {
+        grid-template-columns: 1fr;
+        gap: 24px;
+        text-align: center;
+    }
+
+    .footer-brand {
+        justify-content: center;
+    }
+
+    .footer-brand-copy {
+        align-items: center;
+        text-align: center;
+    }
+
+    .footer-logo-img {
+        width: 88px;
+    }
+
+    .footer-section {
+        padding-bottom: 0;
+    }
+
+    .footer-bottom {
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+    }
+
+    .footer-bottom-right {
+        justify-content: center;
+        width: 100%;
+        margin-top: 8px;
+    }
+
+    .footer-divider {
+        display: none;
+    }
 }
 
 .admin-actions { 
@@ -3871,6 +3913,7 @@ font-size: 0.9rem; font-weight: 800; color: var(--primary); margin: 20px 0 10px;
         justify-content: center;
         transition: all 0.3s ease;
         margin: 0;
+        padding-bottom: 0px;
     }
 
     .left-trigger {
@@ -3943,6 +3986,10 @@ font-size: 0.9rem; font-weight: 800; color: var(--primary); margin: 20px 0 10px;
 }
 
 @media (max-width: 768px) {
+    body {
+        padding-bottom: 0px;
+    }
+
     /* Keep side panels full-height under the header on mobile */
     aside, .right-panel, .side-overlay {
         top: 0;
@@ -4361,7 +4408,7 @@ font-size: 0.9rem; font-weight: 800; color: var(--primary); margin: 20px 0 10px;
     font-size: 1.2rem;
   }
   /* Avoid content being hidden behind the bottom navigation */
-  body { padding-bottom: 70px; }
+  body { padding-bottom: 0px; }
 }
 
 /* Small utility for bottom nav icon badges */

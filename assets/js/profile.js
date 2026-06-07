@@ -140,95 +140,47 @@ async function loadProfileData(profileUsername) {
   return { uid: userDoc.id, ...userDoc.data() };
 }
 
+function sortPostsByTimestampDesc(posts) {
+  return posts.sort((a, b) => {
+    const ta = a.timestamp && a.timestamp.toMillis ? a.timestamp.toMillis() : (a.timestamp && a.timestamp.seconds ? a.timestamp.seconds * 1000 : new Date(a.timestamp).getTime());
+    const tb = b.timestamp && b.timestamp.toMillis ? b.timestamp.toMillis() : (b.timestamp && b.timestamp.seconds ? b.timestamp.seconds * 1000 : new Date(b.timestamp).getTime());
+    return tb - ta;
+  });
+}
+
 async function loadPosts(username) {
-  // Preferred server-side ordered query
   try {
-      const postsQuery = window.query(window.collection(db, 'posts'), window.where('username', '==', username), window.orderBy('timestamp', 'desc'));
-      const postsSnap = await window.getDocs(postsQuery);
+    const postsQuery = window.query(window.collection(db, 'posts'), window.where('username', '==', username));
+    const postsSnap = await window.getDocs(postsQuery);
     const posts = postsSnap.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }));
-    if (posts.length > 0) return posts;
+    return sortPostsByTimestampDesc(posts);
   } catch (err) {
-    // If an index is required, Firestore will throw. Fall back to client-side sorting below.
-    console.warn('loadPosts: ordered query failed, falling back to client-side sort', err.message || err);
-  }
-
-  // Fallback: try other field then client-side sort to avoid needing a composite index
-  try {
-    const fallbackQuery = window.query(window.collection(db, 'posts'), window.where('authorUsername', '==', username));
-    const fallbackSnap = await window.getDocs(fallbackQuery);
-    let posts = fallbackSnap.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }));
-    posts.sort((a, b) => {
-      const ta = a.timestamp && a.timestamp.toMillis ? a.timestamp.toMillis() : (a.timestamp && a.timestamp.seconds ? a.timestamp.seconds * 1000 : new Date(a.timestamp).getTime());
-      const tb = b.timestamp && b.timestamp.toMillis ? b.timestamp.toMillis() : (b.timestamp && b.timestamp.seconds ? b.timestamp.seconds * 1000 : new Date(b.timestamp).getTime());
-      return tb - ta;
-    });
-    if (posts.length > 0) return posts;
-  } catch (err) {
-    console.warn('loadPosts fallback query failed', err.message || err);
-  }
-
-  // Final fallback: fetch all posts for the username without any order and sort client-side
-  try {
-    const anyQuery = window.query(window.collection(db, 'posts'), window.where('username', '==', username));
-    const anySnap = await window.getDocs(anyQuery);
-    const posts = anySnap.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }));
-    posts.sort((a, b) => {
-      const ta = a.timestamp && a.timestamp.toMillis ? a.timestamp.toMillis() : (a.timestamp && a.timestamp.seconds ? a.timestamp.seconds * 1000 : new Date(a.timestamp).getTime());
-      const tb = b.timestamp && b.timestamp.toMillis ? b.timestamp.toMillis() : (b.timestamp && b.timestamp.seconds ? b.timestamp.seconds * 1000 : new Date(b.timestamp).getTime());
-      return tb - ta;
-    });
-    return posts;
-  } catch (err) {
-    console.error('loadPosts: tüm fallbackler başarısız', err);
+    console.error('loadPosts: sorgu hatası', err.message || err);
     return [];
   }
 }
 
 async function loadLikes(username) {
   try {
-      const likesQuery = window.query(window.collection(db, 'posts'), window.where('likes', 'array-contains', username), window.orderBy('timestamp', 'desc'));
-      const likesSnap = await window.getDocs(likesQuery);
-    return likesSnap.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }));
+    const likesQuery = window.query(window.collection(db, 'posts'), window.where('likes', 'array-contains', username));
+    const likesSnap = await window.getDocs(likesQuery);
+    const posts = likesSnap.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }));
+    return sortPostsByTimestampDesc(posts);
   } catch (err) {
-    console.warn('loadLikes: ordered query failed, falling back to client-side sort', err.message || err);
-    try {
-      const likesQuery = window.query(window.collection(db, 'posts'), window.where('likes', 'array-contains', username));
-      const likesSnap = await window.getDocs(likesQuery);
-      const posts = likesSnap.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }));
-      posts.sort((a, b) => {
-        const ta = a.timestamp && a.timestamp.toMillis ? a.timestamp.toMillis() : (a.timestamp && a.timestamp.seconds ? a.timestamp.seconds * 1000 : new Date(a.timestamp).getTime());
-        const tb = b.timestamp && b.timestamp.toMillis ? b.timestamp.toMillis() : (b.timestamp && b.timestamp.seconds ? b.timestamp.seconds * 1000 : new Date(b.timestamp).getTime());
-        return tb - ta;
-      });
-      return posts;
-    } catch (err2) {
-      console.error('loadLikes fallback failed', err2);
-      return [];
-    }
+    console.error('loadLikes: sorgu hatası', err.message || err);
+    return [];
   }
 }
 
 async function loadSaves(username) {
   try {
-      const savesQuery = window.query(window.collection(db, 'posts'), window.where('savedBy', 'array-contains', username), window.orderBy('timestamp', 'desc'));
-      const savesSnap = await window.getDocs(savesQuery);
-    return savesSnap.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }));
+    const savesQuery = window.query(window.collection(db, 'posts'), window.where('savedBy', 'array-contains', username));
+    const savesSnap = await window.getDocs(savesQuery);
+    const posts = savesSnap.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }));
+    return sortPostsByTimestampDesc(posts);
   } catch (err) {
-    console.warn('loadSaves: ordered query failed, falling back to client-side sort', err.message || err);
-    try {
-      const savesQuery = window.query(window.collection(db, 'posts'), window.where('savedBy', 'array-contains', username));
-      const savesSnap = await window.getDocs(savesQuery);
-      const posts = savesSnap.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }));
-      posts.sort((a, b) => {
-        const ta = a.timestamp && a.timestamp.toMillis ? a.timestamp.toMillis() : (a.timestamp && a.timestamp.seconds ? a.timestamp.seconds * 1000 : new Date(a.timestamp).getTime());
-        const tb = b.timestamp && b.timestamp.toMillis ? b.timestamp.toMillis() : (b.timestamp && b.timestamp.seconds ? b.timestamp.seconds * 1000 : new Date(b.timestamp).getTime());
-        return tb - ta;
-      });
-      return posts;
-    } catch (err2) {
-      console.error('loadSaves fallback failed', err2);
-      return [];
-    }
+    console.error('loadSaves: sorgu hatası', err.message || err);
+    return [];
   }
 }
 

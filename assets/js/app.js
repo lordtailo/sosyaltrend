@@ -1588,6 +1588,8 @@ window.getDocs = typeof getDocs !== 'undefined' ? getDocs : undefined;
 window.where = typeof where !== 'undefined' ? where : undefined;
 window.orderBy = typeof orderBy !== 'undefined' ? orderBy : undefined;
 window.limit = typeof limit !== 'undefined' ? limit : undefined;
+window.updateDoc = typeof updateDoc !== 'undefined' ? updateDoc : undefined;
+window.setDoc = typeof setDoc !== 'undefined' ? setDoc : undefined;
 
 // Cache author avatars to avoid fetching multiple times
 const blogAuthorAvatarCache = {};
