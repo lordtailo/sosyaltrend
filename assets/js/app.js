@@ -8076,7 +8076,7 @@ async function updateAddFriendButton(targetUid) {
     chatBtn.style.display = 'inline-block';
     chatBtn.style.opacity = '1';
     chatBtn.style.cursor = 'pointer';
-    chatBtn.innerHTML = '<i class="fa-solid fa-comment"></i> Sohbet Et';
+    chatBtn.innerHTML = '<i class="fa-solid fa-comment"></i> <span class="chat-btn-text">Sohbet Et</span>';
     chatBtn.onclick = () => {
         if (typeof openChatWithUser === 'function') {
             openChatWithUser(targetUid, targetUid);
@@ -8103,7 +8103,7 @@ async function updateAddFriendButton(targetUid) {
 
         // --- SOHBET BUTONU AYARI ---
 chatBtn.style.display = 'inline-block';
-chatBtn.innerHTML = '<i class="fa-solid fa-comment"></i> Sohbet Et';
+chatBtn.innerHTML = '<i class="fa-solid fa-comment"></i> <span class="chat-btn-text">Sohbet Et</span>';
 
 chatBtn.addEventListener('click', () => {
     // Check if the required variables and function exist
@@ -9516,7 +9516,7 @@ function initChatListsPanel() {
         <div class="chat-lists-header">
             <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
                 <div style="display:flex; align-items:center; gap:10px;">
-                    <h3 style="margin: 0;">Sohbet Et</h3>
+                    <h3 style="margin: 0;"><span class="chat-btn-text">Sohbet Et</span></h3>
                 </div>
                 <div style="display: flex; gap: 8px;">
                     <button class="close-btn" onclick="closeChatsList()">
@@ -9560,7 +9560,7 @@ function initChatListsPanel() {
                 style="flex:1;"
             >
             <button id="chat-start-btn" onclick="startChatWithUsername()" style="display:flex; align-items:center; gap:4px; padding:8px 12px; background:var(--primary); color:white; border:none; border-radius:6px; cursor:pointer; font-size:0.85rem;" title="Sohbete Et">
-                <i class="fa-solid fa-paper-plane"></i><span>Sohbete Et</span>
+                <i class="fa-solid fa-paper-plane"></i><span class="chat-btn-text">Sohbete Et</span>
             </button>
             <button id="chat-add-friend-btn" onclick="addFriendFromChat()" style="padding:8px 12px; background:var(--primary); color:white; border:none; border-radius:6px; cursor:pointer; font-size:0.85rem;" title="Arkadaş ekle">
                 <i class="fa-solid fa-user-plus"></i>

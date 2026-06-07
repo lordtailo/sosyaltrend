@@ -236,6 +236,10 @@
       .profile-user-name { font-size: 2rem; }
       .profile-action-btn { width: 100%; justify-content: center; }
     }
+    /* Mobilde Son Tebrikler önizlemesini gizle (profil sekmesi görünmüyorsa uyum sağlar) */
+    @media (max-width: 768px) {
+      #son-tebrikler-block { display: none !important; }
+    }
   </style> 
 </head>
 <body>
@@ -382,7 +386,7 @@
             </div>
           </div>
           <div style="border-top: 1px solid rgba(0,0,0,0.06);"></div>
-          <div style="padding: 16px 20px 0;">
+          <div id="son-tebrikler-block" style="padding: 16px 20px 0;">
             <div class="friends-widget-header" style="margin-bottom: 14px; justify-content: space-between;">
               <div>
                 <h3 style="margin: 0; font-size: 0.95rem; font-weight: 700; color: var(--text-main);">Son Tebrikler</h3>

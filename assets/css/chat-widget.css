@@ -361,6 +361,10 @@ body.dark-mode #emoji-picker button:hover {
         width: 28px;
         height: 28px;
     }
+    /* Mobilde butonlardaki metni gizle */
+    .chat-btn-text {
+        display: none !important;
+    }
 }
 
 .chat-empty {

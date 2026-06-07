@@ -1553,15 +1553,28 @@ header::after {
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        width: 40px;
-        height: 40px;
-        border-radius: 50%;
-        border: 1px solid rgba(255,255,255,0.18);
-        background: rgba(255,255,255,0.08);
+        width: 44px;
+        height: 44px;
+        border-radius: 12px;
+        border: 1px solid rgba(0,0,0,0.08);
+        background: linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
         color: var(--text-main);
         cursor: pointer;
-        margin-right: 10px;
+        margin-right: 8px;
+        box-shadow: 0 6px 18px rgba(16,24,40,0.08);
+        backdrop-filter: blur(6px);
+        transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
     }
+
+    .side-trigger:hover {
+        transform: translateY(-2px) scale(1.02);
+        box-shadow: 0 10px 30px rgba(16,24,40,0.12);
+    }
+
+    .side-trigger .icon-wrap svg { width:20px; height:20px; color: var(--text-main); display:block; }
+
+    .left-trigger { margin-left: 6px; }
+    .right-trigger { margin-right: 6px; }
 }
 
 /* ANA İÇERİK - Header'ın altında kalmaması için boşluk verildi */
