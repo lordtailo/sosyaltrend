@@ -326,6 +326,28 @@
 
     <section class="profile-main">
       <div class="profile-left-col">
+        <article class="profile-card" style="margin-bottom:20px;">
+          <div class="card-header">
+            <div>
+              <h2 class="card-title">Durum Paylaş</h2>
+              <p class="card-subtitle">Kişisel bilgilerin üstünde yeni bir durumu hızlıca paylaşın.</p>
+            </div>
+          </div>
+          <div class="card-body" style="display:grid; gap:14px;">
+            <textarea id="profileStatusInput" rows="4" placeholder="Durumunuzu yazın..." class="form-input" style="resize: vertical; min-height: 120px;"></textarea>
+            <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+              <button type="button" onclick="saveProfileStatus()" class="form-btn" style="background: var(--primary); color: #fff; border:none; padding: 12px 18px; border-radius: 16px;">Paylaş</button>
+              <button type="button" onclick="clearProfileStatus()" class="form-btn" style="background: rgba(0,0,0,0.05); color: var(--text-main); border:none; padding: 12px 18px; border-radius:16px;">Temizle</button>
+            </div>
+            <div id="profileStatusPreview" style="background: rgba(99,102,241,0.06); border-radius: 18px; padding: 16px; display:none;">
+              <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px; margin-bottom:10px;">
+                <strong style="font-size:0.95rem;">Son Durumunuz</strong>
+                <span id="profileStatusSavedTime" style="font-size:0.82rem; color:var(--text-muted);"></span>
+              </div>
+              <p id="profileStatusText" style="margin:0; color:var(--text-main); line-height:1.6;"></p>
+            </div>
+          </div>
+        </article>
         <article class="profile-card">
           <div class="card-header">
             <div>
@@ -744,6 +766,68 @@ window.handleProfileAction = function() {
         }
     }
 };
+
+window.saveProfileStatus = function() {
+    const textarea = document.getElementById('profileStatusInput');
+    if (!textarea) return;
+    const value = textarea.value.trim();
+    if (!value) {
+        alert('Lütfen bir durum yazın.');
+        textarea.focus();
+        return;
+    }
+    const savedAt = new Date().toISOString();
+    const status = { text: value, savedAt };
+    try {
+        localStorage.setItem('profileStatusShare', JSON.stringify(status));
+    } catch (e) {
+        console.warn('Durum kaydedilemedi:', e);
+    }
+    textarea.value = '';
+    renderProfileStatus();
+};
+
+window.clearProfileStatus = function() {
+    try {
+        localStorage.removeItem('profileStatusShare');
+    } catch (e) {
+        console.warn('Durum temizlenemedi:', e);
+    }
+    renderProfileStatus();
+};
+
+window.renderProfileStatus = function() {
+    const preview = document.getElementById('profileStatusPreview');
+    const statusText = document.getElementById('profileStatusText');
+    const savedTime = document.getElementById('profileStatusSavedTime');
+    if (!preview || !statusText || !savedTime) return;
+
+    let status = null;
+    try {
+        status = JSON.parse(localStorage.getItem('profileStatusShare'));
+    } catch (e) {
+        status = null;
+    }
+
+    if (status && status.text) {
+        preview.style.display = 'block';
+        statusText.textContent = status.text;
+        const date = new Date(status.savedAt);
+        savedTime.textContent = isNaN(date.getTime()) ? '' : date.toLocaleString('tr-TR', { dateStyle: 'short', timeStyle: 'short' });
+    } else {
+        preview.style.display = 'none';
+        statusText.textContent = '';
+        savedTime.textContent = '';
+    }
+};
+
+window.addEventListener('load', () => {
+    setTimeout(() => {
+        if (typeof window.renderProfileStatus === 'function') {
+            window.renderProfileStatus();
+        }
+    }, 200);
+});
 
 // Sayfa ve modüller yüklendikten sonra gönderileri tetikle
 window.addEventListener('load', () => {
