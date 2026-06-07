@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sosyaltrend-pwa-v2';
+const CACHE_NAME = 'sosyaltrend-pwa-v3';
 const CACHE_ASSETS = [
   '/',
   '/index.html',
@@ -8,7 +8,7 @@ const CACHE_ASSETS = [
   '/partials/right-aside.html',
   '/partials/header.html',
   '/partials/footer.html',
-  '/assets/css/style.css',
+  '/assets/css/style.css?v=20260607',
   '/assets/css/chat-widget.css?v=20260240',
   '/assets/fontawesome/css/all.min.css',
   '/assets/img/strendsaydamv2.png',

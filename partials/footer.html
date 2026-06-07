@@ -1,11 +1,10 @@
 <footer>
   <div class="footer-container">
-    <div class="footer-brand" style="display: flex; align-items: center; gap: 15px;">
-      <img src="assets/img/strendsaydamv2.png" alt="SosyalTrend Logo" style="width: 124px;height: 123px;object-fit: contain;">
-      
-      <div>
-        <div class="logo" style="margin-bottom: 5px;">SosyaLTrend</div>
-        <p style="color:var(--text-muted); font-size:0.9rem; margin: 0;" data-i18n="footerTagline">
+    <div class="footer-brand">
+      <img src="assets/img/strendsaydamv2.png" alt="SosyalTrend Logo" class="footer-logo-img">
+      <div class="footer-brand-copy">
+        <div class="logo footer-brand-title">SosyaLTrend</div>
+        <p class="footer-tagline" data-i18n="footerTagline">
           Topluluğunuzla her zaman bir adım önde olun.
         </p>
       </div>
@@ -38,14 +37,14 @@
   </div>
 
   <div class="footer-bottom">
-    <div style="color:var(--text-muted); font-size:0.85rem;">&copy; 2026 <strong>SosyaLTrend</strong>. <span data-i18n="footerRights">Tüm Hakları Saklıdır.</span></div>
-    <div style="display: flex;gap: 8px;align-items: center;padding: 0px 10px 0 23px;">
-        <div class="lang-switcher" style="display:flex; gap:10px; font-size: 0.85rem; font-weight: 600;">
-            <span id="lang-tr" onclick="changeLanguage('tr')">TR</span>
-            <span id="lang-en" onclick="changeLanguage('en')">EN</span>
-        </div>
-        <div style="width: 1px; height: 15px; background: var(--border);"></div>
-        <i class="fa-solid fa-earth-americas" style="color:var(--text-muted); font-size: 0.9rem;"></i>
+    <div class="footer-copy">&copy; 2026 <strong>SosyaLTrend</strong>. <span data-i18n="footerRights">Tüm Hakları Saklıdır.</span></div>
+    <div class="footer-bottom-right">
+      <div class="lang-switcher">
+        <span id="lang-tr" onclick="changeLanguage('tr')">Türkçe</span>
+        <span id="lang-en" onclick="changeLanguage('en')">English</span>
+      </div>
+      <div class="footer-divider"></div>
+      <i class="fa-solid fa-earth-americas footer-earth-icon" aria-hidden="true"></i>
     </div>
   </div>
 </footer>

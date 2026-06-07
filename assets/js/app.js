@@ -4802,7 +4802,7 @@ const initMobilePanelsAndCalendar = () => {
                                 <img src="${friend.avatarUrl}" alt="${escapeHtml(friend.displayName)}">
                                 <div>
                                     <div class="online-friend-name">${escapeHtml(friend.displayName)}</div>
-                                    <div class="online-friend-status offline-status">Çevrim dışı</div>
+                                    <div class="online-friend-status offline-status">Çevrim dışı${formatOfflineDays(friend.presence.lastActiveAt)}</div>
                                 </div>
                             </div>
                             <div class="friend-action-group">
@@ -10449,16 +10449,23 @@ function resolvePresenceStatus(userData) {
     const isOnline = userData.isOnline === true || userData.isOnline === 'true' || userData.online === true || userData.online === 'true' || userData.status === 'online' || userData.status === 'Online' || userData.presence === 'online';
     const lastActiveAt = userData.lastActiveAt || userData.lastSeen || userData.lastOnline;
     if (isOnline) {
-        return { status: 'online', label: 'Çevrimiçi' };
+        return { status: 'online', label: 'Çevrimiçi', lastActiveAt };
     }
     if (lastActiveAt) {
         const rel = formatRelativePresence(lastActiveAt);
         if (rel === 'şimdi' || isRecentActivity(lastActiveAt, 60)) {
-            return { status: 'online', label: 'Çevrimiçi' };
+            return { status: 'online', label: 'Çevrimiçi', lastActiveAt };
         }
-        return { status: 'offline', label: `Son aktif ${rel}` };
+        return { status: 'offline', label: `Son aktif ${rel}`, lastActiveAt };
     }
-    return { status: 'offline', label: 'Çevrimdışı' };
+    return { status: 'offline', label: 'Çevrimdışı', lastActiveAt: null };
+}
+
+function formatOfflineDays(timestamp) {
+    if (!timestamp) return '';
+    const date = timestamp.toDate ? timestamp.toDate() : (timestamp.seconds != null ? new Date(timestamp.seconds * 1000) : new Date(timestamp));
+    const diffDays = Math.floor((Date.now() - date.getTime()) / 86400000);
+    return diffDays >= 1 ? ` · ${diffDays}g` : '';
 }
 
 function shortenEmail(email) {
