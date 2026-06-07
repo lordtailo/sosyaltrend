@@ -3925,71 +3925,21 @@ font-size: 0.9rem; font-weight: 800; color: var(--primary); margin: 20px 0 10px;
 }
 
 @media (max-width: 768px) {
-    .footer-content, 
-    .footer-container {
-        display: flex !important;
-        flex-direction: column !important;
-        align-items: stretch !important; 
-        padding: 10px 10px !important;
-        gap: 7px !important;
-    }
-
-    .footer-brand {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        text-align: center;
-        gap: 3px;
-    }
-
-    /* Mobil: panellerin üstünde boşluk olmasın; içerik header altından başlasın */
+    /* Keep side panels full-height under the header on mobile */
     aside, .right-panel, .side-overlay {
         top: 0;
         height: 100vh;
         padding-top: 64px; /* header yüksekliği kadar içerik iç boşluğu */
     }
 
-    .footer-section {
-        width: 100% !important;
-        margin-bottom: 2px !important;
-    }
+    /* Footer: don't force column layout on mobile — revert to desktop grid
+       so footer appears as before on smaller screens. */
 
-    .footer-section h4 {
-        padding: 8px 0 4px;
-        margin: 0 0 8px 0;
-        font-size: 1rem;
-        text-align: left;
-        color: var(--text-main);
-    }
-
-    .footer-links {
-        display: flex !important;
-        flex-direction: column !important;
-        gap: 6px !important;
-        padding: 0 !important;
-        margin: 0 !important;
-        list-style: none !important;
-    }
-
-    .footer-links li {
-        width: 100%;
-    }
-
-    .footer-links li a {
-        display: inline-block !important;
-        width: 100% !important;
-        padding: 4px 0 !important;
-        color: var(--text-muted) !important;
-        text-align: left !important;
-        text-decoration: none !important;
-        font-weight: 500 !important;
-        font-size: 0.95rem !important;
-        transition: color 0.2s ease !important;
-    }
-
-    .footer-links li a:hover,
-    .footer-links li a:focus {
-        color: var(--primary) !important;
+    /* Hide chat-related button text on mobile (e.g. "Sohbet Et") */
+    .chat-btn-text,
+    .header-msg-btn span,
+    #sendHeaderMessageBtn span {
+        display: none !important;
     }
 }
 
