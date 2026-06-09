@@ -136,7 +136,7 @@
     .avatar-camera-overlay:hover { transform: translateY(-1px) scale(1.05); box-shadow: 0 10px 24px rgba(0,0,0,0.22); }
     .profile-user-info { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; }
     .profile-user-info > .profile-meta { grid-column: 1 / -1; }
-    .profile-user-name { margin: 0; font-size: clamp(1.75rem, 2.6vw, 2.4rem); line-height: 1.05; font-weight: 800; }
+    .profile-user-name { margin: 0; font-size: clamp(1.75rem, 2.6vw, 2.4rem); line-height: 1.05; font-weight: 700; }
     .profile-user-handle { display: none; margin: 0; color: var(--text-muted); font-size: 0.95rem; }
     .profile-user-handle i { margin-right: 6px; }
     .profile-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 0; }
@@ -218,8 +218,8 @@
       .tebrikler-preview-grid { grid-template-columns: 1fr; }
     }
 
-      .friends-widget-grid, .friends-widget-preview { grid-template-columns: repeat(2, minmax(140px, 1fr)); }
-    }
+    .friends-widget-grid, .friends-widget-preview { grid-template-columns: repeat(2, minmax(140px, 1fr)); }
+    
     @media (max-width: 620px) {
       .friends-widget-grid, .friends-widget-preview { grid-template-columns: 1fr; }
     }
