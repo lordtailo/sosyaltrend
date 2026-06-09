@@ -624,14 +624,19 @@ body.dark-mode .post-composer {
     background: rgba(99,102,241,0.14);
 }
 
-.header-msg-btn i {
-    font-size: 1rem;
-}
-
-@media (max-width: 900px) {
-    .header-msg-btn {
-        padding: 10px 14px;
+    .header-msg-btn.has-unread {
+        background: var(--danger);
+        color: #fff;
+        border-color: transparent;
+        box-shadow: 0 0 0 1px rgba(255,255,255,0.08);
     }
+    .header-msg-btn.has-unread .fa-comments,
+    .header-msg-btn.has-unread span {
+        color: #fff;
+    }
+
+.header-msg-btn {
+    padding: 10px 14px;
 }
 
 @media (max-width: 680px) {

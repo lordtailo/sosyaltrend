@@ -75,9 +75,9 @@
     .gallery-item img { width: 100%; height: 100%; object-fit: cover; }
 
     /* Profil sekmesi için gizlenmesi istenen düğmeler */
-    .profile-tabs a[href="#tebrikler"] {
+    /* .profile-tabs a[href="#tebrikler"] {
         display: none !important;
-    }
+    } */
     
     .delete-overlay {
         position: absolute;
@@ -145,21 +145,30 @@
     .metric-card { padding: 18px 20px; border-radius: 18px; background: rgba(var(--primary-rgb,99,102,241),0.08); display: flex; justify-content: space-between; align-items: center; gap: 14px; }
     .metric-card strong { display: block; font-size: 1.75rem; line-height: 1; color: var(--primary); }
     .metric-card span { color: var(--text-muted); font-size: 0.92rem; }
-    .profile-main { display: grid; grid-template-columns: 1.2fr 1fr; gap: 24px; }
+    .profile-main { display: grid; grid-template-columns: 1fr; gap: 24px; width: 100%; }
     .profile-left-col { display: grid; gap: 22px; }
+    .profile-status-info-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px; align-items: start; }
+    #profilePersonalInfoCard { grid-column: 1 / -1; }
     .profile-card { overflow: hidden; }
     .card-header { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; align-items: center; padding: 22px 24px 18px; background: rgba(var(--primary-rgb,99,102,241),0.08); }
     .card-title { margin: 0; font-size: 1rem; font-weight: 800; color: var(--primary); }
+    @media (max-width: 820px) {
+      .profile-status-info-row { grid-template-columns: 1fr; }
+    }
     .card-subtitle { margin: 4px 0 0; color: var(--text-muted); font-size: 0.92rem; }
     .card-body { padding: 20px 24px 24px; display: grid; gap: 16px; }
     .info-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
-    .info-item { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 14px 16px; border-radius: 16px; border: 1px solid rgba(0,0,0,0.06); background: rgba(255,255,255,0.95); }
-    .info-item strong { color: var(--text-main); }
+    .info-item { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 14px 16px; border-radius: 16px; border: 1px solid rgba(0,0,0,0.06); background: rgba(255,255,255,0.95); min-width: 0; }
+    .info-item span,
+    .info-item strong { min-width: 0; }
+    .info-item span { display: inline-flex; align-items: center; gap: 8px; color: var(--text-muted); font-size: 0.95rem; overflow-wrap: anywhere; word-break: break-word; }
+    .info-item strong { color: var(--text-main); text-align: right; overflow-wrap: anywhere; word-break: break-word; }
     .badge-pill { padding: 6px 12px; border-radius: 999px; background: rgba(var(--primary-rgb,99,102,241),0.16); color: var(--primary); font-size: 0.82rem; font-weight: 700; }
     .badge-pill-button { border: none; background: rgba(var(--primary-rgb,99,102,241),0.16); color: var(--primary); cursor: pointer; font: inherit; padding: 6px 12px; border-radius: 999px; }
     .badge-pill-button:hover { background: rgba(var(--primary-rgb,99,102,241),0.22); }
     .profile-tabs-card { padding: 18px 20px; background: #fff; border-radius: 24px; border: 1px solid rgba(0,0,0,0.08); box-shadow: 0 10px 30px rgba(0,0,0,0.06); margin-bottom: 24px; }
-    .profile-tabs { display: flex; flex-wrap: wrap; gap: 12px; }
+    .profile-tabs { display: flex; gap: 12px; align-items: center; width: 100%; }
+    .profile-tab-btn { flex: 1; min-width: 0; justify-content: center; text-align: center; padding: 12px 14px; }
     .friends-widget-preview { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
     .friends-widget-preview .friend-preview-card, .friends-widget-preview .friend-preview-more-card { background: linear-gradient(180deg, rgba(255,255,255,0.8), rgba(255,255,255,0.5)); border-radius: 16px; padding: 14px 12px; text-align: center; height: 160px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); border: 1px solid rgba(0,0,0,0.05); transition: all 0.25s ease; }
     .friends-widget-preview .friend-preview-card:hover { transform: translateY(-3px); box-shadow: 0 6px 16px rgba(0,0,0,0.08); background: linear-gradient(180deg, rgba(255,255,255,0.95), rgba(255,255,255,0.7)); }
@@ -228,7 +237,7 @@
       .profile-header-inner { grid-template-columns: 1fr; }
       .profile-actions { justify-content: center; }
       .profile-tabs { justify-content: center; }
-      .profile-tab-btn { width: auto; }
+      .profile-tab-btn { flex: 1 1 100%; min-width: 0; }
     }
     @media (max-width: 520px) {
       .profile-header-card { padding: 18px 14px 16px; }
@@ -280,6 +289,8 @@
 
     </div>
 
+    <!-- Durum Paylaş bölümü kaldırıldı -->
+
     <div id="editProfileSection" class="edit-profile-form" style="margin-bottom: 24px;">
       <div class="section-subtitle">Profil Bilgileri</div>
       <div style="margin-bottom: 20px;">
@@ -298,6 +309,22 @@
         <label class="form-label" for="newDobInput">Doğum Tarihi</label>
         <input type="date" id="newDobInput" class="form-input">
       </div>
+      <div style="margin-bottom: 20px;">
+        <label class="form-label" for="newOccupationInput">Meslek</label>
+        <input type="text" id="newOccupationInput" class="form-input" placeholder="Örn. Yazılım Geliştirici">
+      </div>
+      <div style="margin-bottom: 20px;">
+        <label class="form-label" for="newWebsiteInput">Web Sitesi</label>
+        <input type="url" id="newWebsiteInput" class="form-input" placeholder="https://...">
+      </div>
+      <div style="margin-bottom: 20px;">
+        <label class="form-label" for="newBioInput">Biyografi</label>
+        <textarea id="newBioInput" class="form-input" rows="3" placeholder="Kısa biyografiniz..."></textarea>
+      </div>
+      <div style="margin-bottom: 20px;">
+        <label class="form-label" for="newInterestsInput">İlgi Alanları</label>
+        <input type="text" id="newInterestsInput" class="form-input" placeholder="Virgülle ayrılmış kelimeler">
+      </div>
       <div style="background: var(--bg); padding: 15px; border-radius: 12px; border: 1px solid var(--border);">
         <label class="form-label" for="fileAvatarInput" style="color: var(--primary); cursor: pointer;"><i class="fa-solid fa-camera"></i> Profil Resmini Güncelle</label>
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px;">
@@ -313,121 +340,42 @@
       </div>
     </div>
 
-    <div class="profile-tabs-card" style="margin-bottom:20px;">
-      <nav class="profile-tabs">
-        <a class="tab-btn profile-tab-btn active" href="#posts" onclick="openTab(event, 'my-posts-tab')"><i class="fa-solid fa-feather"></i> Gönderiler</a>
-        <a class="tab-btn profile-tab-btn" href="#likes" onclick="openTab(event, 'my-likes-tab')"><i class="fa-solid fa-heart"></i> Beğeniler</a>
-        <a class="tab-btn profile-tab-btn" href="#saves" onclick="openTab(event, 'my-saves-tab')"><i class="fa-solid fa-bookmark"></i> Kayıtlar</a>
-        <a class="tab-btn profile-tab-btn" href="#tebrikler" onclick="openTab(event, 'my-congrats-tab')" style="display: none;"><i class="fa-solid fa-gift"></i> Tebrikler</a>
-        <a class="tab-btn profile-tab-btn" href="#friends" onclick="openTab(event, 'my-friends-tab')"><i class="fa-solid fa-users"></i> Arkadaşlar</a>
-        <a class="tab-btn profile-tab-btn" href="#notifs" onclick="openTab(event, 'my-notifs-tab')"><i class="fa-solid fa-bell"></i> Bildirimler</a>
-      </nav>
+    <div class="profile-status-info-row" style="margin-bottom: 24px;">
+      <article id="profilePersonalInfoCard" class="profile-card">
+        <div class="card-header">
+          <div>
+            <h2 class="card-title">Kişisel Bilgilerim</h2>
+            <p class="card-subtitle">Profilinizdeki temel bilgiler.</p>
+          </div>
+          <button type="button" class="badge-pill-button" onclick="toggleEditProfile()">Düzenle</button>
+        </div>
+        <div class="card-body">
+          <ul class="info-list">
+            <li class="info-item"><span><i class="fa-solid fa-location-dot"></i> Konum</span><strong id="profileLocation">—</strong></li>
+            <li class="info-item"><span><i class="fa-solid fa-home"></i> Memleket</span><strong id="profileHometown">—</strong></li>
+            <li class="info-item"><span><i class="fa-solid fa-cake-candles"></i> Doğum Tarihi</span><strong id="profileDob">—</strong></li>
+            <li class="info-item"><span><i class="fa-solid fa-briefcase"></i> Meslek</span><strong id="profileOccupation">—</strong></li>
+            <li class="info-item"><span><i class="fa-solid fa-link"></i> Web Sitesi</span><strong id="profileWebsite">—</strong></li>
+            <li class="info-item"><span><i class="fa-solid fa-user-pen"></i> Biyografi</span><strong id="profileBio">—</strong></li>
+            <li class="info-item"><span><i class="fa-solid fa-star"></i> İlgi Alanları</span><strong id="profileInterests">—</strong></li>
+          </ul>
+        </div>
+      </article>
     </div>
 
+    
     <section class="profile-main">
-      <div class="profile-left-col">
-        <article id="profileStatusWidget" class="profile-card" style="margin-bottom:20px;">
-          <div class="card-header">
-            <div>
-              <h2 id="profileStatusWidgetTitle" class="card-title">Durum Paylaş</h2>
-              <p id="profileStatusWidgetSubtitle" class="card-subtitle">Kişisel bilgilerin üstünde yeni bir durumu hızlıca paylaşın.</p>
-            </div>
-          </div>
-          <div class="card-body" style="display:grid; gap:14px;">
-            <div id="profileStatusInputSection">
-              <textarea id="profileStatusInput" rows="4" placeholder="Durumunuzu yazın..." class="form-input" style="resize: vertical; min-height: 120px;"></textarea>
-              <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
-                <button type="button" onclick="saveProfileStatus()" class="form-btn" style="background: var(--primary); color: #fff; border:none; padding: 12px 18px; border-radius: 16px;">Paylaş</button>
-                <button type="button" onclick="clearProfileStatus()" class="form-btn" style="background: rgba(0,0,0,0.05); color: var(--text-main); border:none; padding: 12px 18px; border-radius:16px;">Temizle</button>
-              </div>
-            </div>
-            <div id="profileStatusPreview" style="background: rgba(99,102,241,0.06); border-radius: 18px; padding: 16px; display:none;">
-              <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px; margin-bottom:10px;">
-                <strong id="profileStatusPreviewTitle" style="font-size:0.95rem;">Son Durumunuz</strong>
-                <span id="profileStatusSavedTime" style="font-size:0.82rem; color:var(--text-muted);"></span>
-              </div>
-              <p id="profileStatusText" style="margin:0; color:var(--text-main); line-height:1.6;"></p>
-            </div>
-            <div id="profileStatusNoData" style="display:none; color:var(--text-muted); font-size:0.95rem; padding: 12px 0;">Bu kullanıcı henüz durum paylaşmadı.</div>
-          </div>
-        </article>
-        <article class="profile-card">
-          <div class="card-header">
-            <div>
-              <h2 class="card-title">Kişisel Bilgilerim</h2>
-              <p class="card-subtitle">Profilinizdeki temel bilgiler.</p>
-            </div>
-            <button type="button" class="badge-pill-button" onclick="toggleEditProfile()">Düzenle</button>
-          </div>
-          <div class="card-body">
-            <ul class="info-list">
-              <li class="info-item"><span><i class="fa-solid fa-location-dot"></i> Konum</span><strong id="profileLocation">—</strong></li>
-              <li class="info-item"><span><i class="fa-solid fa-home"></i> Memleket</span><strong id="profileHometown">—</strong></li>
-              <li class="info-item"><span><i class="fa-solid fa-cake-candles"></i> Doğum Tarihi</span><strong id="profileDob">—</strong></li>
-            </ul>
-          </div>
-        </article>
-
-        <article class="profile-card" style="min-height: auto;">
-          <div class="card-header friends-widget-header" style="align-items: flex-start; gap: 12px; flex-wrap: wrap; justify-content: space-between;">
-            <div>
-              <h2 class="card-title">Arkadaşlarım</h2>
-              <p class="card-subtitle">En yakın arkadaşlarınız</p>
-              <div id="friendsWidgetCount" class="friends-widget-count" style="margin-top: 8px;">0 arkadaş</div>
-            </div>
-            <div class="friends-widget-meta" style="width: auto;">
-              <a id="friendsWidgetViewAll" href="#friends" class="friends-widget-action"><i class="fa-solid fa-users"></i> Arkadaşlar</a>
-            </div>
-          </div>
-          <div class="card-body" style="padding: 22px 24px; min-height: 300px;">
-            <div id="friends-widget-list" class="friends-widget-preview"></div>
-            <div id="friends-widget-empty" class="friends-widget-empty" style="display:none;">
-              <i class="fa-solid fa-user-friends" style="font-size:2.2rem; margin-bottom:12px; color:var(--text-muted);"></i>
-              <p style="margin: 0; color:var(--text-muted); font-size:0.95rem;">Henüz arkadaş yok.</p>
-            </div>
-          </div>
-        </article>
-
-        <article class="profile-card">
-          <div class="card-header">
-            <div>
-              <h2 class="card-title">Tebrik Derecesi</h2>
-              <p class="card-subtitle">Profiliniz için skor bilgisi.</p>
-            </div>
-            <span id="tebrikLevel" class="badge-pill">Yeni Başlayan</span>
-          </div>
-          <div class="card-body">
-            <div style="display:grid; gap:14px;">
-              <div class="info-item" style="justify-content:flex-start;"><span style="color:var(--text-muted);">Tebrik Sayısı</span><strong id="tebrikCount">0</strong></div>
-              <div class="info-item" style="justify-content:flex-start;"><span style="color:var(--text-muted);">Sıralama</span><strong id="tebrikRank">#--</strong></div>
-              <div style="background:rgba(var(--primary-rgb,99,102,241),0.12); border-radius:16px; padding:16px 18px;">
-                <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:10px;">
-                  <span style="font-weight:700; color:var(--primary);">Profil Gücü</span>
-                  <span id="tebrikPercent" style="font-size:0.9rem; color:var(--text-muted);">%0</span>
-                </div>
-                <div style="height:10px; background:rgba(0,0,0,0.08); border-radius:999px; overflow:hidden;"><div id="tebrikProgress" style="width:0%; height:100%; background:var(--primary); border-radius:999px;"></div></div>
-              </div>
-              <p id="tebrikSummaryText" style="margin: 0; color: var(--text-muted); font-size: 0.95rem; line-height: 1.5;">Henüz tebrik almadı. Şimdi ilk tebriği gönder!</p>
-            </div>
-          </div>
-          <div style="border-top: 1px solid rgba(0,0,0,0.06);"></div>
-          <div id="son-tebrikler-block" style="padding: 16px 20px 0;">
-            <div class="friends-widget-header" style="margin-bottom: 14px; justify-content: space-between;">
-              <div>
-                <h3 style="margin: 0; font-size: 0.95rem; font-weight: 700; color: var(--text-main);">Son Tebrikler</h3>
-              </div>
-              <a href="#tebrikler" onclick="openTab(event, 'my-congrats-tab')" style="font-size: 0.75rem; color: var(--primary); text-decoration: none; font-weight: 600; cursor: pointer; background: rgba(var(--primary-rgb,99,102,241),0.16); padding: 8px 12px; border-radius: 999px;">Tümü Gör</a>
-            </div>
-            <div id="latest-tebrikler-preview" class="tebrikler-preview-grid" style="margin-bottom: 12px;"></div>
-            <div id="no-tebrikler-preview-msg" style="display: none; text-align: center; color: var(--text-muted); padding: 20px 12px; font-size: 0.9rem;">
-              <i class="fa-solid fa-gift" style="font-size: 1.8rem; margin-bottom: 8px; display: block; opacity: 0.6;"></i>
-              Henüz tebrik yok.
-            </div>
-          </div>
-        </article>
-      </div>
-
       <div class="profile-right-col">
+        <div class="profile-tabs-card" style="margin-bottom:20px;">
+          <nav class="profile-tabs">
+            <a class="tab-btn profile-tab-btn active" href="#posts" onclick="openTab(event, 'my-posts-tab')"><i class="fa-solid fa-feather"></i> Gönderiler</a>
+            <a class="tab-btn profile-tab-btn" href="#likes" onclick="openTab(event, 'my-likes-tab')"><i class="fa-solid fa-heart"></i> Beğeniler</a>
+            <a class="tab-btn profile-tab-btn" href="#saves" onclick="openTab(event, 'my-saves-tab')"><i class="fa-solid fa-bookmark"></i> Kayıtlar</a>
+            <a class="tab-btn profile-tab-btn" href="#tebrikler" onclick="openTab(event, 'my-congrats-tab')"><i class="fa-solid fa-gift"></i> Tebrikler</a>
+            <a class="tab-btn profile-tab-btn" href="#friends" onclick="openTab(event, 'my-friends-tab')"><i class="fa-solid fa-users"></i> Arkadaşlar</a>
+            <a class="tab-btn profile-tab-btn" href="#notifs" onclick="openTab(event, 'my-notifs-tab')"><i class="fa-solid fa-bell"></i> Bildirimler</a>
+          </nav>
+        </div>
         <div class="profile-tab-content">
           <section id="my-posts-tab" class="tab-content active content-card">
             <h3>Gönderiler</h3>
@@ -462,6 +410,30 @@
           <section id="my-congrats-tab" class="tab-content content-card">
             <h3>Tebrikler</h3>
             <p>Size gelen tebriklerin raporu burada listelenir.</p>
+            <article class="profile-card" style="margin-top: 16px;">
+              <div class="card-header">
+                <div>
+                  <h2 class="card-title">Tebrik Derecesi</h2>
+                  <p class="card-subtitle">Profiliniz için skor bilgisi.</p>
+                </div>
+                <span id="tebrikLevel" class="badge-pill">Yeni Başlayan</span>
+              </div>
+              <div class="card-body">
+                <div style="display:grid; gap:14px;">
+                  <div class="info-item" style="justify-content:flex-start;"><span style="color:var(--text-muted);">Tebrik Sayısı</span><strong id="tebrikCount">0</strong></div>
+                  <div class="info-item" style="justify-content:flex-start;"><span style="color:var(--text-muted);">Sıralama</span><strong id="tebrikRank">#--</strong></div>
+                  <div style="background:rgba(var(--primary-rgb,99,102,241),0.12); border-radius:16px; padding:16px 18px;">
+                    <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:10px;">
+                      <span style="font-weight:700; color:var(--primary);">Profil Gücü</span>
+                      <span id="tebrikPercent" style="font-size:0.9rem; color:var(--text-muted);">%0</span>
+                    </div>
+                    <div style="height:10px; background:rgba(0,0,0,0.08); border-radius:999px; overflow:hidden;"><div id="tebrikProgress" style="width:0%; height:100%; background:var(--primary); border-radius:999px;"></div></div>
+                  </div>
+                  <p id="tebrikSummaryText" style="margin: 0; color: var(--text-muted); font-size: 0.95rem; line-height: 1.5;">Henüz tebrik almadı. Şimdi ilk tebriği gönder!</p>
+                </div>
+              </div>
+              <div style="border-top: 1px solid rgba(0,0,0,0.06);"></div>
+            </article>
             <div class="content-card" style="padding:16px; background:rgba(249,250,251,0.95); border:none;">
               <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:14px;">
                 <span style="font-weight:700; color:var(--primary);">Tebrik Puanları</span>
@@ -517,7 +489,7 @@
 
 <div id="footer-placeholder"></div>
 <script src="assets/js/include.js"></script>
-<script type="module" src="assets/js/profile.js"></script>
+<script type="module" src="assets/js/app.js"></script>
 <script>
 // Sayfa yüklendiğinde hash'e göre ilgili sekmeyi aç
 function openProfileTabByHash(hash) {
@@ -1025,7 +997,6 @@ window.addEventListener('load', () => {
     }, 500); // 500ms bekleme süresi stabilitesini artırır
 });
 </script>
-<script type="module" src="assets/js/profile.js"></script>
 <script>
 (function() {
     let checkInterval;

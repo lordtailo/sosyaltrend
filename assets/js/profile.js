@@ -140,6 +140,22 @@ async function loadProfileData(profileUsername) {
   return { uid: userDoc.id, ...userDoc.data() };
 }
 
+// Fallback: eğer kullanıcı adı ile bulunamadıysa, oturum açmış kullanıcının UID'si ile getir
+async function loadProfileDataWithFallback(profileUsername) {
+  let profile = await loadProfileData(profileUsername);
+  if (!profile && window.user && window.user.uid) {
+    try {
+      const snap = await window.getDoc(window.doc(db, 'users', window.user.uid));
+      if (snap && snap.exists()) {
+        profile = { uid: snap.id, ...snap.data() };
+      }
+    } catch (err) {
+      console.warn('Fallback profile fetch failed', err);
+    }
+  }
+  return profile;
+}
+
 function sortPostsByTimestampDesc(posts) {
   return posts.sort((a, b) => {
     const ta = a.timestamp && a.timestamp.toMillis ? a.timestamp.toMillis() : (a.timestamp && a.timestamp.seconds ? a.timestamp.seconds * 1000 : new Date(a.timestamp).getTime());
@@ -223,11 +239,26 @@ function renderProfileHeader(profileData, isOwnProfile) {
   if (locationEl) locationEl.textContent = profileData.location || '—';
   if (hometownEl) hometownEl.textContent = profileData.hometown || '—';
   if (dobEl) dobEl.textContent = profileData.dob || '—';
+  const occupationEl = document.getElementById('profileOccupation');
+  const websiteEl = document.getElementById('profileWebsite');
+  const bioEl = document.getElementById('profileBio');
+  const interestsEl = document.getElementById('profileInterests');
+  if (occupationEl) occupationEl.textContent = profileData.occupation || '—';
+  if (websiteEl) {
+    const site = profileData.website || '';
+    websiteEl.innerHTML = site ? `<a href="${escapeHTML(site)}" target="_blank" rel="noopener noreferrer">${escapeHTML(site)}</a>` : '—';
+  }
+  if (bioEl) bioEl.textContent = profileData.bio || '—';
+  if (interestsEl) interestsEl.textContent = profileData.interests || '—';
 
   const privacyNotice = document.getElementById('profilePrivacyNotice');
+  const personalInfoCard = document.getElementById('profilePersonalInfoCard');
   const isPrivateProfile = profileData.private || profileData.isPrivate || profileData.privateProfile;
   if (privacyNotice) {
     privacyNotice.style.display = !isOwnProfile && isPrivateProfile ? 'block' : 'none';
+  }
+  if (personalInfoCard) {
+    personalInfoCard.style.display = !isOwnProfile && isPrivateProfile ? 'none' : 'block';
   }
 
   if (editBtn) editBtn.style.display = isOwnProfile ? 'inline-flex' : 'none';
@@ -386,7 +417,7 @@ async function initProfilePage() {
     return;
   }
 
-  const profileData = await loadProfileData(targetUsername);
+  const profileData = await loadProfileDataWithFallback(targetUsername);
   if (!profileData) {
     showMessage('posts-list', `"${targetUsername}" adlı kullanıcı bulunamadı.`);
     return;

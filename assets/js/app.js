@@ -78,13 +78,23 @@ window.updateReplyTargetDisplay = function(postId) {
     }
 };
 
+function normalizePostText(text) {
+    if (typeof text !== 'string') return '';
+    return text
+        .replace(/\r\n/g, '\n')
+        .replace(/\u00A0/g, ' ')
+        .replace(/[ \t]+/g, ' ')
+        .replace(/\n{3,}/g, '\n\n')
+        .trim();
+}
+
 // Track length for main post box (share)
 function updatePostCount() {
     const input = document.getElementById('postInput');
     const counter = document.getElementById('post-charcount') || document.querySelector('.post-charcount');
     const helpText = document.getElementById('post-help');
     if (!input || !counter) return;
-    let text = input.innerText || input.textContent || '';
+    let text = normalizePostText(input.innerText || input.textContent || '');
     // enforce max length
     if (text.length > 1000) {
         input.innerText = text.substring(0, 1000);
@@ -634,7 +644,7 @@ async function loadTopLikedPosts() {
             const authorAvatar = getAvatarUrl(post.avatarUrl || post.avatarSeed || 'assets/img/strendsaydamv2.png', 'user');
             const authorName = escapeHtml(post.displayName || post.name || post.username || 'Anonim');
             const authorHandle = post.username ? `@${escapeHtml(post.username)}` : '';
-            const content = escapeHtml((post.content || post.description || '').toString().trim());
+            const content = escapeHtml(normalizePostText((post.content || post.description || '').toString()));
             // Uzunluğu artırıldı: sadece en çok beğeni alan (ilk) gönderi için daha uzun önizleme göster
             const snippet = content.length > 250 ? `${content.substring(0, 250)}...` : content;
             const likeCount = post.likes?.length || 0;
@@ -1715,6 +1725,18 @@ onAuthStateChanged(auth, async (fbUser) => {
                 if (data.dob) {
                     user.dob = data.dob;
                 }
+                if (typeof data.occupation !== 'undefined') {
+                    user.occupation = data.occupation || '';
+                }
+                if (typeof data.website !== 'undefined') {
+                    user.website = data.website || '';
+                }
+                if (typeof data.bio !== 'undefined') {
+                    user.bio = data.bio || '';
+                }
+                if (typeof data.interests !== 'undefined') {
+                    user.interests = data.interests || '';
+                }
                 if (data.createdAt) {
                     user.createdAt = data.createdAt;
                 } else if (userDoc.createTime) {
@@ -1820,6 +1842,18 @@ onAuthStateChanged(auth, async (fbUser) => {
                 }
                 if (typeof userData.dob !== 'undefined' && userData.dob !== user.dob) {
                     user.dob = userData.dob || '';
+                    updateUIWithUser();
+                }
+                if (typeof userData.website !== 'undefined' && userData.website !== user.website) {
+                    user.website = userData.website || '';
+                    updateUIWithUser();
+                }
+                if (typeof userData.bio !== 'undefined' && userData.bio !== user.bio) {
+                    user.bio = userData.bio || '';
+                    updateUIWithUser();
+                }
+                if (typeof userData.interests !== 'undefined' && userData.interests !== user.interests) {
+                    user.interests = userData.interests || '';
                     updateUIWithUser();
                 }
                 // Bildirimleri (arkadaş istekleri + diğer bildirimler) güncelle
@@ -2113,6 +2147,14 @@ let tempAvatarBuffer = null;
             if (hometownInput) hometownInput.value = user.hometown || "";
             const dobInput = document.getElementById('newDobInput');
             if (dobInput) dobInput.value = user.dob || "";
+            const occupationInput = document.getElementById('newOccupationInput');
+            if (occupationInput) occupationInput.value = user.occupation || "";
+            const websiteInput = document.getElementById('newWebsiteInput');
+            if (websiteInput) websiteInput.value = user.website || "";
+            const bioInput = document.getElementById('newBioInput');
+            if (bioInput) bioInput.value = user.bio || "";
+            const interestsInput = document.getElementById('newInterestsInput');
+            if (interestsInput) interestsInput.value = user.interests || "";
             
             tempAvatarBuffer = null;
         } else {
@@ -2629,6 +2671,11 @@ window.handleUrlInput = async (input) => {
   };
 
   window.saveProfileChanges = async () => {
+    if (!auth.currentUser) {
+      alert('Lütfen giriş yapın ve tekrar deneyin.');
+      return;
+    }
+
     const name = document.getElementById('newNameInput')?.value.trim();
     const location = document.getElementById('newLocationInput')?.value.trim();
     const hometown = document.getElementById('newHometownInput')?.value.trim();
@@ -2639,7 +2686,9 @@ window.handleUrlInput = async (input) => {
         user.displayName = name;
         localStorage.setItem('st_displayName', name);
         updates.displayName = name;
-        await updateProfile(auth.currentUser, { displayName: name }).catch(e => console.error(e));
+        await updateProfile(auth.currentUser, { displayName: name }).catch((e) => {
+          console.error('updateProfile error:', e);
+        });
     }
     if (typeof location === 'string') {
         updates.location = location || null;
@@ -2653,21 +2702,59 @@ window.handleUrlInput = async (input) => {
         updates.dob = dob || null;
         user.dob = dob || '';
     }
+    const occupation = document.getElementById('newOccupationInput')?.value.trim();
+    const website = document.getElementById('newWebsiteInput')?.value.trim();
+    const bio = document.getElementById('newBioInput')?.value.trim();
+    const interests = document.getElementById('newInterestsInput')?.value.trim();
+
+    if (typeof occupation === 'string') {
+        updates.occupation = occupation || null;
+        user.occupation = occupation || '';
+    }
+    if (typeof website === 'string') {
+        updates.website = website || null;
+        user.website = website || '';
+    }
+    if (typeof bio === 'string') {
+        updates.bio = bio || null;
+        user.bio = bio || '';
+    }
+    if (typeof interests === 'string') {
+        updates.interests = interests || null;
+        user.interests = interests || '';
+    }
 
     if (Object.keys(updates).length > 0) {
+        const userRef = doc(db, "users", auth.currentUser.uid);
+        console.log('profile updates:', updates);
         try {
-            await updateDoc(doc(db, "users", auth.currentUser.uid), updates);
+            await updateDoc(userRef, updates);
         } catch (err) {
             console.error("Profil güncelleme hatası:", err);
+            if (err.code === 'not-found' || String(err.message).toLowerCase().includes('no document to update')) {
+                try {
+                    await setDoc(userRef, updates, { merge: true });
+                } catch (mergeErr) {
+                    console.error('Document merge failed:', mergeErr);
+                    alert('Profil güncelleme sırasında bir hata oluştu. Lütfen tekrar deneyin.');
+                    return;
+                }
+            } else {
+                alert('Profil güncelleme sırasında bir hata oluştu. Lütfen tekrar deneyin.');
+                return;
+            }
         }
     }
 
+    if (typeof updateUIWithUser === 'function') updateUIWithUser();
+    if (typeof renderProfileHeader === 'function') renderProfileHeader(user, true);
     finishUpdate();
   };
 
   function finishUpdate() {
     alert("Profil başarıyla güncellendi!");
-    location.reload();
+    const form = document.getElementById('editProfileSection');
+    if (form) form.classList.remove('active');
   }
 
 
@@ -3085,12 +3172,26 @@ function getAvatarUrl(avatarUrlOrSeed, type = 'user') {
         if(pLocation) pLocation.innerText = user.location || '—';
         if(pHometown) pHometown.innerText = user.hometown || '—';
         if(pDob) pDob.innerText = user.dob ? (typeof user.dob === 'string' && user.dob.includes('-') ? user.dob.split('-').reverse().join('.') : String(user.dob)) : '—';
+        const pOccupation = document.getElementById('profileOccupation');
+        const pWebsite = document.getElementById('profileWebsite');
+        const pBio = document.getElementById('profileBio');
+        const pInterests = document.getElementById('profileInterests');
+        if (pOccupation) {
+            pOccupation.innerText = user.occupation || '—';
+        }
+        if (pWebsite) {
+            pWebsite.innerHTML = user.website ? `<a href="${escapeHtml(user.website)}" target="_blank" rel="noopener noreferrer">${escapeHtml(user.website)}</a>` : '—';
+        }
+        if (pBio) {
+            pBio.innerText = user.bio || '—';
+        }
+        if (pInterests) {
+            pInterests.innerText = user.interests || '—';
+        }
     }
 
-    // Gizlilik Durumu Güncelleme
     if(pTg) pTg.checked = isPrivate;
     if(sPi) {
-        // only show indicator when on own profile
         let showInd = isPrivate;
         const visitedUsername = getVisitedProfileUsername();
         if (visitedUsername && visitedUsername !== user.username) {
@@ -4231,7 +4332,7 @@ window.loadPostsFeed = (showAll = false) => {
                   
               const avatarUrl = getAvatarUrl(p.avatarUrl || p.avatarSeed || "assets/img/strendsaydamv2.png", isPage ? 'page' : 'user');
               // içerikte varsa HTML entite formundaki emojileri çöz
-              const decoded = (p.content || "");
+              const decoded = normalizePostText(p.content || "");
               const contentWithLinks = decoded.replace(/(#[\wığüşöçİĞÜŞÖÇ]+)/g, '<span class="hashtag-link" onclick="searchTrend(\'$1\')">$1</span>');
               // Profil linki: Kendi profili ise 'profil', başkasıysa 'profil.html?id=username'
               const profileLink = isMine ? "javascript:navigateTo('profil')" : `profil.html?id=${encodeURIComponent(p.username)}`;
@@ -4477,7 +4578,7 @@ if (typeof updatePostCount === 'function') updatePostCount();
     shareBtn.onclick = async () => {
         const btn = shareBtn;
         const postInputEl = document.getElementById('postInput');
-        let val = postInputEl ? (postInputEl.innerText || postInputEl.textContent || '').trim() : '';
+        let val = normalizePostText(postInputEl ? (postInputEl.innerText || postInputEl.textContent || '') : '');
         if (val.length > 1000) val = val.substring(0, 1000);
         if (!val && !selectedImageBase64) return;
 
@@ -5426,7 +5527,7 @@ window.loadProfileSections = async (section = 'all', showAllPosts = false, showA
     }
     
     if (!user || !user.username) {
-        console.warn('loadProfileSections: user.username not initialized', user);
+        console.log('loadProfileSections: waiting for user initialization...', user);
         // Wait for user to be initialized
         await new Promise(resolve => {
             let attempts = 0;
@@ -5444,6 +5545,37 @@ window.loadProfileSections = async (section = 'all', showAllPosts = false, showA
         });
     }
     
+    if ((!user || !user.username) && auth && auth.currentUser && db && doc && getDoc) {
+        try {
+            const currentUserRef = doc(db, 'users', auth.currentUser.uid);
+            const currentUserDoc = await getDoc(currentUserRef);
+            if (currentUserDoc.exists()) {
+                const currentUserData = currentUserDoc.data();
+                if (currentUserData.username) {
+                    user.username = currentUserData.username;
+                }
+                if (currentUserData.displayName) {
+                    user.displayName = currentUserData.displayName;
+                }
+            }
+        } catch (fetchErr) {
+            console.warn('loadProfileSections: error fetching current user doc for fallback', fetchErr);
+        }
+    }
+
+    if ((!user || !user.username) && auth && auth.currentUser) {
+        const fallbackUsername = auth.currentUser.email ? auth.currentUser.email.split('@')[0] : auth.currentUser.uid || '';
+        if (fallbackUsername) {
+            console.warn('loadProfileSections: using fallback username from auth.currentUser', fallbackUsername);
+            user.username = fallbackUsername;
+        }
+    }
+
+    if (!user || !user.username) {
+        console.warn('loadProfileSections: user initialization timeout or missing username, aborting section load', user);
+        return;
+    }
+
     const uname = user.username;
     console.log('[loadProfileSections]', 'section:', section, 'uname:', uname, 'user:', user);
 
