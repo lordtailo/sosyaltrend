@@ -10598,8 +10598,13 @@ function resolvePresenceStatus(userData) {
 function formatOfflineDays(timestamp) {
     if (!timestamp) return '';
     const date = timestamp.toDate ? timestamp.toDate() : (timestamp.seconds != null ? new Date(timestamp.seconds * 1000) : new Date(timestamp));
-    const diffDays = Math.floor((Date.now() - date.getTime()) / 86400000);
-    return diffDays >= 1 ? ` · ${diffDays}g` : '';
+    const diffSeconds = Math.floor((Date.now() - date.getTime()) / 1000);
+    if (diffSeconds < 60) return ' · şimdi';
+    if (diffSeconds < 3600) return ` · ${Math.floor(diffSeconds / 60)}dk`;
+    if (diffSeconds < 86400) return ` · ${Math.floor(diffSeconds / 3600)}s`;
+    const days = Math.floor(diffSeconds / 86400);
+    const hours = Math.floor((diffSeconds % 86400) / 3600);
+    return ` · ${days}g${hours > 0 ? ` ${hours}s` : ''}`;
 }
 
 function shortenEmail(email) {
