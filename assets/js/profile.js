@@ -244,10 +244,46 @@ function renderProfileHeader(profileData, isOwnProfile) {
   const bioEl = document.getElementById('profileBio');
   const interestsEl = document.getElementById('profileInterests');
   if (occupationEl) occupationEl.textContent = profileData.occupation || '—';
-  if (websiteEl) {
-    const site = profileData.website || '';
-    websiteEl.innerHTML = site ? `<a href="${escapeHTML(site)}" target="_blank" rel="noopener noreferrer">${escapeHTML(site)}</a>` : '—';
+  function setSocialAnchor(linkEl, iconHtml, url, title) {
+    if (!linkEl) return;
+    linkEl.innerHTML = iconHtml;
+    linkEl.title = title;
+    if (url) {
+      linkEl.href = escapeHTML(url);
+      linkEl.target = '_blank';
+      linkEl.rel = 'noopener noreferrer';
+      linkEl.classList.remove('disabled');
+      linkEl.removeAttribute('aria-disabled');
+      linkEl.removeAttribute('tabindex');
+    } else {
+      linkEl.removeAttribute('href');
+      linkEl.removeAttribute('target');
+      linkEl.removeAttribute('rel');
+      linkEl.classList.add('disabled');
+      linkEl.setAttribute('aria-disabled', 'true');
+      linkEl.setAttribute('tabindex', '-1');
+    }
   }
+
+  if (websiteEl) {
+    setSocialAnchor(websiteEl, '<i class="fa-solid fa-earth-americas"></i>', profileData.website || '', 'Web Sitesi');
+  }
+
+  const facebookEl = document.getElementById('profileFacebook');
+  if (facebookEl) {
+    setSocialAnchor(facebookEl, '<i class="fa-brands fa-facebook-f"></i>', profileData.facebook || '', 'Facebook');
+  }
+
+  const twitterEl = document.getElementById('profileTwitter');
+  if (twitterEl) {
+    setSocialAnchor(twitterEl, '<i class="fa-brands fa-twitter"></i>', profileData.twitter || '', 'Twitter');
+  }
+
+  const youtubeEl = document.getElementById('profileYoutube');
+  if (youtubeEl) {
+    setSocialAnchor(youtubeEl, '<i class="fa-brands fa-youtube"></i>', profileData.youtube || '', 'YouTube');
+  }
+
   if (bioEl) bioEl.textContent = profileData.bio || '—';
   if (interestsEl) interestsEl.textContent = profileData.interests || '—';
 

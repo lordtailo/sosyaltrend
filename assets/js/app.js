@@ -2151,6 +2151,12 @@ let tempAvatarBuffer = null;
             if (occupationInput) occupationInput.value = user.occupation || "";
             const websiteInput = document.getElementById('newWebsiteInput');
             if (websiteInput) websiteInput.value = user.website || "";
+            const facebookInput = document.getElementById('newFacebookInput');
+            if (facebookInput) facebookInput.value = user.facebook || "";
+            const twitterInput = document.getElementById('newTwitterInput');
+            if (twitterInput) twitterInput.value = user.twitter || "";
+            const youtubeInput = document.getElementById('newYoutubeInput');
+            if (youtubeInput) youtubeInput.value = user.youtube || "";
             const bioInput = document.getElementById('newBioInput');
             if (bioInput) bioInput.value = user.bio || "";
             const interestsInput = document.getElementById('newInterestsInput');
@@ -2704,6 +2710,9 @@ window.handleUrlInput = async (input) => {
     }
     const occupation = document.getElementById('newOccupationInput')?.value.trim();
     const website = document.getElementById('newWebsiteInput')?.value.trim();
+    const facebook = document.getElementById('newFacebookInput')?.value.trim();
+    const twitter = document.getElementById('newTwitterInput')?.value.trim();
+    const youtube = document.getElementById('newYoutubeInput')?.value.trim();
     const bio = document.getElementById('newBioInput')?.value.trim();
     const interests = document.getElementById('newInterestsInput')?.value.trim();
 
@@ -2714,6 +2723,18 @@ window.handleUrlInput = async (input) => {
     if (typeof website === 'string') {
         updates.website = website || null;
         user.website = website || '';
+    }
+    if (typeof facebook === 'string') {
+        updates.facebook = facebook || null;
+        user.facebook = facebook || '';
+    }
+    if (typeof twitter === 'string') {
+        updates.twitter = twitter || null;
+        user.twitter = twitter || '';
+    }
+    if (typeof youtube === 'string') {
+        updates.youtube = youtube || null;
+        user.youtube = youtube || '';
     }
     if (typeof bio === 'string') {
         updates.bio = bio || null;
@@ -3180,7 +3201,22 @@ function getAvatarUrl(avatarUrlOrSeed, type = 'user') {
             pOccupation.innerText = user.occupation || '—';
         }
         if (pWebsite) {
-            pWebsite.innerHTML = user.website ? `<a href="${escapeHtml(user.website)}" target="_blank" rel="noopener noreferrer">${escapeHtml(user.website)}</a>` : '—';
+            pWebsite.innerHTML = '<i class="fa-solid fa-earth-americas"></i>';
+            if (user.website) {
+                pWebsite.href = escapeHtml(user.website);
+                pWebsite.target = '_blank';
+                pWebsite.rel = 'noopener noreferrer';
+                pWebsite.classList.remove('disabled');
+                pWebsite.removeAttribute('aria-disabled');
+                pWebsite.removeAttribute('tabindex');
+            } else {
+                pWebsite.removeAttribute('href');
+                pWebsite.removeAttribute('target');
+                pWebsite.removeAttribute('rel');
+                pWebsite.classList.add('disabled');
+                pWebsite.setAttribute('aria-disabled', 'true');
+                pWebsite.setAttribute('tabindex', '-1');
+            }
         }
         if (pBio) {
             pBio.innerText = user.bio || '—';

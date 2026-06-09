@@ -105,83 +105,118 @@
     .profile-header-card,
     .profile-card,
     .profile-tabs-card,
-    .profile-box { background: rgba(255,255,255,0.96); border: 1px solid rgba(0,0,0,0.08); border-radius: 24px; box-shadow: 0 24px 60px rgba(0,0,0,0.08); }
-    .profile-header-card { position: relative; overflow: hidden; padding: 32px 32px 28px; margin-bottom: 28px; background: linear-gradient(135deg, rgba(99,102,241,0.08), rgba(165,180,252,0.14)); border-color: rgba(99,102,241,0.18); }
-    .profile-header-card::before { content: ''; position: absolute; right: -60px; top: -40px; width: 220px; height: 220px; background: radial-gradient(circle, rgba(99,102,241,0.24) 0%, transparent 70%); filter: blur(20px); pointer-events: none; }
-    .profile-header-inner { display: grid; grid-template-columns: 140px 1fr; gap: 18px; align-items: center; position: relative; z-index: 1; }
-    .profile-avatar-wrap { position: relative; width: 140px; height: 140px; border-radius: 50%; overflow: hidden; border: 4px solid rgba(var(--primary-rgb,99,102,241),0.22); box-shadow: 0 24px 40px rgba(15,23,42,0.12); background: linear-gradient(135deg, rgba(255,255,255,0.8), rgba(255,255,255,0.4)); }
+    .profile-box { background: rgba(255,255,255,0.95); border: 1px solid rgba(0,0,0,0.08); border-radius: 24px; box-shadow: 0 24px 60px rgba(0,0,0,0.08); }
+    .profile-header-card { padding: 28px 28px 22px; margin-bottom: 24px; }
+    .profile-header-inner { display: grid; grid-template-columns: 130px 1fr; gap: 8px; align-items: center; }
+    .profile-avatar-wrap { position: relative; width: 130px; height: 130px; border-radius: 50%; overflow: hidden; border: 4px solid rgba(var(--primary-rgb,99,102,241),0.22); box-shadow: 0 20px 40px rgba(0,0,0,0.08); }
     .profile-avatar-wrap img { width: 100%; height: 100%; object-fit: cover; display: block; }
-    .avatar-camera-overlay { position: absolute; right: 10px; bottom: 10px; width: 36px; height: 36px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.95); background: rgba(var(--primary-rgb,99,102,241),0.95); color: #fff; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; transition: transform 0.2s ease, box-shadow 0.2s ease; box-shadow: 0 10px 24px rgba(0,0,0,0.18); z-index: 2; }
-    .avatar-camera-overlay:hover { transform: translateY(-1px) scale(1.05); box-shadow: 0 12px 26px rgba(0,0,0,0.22); }
-    .profile-user-info { display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center; }
-    .profile-user-info > .profile-meta { grid-column: 1 / -1; }
-    .profile-user-name { margin: 0; font-size: clamp(1.9rem, 3vw, 2.7rem); line-height: 1.05; font-weight: 900; letter-spacing: -0.03em; }
-    .profile-user-handle { display: block; margin: 8px 0 0; color: var(--text-muted); font-size: 0.98rem; }
-    .profile-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 18px; }
-    .profile-action-btn { border: none; border-radius: 999px; padding: 14px 20px; cursor: pointer; font-weight: 700; display: inline-flex; align-items: center; gap: 10px; transition: transform 0.25s ease, box-shadow 0.25s ease, background 0.25s ease; box-shadow: 0 12px 24px rgba(15,23,42,0.08); }
-    .profile-action-btn.primary { background: linear-gradient(135deg, #6366f1, #8b5cf6); color: #fff; }
-    .profile-action-btn.secondary { background: rgba(255,255,255,0.92); color: var(--text-main); border: 1px solid rgba(99,102,241,0.16); }
-    .profile-action-btn:hover { transform: translateY(-1px); box-shadow: 0 16px 30px rgba(15,23,42,0.14); }
-    .profile-meta { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 18px; }
-    .profile-meta-item { display: inline-flex; align-items: center; gap: 8px; color: var(--text-muted); font-size: 0.95rem; }
-    .profile-meta-item strong { color: var(--text-main); font-weight: 700; }
-    .profile-main { display: grid; grid-template-columns: 1fr; gap: 26px; width: 100%; }
-    .profile-status-info-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px; align-items: stretch; }
-    #profilePersonalInfoCard { grid-column: 1 / -1; }
-    .profile-card { overflow: hidden; background: rgba(255,255,255,0.98); }
-    .card-header { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; align-items: center; padding: 22px 24px 18px; background: rgba(99,102,241,0.06); }
-    .card-title { margin: 0; font-size: 1rem; font-weight: 800; color: var(--primary); }
-    .card-subtitle { margin: 4px 0 0; color: var(--text-muted); font-size: 0.92rem; }
-    .card-body { padding: 20px 24px 24px; display: grid; gap: 16px; }
-    .info-item { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 16px 18px; border-radius: 18px; border: 1px solid rgba(99,102,241,0.12); background: rgba(249,250,253,0.95); }
-    .info-item span { display: inline-flex; align-items: center; gap: 10px; color: var(--text-muted); font-size: 0.95rem; }
-    .info-item strong { color: var(--text-main); text-align: right; word-break: break-word; }
-    .badge-pill-button { border: none; background: rgba(99,102,241,0.12); color: var(--primary); cursor: pointer; font: inherit; padding: 8px 14px; border-radius: 999px; }
-    .badge-pill-button:hover { background: rgba(99,102,241,0.18); }
-    .profile-tabs-card { padding: 18px 20px; background: rgba(255,255,255,0.96); border-radius: 24px; border: 1px solid rgba(99,102,241,0.12); box-shadow: 0 14px 30px rgba(15,23,42,0.06); margin-bottom: 24px; }
-    .profile-tabs { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; width: 100%; }
-    .profile-tab-btn { flex: 1 1 auto; min-width: 125px; justify-content: center; text-align: center; padding: 12px 16px; color: var(--text-muted); border: 1px solid rgba(148,163,184,0.28); border-radius: 999px; background: rgba(255,255,255,0.96); transition: all 0.25s ease; }
-    .profile-tab-btn:hover { background: rgba(99,102,241,0.08); color: var(--text-main); }
-    .profile-tab-btn.active { color: white; background: linear-gradient(135deg, #6366f1, #8b5cf6); border-color: transparent; box-shadow: 0 10px 24px rgba(99,102,241,0.2); }
-    .content-card { background: rgba(255,255,255,0.98); border: 1px solid rgba(99,102,241,0.14); border-radius: 24px; padding: 20px; box-shadow: 0 16px 30px rgba(15,23,42,0.05); }
-    .content-card h3 { margin: 0 0 12px; font-size: 1.05rem; font-weight: 800; color: var(--text-main); }
-    .content-card p { margin: 0; color: var(--text-muted); font-size: 0.95rem; line-height: 1.65; }
-    .edit-profile-form { background: rgba(255,255,255,0.96); border: 1px solid rgba(99,102,241,0.14); border-radius: 24px; box-shadow: 0 14px 34px rgba(15,23,42,0.08); padding: 24px; }
-    .edit-profile-form .section-subtitle { margin-bottom: 18px; }
-    .form-btn { width: auto; padding: 14px 20px; }
-    .form-btn + .form-btn { margin-left: 0; }
-    .profile-status-info-row { gap: 22px; }
-    .profile-tab-content { display: grid; gap: 20px; }
-    .profile-tab-content .tab-content { padding: 0; border: none; box-shadow: none; }
-    .friends-widget-grid { display: grid; grid-template-columns: repeat(3, minmax(140px, 1fr)); gap: 18px; }
-    .friend-card { background: rgba(249,250,253,0.95); padding: 18px; border-radius: 18px; text-align: center; transition: transform 0.25s ease, box-shadow 0.25s ease; border: 1px solid rgba(99,102,241,0.1); }
-    .friend-card:hover { transform: translateY(-3px); box-shadow: 0 14px 30px rgba(15,23,42,0.08); }
-    .tebrikler-preview-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
-    .tebrik-preview-item { background: linear-gradient(135deg, rgba(99,102,241,0.08), rgba(255,255,255,0.9)); border-radius: 16px; padding: 14px 12px; text-align: center; border: 1px solid rgba(99,102,241,0.12); transition: transform 0.25s ease, background 0.25s ease; min-height: 120px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; }
-    .tebrik-preview-item:hover { transform: translateY(-2px); background: linear-gradient(135deg, rgba(99,102,241,0.14), rgba(255,255,255,0.94)); }
-    .tebrik-preview-name { font-size: 0.78rem; font-weight: 700; line-height: 1.2; color: var(--text-main); word-break: break-word; }
-    .tebrik-preview-count { font-size: 0.75rem; color: var(--text-muted); margin-top: 2px; }
-    @media (max-width: 880px) {
-      .profile-status-info-row { grid-template-columns: 1fr; }
-      .tebrikler-preview-grid { grid-template-columns: repeat(2, 1fr); }
-      .friends-widget-grid, .friends-widget-preview { grid-template-columns: repeat(2, minmax(140px, 1fr)); }
+    .avatar-camera-overlay {
+      position: absolute;
+      right: 8px;
+      bottom: 8px;
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      border: 2px solid rgba(255,255,255,0.9);
+      background: rgba(var(--primary-rgb,99,102,241),0.95);
+      color: #fff;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.18);
+      z-index: 2;
     }
-    @media (max-width: 768px) {
-      .profile-header-card { padding: 24px 20px 20px; }
-      .profile-avatar-wrap { width: 120px; height: 120px; margin: 0 auto; }
-      .profile-header-inner { grid-template-columns: 1fr; text-align: center; }
-      .profile-actions { justify-content: center; }
-      .profile-tabs { justify-content: center; }
-      .profile-tab-btn { flex: 1 1 100%; min-width: 0; }
-      .profile-meta { justify-content: center; }
+    .avatar-camera-overlay:hover { transform: translateY(-1px) scale(1.05); box-shadow: 0 10px 24px rgba(0,0,0,0.22); }
+    .profile-user-info { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; }
+    .profile-user-info > .profile-meta { grid-column: 1 / -1; }
+    .profile-user-name { margin: 0; font-size: clamp(1.75rem, 2.6vw, 2.4rem); line-height: 1.05; font-weight: 800; }
+    .profile-user-handle { display: none; margin: 0; color: var(--text-muted); font-size: 0.95rem; }
+    .profile-user-handle i { margin-right: 6px; }
+    .profile-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 0; }
+    .profile-action-btn { border: none; border-radius: 999px; padding: 12px 18px; cursor: pointer; font-weight: 700; display: inline-flex; align-items: center; gap: 10px; transition: all 0.25s ease; }
+    .profile-action-btn.primary { background: var(--primary); color: #fff; }
+    .profile-action-btn.secondary { background: rgba(var(--primary-rgb,99,102,241),0.1); color: var(--text-main); }
+    .profile-action-btn:hover { transform: translateY(-1px); }
+    .profile-meta { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 10px; }
+    .profile-meta-item { display: inline-flex; align-items: center; gap: 8px; color: var(--text-muted); font-size: 0.95rem; }
+    .profile-keymetrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-top: 22px; }
+    .metric-card { padding: 18px 20px; border-radius: 18px; background: rgba(var(--primary-rgb,99,102,241),0.08); display: flex; justify-content: space-between; align-items: center; gap: 14px; }
+    .metric-card strong { display: block; font-size: 1.75rem; line-height: 1; color: var(--primary); }
+    .metric-card span { color: var(--text-muted); font-size: 0.92rem; }
+    .profile-main { display: grid; gap: 24px; width: 100%; }
+    .profile-top-cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
+    .profile-bio-group { display: grid; gap: 22px; }
+    .profile-card { overflow: hidden; }
+    .profile-tabs-card { margin-bottom: 24px; }
+    .profile-tab-content { display: grid; gap: 24px; }
+    .card-header { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; align-items: center; padding: 22px 24px 18px; background: rgba(var(--primary-rgb,99,102,241),0.08); }
+    .card-title { margin: 0; font-size: 1rem; font-weight: 800; color: var(--primary); }
+    .bio-text { margin: 0; color: var(--text-main); line-height: 1.75; white-space: pre-wrap; word-break: break-word; }
+    @media (max-width: 820px) {
+      .profile-main { grid-template-columns: 1fr; }
+      .profile-top-cards { grid-template-columns: 1fr; }
+      .profile-status-info-row { grid-template-columns: 1fr; }
+    }
+    .card-subtitle { margin: 4px 0 0; color: var(--text-muted); font-size: 0.92rem; }
+    .card-body { padding: 48px 26px 26px; display: grid; gap: 18px; }
+    .info-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+    .info-item { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 14px 16px; border-radius: 16px; border: 1px solid rgba(0,0,0,0.06); background: rgba(255,255,255,0.95); min-width: 0; }
+    .info-item--social-links { justify-content: center; background: transparent; border: none; padding: 10px 0; }
+    .social-links { display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; }
+    .social-link { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; color: var(--primary); text-decoration: none; opacity: 0.85; transition: opacity 0.2s ease, transform 0.2s ease; }
+    .social-link:not(.disabled):hover { opacity: 1; transform: translateY(-2px); }
+    .social-link.disabled { opacity: 0.45; cursor: default; pointer-events: none; transform: none; }
+    .social-link.hidden { display: none; }
+    .info-item span,
+    .info-item strong { min-width: 0; }
+    .info-item span { display: inline-flex; align-items: center; gap: 8px; color: var(--text-muted); font-size: 0.95rem; overflow-wrap: anywhere; word-break: break-word; }
+    .info-item strong { color: var(--text-main); text-align: right; overflow-wrap: anywhere; word-break: break-word; }
+    .badge-pill { padding: 6px 12px; border-radius: 999px; background: rgba(var(--primary-rgb,99,102,241),0.16); color: var(--primary); font-size: 0.82rem; font-weight: 700; }
+    .badge-pill-button { border: none; background: rgba(var(--primary-rgb,99,102,241),0.16); color: var(--primary); cursor: pointer; font: inherit; padding: 6px 12px; border-radius: 999px; }
+    .badge-pill-button:hover { background: rgba(var(--primary-rgb,99,102,241),0.22); }
+    .profile-tabs-card { padding: 18px 20px; background: #fff; border-radius: 24px; border: 1px solid rgba(0,0,0,0.08); box-shadow: 0 10px 30px rgba(0,0,0,0.06); margin-bottom: 24px; }
+    .profile-tabs { display: flex; gap: 12px; align-items: center; width: 100%; }
+    .profile-tab-btn { flex: 1; min-width: 0; justify-content: center; text-align: center; padding: 12px 14px; }
+    .friends-widget-preview { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .friends-widget-preview .friend-preview-card, .friends-widget-preview .friend-preview-more-card { background: linear-gradient(180deg, rgba(255,255,255,0.8), rgba(255,255,255,0.5)); border-radius: 16px; padding: 14px 12px; text-align: center; height: 160px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); border: 1px solid rgba(0,0,0,0.05); transition: all 0.25s ease; }
+    .friends-widget-preview .friend-preview-card:hover { transform: translateY(-3px); box-shadow: 0 6px 16px rgba(0,0,0,0.08); background: linear-gradient(180deg, rgba(255,255,255,0.95), rgba(255,255,255,0.7)); }
+    .friends-widget-preview .friend-preview-card img { transition: transform 0.25s ease; }
+    .friends-widget-preview .friend-preview-card:hover img { transform: scale(1.04); }
+    .friend-preview-avatar { width: 58px; height: 58px; border-radius: 50%; object-fit: cover; border: none; margin: 0 auto; flex-shrink: 0; }
+    .friend-preview-name { margin: 3px 0 0; font-size: 0.72rem; font-weight: 600; line-height: 1.2; word-break: break-word; max-width: 100%; }
+    .friend-preview-username { margin: 2px 0 0; color: var(--text-muted); font-size: 0.75rem; }
+    .friend-preview-mutual { margin: 3px 0 0; color: var(--text-muted); font-size: 0.68rem; opacity: 0.85; }
+    .friend-preview-more-card { background: linear-gradient(135deg, rgba(var(--primary-rgb,99,102,241),0.1), rgba(255,255,255,0.94)); border-radius: 16px; border: 1px solid rgba(var(--primary-rgb,99,102,241),0.18); color: var(--primary); cursor: pointer; }
+    .friend-preview-more-card:hover { transform: translateY(-3px); box-shadow: 0 6px 16px rgba(0,0,0,0.08); background: linear-gradient(135deg, rgba(var(--primary-rgb,99,102,241),0.18), rgba(255,255,255,0.96)); }
+    .friend-preview-more-count { font-size: 1.5rem; font-weight: 800; line-height: 1; }
+    .friend-preview-more-text { margin: 3px 0 0; font-size: 0.8rem; color: var(--text-main); font-weight: 700; }
+    .friends-widget-header { display: flex; align-items: center; gap: 12px; width: 100%; }
+    .friends-widget-meta { margin-left: auto; text-align: right; display: flex; flex-direction: column; gap: 6px; }
+    .friends-widget-count { font-size: 1rem; font-weight: 800; color: var(--text-main); }
+    .friends-widget-action { display: inline-flex; align-items: center; justify-content: center; gap: 8px; background: rgba(var(--primary-rgb,99,102,241),0.16); color: var(--primary); border: none; border-radius: 999px; padding: 10px 16px; cursor: pointer; text-decoration: none; font-weight: 700; }
+    .friends-widget-action:hover { background: rgba(var(--primary-rgb,99,102,241),0.30); }
+    .friends-widget-empty { grid-column: 1/-1; color: var(--text-muted); font-size: 0.95rem; text-align: center; padding: 30px 0; }
+    .friends-widget-grid { display: grid; grid-template-columns: repeat(3, minmax(140px, 1fr)); gap: 12px; }
+    .friend-card { background: var(--input-bg); padding: 15px; border-radius: 10px; text-align: center; transition: all 0.3s ease; border: none; box-shadow: none; }
+    .friend-card:hover { transform: translateY(-3px); box-shadow: none; }
+    .tebrikler-preview-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+    .tebrik-preview-item { background: linear-gradient(135deg, rgba(var(--primary-rgb,99,102,241),0.08), rgba(255,255,255,0.8)); border-radius: 14px; padding: 12px 10px; text-align: center; border: 1px solid rgba(0,0,0,0.04); transition: all 0.25s ease; min-height: 110px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; }
+    .tebrik-preview-item:hover { transform: translateY(-2px); background: linear-gradient(135deg, rgba(var(--primary-rgb,99,102,241),0.14), rgba(255,255,255,0.9)); }
+    .tebrik-preview-name { font-size: 0.7rem; font-weight: 600; line-height: 1.1; color: var(--text-main); word-break: break-word; }
+    .tebrik-preview-count { font-size: 0.65rem; color: var(--text-muted); margin-top: 2px; }
+    @media (max-width: 880px) {
+      .tebrikler-preview-grid { grid-template-columns: repeat(2, 1fr); }
     }
     @media (max-width: 620px) {
-      .profile-header-card { padding: 20px 16px 18px; }
-      .profile-avatar-wrap { width: 100px; height: 100px; }
-      .profile-user-name { font-size: 2.1rem; }
-      .profile-action-btn { width: 100%; justify-content: center; }
-      .friends-widget-grid, .friends-widget-preview { grid-template-columns: 1fr; }
       .tebrikler-preview-grid { grid-template-columns: 1fr; }
+    }
+
+      .friends-widget-grid, .friends-widget-preview { grid-template-columns: repeat(2, minmax(140px, 1fr)); }
+    }
+    @media (max-width: 620px) {
+      .friends-widget-grid, .friends-widget-preview { grid-template-columns: 1fr; }
     }
     .profile-tab-btn { text-decoration: none; color: var(--text-muted); border: 1px solid transparent; border-radius: 999px; padding: 10px 16px; display: inline-flex; align-items: center; gap: 8px; transition: all 0.25s ease; background: rgba(255,255,255,0.92); }
     .friend-card:hover { transform: translateY(-3px); box-shadow: 0 12px 24px rgba(0,0,0,0.08); }
@@ -293,6 +328,18 @@
         <input type="url" id="newWebsiteInput" class="form-input" placeholder="https://...">
       </div>
       <div style="margin-bottom: 20px;">
+        <label class="form-label" for="newFacebookInput">Facebook</label>
+        <input type="url" id="newFacebookInput" class="form-input" placeholder="https://www.facebook.com/...">
+      </div>
+      <div style="margin-bottom: 20px;">
+        <label class="form-label" for="newTwitterInput">Twitter</label>
+        <input type="url" id="newTwitterInput" class="form-input" placeholder="https://twitter.com/...">
+      </div>
+      <div style="margin-bottom: 20px;">
+        <label class="form-label" for="newYoutubeInput">YouTube</label>
+        <input type="url" id="newYoutubeInput" class="form-input" placeholder="https://www.youtube.com/...">
+      </div>
+      <div style="margin-bottom: 20px;">
         <label class="form-label" for="newBioInput">Biyografi</label>
         <textarea id="newBioInput" class="form-input" rows="3" placeholder="Kısa biyografiniz..."></textarea>
       </div>
@@ -315,33 +362,62 @@
       </div>
     </div>
 
-    <div class="profile-status-info-row" style="margin-bottom: 24px;">
-      <article id="profilePersonalInfoCard" class="profile-card">
-        <div class="card-header">
-          <div>
-            <h2 class="card-title">Kişisel Bilgilerim</h2>
-            <p class="card-subtitle">Profilinizdeki temel bilgiler.</p>
-          </div>
-          <button type="button" class="badge-pill-button" onclick="toggleEditProfile()">Düzenle</button>
-        </div>
-        <div class="card-body">
-          <ul class="info-list">
-            <li class="info-item"><span><i class="fa-solid fa-location-dot"></i> Konum</span><strong id="profileLocation">—</strong></li>
-            <li class="info-item"><span><i class="fa-solid fa-home"></i> Memleket</span><strong id="profileHometown">—</strong></li>
-            <li class="info-item"><span><i class="fa-solid fa-cake-candles"></i> Doğum Tarihi</span><strong id="profileDob">—</strong></li>
-            <li class="info-item"><span><i class="fa-solid fa-briefcase"></i> Meslek</span><strong id="profileOccupation">—</strong></li>
-            <li class="info-item"><span><i class="fa-solid fa-link"></i> Web Sitesi</span><strong id="profileWebsite">—</strong></li>
-            <li class="info-item"><span><i class="fa-solid fa-user-pen"></i> Biyografi</span><strong id="profileBio">—</strong></li>
-            <li class="info-item"><span><i class="fa-solid fa-star"></i> İlgi Alanları</span><strong id="profileInterests">—</strong></li>
-          </ul>
-        </div>
-      </article>
-    </div>
-
-    
     <section class="profile-main">
-      <div class="profile-right-col">
-        <div class="profile-tabs-card" style="margin-bottom:20px;">
+      <div class="profile-top-cards">
+        <article id="profilePersonalInfoCard" class="profile-card">
+          <div class="card-header">
+            <div>
+              <h2 class="card-title">Kişisel Bilgilerim</h2>
+              <p class="card-subtitle">Profilinizdeki temel bilgiler.</p>
+            </div>
+            <button type="button" class="badge-pill-button" onclick="toggleEditProfile()">Düzenle</button>
+          </div>
+          <div class="card-body">
+            <ul class="info-list">
+              <li class="info-item"><span><i class="fa-solid fa-location-dot"></i> Konum</span><strong id="profileLocation">—</strong></li>
+              <li class="info-item"><span><i class="fa-solid fa-home"></i> Memleket</span><strong id="profileHometown">—</strong></li>
+              <li class="info-item"><span><i class="fa-solid fa-cake-candles"></i> Doğum Tarihi</span><strong id="profileDob">—</strong></li>
+              <li class="info-item"><span><i class="fa-solid fa-briefcase"></i> Meslek</span><strong id="profileOccupation">—</strong></li>
+              <li class="info-item info-item--social-links">
+                <div class="social-links">
+                  <a id="profileWebsite" class="social-link disabled" aria-label="Web Sitesi" tabindex="-1"><i class="fa-solid fa-earth-americas"></i></a>
+                  <a id="profileFacebook" class="social-link disabled" aria-label="Facebook" tabindex="-1"><i class="fa-brands fa-facebook-f"></i></a>
+                  <a id="profileTwitter" class="social-link disabled" aria-label="Twitter" tabindex="-1"><i class="fa-brands fa-twitter"></i></a>
+                  <a id="profileYoutube" class="social-link disabled" aria-label="YouTube" tabindex="-1"><i class="fa-brands fa-youtube"></i></a>
+                </div>
+              </li>
+            </ul>
+          </div>
+        </article>
+
+        <div class="profile-bio-group">
+          <article id="profileBioCard" class="profile-card">
+            <div class="card-header">
+              <div>
+                <h2 class="card-title">Biyografi</h2>
+                <p class="card-subtitle">Kısa özgeçmişiniz ve kendinizi tanımlamanız.</p>
+              </div>
+            </div>
+            <div class="card-body">
+              <p id="profileBio" class="bio-text">—</p>
+            </div>
+          </article>
+
+          <article id="profileInterestsCard" class="profile-card">
+            <div class="card-header">
+              <div>
+                <h2 class="card-title">İlgi Alanları</h2>
+                <p class="card-subtitle">Sizinle ilgili konu ve hobiler.</p>
+              </div>
+            </div>
+            <div class="card-body">
+              <p id="profileInterests" class="bio-text">—</p>
+            </div>
+          </article>
+        </div>
+      </div>
+
+      <div class="profile-tabs-card" style="margin-bottom:20px;">
           <nav class="profile-tabs">
             <a class="tab-btn profile-tab-btn active" href="#posts" onclick="openTab(event, 'my-posts-tab')"><i class="fa-solid fa-feather"></i> Gönderiler</a>
             <a class="tab-btn profile-tab-btn" href="#likes" onclick="openTab(event, 'my-likes-tab')"><i class="fa-solid fa-heart"></i> Beğeniler</a>
@@ -440,7 +516,6 @@
             </div>
           </section>
         </div>
-      </div>
     </section>
   </div>
 </main>
