@@ -1583,8 +1583,14 @@ await updateDoc(currentUserRef, {
   friendCount: 0,
   pendingRequests: 0,
   tebrikCount: 0,
-    isAdmin: false,
-    isModerator: false
+  website: '',
+  facebook: '',
+  twitter: '',
+  youtube: '',
+  bio: '',
+  interests: '',
+  isAdmin: false,
+  isModerator: false
 };
 
 window.user = user;
@@ -1731,6 +1737,15 @@ onAuthStateChanged(auth, async (fbUser) => {
                 if (typeof data.website !== 'undefined') {
                     user.website = data.website || '';
                 }
+                if (typeof data.facebook !== 'undefined') {
+                    user.facebook = data.facebook || '';
+                }
+                if (typeof data.twitter !== 'undefined') {
+                    user.twitter = data.twitter || '';
+                }
+                if (typeof data.youtube !== 'undefined') {
+                    user.youtube = data.youtube || '';
+                }
                 if (typeof data.bio !== 'undefined') {
                     user.bio = data.bio || '';
                 }
@@ -1846,6 +1861,18 @@ onAuthStateChanged(auth, async (fbUser) => {
                 }
                 if (typeof userData.website !== 'undefined' && userData.website !== user.website) {
                     user.website = userData.website || '';
+                    updateUIWithUser();
+                }
+                if (typeof userData.facebook !== 'undefined' && userData.facebook !== user.facebook) {
+                    user.facebook = userData.facebook || '';
+                    updateUIWithUser();
+                }
+                if (typeof userData.twitter !== 'undefined' && userData.twitter !== user.twitter) {
+                    user.twitter = userData.twitter || '';
+                    updateUIWithUser();
+                }
+                if (typeof userData.youtube !== 'undefined' && userData.youtube !== user.youtube) {
+                    user.youtube = userData.youtube || '';
                     updateUIWithUser();
                 }
                 if (typeof userData.bio !== 'undefined' && userData.bio !== user.bio) {
@@ -3216,6 +3243,63 @@ function getAvatarUrl(avatarUrlOrSeed, type = 'user') {
                 pWebsite.classList.add('disabled');
                 pWebsite.setAttribute('aria-disabled', 'true');
                 pWebsite.setAttribute('tabindex', '-1');
+            }
+        }
+        const pFacebook = document.getElementById('profileFacebook');
+        const pTwitter = document.getElementById('profileTwitter');
+        const pYoutube = document.getElementById('profileYoutube');
+        if (pFacebook) {
+            pFacebook.innerHTML = '<i class="fa-brands fa-facebook-f"></i>';
+            if (user.facebook) {
+                pFacebook.href = escapeHtml(user.facebook);
+                pFacebook.target = '_blank';
+                pFacebook.rel = 'noopener noreferrer';
+                pFacebook.classList.remove('disabled');
+                pFacebook.removeAttribute('aria-disabled');
+                pFacebook.removeAttribute('tabindex');
+            } else {
+                pFacebook.removeAttribute('href');
+                pFacebook.removeAttribute('target');
+                pFacebook.removeAttribute('rel');
+                pFacebook.classList.add('disabled');
+                pFacebook.setAttribute('aria-disabled', 'true');
+                pFacebook.setAttribute('tabindex', '-1');
+            }
+        }
+        if (pTwitter) {
+            pTwitter.innerHTML = '<i class="fa-brands fa-twitter"></i>';
+            if (user.twitter) {
+                pTwitter.href = escapeHtml(user.twitter);
+                pTwitter.target = '_blank';
+                pTwitter.rel = 'noopener noreferrer';
+                pTwitter.classList.remove('disabled');
+                pTwitter.removeAttribute('aria-disabled');
+                pTwitter.removeAttribute('tabindex');
+            } else {
+                pTwitter.removeAttribute('href');
+                pTwitter.removeAttribute('target');
+                pTwitter.removeAttribute('rel');
+                pTwitter.classList.add('disabled');
+                pTwitter.setAttribute('aria-disabled', 'true');
+                pTwitter.setAttribute('tabindex', '-1');
+            }
+        }
+        if (pYoutube) {
+            pYoutube.innerHTML = '<i class="fa-brands fa-youtube"></i>';
+            if (user.youtube) {
+                pYoutube.href = escapeHtml(user.youtube);
+                pYoutube.target = '_blank';
+                pYoutube.rel = 'noopener noreferrer';
+                pYoutube.classList.remove('disabled');
+                pYoutube.removeAttribute('aria-disabled');
+                pYoutube.removeAttribute('tabindex');
+            } else {
+                pYoutube.removeAttribute('href');
+                pYoutube.removeAttribute('target');
+                pYoutube.removeAttribute('rel');
+                pYoutube.classList.add('disabled');
+                pYoutube.setAttribute('aria-disabled', 'true');
+                pYoutube.setAttribute('tabindex', '-1');
             }
         }
         if (pBio) {
@@ -5435,6 +5519,83 @@ async function loadVisitorProfile() {
             if (pLocation) pLocation.innerText = visitedData.location || '—';
             if (pHometown) pHometown.innerText = visitedData.hometown || '—';
             if (pDob) pDob.innerText = visitedData.dob ? (typeof visitedData.dob === 'string' && visitedData.dob.includes('-') ? visitedData.dob.split('-').reverse().join('.') : visitedData.dob) : '—';
+
+            const pWebsite = document.getElementById('profileWebsite');
+            const pFacebook = document.getElementById('profileFacebook');
+            const pTwitter = document.getElementById('profileTwitter');
+            const pYoutube = document.getElementById('profileYoutube');
+            if (pWebsite) {
+                pWebsite.innerHTML = '<i class="fa-solid fa-earth-americas"></i>';
+                if (visitedData.website) {
+                    pWebsite.href = escapeHtml(visitedData.website);
+                    pWebsite.target = '_blank';
+                    pWebsite.rel = 'noopener noreferrer';
+                    pWebsite.classList.remove('disabled');
+                    pWebsite.removeAttribute('aria-disabled');
+                    pWebsite.removeAttribute('tabindex');
+                } else {
+                    pWebsite.removeAttribute('href');
+                    pWebsite.removeAttribute('target');
+                    pWebsite.removeAttribute('rel');
+                    pWebsite.classList.add('disabled');
+                    pWebsite.setAttribute('aria-disabled', 'true');
+                    pWebsite.setAttribute('tabindex', '-1');
+                }
+            }
+            if (pFacebook) {
+                pFacebook.innerHTML = '<i class="fa-brands fa-facebook-f"></i>';
+                if (visitedData.facebook) {
+                    pFacebook.href = escapeHtml(visitedData.facebook);
+                    pFacebook.target = '_blank';
+                    pFacebook.rel = 'noopener noreferrer';
+                    pFacebook.classList.remove('disabled');
+                    pFacebook.removeAttribute('aria-disabled');
+                    pFacebook.removeAttribute('tabindex');
+                } else {
+                    pFacebook.removeAttribute('href');
+                    pFacebook.removeAttribute('target');
+                    pFacebook.removeAttribute('rel');
+                    pFacebook.classList.add('disabled');
+                    pFacebook.setAttribute('aria-disabled', 'true');
+                    pFacebook.setAttribute('tabindex', '-1');
+                }
+            }
+            if (pTwitter) {
+                pTwitter.innerHTML = '<i class="fa-brands fa-twitter"></i>';
+                if (visitedData.twitter) {
+                    pTwitter.href = escapeHtml(visitedData.twitter);
+                    pTwitter.target = '_blank';
+                    pTwitter.rel = 'noopener noreferrer';
+                    pTwitter.classList.remove('disabled');
+                    pTwitter.removeAttribute('aria-disabled');
+                    pTwitter.removeAttribute('tabindex');
+                } else {
+                    pTwitter.removeAttribute('href');
+                    pTwitter.removeAttribute('target');
+                    pTwitter.removeAttribute('rel');
+                    pTwitter.classList.add('disabled');
+                    pTwitter.setAttribute('aria-disabled', 'true');
+                    pTwitter.setAttribute('tabindex', '-1');
+                }
+            }
+            if (pYoutube) {
+                pYoutube.innerHTML = '<i class="fa-brands fa-youtube"></i>';
+                if (visitedData.youtube) {
+                    pYoutube.href = escapeHtml(visitedData.youtube);
+                    pYoutube.target = '_blank';
+                    pYoutube.rel = 'noopener noreferrer';
+                    pYoutube.classList.remove('disabled');
+                    pYoutube.removeAttribute('aria-disabled');
+                    pYoutube.removeAttribute('tabindex');
+                } else {
+                    pYoutube.removeAttribute('href');
+                    pYoutube.removeAttribute('target');
+                    pYoutube.removeAttribute('rel');
+                    pYoutube.classList.add('disabled');
+                    pYoutube.setAttribute('aria-disabled', 'true');
+                    pYoutube.setAttribute('tabindex', '-1');
+                }
+            }
             try {
                 const memSummary = document.getElementById('membershipSummaryText');
                 const createdAtVal = visitedData.createdAt || visitedData.joinedAt || visitedData.created;

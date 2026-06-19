@@ -1473,19 +1473,32 @@ header {
 @media (max-width: 900px) {
     .notifications-dropdown,
     .friends-dropdown {
+        position: fixed;
+        top: 92px;
+        left: 50%;
+        right: auto;
+        transform: translateX(-50%);
         width: min(95vw, 360px);
-        min-width: 260px;
-        right: 0;
+        min-width: auto;
+        max-width: 420px;
+        box-sizing: border-box;
+        z-index: 1000001;
     }
 }
 
 @media (max-width: 640px) {
     .notifications-dropdown,
     .friends-dropdown {
+        position: fixed;
+        top: 68px;
+        left: 50%;
+        right: auto;
+        transform: translateX(-50%);
         width: min(96vw, 320px);
-        min-width: 260px;
-        right: 4px;
-        left: 4px;
+        min-width: auto;
+        max-width: 420px;
+        box-sizing: border-box;
+        z-index: 1000001;
     }
 }
 
@@ -4423,7 +4436,21 @@ font-size: 0.9rem; font-weight: 800; color: var(--primary); margin: 20px 0 10px;
 
 /* Notifications dropdown positioned safely on mobile */
 @media (max-width: 480px) {
-  #notificationsDropdown { width: calc(100vw - 24px); max-width: calc(100vw - 24px); left: 12px; right: auto; max-height: calc(100vh - 120px); }
+  .notifications-dropdown,
+  .friends-dropdown,
+  #notificationsDropdown,
+  #friendsDropdown {
+    position: fixed !important;
+    top: 68px !important;
+    left: 50% !important;
+    right: auto !important;
+    transform: translateX(-50%) !important;
+    width: calc(100vw - 24px) !important;
+    max-width: calc(100vw - 24px) !important;
+    box-sizing: border-box !important;
+    z-index: 1000001 !important;
+    max-height: calc(100vh - 120px) !important;
+  }
 }
 /* Share Modal Styles */
 .share-modal {
