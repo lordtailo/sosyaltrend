@@ -31,7 +31,7 @@
         </button>
         <div id="friendsDropdown" class="friends-dropdown" style="display:none;">
           <div class="friends-dropdown-title">
-            <span>Arkadaşlarım <small id="friendsCountBadge" class="friends-count-badge">0</small></span>
+            <span><i class="fa-solid fa-user-friends"></i> Arkadaşlarım <small id="friendsCountBadge" class="friends-count-badge">0</small></span>
             <button type="button" class="friends-dropdown-close" onclick="toggleFriendsDropdown()" aria-label="Kapat">×</button>
           </div>
           <div class="friends-dropdown-search">
@@ -41,7 +41,7 @@
             <div class="friends-dropdown-empty">Arkadaşlar yükleniyor...</div>
           </div>
           <div class="friends-dropdown-footer">
-            <a href="profil.html#friends">Tümünü Gör</a>
+            <a href="profil.html#friends"><i class="fa-solid fa-arrow-right"></i> Tümünü Gör</a>
           </div>
         </div>
       </div>
@@ -49,24 +49,22 @@
         <button id="notificationsBtn" type="button" class="header-nav-btn" onclick="toggleNotifications(); return false;" title="Bildirimler">
           <i class="fa-solid fa-bell"></i>
           <span>Bildirim</span>
-          <span id="notificationCountBadge" class="notificationCountBadge nav-badge" style="display:none;">0 okunmamış</span>
           <span id="notificationBadge" class="nav-dot-badge" style="display:none;"></span>
         </button>
         <div id="notificationsDropdown" class="notifications-dropdown" style="display:none;">
-          <div style="padding:12px 15px; border-bottom:1px solid var(--border); background:linear-gradient(135deg, var(--primary), #8b5cf6); color:white; border-radius:12px 12px 0 0; flex-shrink:0; display:flex; align-items:center; gap:10px; justify-content:space-between;">
-            <div style="display:flex; align-items:center; gap:10px; flex:1;">
-              <i class="fa-solid fa-bell"></i>
-              <h4 style="margin:0; font-size:0.95rem; font-weight:700; display:inline-block;">Bildirim Kutusu</h4>
-              <span class="requestCountBadge notificationCountBadge" style="background:rgba(255,255,255,0.3); padding:2px 8px; border-radius:12px; font-size:0.8rem; font-weight:600;">0 okunmamış</span>
-            </div>
-            <button onclick="navigateToProfileHash('my-notifs-tab'); return false;" style="background: rgba(255,255,255,0.18); color: white; border: none; padding:6px 10px; border-radius:8px; font-size:0.75rem; cursor:pointer; font-weight:700; white-space:nowrap; transition: all 0.2s ease;" onmouseover="this.style.background='rgba(255,255,255,0.25)'" onmouseout="this.style.background='rgba(255,255,255,0.18)';">
-              <i class="fa-solid fa-arrow-right"></i> Bildirimlerime Git
-            </button>
+          <div class="friends-dropdown-title">
+            <span><i class="fa-solid fa-bell"></i> Bildirim Kutusu</span>
+            <button type="button" class="friends-dropdown-close" onclick="toggleNotifications()" aria-label="Kapat">×</button>
           </div>
-          <div id="friendRequestsList" style="flex:1; overflow-y:auto;"></div>
-          <div id="noNotificationsMsg" style="padding:30px 20px; text-align:center; color:var(--text-muted); font-size:0.85rem; display:flex; flex-direction:column; align-items:center; justify-content:center;">
-            <i class="fa-solid fa-inbox" style="font-size:2rem; margin-bottom:12px; opacity:0.5;"></i>
-            <p style="margin:0; font-weight:500;">Yeni bildirim yok</p>
+          <div class="friends-dropdown-list">
+            <div id="friendRequestsList"></div>
+            <div id="noNotificationsMsg" class="friends-dropdown-empty" style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:30px 20px;">
+              <i class="fa-solid fa-inbox" style="font-size:2rem; margin-bottom:12px; opacity:0.5;"></i>
+              <p style="margin:0; font-weight:500;">Yeni bildirim yok</p>
+            </div>
+          </div>
+          <div class="friends-dropdown-footer">
+            <a href="profil.html#my-notifs-tab"><i class="fa-solid fa-arrow-right"></i> Bildirime Git</a>
           </div>
         </div>
       </div>

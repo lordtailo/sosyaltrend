@@ -8254,20 +8254,63 @@ window.renderHeaderFriendsList = function(friends, totalCount) {
     }
     const html = friends.map(friend => {
         return `
-            <a href="${friend.profileUrl}" class="friends-dropdown-item">
-                <div class="avatar-wrap ${friend.presence.status}">
-                    <img src="${friend.avatarUrl}" alt="${escapeHtml(friend.displayName)}" class="friends-dropdown-avatar" />
-                    <span class="status-badge status-${friend.presence.status}"></span>
+            <div class="friends-dropdown-item" data-profile-url="${friend.profileUrl}">
+                <div class="friends-dropdown-main">
+                    <div class="avatar-wrap ${friend.presence.status}">
+                        <img src="${friend.avatarUrl}" alt="${escapeHtml(friend.displayName)}" class="friends-dropdown-avatar" />
+                        <span class="status-badge status-${friend.presence.status}"></span>
+                    </div>
+                    <div class="friends-dropdown-info">
+                        <span class="friends-dropdown-name">${escapeHtml(friend.displayName)}</span>
+                        ${friend.username ? `<small class="friends-dropdown-username">@${escapeHtml(friend.username)}</small>` : ''}
+                        <p class="friends-dropdown-status">${escapeHtml(friend.presence.label)}</p>
+                    </div>
                 </div>
-                <div>
-                    <span class="friends-dropdown-name">${escapeHtml(friend.displayName)}</span>
-                    ${friend.username ? `<small class="friends-dropdown-username">@${escapeHtml(friend.username)}</small>` : ''}
-                    <p class="friends-dropdown-status">${escapeHtml(friend.presence.label)}</p>
+                <div class="friend-action-group header-friend-action-group">
+                    <button type="button" class="friend-action-btn friend-action-chat" title="Sohbet et" data-friend-id="${friend.id}" data-friend-name="${escapeHtml(friend.displayName)}" data-friend-username="${escapeHtml(friend.username)}">
+                        <i class="fa-solid fa-comment-dots" aria-hidden="true"></i>
+                    </button>
+                    <button type="button" class="friend-action-btn friend-action-profile" title="Profili aç" data-profile-url="${friend.profileUrl}">
+                        <i class="fa-solid fa-user" aria-hidden="true"></i>
+                    </button>
                 </div>
-            </a>
+            </div>
         `;
     }).join('');
     list.innerHTML = html;
+
+    list.querySelectorAll('.friends-dropdown-item').forEach(item => {
+        const profileUrl = item.dataset.profileUrl;
+        if (profileUrl) {
+            item.addEventListener('click', () => {
+                window.location.href = profileUrl;
+            });
+        }
+
+        const chatBtn = item.querySelector('.friend-action-chat');
+        if (chatBtn) {
+            chatBtn.addEventListener('click', event => {
+                event.stopPropagation();
+                const friendId = chatBtn.dataset.friendId;
+                const displayName = chatBtn.dataset.friendName;
+                const username = chatBtn.dataset.friendUsername;
+                if (typeof window.openChatWithFriend === 'function') {
+                    window.openChatWithFriend(friendId, displayName, username);
+                }
+            });
+        }
+
+        const profileBtn = item.querySelector('.friend-action-profile');
+        if (profileBtn) {
+            profileBtn.addEventListener('click', event => {
+                event.stopPropagation();
+                const profileUrlBtn = profileBtn.dataset.profileUrl;
+                if (profileUrlBtn) {
+                    window.location.href = profileUrlBtn;
+                }
+            });
+        }
+    });
 };
 
 window.filterHeaderFriends = function() {
@@ -8352,7 +8395,6 @@ window.loadHeaderFriendsList = async function() {
 // Bildirim badge'ini güncelle
 function updateNotificationBadge(count) {
     const badge = document.getElementById('notificationBadge');
-    const countBadge = document.getElementById('notificationCountBadge');
 
     if (badge) {
         if (count > 0) {
@@ -8362,12 +8404,12 @@ function updateNotificationBadge(count) {
         }
     }
 
-    if (countBadge) {
+    const notificationsBtn = document.getElementById('notificationsBtn');
+    if (notificationsBtn) {
         if (count > 0) {
-            countBadge.textContent = `${count > 99 ? '99+' : count} okunmamış`;
-            countBadge.style.display = 'inline-flex';
+            notificationsBtn.classList.add('has-unread');
         } else {
-            countBadge.style.display = 'none';
+            notificationsBtn.classList.remove('has-unread');
         }
     }
 

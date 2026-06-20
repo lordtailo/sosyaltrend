@@ -635,6 +635,17 @@ body.dark-mode .post-composer {
         color: #fff;
     }
 
+    #notificationsBtn.has-unread {
+        background: var(--danger);
+        color: #fff;
+        border-color: transparent;
+        box-shadow: 0 0 0 1px rgba(255,255,255,0.08);
+    }
+    #notificationsBtn.has-unread i,
+    #notificationsBtn.has-unread span {
+        color: #fff;
+    }
+
 .header-msg-btn {
     padding: 10px 14px;
 }
@@ -1422,6 +1433,7 @@ header {
 .friends-dropdown-item {
     display: flex;
     align-items: center;
+    justify-content: space-between;
     gap: 12px;
     padding: 12px 16px;
     text-decoration: none;
@@ -1432,6 +1444,25 @@ header {
 
 .friends-dropdown-item:hover {
     background: rgba(99,102,241,0.08);
+}
+
+.friends-dropdown-main {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 1;
+    min-width: 0;
+}
+
+.friends-dropdown-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.header-friend-action-group {
+    flex-shrink: 0;
 }
 
 .friends-dropdown-avatar {
@@ -1594,11 +1625,33 @@ header {
 header::after { 
     content: ""; 
     position: absolute; 
-    bottom: 0; 
+    top: -8px; 
     left: 0; 
     right: 0; 
-    height: 3px; 
+    height: 16px; 
     background: var(--line-gradient); 
+    border-radius: 12px; 
+    z-index: 1000001; 
+    pointer-events: none; 
+    box-shadow: 0 8px 18px rgba(15,23,42,0.08);
+}
+
+/* Make header rounded and pull in from edges on small screens so left/right corners join */
+@media (max-width: 768px) {
+    header {
+        left: 12px;
+        right: 12px;
+        width: auto;
+        border-radius: 14px;
+        box-shadow: var(--glass-shadow);
+    }
+    header::after {
+        top: -8px;
+        left: 12px;
+        right: 12px;
+        height: 12px;
+        border-radius: 999px;
+    }
 }
 
 /* Mobile menu open buttons (hidden on desktop) */
@@ -2901,13 +2954,37 @@ table td, table th {
 /* NAV ITEM PREMIUM ENTEGRASYON */
 .nav-item { position: relative; overflow: hidden; display: flex; align-items: center; gap: 12px; padding: 12px; text-decoration: none; color: var(--text-main); border-radius: 10px; transition: 0.3s;}
 .nav-item::after {
-    content: ''; position: absolute; bottom: 0; left: -100%;
-    width: 100%; height: 3px; background: var(--premium-gradient);
-    transition: 0.4s ease;
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: -100%;
+    width: 100%;
+    height: 3px;
+    background: var(--premium-gradient);
+    transform: none;
+    transition: left 0.4s ease, transform 0.4s ease;
 }
-.nav-item:hover::after { left: 0; }
-.nav-item.active { 
-background: rgba(99, 102, 241, 0.1); color: var(--primary); }
+.nav-item:hover::after {
+    left: 0;
+    transform: none;
+}
+.nav-item.active {
+    background: rgba(99, 102, 241, 0.1); color: var(--primary);
+}
+
+@media (max-width: 768px) {
+    .nav-item::after {
+        left: 50%;
+        width: 40%;
+        transform: translateX(-50%) scaleX(0);
+        transform-origin: center;
+    }
+
+    .nav-item:hover::after {
+        left: 50%;
+        transform: translateX(-50%) scaleX(1);
+    }
+}
 
 .trend-item {
 display: flex; align-items: center; padding: 12px 15px; border-bottom: 1px solid var(--border); transition: 0.2s; text-decoration: none; color: inherit;}
@@ -3744,7 +3821,10 @@ footer::before {
     }
 
     .footer-brand {
+        flex-direction: column;
         justify-content: center;
+        align-items: center;
+        text-align: center;
     }
 
     .footer-brand-copy {
@@ -3758,6 +3838,21 @@ footer::before {
 
     .footer-section {
         padding-bottom: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .footer-links {
+        display: inline-flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+        padding: 0;
+    }
+
+    .footer-links li {
+        margin-bottom: 0;
     }
 
     .footer-bottom {
@@ -3765,12 +3860,27 @@ footer::before {
         align-items: center;
         justify-content: center;
         text-align: center;
+        gap: 10px;
+    }
+
+    .footer-copy {
+        width: 100%;
+        max-width: 100%;
     }
 
     .footer-bottom-right {
         justify-content: center;
         width: 100%;
         margin-top: 8px;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .lang-switcher {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 8px;
     }
 
     .footer-divider {
