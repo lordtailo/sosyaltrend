@@ -1605,6 +1605,11 @@ header {
     .header-nav-btn.home-nav-btn {
         display: none !important;
     }
+
+    /* Mobilde üst header arama düğmesini gizle */
+    #headerSearchWrapper {
+        display: none !important;
+    }
 }
 
 .logo {
