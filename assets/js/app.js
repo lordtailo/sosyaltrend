@@ -3953,9 +3953,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
     const headerSearchInput = document.getElementById('headerSearchInput');
     if (headerSearchInput) {
-        headerSearchInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter' && window.location.pathname.includes('search.html')) {
-                performGlobalSearch();
+        headerSearchInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                if (window.location.pathname.includes('search.html')) {
+                    performGlobalSearch();
+                }
             }
         });
     }
@@ -4090,8 +4093,11 @@ const mainSearchBtn = document.getElementById('mainSearchBtn');
 if(mainSearchBtn) mainSearchBtn.onclick = () => performGlobalSearch();
 
 const gSearch = document.getElementById('globalSearch');
-if(gSearch) gSearch.addEventListener('keypress', (e) => {
-    if(e.key === 'Enter') performGlobalSearch();
+if(gSearch) gSearch.addEventListener('keydown', (e) => {
+    if(e.key === 'Enter') {
+        e.preventDefault();
+        performGlobalSearch();
+    }
 });
 
 window.searchTrend = (tag) => { 
@@ -6073,6 +6079,209 @@ window.navigateToProfileHash = function(hash = '') {
         location.href = `${prefix}profil.html#${hash}`;
     }
 };
+
+window.toggleMobileNavWidget = function(forceState = null, defaultMode = 'chooser') {
+    const widget = document.getElementById('mobileComposeWidget');
+    if (!widget) return;
+    const isOpen = widget.classList.contains('active');
+    const shouldOpen = typeof forceState === 'boolean' ? forceState : !isOpen;
+    widget.classList.toggle('active', shouldOpen);
+    if (shouldOpen) {
+        openMobileComposeForm(defaultMode, true);
+    }
+};
+
+window.openPostComposer = function() {
+    const prefix = getPathPrefix();
+    const currentPath = window.location.pathname.toLowerCase();
+    if (currentPath.endsWith('/index.html') || currentPath.endsWith('/')) {
+        const postInput = document.getElementById('postInput');
+        if (postInput) {
+            postInput.focus();
+            const offset = Math.max(window.scrollY + postInput.getBoundingClientRect().top - 96, 0);
+            window.scrollTo({ top: offset, behavior: 'smooth' });
+            return;
+        }
+    }
+    location.href = `${prefix}index.html`;
+};
+
+window.toggleMobileSearchWidget = function(forceState = null) {
+    const widget = document.getElementById('mobileSearchWidget');
+    if (!widget) return;
+    const isOpen = widget.classList.contains('active');
+    const shouldOpen = typeof forceState === 'boolean' ? forceState : !isOpen;
+    widget.classList.toggle('active', shouldOpen);
+    if (shouldOpen) {
+        const input = document.getElementById('mobileSearchInput');
+        if (input) {
+            input.value = '';
+            if (!input.dataset.mobileSearchListener) {
+                input.addEventListener('keydown', (event) => {
+                    if (event.key === 'Enter') {
+                        event.preventDefault();
+                        window.runMobileSearch();
+                    }
+                });
+                input.dataset.mobileSearchListener = '1';
+            }
+            setTimeout(() => input.focus(), 50);
+        }
+    }
+};
+
+window.runMobileSearch = function() {
+    const input = document.getElementById('mobileSearchInput');
+    if (!input) return;
+    const query = (input.value || '').trim();
+    if (!query) return;
+    if (window.location.pathname.includes('search.html')) {
+        performGlobalSearch(query);
+        return;
+    }
+    window.location.href = `search.html?q=${encodeURIComponent(query)}`;
+};
+
+window.openBlogComposer = function() {
+    toggleMobileNavWidget(true, 'blog');
+};
+
+window.openMobileComposeForm = function(mode, skipToggle = false) {
+    const widget = document.getElementById('mobileComposeWidget');
+    const chooser = document.getElementById('mobileComposeChooser');
+    const content = document.getElementById('mobileComposeContent');
+    const postView = document.getElementById('mobileComposePostView');
+    const blogView = document.getElementById('mobileComposeBlogView');
+    if (!widget || !chooser || !content || !postView || !blogView) return;
+
+    const isWidgetOpen = widget.classList.contains('active');
+    if (!skipToggle && !isWidgetOpen) {
+        toggleMobileNavWidget(true, mode === 'post' ? 'post' : mode === 'blog' ? 'blog' : 'chooser');
+        return;
+    }
+
+    if (mode === 'post') {
+        chooser.style.display = 'none';
+        content.style.display = 'grid';
+        postView.style.display = 'block';
+        blogView.style.display = 'none';
+    } else if (mode === 'blog') {
+        chooser.style.display = 'none';
+        content.style.display = 'grid';
+        postView.style.display = 'none';
+        blogView.style.display = 'block';
+    } else {
+        chooser.style.display = 'grid';
+        content.style.display = 'none';
+        postView.style.display = 'none';
+        blogView.style.display = 'none';
+    }
+};
+
+window.setMobileComposeMode = function(mode) {
+    openMobileComposeForm(mode, true);
+};
+
+window.publishMobilePost = async function() {
+    const postInput = document.getElementById('mobilePostInput');
+    const statusEl = document.getElementById('mobilePostStatus');
+    if (!postInput || !statusEl) return;
+    const text = (postInput.value || '').trim();
+    if (!text) {
+        statusEl.textContent = 'Lütfen bir şey yazın.';
+        statusEl.style.color = '#ef4444';
+        return;
+    }
+    if (!window.auth?.currentUser || !window.user) {
+        statusEl.textContent = 'Önce giriş yapın.';
+        statusEl.style.color = '#ef4444';
+        return;
+    }
+    statusEl.textContent = 'Gönderiliyor...';
+    statusEl.style.color = 'var(--text-muted)';
+    try {
+        await addDoc(collection(db, 'posts'), {
+            authorUid: auth.currentUser.uid,
+            name: user.displayName,
+            username: user.username,
+            avatarUrl: user.avatarUrl || user.photoURL || 'assets/img/strendsaydamv2.png',
+            content: normalizePostText(text),
+            image: null,
+            timestamp: serverTimestamp(),
+            likes: [],
+            savedBy: [],
+            comments: []
+        });
+        postInput.value = '';
+        statusEl.textContent = 'Gönderildi.';
+        statusEl.style.color = '#10b981';
+        setTimeout(() => {
+            statusEl.textContent = '';
+            toggleMobileNavWidget(false);
+            if (typeof loadPostsFeed === 'function') loadPostsFeed();
+        }, 1200);
+    } catch (e) {
+        console.error('publishMobilePost hata:', e);
+        statusEl.textContent = 'Gönderi gönderilemedi.';
+        statusEl.style.color = '#ef4444';
+    }
+};
+
+window.publishMobileBlogPost = async function() {
+    const titleEl = document.getElementById('mobileBlogTitle');
+    const contentEl = document.getElementById('mobileBlogContent');
+    const categoryEl = document.getElementById('mobileBlogCategory');
+    const statusEl = document.getElementById('mobileBlogStatus');
+    if (!titleEl || !contentEl || !categoryEl || !statusEl) return;
+    const title = titleEl.value.trim();
+    const content = contentEl.value.trim();
+    const category = categoryEl.value || 'Genel';
+    if (!title || !content) {
+        statusEl.textContent = 'Başlık ve içerik gereklidir.';
+        statusEl.style.color = '#ef4444';
+        return;
+    }
+    if (!window.auth?.currentUser) {
+        statusEl.textContent = 'Önce giriş yapın.';
+        statusEl.style.color = '#ef4444';
+        return;
+    }
+    statusEl.textContent = 'Yayınlanıyor...';
+    statusEl.style.color = 'var(--text-muted)';
+    try {
+        await addDoc(collection(db, 'blogs'), {
+            title,
+            content,
+            category,
+            authorUid: auth.currentUser.uid,
+            authorUsername: (auth.currentUser.email || '').split('@')[0],
+            authorEmail: auth.currentUser.email,
+            authorAvatar: user.avatarUrl || 'assets/img/strendsaydamv2.png',
+            status: 'published',
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
+            views: 0,
+            tebrikCount: 0
+        });
+        titleEl.value = '';
+        contentEl.value = '';
+        if (categoryEl) categoryEl.value = 'Genel';
+        statusEl.textContent = 'Yayınlandı.';
+        statusEl.style.color = '#10b981';
+        setTimeout(() => {
+            statusEl.textContent = '';
+            toggleMobileNavWidget(false);
+            window.location.href = getPathPrefix() + 'blog.html?mine=1';
+        }, 1200);
+    } catch (e) {
+        console.error('publishMobileBlogPost hata:', e);
+        statusEl.textContent = 'Blog yayınlanamadı.';
+        statusEl.style.color = '#ef4444';
+    }
+};
+
+window.setMobileComposeMode('post');
+
 /* ============================   */
 
 let currentEditType = null; 
@@ -6210,23 +6419,24 @@ function updateClock() {
 
 // --- DARK MODE -- //
 window.toggleDarkMode = () => {
-  const btn = document.getElementById('themeToggleBtn');
-  const isDark = document.body.classList.toggle('dark-mode');
+    const btn = document.getElementById('themeToggleBtn');
+    const mobileBtn = document.getElementById('themeToggleBtnMobile');
+    const isDark = document.body.classList.toggle('dark-mode');
 
-  if (btn) {
-    btn.innerHTML = isDark
-      ? '<i class="fa-solid fa-sun"></i>'
-      : '<i class="fa-solid fa-moon"></i>';
-  }
+    const iconHtml = isDark ? '<i class="fa-solid fa-sun"></i>' : '<i class="fa-solid fa-moon"></i>';
+    if (btn) btn.innerHTML = iconHtml;
+    if (mobileBtn) mobileBtn.innerHTML = iconHtml + '<span>Tema</span>';
 
-  localStorage.setItem('st_theme', isDark ? 'dark' : 'light');
+    localStorage.setItem('st_theme', isDark ? 'dark' : 'light');
 };
 
 function syncThemeButtonState() {
     const themeBtn = document.getElementById('themeToggleBtn');
-    if (!themeBtn) return;
+    const mobileBtn = document.getElementById('themeToggleBtnMobile');
     const isDark = document.body.classList.contains('dark-mode');
-    themeBtn.innerHTML = isDark ? '<i class="fa-solid fa-sun"></i>' : '<i class="fa-solid fa-moon"></i>';
+    const iconHtml = isDark ? '<i class="fa-solid fa-sun"></i>' : '<i class="fa-solid fa-moon"></i>';
+    if (themeBtn) themeBtn.innerHTML = iconHtml;
+    if (mobileBtn) mobileBtn.innerHTML = iconHtml + '<span>Tema</span>';
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -6579,65 +6789,59 @@ function initHeaderInteractions() {
     const headerSearchBtn = document.getElementById('headerSearchButton');
     const headerSearchBox = document.getElementById('headerSearchBox');
     const headerSearchInput = document.getElementById('headerSearchInput');
+    const headerSearchSubmit = document.getElementById('headerSearchSubmit');
     const headerSearchWrapper = document.getElementById('headerSearchWrapper');
 
+    const openHeaderSearch = (open) => {
+        if (!headerSearchBtn || !headerSearchBox) return;
+        headerSearchBox.style.display = open ? 'flex' : 'none';
+        headerSearchBtn.innerHTML = open ? '<i class="fa-solid fa-xmark"></i>' : '<i class="fa-solid fa-magnifying-glass"></i>';
+        if (open && headerSearchInput) headerSearchInput.focus();
+    };
+
+    const runHeaderSearch = (queryValue = null) => {
+        const searchQuery = (queryValue || headerSearchInput?.value || '').trim();
+        if (!searchQuery) {
+            if (headerSearchInput) headerSearchInput.focus();
+            return;
+        }
+        if (window.location.pathname.includes('search.html')) {
+            performGlobalSearch(searchQuery);
+            return;
+        }
+        window.location.href = `search.html?q=${encodeURIComponent(searchQuery)}`;
+    };
+
     if (headerSearchBtn && headerSearchBox && headerSearchInput && headerSearchWrapper) {
-        const setSearchOpen = (open) => {
-            headerSearchBox.style.display = open ? 'flex' : 'none';
-            headerSearchBtn.innerHTML = open ? '<i class="fa-solid fa-xmark"></i>' : '<i class="fa-solid fa-magnifying-glass"></i>';
-            if (open) {
-                headerSearchInput.focus();
-            }
-        };
-
-        const toggleSearch = (event) => {
+        headerSearchBtn.addEventListener('click', (event) => {
             event.stopPropagation();
-            setSearchOpen(headerSearchBox.style.display !== 'flex');
-        };
-
-        headerSearchBtn.addEventListener('click', toggleSearch);
-        headerSearchBox.addEventListener('click', (e) => e.stopPropagation());
-
-        let headerSearchTimeout = null;
-        headerSearchInput.addEventListener('input', () => {
-            clearTimeout(headerSearchTimeout);
-            headerSearchTimeout = setTimeout(() => {
-                window.performInlineHeaderSearch();
-            }, 250);
+            openHeaderSearch(headerSearchBox.style.display !== 'flex');
         });
 
-        headerSearchInput.addEventListener('keydown', async (event) => {
+        headerSearchBox.addEventListener('click', (event) => event.stopPropagation());
+
+        headerSearchInput.addEventListener('keydown', (event) => {
             if (event.key === 'Escape') {
-                setSearchOpen(false);
+                openHeaderSearch(false);
+                return;
             }
             if (event.key === 'Enter') {
                 event.preventDefault();
-                await window.performInlineHeaderSearch();
+                runHeaderSearch();
             }
         });
 
-        const headerSearchSubmit = document.getElementById('headerSearchSubmit');
         if (headerSearchSubmit) {
-            headerSearchSubmit.addEventListener('click', async (event) => {
+            headerSearchSubmit.addEventListener('click', (event) => {
                 event.preventDefault();
-                await window.performInlineHeaderSearch();
-            });
-        }
-
-        const headerSearchResultsClose = document.getElementById('headerSearchResultsClose');
-        if (headerSearchResultsClose) {
-            headerSearchResultsClose.addEventListener('click', () => {
-                const resultsPanel = document.getElementById('headerInlineSearchResults');
-                if (resultsPanel) {
-                    resultsPanel.style.display = 'none';
-                }
+                runHeaderSearch();
             });
         }
 
         document.addEventListener('click', (event) => {
             if (!headerSearchWrapper.contains(event.target) && headerSearchBox.style.display === 'flex') {
                 if (!headerSearchInput.value.trim()) {
-                    setSearchOpen(false);
+                    openHeaderSearch(false);
                 }
             }
         });
@@ -6652,114 +6856,24 @@ window.toggleHeaderSearch = function(event) {
     const headerSearchBtn = document.getElementById('headerSearchButton');
     const headerSearchBox = document.getElementById('headerSearchBox');
     const headerSearchInput = document.getElementById('headerSearchInput');
-    const headerSearchResults = document.getElementById('headerInlineSearchResults');
     if (!headerSearchBtn || !headerSearchBox || !headerSearchInput) return;
 
     const open = headerSearchBox.style.display !== 'flex';
     headerSearchBox.style.display = open ? 'flex' : 'none';
     headerSearchBtn.innerHTML = open ? '<i class="fa-solid fa-xmark"></i>' : '<i class="fa-solid fa-magnifying-glass"></i>';
-    if (headerSearchResults && !open) {
-        headerSearchResults.style.display = 'none';
-    }
     if (open) {
         headerSearchInput.focus();
     }
 };
 
 window.performInlineHeaderSearch = async (forcedQuery = null) => {
-    const input = document.getElementById('headerSearchInput');
-    const resultsPanel = document.getElementById('headerInlineSearchResults');
-    const resultsTitle = document.getElementById('headerSearchResultsTitle');
-    const resultsList = document.getElementById('headerSearchResultsList');
-    if (!input || !resultsPanel || !resultsTitle || !resultsList) return;
-
-    const queryStr = (forcedQuery || input.value || '').trim();
-    if (!queryStr) {
-        resultsPanel.style.display = 'none';
+    const searchQuery = (forcedQuery || document.getElementById('headerSearchInput')?.value || '').trim();
+    if (!searchQuery) return;
+    if (window.location.pathname.includes('search.html')) {
+        performGlobalSearch(searchQuery);
         return;
     }
-
-    const normalizedQuery = queryStr.toLowerCase();
-    resultsTitle.textContent = `“${queryStr}” için arama sonuçları`;
-    resultsList.innerHTML = '';
-    resultsPanel.style.display = 'block';
-
-    const matches = staticDatabase.pages.filter(item => item.name.toLowerCase().includes(normalizedQuery));
-    const pageMatches = [];
-    const userMatches = [];
-
-    if (matches.length) {
-        matches.forEach(item => {
-            pageMatches.push({ name: item.name, link: item.link, icon: item.icon });
-        });
-    }
-
-    try {
-        const pagesSnap = await getDocs(collection(db, "pages"));
-        pagesSnap.forEach(docSnap => {
-            const pageData = docSnap.data();
-            const title = (pageData.name || pageData.title || '').toLowerCase();
-            if (title.includes(normalizedQuery)) {
-                pageMatches.push({
-                    name: pageData.name || pageData.title || 'Sayfa',
-                    link: pageData.link || `search.html?q=${encodeURIComponent(queryStr)}`,
-                    icon: pageData.icon || 'fa-book-open'
-                });
-            }
-        });
-    } catch (error) {
-        console.warn('Header search sayfa sorgusu sırasında hata:', error);
-    }
-
-    try {
-        const usersSnap = await getDocs(collection(db, "users"));
-        usersSnap.forEach(docSnap => {
-            const userData = docSnap.data();
-            const username = (userData.username || userData.uid || '').toLowerCase();
-            const displayName = (userData.name || userData.displayName || '').toLowerCase();
-            if (username.includes(normalizedQuery) || displayName.includes(normalizedQuery)) {
-                userMatches.push({ id: docSnap.id, ...userData });
-            }
-        });
-    } catch (error) {
-        console.warn('Header search kullanıcı sorgusu sırasında hata:', error);
-    }
-
-    if (pageMatches.length) {
-        pageMatches.slice(0, 6).forEach(item => {
-            resultsList.innerHTML += `
-                <a href="${item.link}" class="header-search-result-item">
-                    <div class="header-search-result-icon"><i class="fa-solid ${item.icon}"></i></div>
-                    <div class="header-search-result-content">
-                        <span>${item.name}</span>
-                        <small>${item.link}</small>
-                    </div>
-                </a>`;
-        });
-    }
-
-    if (userMatches.length) {
-        userMatches.slice(0, 6).forEach(userData => {
-            const username = userData.username || userData.uid || 'kullanici';
-            const displayName = userData.name || userData.displayName || username;
-            const profileUrl = `profil.html?u=${encodeURIComponent(username)}`;
-            const avatarUrl = getAvatarUrl(userData.avatarUrl || userData.avatarSeed || userData.avatar || 'default', 'user');
-            resultsList.innerHTML += `
-                <a href="${profileUrl}" class="header-search-result-item">
-                    <div class="header-search-result-avatar"><img src="${avatarUrl}" alt="${displayName} avatar"></div>
-                    <div class="header-search-result-content">
-                        <span>${displayName}</span>
-                        <small>@${username}</small>
-                    </div>
-                </a>`;
-        });
-    }
-
-    if (pageMatches.length === 0 && userMatches.length === 0) {
-        resultsList.innerHTML = `<div class="header-search-result-empty">Aramanıza uyan sonuç bulunamadı. Tüm sonuçları görmek için <a href="search.html?q=${encodeURIComponent(queryStr)}">ara sayfasına gidin</a>.</div>`;
-    } else {
-        resultsList.innerHTML += `<div class="header-search-result-footer">Daha fazla sonuç için <a href="search.html?q=${encodeURIComponent(queryStr)}">tüm arama sayfasını açın</a>.</div>`;
-    }
+    window.location.href = `search.html?q=${encodeURIComponent(searchQuery)}`;
 };
 
 // 2. Sayfa Yüklendiğinde Başlat

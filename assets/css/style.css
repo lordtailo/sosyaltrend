@@ -1259,7 +1259,7 @@ header {
 
 @media (max-width: 768px) {
     .header-search-results {
-        top: 84px;
+        top: 56px;
         padding: 10px 4%;
     }
 
@@ -1505,7 +1505,7 @@ header {
     .notifications-dropdown,
     .friends-dropdown {
         position: fixed;
-        top: 92px;
+        top: 56px;
         left: 50%;
         right: auto;
         transform: translateX(-50%);
@@ -1521,7 +1521,7 @@ header {
     .notifications-dropdown,
     .friends-dropdown {
         position: fixed;
-        top: 68px;
+        top: 56px;
         left: 50%;
         right: auto;
         transform: translateX(-50%);
@@ -1557,6 +1557,7 @@ header {
         transform: translateX(-50%) !important;
         width: calc(100vw - 24px) !important;
         max-width: calc(100vw - 24px) !important;
+        top: 68px !important;
     }
 }
 
@@ -1600,9 +1601,8 @@ header {
         gap: 6px;
     }
 
-    /* Mobilde ana sayfa ve arama butonlarını tamamen gizle */
-    .header-nav-btn.home-nav-btn,
-    .header-search {
+    /* Mobilde ana sayfa butonunu gizle, arama düğmesini koru */
+    .header-nav-btn.home-nav-btn {
         display: none !important;
     }
 }
@@ -1639,9 +1639,9 @@ header::after {
 /* Make header rounded and pull in from edges on small screens so left/right corners join */
 @media (max-width: 768px) {
     header {
-        left: 12px;
-        right: 12px;
-        width: auto;
+        left: 0;
+        right: 0;
+        width: 100%;
         border-radius: 14px;
         box-shadow: var(--glass-shadow);
     }
@@ -4507,40 +4507,539 @@ font-size: 0.9rem; font-weight: 800; color: var(--primary); margin: 20px 0 10px;
   .mobile-bottom-nav {
     display: flex;
     position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 58px;
+    bottom: 10px;
+    left: 10px;
+    right: 10px;
+    min-height: 64px;
     background: var(--card-bg);
-    border-top: 1px solid var(--border);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--border);
+    border-radius: 14px;
     z-index: 10050;
-    justify-content: space-around;
+    justify-content: space-between;
     align-items: center;
-    padding: 0 10px;
+    gap: 12px;
+    padding: 8px 14px;
   }
   .mobile-bottom-nav .mobile-nav-item {
-    display: flex;
+    display: inline-flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     gap: 4px;
-    color: var(--text-muted);
+    color: var(--text-main);
     text-decoration: none;
-    font-size: 0.7rem;
+    font-size: 0.72rem;
+    min-width: 56px;
+    padding: 10px 12px;
+    border-radius: 999px;
+    border: 1px solid transparent;
+    background: rgba(99,102,241,0.08);
+    transition: background 0.2s ease, border-color 0.2s ease, transform 0.15s ease, color 0.2s ease;
+  }
+  .mobile-bottom-nav .mobile-nav-item:hover {
+    background: rgba(99,102,241,0.14);
+    border-color: rgba(99,102,241,0.25);
   }
   .mobile-bottom-nav .mobile-nav-item.active,
-  .mobile-bottom-nav .mobile-nav-item:hover {
-    color: var(--primary);
+  .mobile-bottom-nav .mobile-nav-item:focus-visible {
+    color: var(--text-main);
+    background: rgba(99,102,241,0.18);
+    border-color: rgba(99,102,241,0.35);
   }
+  .mobile-bottom-nav {
+    box-shadow: 0 8px 26px rgba(0,0,0,0.14);
+  }
+  .mobile-bottom-nav .mobile-nav-item span {
+    font-size: 0.72rem;
+    font-weight: 600;
+  }
+    /* hide only the header theme toggle on small screens to avoid duplicate control */
+    #themeToggleBtn { display: none !important; }
   .mobile-bottom-nav .mobile-nav-item i {
-    font-size: 1.2rem;
+    font-size: 1.1rem;
   }
+  .mobile-bottom-nav .mobile-nav-action-btn {
+    min-width: 56px;
+    padding: 10px 12px;
+  }
+  .mobile-bottom-nav .mobile-nav-action-btn .mobile-nav-action-circle {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: rgba(99,102,241,0.12);
+    color: var(--text-main);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .mobile-bottom-nav .mobile-nav-action-btn:hover .mobile-nav-action-circle {
+    background: rgba(99,102,241,0.18);
+  }
+  .mobile-bottom-nav .mobile-nav-item {
+    min-width: 54px;
+  }
+  .mobile-bottom-nav .mobile-nav-item:first-of-type {
+    min-width: 58px;
+  }
+  .mobile-search-input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+  }
+  .mobile-search-input-wrapper i {
+    position: absolute;
+    left: 14px;
+    color: var(--text-muted);
+    font-size: 1rem;
+    pointer-events: none;
+  }
+  .mobile-search-input-wrapper input {
+    width: 100%;
+    padding: 12px 14px 12px 40px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: var(--input-bg);
+    color: var(--text-main);
+    outline: none;
+  }
+  .mobile-search-input-wrapper input:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 4px rgba(99,102,241,0.12);
+  }
+  .mobile-bottom-nav .mobile-nav-action-circle {
+    width: auto;
+    height: auto;
+    border-radius: 0;
+    background: transparent;
+    color: inherit;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: none;
+    transition: transform 0.2s ease, background 0.2s ease;
+  }
+  .mobile-bottom-nav .mobile-nav-action-btn:hover .mobile-nav-action-circle {
+    transform: none;
+    background: transparent;
+    box-shadow: none;
+  }
+  }
+  .mobile-bottom-nav .mobile-nav-action-btn span {
+    display: block;
+    font-size: 0.7rem;
+    font-weight: 700;
+    margin-top: 2px;
+  }
+  .fab-compose { display: none; }
   /* Avoid content being hidden behind the bottom navigation */
-  body { padding-bottom: 0px; }
-}
+  body { padding-bottom: 92px; }
 
 /* Small utility for bottom nav icon badges */
 .nav-badge { background: #ef4444; color: #fff; border-radius: 999px; padding: 2px 6px; font-size: 0.7rem; font-weight:700; }
+
+/* Mobile compose widget overlay */
+#mobileComposeWidget {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 10060;
+  pointer-events: none;
+}
+#mobileComposeWidget.active {
+  display: block;
+  pointer-events: auto;
+}
+#mobileComposeWidget .compose-widget-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(10, 15, 25, 0.6);
+}
+#mobileComposeWidget .compose-widget-panel {
+  position: absolute;
+  left: 50%;
+  bottom: 78px;
+  transform: translateX(-50%);
+  width: calc(100% - 32px);
+  max-width: 420px;
+  padding: 18px;
+  border-radius: 20px;
+  background: rgba(255,255,255,0.96);
+  box-shadow: 0 18px 42px rgba(0,0,0,0.18);
+  backdrop-filter: blur(18px);
+  border: 1px solid rgba(99,102,241,0.16);
+  display: grid;
+  gap: 14px;
+}
+#mobileComposeWidget .compose-widget-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+}
+#mobileComposeWidget .compose-widget-backbtn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    padding: 6px;
+    border-radius: 12px;
+    border: 1px solid rgba(99,102,241,0.28);
+    background: rgba(99,102,241,0.08);
+    color: var(--text-main);
+    cursor: pointer;
+    transition: background 0.12s ease, transform 0.12s ease, border-color 0.12s ease;
+}
+#mobileComposeWidget .compose-widget-backbtn:hover {
+    background: rgba(99,102,241,0.16);
+    border-color: rgba(99,102,241,0.4);
+    transform: translateY(-1px);
+}
+#mobileSearchWidget {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 10060;
+  pointer-events: none;
+}
+#mobileSearchWidget.active {
+  display: block;
+  pointer-events: auto;
+}
+#mobileSearchWidget .compose-widget-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(10, 15, 25, 0.6);
+}
+#mobileSearchWidget .compose-widget-panel {
+  position: absolute;
+  left: 50%;
+  bottom: 78px;
+  transform: translateX(-50%);
+  width: calc(100% - 32px);
+  max-width: 420px;
+  padding: 18px;
+  border-radius: 20px;
+  background: rgba(255,255,255,0.96);
+  box-shadow: 0 18px 42px rgba(0,0,0,0.18);
+  backdrop-filter: blur(18px);
+  border: 1px solid rgba(99,102,241,0.16);
+  display: grid;
+  gap: 14px;
+}
+#mobileSearchWidget .compose-widget-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+}
+#mobileSearchWidget .compose-widget-title {
+  display: grid;
+  gap: 4px;
+}
+#mobileSearchWidget .compose-widget-title strong {
+  font-size: 1rem;
+}
+#mobileSearchWidget .compose-widget-title p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.92rem;
+}
+#mobileSearchWidget .compose-widget-close {
+  background: transparent;
+  border: none;
+  color: var(--text-main);
+  font-size: 1.35rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 6px 8px;
+}
+#mobileSearchWidget .mobile-search-content {
+  display: grid;
+  gap: 12px;
+}
+#mobileSearchWidget .compose-widget-submit {
+  width: 100%;
+}
+#mobileComposeWidget .compose-widget-backbtn i { font-size: 1rem; }
+#mobileComposeWidget .compose-widget-backbtn:hover { background: rgba(99,102,241,0.14); border-color: rgba(99,102,241,0.25); transform: translateY(-1px); }
+
+/* form altındaki geri butonu çerçeve ve arka plan */
+.compose-widget-back-under {
+    margin-top: 10px;
+    background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(99,102,241,0.03));
+    border: 1px solid rgba(99,102,241,0.18);
+    border-radius: 12px;
+    color: var(--text-main);
+    padding: 10px 14px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    cursor: pointer;
+    transition: background 0.12s ease, transform 0.12s ease, border-color 0.12s ease;
+}
+.compose-widget-back-under i { font-size: 1rem; }
+.compose-widget-back-under:hover { background: rgba(99,102,241,0.12); border-color: rgba(99,102,241,0.32); transform: translateY(-2px); }
+#mobileComposeWidget .compose-widget-header strong {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 1rem;
+}
+#mobileComposeWidget .compose-widget-header p {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+#mobileComposeWidget .compose-widget-close {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    z-index: 100800;
+    background: transparent;
+    border: none;
+    color: var(--text-main);
+    font-size: 1.25rem;
+    line-height: 1;
+    cursor: pointer;
+    width: 48px;
+    height: 48px;
+    padding: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    margin: 0;
+    transition: background 0.12s ease, transform 0.12s ease;
+}
+#mobileComposeWidget .compose-widget-close:hover {
+    background: var(--button-hover-bg);
+    transform: translateY(-1px);
+}
+#mobileComposeWidget .compose-widget-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+#mobileComposeWidget .compose-widget-tab {
+  padding: 10px 12px;
+  border-radius: 999px;
+  background: var(--secondary-bg);
+  border: 1px solid transparent;
+  color: var(--text-main);
+  cursor: pointer;
+  font-weight: 600;
+}
+#mobileComposeWidget .compose-widget-tab.active {
+  background: var(--primary-transparent);
+  color: var(--primary);
+  border-color: var(--primary);
+}
+#mobileComposeWidget .compose-widget-content {
+  display: grid;
+  gap: 10px;
+}
+#mobileComposeWidget .compose-widget-chooser {
+  display: grid;
+  gap: 10px;
+}
+#mobileComposeWidget .compose-widget-chooser button {
+    width: 100%;
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border: 1px solid transparent;
+    border-radius: 999px;
+    background: rgba(99,102,241,0.08);
+    color: var(--text-main);
+    cursor: pointer;
+    font-weight: 600;
+    transition: background 0.18s ease, border-color 0.18s ease, transform 0.12s ease;
+}
+#mobileComposeWidget .compose-widget-chooser button:hover {
+    background: rgba(99,102,241,0.14);
+    border-color: rgba(99,102,241,0.25);
+    transform: translateY(-1px);
+}
+#mobileComposeWidget .compose-widget-chooser button i {
+    font-size: 1.1rem;
+    color: inherit;
+}
+
+/* More specific hover rule to ensure background changes inside the panel */
+#mobileComposeWidget .compose-widget-panel .compose-widget-chooser button {
+    border: 1px solid rgba(99,102,241,0.22);
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.02);
+    transition: background 0.18s ease, border-color 0.18s ease, transform 0.12s ease, box-shadow 0.12s ease;
+    outline: none;
+}
+
+#mobileComposeWidget .compose-widget-panel .compose-widget-chooser button:hover {
+    background: rgba(99,102,241,0.22);
+    border-color: rgba(99,102,241,0.44);
+    color: var(--text-main);
+    box-shadow: 0 6px 18px rgba(99,102,241,0.06);
+}
+
+#mobileComposeWidget .compose-widget-panel .compose-widget-chooser button:focus {
+    outline: 3px solid rgba(99,102,241,0.12);
+    outline-offset: 3px;
+}
+
+#mobileComposeWidget .compose-widget-panel .compose-widget-chooser button:active {
+    transform: translateY(0);
+    opacity: 0.98;
+}
+#mobileComposeWidget .compose-widget-chooser .compose-widget-cancel {
+    background: rgba(239,68,68,0.06);
+    border-color: rgba(239,68,68,0.14);
+    color: var(--danger);
+}
+#mobileComposeWidget .compose-widget-chooser .compose-widget-cancel i {
+    color: var(--danger);
+}
+#mobileComposeWidget .mobile-compose-view textarea,
+#mobileComposeWidget .mobile-compose-view input,
+#mobileComposeWidget .mobile-compose-view select {
+  width: 100%;
+  background: var(--secondary-bg);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  color: var(--text-main);
+  padding: 12px 14px;
+  font-size: 0.95rem;
+  outline: none;
+}
+#mobileComposeWidget .mobile-compose-view textarea {
+  resize: vertical;
+  min-height: 110px;
+}
+#mobileComposeWidget .mobile-compose-status {
+  min-height: 18px;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+#mobileComposeWidget .compose-widget-submit {
+    width: 100%;
+    padding: 12px 14px;
+    border: none;
+    border-radius: 14px;
+    background: linear-gradient(135deg, var(--primary), rgba(79,70,229,0.92));
+    color: #fff;
+    font-weight: 800;
+    cursor: pointer;
+    box-shadow: 0 10px 28px rgba(79,70,229,0.16);
+    transition: transform 0.14s ease, box-shadow 0.14s ease, opacity 0.12s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+#mobileComposeWidget .compose-widget-submit:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 14px 36px rgba(79,70,229,0.22);
+}
+#mobileComposeWidget .compose-widget-submit:active {
+    transform: translateY(-1px);
+    opacity: 0.98;
+}
+#mobileComposeWidget .compose-widget-submit[disabled] {
+    opacity: 0.6;
+    cursor: default;
+    box-shadow: none;
+    transform: none;
+}
+
+/* Framed button variant used for submit and back-under */
+.framed-btn {
+    width: 100%;
+    padding: 10px 14px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.02));
+    color: var(--text-main);
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    justify-content: center;
+    transition: background 0.14s ease, border-color 0.14s ease, transform 0.12s ease;
+}
+.framed-btn i { font-size: 1rem; }
+.framed-btn:hover {
+    background: var(--button-hover-bg);
+    border-color: rgba(99,102,241,0.28);
+    transform: translateY(-2px);
+}
+.compose-widget-back-under { margin-top: 10px; background: rgba(0,0,0,0.02); }
+#mobileComposeWidget .compose-widget-panel button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border: none;
+  border-radius: 14px;
+  background: var(--secondary-bg);
+  color: var(--text-main);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* Yay toast */
+.yay-toast {
+    position: fixed;
+    left: 50%;
+    bottom: 110px;
+    transform: translateX(-50%);
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    color: var(--text-main);
+    padding: 10px 14px;
+    border-radius: 12px;
+    box-shadow: 0 12px 28px rgba(0,0,0,0.16);
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    z-index: 100700;
+    min-width: 200px;
+}
+.yay-toast .yay-message { font-weight:700; }
+.yay-toast .yay-btn {
+    margin-left: auto;
+    background: rgba(99,102,241,0.12);
+    border: 1px solid rgba(99,102,241,0.18);
+    color: var(--primary);
+    padding: 6px 10px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-weight:700;
+}
+.yay-toast .yay-btn[disabled] { opacity: 0.6; cursor: default; }
+
+/* small confetti dots */
+.yay-confetti {
+    position: absolute;
+    inset: -24px 0 auto 0;
+    height: 24px;
+    pointer-events: none;
+}
+.yay-confetti i { display:inline-block; animation: yay-fall 900ms ease-out; font-style: normal; }
+@keyframes yay-fall {
+    0% { transform: translateY(-8px) scale(0.9); opacity: 0; }
+    40% { opacity: 1; }
+    100% { transform: translateY(18px) scale(1); opacity: 0; }
+}
+#mobileComposeWidget .compose-widget-panel button:hover {
+  background: var(--button-hover-bg);
+}
+#mobileComposeWidget .compose-widget-panel button i {
+  font-size: 1.1rem;
+}
 
 /* Mobile share button - more prominent */
 

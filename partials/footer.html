@@ -47,4 +47,102 @@
       <i class="fa-solid fa-earth-americas footer-earth-icon" aria-hidden="true"></i>
     </div>
   </div>
+
+  <div id="mobileBottomNav" class="mobile-bottom-nav" aria-label="Mobil alt navigasyon">
+    <button type="button" class="mobile-nav-item" onclick="navigateTo('feed'); return false;">
+      <i class="fa-solid fa-house"></i>
+      <span>Ana</span>
+    </button>
+    <button type="button" class="mobile-nav-item" onclick="toggleMobileSearchWidget(true); return false;" aria-label="Arama">
+      <i class="fa-solid fa-magnifying-glass"></i>
+      <span>Ara</span>
+    </button>
+    <button type="button" class="mobile-nav-item mobile-nav-action-btn" onclick="toggleMobileNavWidget(true, 'chooser'); return false;" aria-label="Yeni içerik">
+      <span class="mobile-nav-action-circle"><i class="fa-solid fa-plus"></i></span>
+      <span>Yeni</span>
+    </button>
+      <button type="button" id="themeToggleBtnMobile" class="mobile-nav-item" onclick="toggleDarkMode()" aria-label="Tema değiştir">
+        <i class="fa-solid fa-moon"></i>
+        <span>Tema</span>
+      </button>
+    <button type="button" class="mobile-nav-item" onclick="navigateTo('profil'); return false;">
+      <i class="fa-solid fa-user"></i>
+      <span>Profil</span>
+    </button>
+  </div>
+  <div id="mobileSearchWidget">
+    <button type="button" class="compose-widget-backdrop" onclick="toggleMobileSearchWidget(false)"></button>
+    <div class="compose-widget-panel" role="dialog" aria-modal="true" aria-label="Mobil arama">
+      <div class="compose-widget-header">
+        <div class="compose-widget-title">
+          <strong>Mobil Arama</strong>
+          <p>Aramak istediğin kelimeyi yazıp ara.</p>
+        </div>
+        <button type="button" class="compose-widget-close" onclick="toggleMobileSearchWidget(false)" aria-label="Kapat">×</button>
+      </div>
+      <div class="mobile-search-content">
+        <div class="mobile-search-input-wrapper">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <input id="mobileSearchInput" type="search" placeholder="Arama yap..." autocomplete="off" />
+        </div>
+        <button type="button" class="compose-widget-submit framed-btn" onclick="runMobileSearch()">Ara</button>
+      </div>
+    </div>
+  </div>
+  <div id="mobileComposeWidget">
+    <button type="button" class="compose-widget-backdrop" onclick="toggleMobileNavWidget(false)"></button>
+    <div class="compose-widget-panel" role="dialog" aria-modal="true" aria-label="Yeni içerik oluştur">
+      <div class="compose-widget-header">
+        <button type="button" id="mobileComposeBackBtn" class="compose-widget-backbtn" onclick="openMobileComposeForm('chooser', true)" aria-label="Geri" style="display:none;">
+          <i class="fa-solid fa-arrow-left"></i>
+        </button>
+        <div class="compose-widget-title">
+          <strong>Yeni içerik oluştur</strong>
+          <p>Seçiminizi yapın, ardından form açılacaktır.</p>
+        </div>
+      </div>
+      <div id="mobileComposeChooser" class="compose-widget-chooser">
+        <button type="button" onclick="openMobileComposeForm('post')">
+          <i class="fa-solid fa-message"></i>
+          Gönderi Gönder
+        </button>
+        <button type="button" onclick="openMobileComposeForm('blog')">
+          <i class="fa-solid fa-blog"></i>
+          Blog Yazısı Gönder
+        </button>
+        <button type="button" class="compose-widget-cancel" onclick="toggleMobileNavWidget(false)">
+          <i class="fa-solid fa-xmark"></i>
+          Kapat
+        </button>
+      </div>
+      <div id="mobileComposeContent" class="compose-widget-content" style="display:none;">
+        <div id="mobileComposePostView" class="mobile-compose-view" style="display:none;">
+          <textarea id="mobilePostInput" placeholder="Gönderinizi buraya yazın..." rows="5"></textarea>
+          <div id="mobilePostStatus" class="mobile-compose-status"></div>
+          <button type="button" class="compose-widget-submit framed-btn" onclick="publishMobilePost()">Gönder</button>
+          <button type="button" class="compose-widget-back-under framed-btn" onclick="openMobileComposeForm('chooser', true)">
+            <i class="fa-solid fa-arrow-left"></i>
+            Geri
+          </button>
+        </div>
+        <div id="mobileComposeBlogView" class="mobile-compose-view" style="display:none;">
+          <input id="mobileBlogTitle" type="text" placeholder="Blog başlığı" />
+          <select id="mobileBlogCategory">
+            <option value="Genel">Genel</option>
+            <option value="Teknoloji">Teknoloji</option>
+            <option value="Yaşam">Yaşam</option>
+            <option value="Haber">Haber</option>
+            <option value="Eğlence">Eğlence</option>
+          </select>
+          <textarea id="mobileBlogContent" placeholder="Yazınızı buraya yazın..." rows="6"></textarea>
+          <div id="mobileBlogStatus" class="mobile-compose-status"></div>
+          <button type="button" class="compose-widget-submit framed-btn" onclick="publishMobileBlogPost()">Yayınla</button>
+          <button type="button" class="compose-widget-back-under framed-btn" onclick="openMobileComposeForm('chooser', true)">
+            <i class="fa-solid fa-arrow-left"></i>
+            Geri
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
 </footer>
