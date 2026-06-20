@@ -608,7 +608,8 @@ window.loadPollWidget = function() {
         const finishedPolls = polls.filter(p => p.expiresAt <= now).slice(0, 5);
 
         if (!activePoll && finishedPolls.length === 0) {
-            container.innerHTML = '<div style="color: var(--text-muted);">Henüz anket yok.</div>';
+            const adminCreateButton = auth.currentUser && user?.isAdmin ? `<div style="display:flex; justify-content:center; margin-top:12px;"><button class="post-action-btn primary sidebar-poll-button sidebar-poll-create-btn" onclick="openSidebarPollCreator()">Anket Oluştur</button></div>` : '';
+            container.innerHTML = `<div style="color: var(--text-muted);">Henüz anket yok.</div>${adminCreateButton}`;
             return;
         }
 
@@ -5323,10 +5324,13 @@ async function loadVisitorProfile() {
             visitedData = userSnap.docs[0].data();
             // Visitor UID found
 
+            // normalize privacy flag so string values do not get treated as truthy/falsey incorrectly
+            const isVisitedPrivate = visitedData.isPrivate === true || visitedData.isPrivate === 'true';
+            window.visitedProfileIsPrivate = isVisitedPrivate;
+
             // set display name & avatar from the user record (fall back to defaults)
             visitorDisplayName = visitedData.displayName || visitedData.name || visitedUsername;
             visitorAvatar = getAvatarUrl(visitedData.avatarUrl || visitedData.avatar || "strendsaydamv2.png", 'user');
-            window.visitedProfileIsPrivate = Boolean(visitedData.isPrivate);
 
             // determine friendship in both directions (visitedData may drop list when user goes private)
             if (auth.currentUser) {
@@ -5348,7 +5352,7 @@ async function loadVisitorProfile() {
             }
 
             // gizlilik kontrolü: profil gizliyse ve ziyaretçi arkadaş değilse içerik göstermeyelim
-            if (visitedData.isPrivate) {
+            if (isVisitedPrivate) {
                 if (!isFriend) {
                     // Gizli profil: profil başlığını güncelle
                     const profileName = document.getElementById('profilePageName');
@@ -5522,9 +5526,15 @@ async function loadVisitorProfile() {
             const pLocation = document.getElementById('profileLocation');
             const pHometown = document.getElementById('profileHometown');
             const pDob = document.getElementById('profileDob');
+            const pOccupation = document.getElementById('profileOccupation');
+            const pBio = document.getElementById('profileBio');
+            const pInterests = document.getElementById('profileInterests');
             if (pLocation) pLocation.innerText = visitedData.location || '—';
             if (pHometown) pHometown.innerText = visitedData.hometown || '—';
             if (pDob) pDob.innerText = visitedData.dob ? (typeof visitedData.dob === 'string' && visitedData.dob.includes('-') ? visitedData.dob.split('-').reverse().join('.') : visitedData.dob) : '—';
+            if (pOccupation) pOccupation.innerText = visitedData.occupation || '—';
+            if (pBio) pBio.innerText = visitedData.bio || '—';
+            if (pInterests) pInterests.innerText = visitedData.interests || '—';
 
             const pWebsite = document.getElementById('profileWebsite');
             const pFacebook = document.getElementById('profileFacebook');
@@ -5633,7 +5643,7 @@ async function loadVisitorProfile() {
         }
 
         // eğer profil gizliyse ve biz arkadaşsak bazı öğeleri gizle
-        if (visitedData && visitedData.isPrivate && isFriend) {
+        if (visitedData && isVisitedPrivate && isFriend) {
             // arkadaşlar sohbet edebilsin, sadece arkadaş ekleme butonunu sakla
             const addFriendBtn = document.getElementById('addFriendBtn');
             if (addFriendBtn) addFriendBtn.style.display = 'none';

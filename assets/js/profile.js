@@ -289,7 +289,7 @@ function renderProfileHeader(profileData, isOwnProfile) {
 
   const privacyNotice = document.getElementById('profilePrivacyNotice');
   const personalInfoCard = document.getElementById('profilePersonalInfoCard');
-  const isPrivateProfile = profileData.private || profileData.isPrivate || profileData.privateProfile;
+  const isPrivateProfile = [profileData.private, profileData.isPrivate, profileData.privateProfile].some((value) => value === true || value === 'true');
   if (privacyNotice) {
     privacyNotice.style.display = !isOwnProfile && isPrivateProfile ? 'block' : 'none';
   }
