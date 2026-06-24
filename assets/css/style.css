@@ -201,36 +201,45 @@ body.dark-mode .post-composer {
 .post-composer-row {
     display: flex;
     justify-content: space-between;
-    gap: 14px;
-    flex-wrap: wrap;
+    gap: 10px;
     align-items: center;
+    flex-wrap: wrap;
 }
 
 .post-composer-actions {
     display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
+    flex-wrap: nowrap;
+    gap: 8px;
     align-items: center;
+    flex: 0 1 auto;
 }
 
 .emoji-wrapper {
     position: relative;
     display: inline-flex;
+    flex-shrink: 0;
 }
 
 .post-action-btn {
     border: none;
     border-radius: 18px;
-    padding: 12px 18px;
+    padding: 8px 14px;
     font-weight: 600;
     cursor: pointer;
-    display: inline-flex;
+    display: flex;
     align-items: center;
-    gap: 8px;
+    justify-content: center;
+    gap: 6px;
     transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
     background: var(--card-bg);
     color: var(--text-main);
     box-shadow: 0 12px 22px rgba(15,23,42,0.08);
+    flex-shrink: 0;
+    white-space: nowrap;
+    font-size: 0.8rem;
+    min-height: 36px;
+    line-height: 1;
+    overflow: hidden;
 }
 
 .post-action-btn:hover {
@@ -242,6 +251,16 @@ body.dark-mode .post-composer {
     background: rgba(99,102,241,0.08);
     border: 1px solid rgba(99,102,241,0.18);
     color: var(--primary);
+    padding: 8px 14px;
+    min-width: 85px;
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.post-action-btn.icon-btn i {
+    font-size: 0.95rem;
+    flex-shrink: 0;
 }
 
 .emoji-toggle-btn {
@@ -3483,6 +3502,35 @@ transition: transform 0.3s ease, box-shadow 0.3s ease;
 
 .post-delete-btn:hover { 
    opacity: 1; 
+}
+
+.post-edit-btn {
+   background: none;
+   border: none;
+   color: #3b82f6;
+   cursor: pointer;
+   opacity: 0.6;
+   transition: 0.2s;
+   font-size: 0.9rem;
+}
+
+.post-edit-btn:hover {
+   opacity: 1;
+}
+
+.comment-delete-btn {
+   background: none;
+   border: none;
+   color: #ef4444;
+   cursor: pointer;
+   opacity: 0.5;
+   transition: 0.2s;
+   padding: 0;
+   font-size: 0.75rem;
+}
+
+.comment-delete-btn:hover {
+   opacity: 1;
 }
 
 .post-time { 

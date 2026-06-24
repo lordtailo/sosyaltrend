@@ -982,7 +982,17 @@ window.addAnnouncementsToFeed = async () => {
             if (!content) return;
             
             const announcementId = doc.id;
-            const createdAt = data.timestamp ? data.timestamp.toDate().toLocaleString('tr-TR') : 'Bilinmiyor';
+            let createdAt = 'Bilinmiyor';
+            if (data.timestamp) {
+                const date = data.timestamp.toDate();
+                const day = String(date.getDate()).padStart(2, '0');
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const year = date.getFullYear();
+                const hours = String(date.getHours()).padStart(2, '0');
+                const minutes = String(date.getMinutes()).padStart(2, '0');
+                const seconds = String(date.getSeconds()).padStart(2, '0');
+                createdAt = `${day}.${month}.${year} ${hours}:${minutes}:${seconds}`;
+            }
             const isLiked = currentUsername && data.likes ? data.likes.includes(currentUsername) : false;
             const isSaved = currentUsername && data.savedBy ? data.savedBy.includes(currentUsername) : false;
             const likeCount = data.likes ? data.likes.length : 0;
@@ -999,11 +1009,19 @@ window.addAnnouncementsToFeed = async () => {
             `;
             
             card.innerHTML = `
+                <div style="position: absolute; top: 15px; right: 15px; display: flex; gap: 8px; z-index: 10;">
+                    <button class="post-edit-btn" style="position:static;" onclick="editAnnouncement('${announcementId}')" title="Düzenle">
+                        <i class="fa-solid fa-pen"></i>
+                    </button>
+                    <button class="post-delete-btn" style="position:static;" onclick="deleteAnnouncement('${announcementId}')">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+                </div>
                 <div style="display:flex; gap:10px; margin-bottom:10px;">
                     <img src="assets/img/strendsaydamv2.png" class="user-avatar" style="width:40px; height:40px; border-radius:50%; cursor:pointer;" onclick="location.href='profil.html?id=official_system'">
                     <div>
                         <div style="font-weight:700; display:flex; align-items:center; gap:5px; cursor:pointer;" onclick="location.href='profil.html?id=official_system'">
-                            SosyaLTrend <i class="fa-solid fa-circle-check" style="color:var(--primary); font-size:0.7rem;"></i>
+                            <span style="font-size:0.75em;">👑</span> SosyaLTrend <i class="fa-solid fa-circle-check" style="color:var(--primary); font-size:0.7rem;"></i>
                             <span class="post-time">• ${createdAt}</span>
                         </div>
                         <div style="font-size:0.75rem; color:var(--text-muted); cursor:pointer;" onclick="location.href='profil.html?id=official_system'">@official_system</div>
@@ -1023,10 +1041,6 @@ window.addAnnouncementsToFeed = async () => {
                     <button class="tool-btn" onclick="toggleAnnouncementComments('${announcementId}')" style="gap:5px;"><i class="fa-regular fa-comment"></i><span>${commentCount}</span></button>
                     <button class="tool-btn" onclick="bookmarkAnnouncement('${announcementId}', ${isSaved})" style="color:${isSaved ? '#f59e0b' : ''}"><i class="${isSaved ? 'fa-solid' : 'fa-regular'} fa-bookmark"></i></button>
                     <button class="tool-btn" onclick="window.openShareMenu('${announcementId}')" style="gap:5px; margin-left:auto;"><i class="fa-solid fa-share"></i></button>
-                    ${(window.user && window.user.isAdmin) ? `
-                    <button class="tool-btn" onclick="editAnnouncement('${announcementId}')" style="gap:5px; color:#3b82f6;" title="Düzenle"><i class="fa-solid fa-pen"></i></button>
-                    <button class="tool-btn" onclick="deleteAnnouncement('${announcementId}')" style="gap:5px; color:#ef4444;" title="Sil"><i class="fa-solid fa-trash"></i></button>
-                    ` : ''}
                 </div>
                 
                 <div id="comments-ann-${announcementId}" class="comment-area" style="display:none;">
@@ -1132,6 +1146,7 @@ window.postAnnouncementComment = async (announcementId) => {
             username: user.username || auth.currentUser.email,
             displayName: user.displayName || auth.currentUser.email,
             avatarUrl: user.avatarUrl || 'assets/img/strendsaydamv2.png',
+            isAdmin: user.isAdmin || false,
             text: commentText,
             time: Date.now()
         };
@@ -1165,11 +1180,20 @@ window.renderAnnouncementComments = (announcementId, comments) => {
                 <img src="${c.avatarUrl || 'assets/img/strendsaydamv2.png'}" style="width:32px; height:32px; border-radius:50%;">
                 <div style="flex:1;">
                     <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <div style="font-weight:700; font-size:0.85rem;">${c.displayName} <span style="color:var(--text-muted);">@${c.username}</span></div>
-                        ${(window.user && window.user.isAdmin) ? `<button onclick="deleteAnnouncementComment('${announcementId}', ${idx})" style="background:none; border:none; color:#ef4444; cursor:pointer; padding:0; font-size:0.75rem;"><i class="fa-solid fa-trash"></i></button>` : ''}
+                        <div style="font-weight:700; font-size:0.85rem;">${c.isAdmin ? '<span style="font-size:0.75em;">👑</span>' : ''} ${c.displayName} <span style="color:var(--text-muted);">@${c.username}</span></div>
+                        <button class="comment-delete-btn" onclick="deleteAnnouncementComment('${announcementId}', ${idx})"><i class="fa-solid fa-trash"></i></button>
                     </div>
                     <p style="margin:4px 0; font-size:0.9rem; color:var(--text-main);">${c.text}</p>
-                    <div style="font-size:0.75rem; color:var(--text-muted);">${new Date(c.time).toLocaleString('tr-TR')}</div>
+                    <div style="font-size:0.75rem; color:var(--text-muted);">${(() => {
+                        const date = new Date(c.time);
+                        const day = String(date.getDate()).padStart(2, '0');
+                        const month = String(date.getMonth() + 1).padStart(2, '0');
+                        const year = date.getFullYear();
+                        const hours = String(date.getHours()).padStart(2, '0');
+                        const minutes = String(date.getMinutes()).padStart(2, '0');
+                        const seconds = String(date.getSeconds()).padStart(2, '0');
+                        return `${day}.${month}.${year} ${hours}:${minutes}:${seconds}`;
+                    })()}</div>
                 </div>
             </div>
         </div>
@@ -1312,7 +1336,17 @@ window.listenForAnnouncementChanges = () => {
                     if (!content) return;
                     
                     const announcementId = doc.id;
-                    const createdAt = data.timestamp ? data.timestamp.toDate().toLocaleString('tr-TR') : 'Bilinmiyor';
+                    let createdAt = 'Bilinmiyor';
+                    if (data.timestamp) {
+                        const date = data.timestamp.toDate();
+                        const day = String(date.getDate()).padStart(2, '0');
+                        const month = String(date.getMonth() + 1).padStart(2, '0');
+                        const year = date.getFullYear();
+                        const hours = String(date.getHours()).padStart(2, '0');
+                        const minutes = String(date.getMinutes()).padStart(2, '0');
+                        const seconds = String(date.getSeconds()).padStart(2, '0');
+                        createdAt = `${day}.${month}.${year} ${hours}:${minutes}:${seconds}`;
+                    }
                     const isLiked = currentUsername && data.likes ? data.likes.includes(currentUsername) : false;
                     const isSaved = currentUsername && data.savedBy ? data.savedBy.includes(currentUsername) : false;
                     const likeCount = data.likes ? data.likes.length : 0;
@@ -1329,6 +1363,14 @@ window.listenForAnnouncementChanges = () => {
                     `;
                     
                     card.innerHTML = `
+                        <div style="position: absolute; top: 15px; right: 15px; display: flex; gap: 8px; z-index: 10;">
+                            <button class="post-edit-btn" style="position:static;" onclick="editAnnouncement('${announcementId}')" title="Düzenle">
+                                <i class="fa-solid fa-pen"></i>
+                            </button>
+                            <button class="post-delete-btn" style="position:static;" onclick="deleteAnnouncement('${announcementId}')">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                        </div>
                         <div style="display:flex; gap:10px; margin-bottom:10px;">
                             <img src="assets/img/strendsaydamv2.png" class="user-avatar" style="width:40px; height:40px; border-radius:50%; cursor:pointer;" onclick="location.href='profil.html?id=official_system'">
                             <div>
@@ -1353,10 +1395,6 @@ window.listenForAnnouncementChanges = () => {
                             <button class="tool-btn" onclick="toggleAnnouncementComments('${announcementId}')" style="gap:5px;"><i class="fa-regular fa-comment"></i><span>${commentCount}</span></button>
                             <button class="tool-btn" onclick="bookmarkAnnouncement('${announcementId}', ${isSaved})" style="color:${isSaved ? '#f59e0b' : ''}"><i class="${isSaved ? 'fa-solid' : 'fa-regular'} fa-bookmark"></i></button>
                             <button class="tool-btn" onclick="window.openShareMenu('${announcementId}')" style="gap:5px; margin-left:auto;"><i class="fa-solid fa-share"></i></button>
-                            ${(window.user && window.user.isAdmin) ? `
-                            <button class="tool-btn" onclick="editAnnouncement('${announcementId}')" style="gap:5px; color:#3b82f6;" title="Düzenle"><i class="fa-solid fa-pen"></i></button>
-                            <button class="tool-btn" onclick="deleteAnnouncement('${announcementId}')" style="gap:5px; color:#ef4444;" title="Sil"><i class="fa-solid fa-trash"></i></button>
-                            ` : ''}
                         </div>
                         
                         <div id="comments-ann-${announcementId}" class="comment-area" style="display:none;">
@@ -4092,16 +4130,14 @@ function formatPostTimestamp(timestamp) {
     }
 
     try {
-        const now = new Date();
-        const diffSeconds = Math.floor((now - date) / 1000);
-        let dayCount = Math.floor(diffSeconds / 86400) + 1;
-        if (dayCount < 1) dayCount = 1;
-        const formattedDate = date.toLocaleDateString('tr-TR', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric'
-        });
-        return `${formattedDate}/${dayCount}.gün`;
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = date.getFullYear();
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        const seconds = String(date.getSeconds()).padStart(2, '0');
+        
+        return `${day}.${month}.${year} ${hours}:${minutes}:${seconds}`;
     } catch (e) {
         return "...";
     }
@@ -4236,6 +4272,7 @@ window.likePost = async (id, isLiked, btn) => {
                       username: user.username,
                       displayName: user.displayName,
                       avatarUrl: user.avatarUrl,
+                      isAdmin: user.isAdmin || false,
                       text: text,
                       time: Date.now()
                   };
@@ -4261,6 +4298,7 @@ window.likePost = async (id, isLiked, btn) => {
                       username: user.username,
                       displayName: user.displayName,
                       avatarUrl: user.avatarUrl,
+                      isAdmin: user.isAdmin || false,
                       text: text,
                       time: Date.now(),
                       replies: []
@@ -4450,7 +4488,7 @@ window.loadPostsFeed = (showAll = false) => {
               <img src="${avatarUrl}" class="${isPage ? 'page-avatar' : 'user-avatar'}" style="cursor:pointer;" onclick="${isMine ? "navigateTo('profil')" : `location.href='profil.html?id=${encodeURIComponent(p.username)}'`}">
               <div>
                   <div style="font-weight:700; display:flex; align-items:center; gap:5px; cursor:pointer;" onclick="${isMine ? "navigateTo('profil')" : `location.href='profil.html?id=${encodeURIComponent(p.username)}'`}">
-                      ${p.name} ${isPage ? '<i class="fa-solid fa-circle-check" style="color:var(--primary); font-size:0.7rem;"></i>' : ''}
+                      ${p.authorIsAdmin ? '<span style="font-size:0.75em; margin-right:2px;">👑</span>' : ''} ${p.name} ${isPage ? '<i class="fa-solid fa-circle-check" style="color:var(--primary); font-size:0.7rem;"></i>' : ''}
                       <span class="post-time">• ${formatPostTimestamp(p.timestamp)}</span>
                       ${p.isEdited ? `<span style="font-size: 0.6rem; color: var(--text-muted); font-weight: normal;">(düzenlendi)</span>` : ''}
                   </div>
@@ -4480,7 +4518,7 @@ window.loadPostsFeed = (showAll = false) => {
                                   <img src="${getAvatarUrl(c.avatarUrl || c.avatarSeed || 'assets/img/strendsaydamv2.png', 'user')}" class="comment-author-avatar" style="width:32px; height:32px; border-radius:50%; cursor:pointer;" onclick="${c.username === user.username ? "navigateTo('profil')" : `location.href='profil.html?id=${encodeURIComponent(c.username)}'`}">
                                   <div>
                                       <div>
-                                          <span class="comment-meta" style="cursor:pointer;" onclick="${c.username === user.username ? "navigateTo('profil')" : `location.href='profil.html?id=${encodeURIComponent(c.username)}'`}">${c.displayName}</span>
+                                          <span class="comment-meta" style="cursor:pointer;" onclick="${c.username === user.username ? "navigateTo('profil')" : `location.href='profil.html?id=${encodeURIComponent(c.username)}'`}">${c.isAdmin ? '<span style="font-size:0.75em;">👑</span>' : ''} ${c.displayName}</span>
                                           <span class="comment-time">• ${formatTime(c.time)}</span>
                                       </div>
                                   </div>
@@ -4506,7 +4544,7 @@ window.loadPostsFeed = (showAll = false) => {
                                       <img src="${getAvatarUrl(r.avatarUrl || r.avatarSeed || 'assets/img/strendsaydamv2.png', 'user')}" style="width: 22px; height: 22px; border-radius: 50%; cursor:pointer;" onclick="${r.username === user.username ? "navigateTo('profil')" : `location.href='profil.html?id=${encodeURIComponent(r.username)}'`}">
                                       <div style="flex:1;">
                                           <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
-                                              <b style="color:var(--primary); cursor:pointer;" onclick="${r.username === user.username ? "navigateTo('profil')" : `location.href='profil.html?id=${encodeURIComponent(r.username)}'`}">${r.displayName}</b>
+                                              <b style="color:var(--primary); cursor:pointer;" onclick="${r.username === user.username ? "navigateTo('profil')" : `location.href='profil.html?id=${encodeURIComponent(r.username)}'`}">${r.isAdmin ? '<span style="font-size:0.75em;">👑</span>' : ''} ${r.displayName}</b>
                                               <span class="comment-time">• ${formatTime(r.time)}</span>
                                           </div>
                                           <div style="margin-top:4px; font-size:0.9rem; color:var(--text-main);">${r.text}</div>
@@ -4649,6 +4687,7 @@ if (typeof updatePostCount === 'function') updatePostCount();
                     name: user.displayName,
                     username: user.username,
                     avatarUrl: user.avatarUrl || user.photoURL || 'assets/img/strendsaydamv2.png',
+                    authorIsAdmin: user.isAdmin || false,
                     content: val,
                     image: selectedImageBase64 || null,
                     timestamp: serverTimestamp(),

@@ -138,17 +138,6 @@
             z-index: 1;
         }
         
-        .announcement-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 4px;
-            background: linear-gradient(90deg, var(--primary), transparent);
-            z-index: -1;
-        }
-        
         .announcement-card:hover {
             border-color: var(--primary);
             box-shadow: 0 8px 24px rgba(99,102,241,0.15);
@@ -407,7 +396,6 @@
     <!-- ANA MENU TABS -->
     <div class="admin-tabs main-admin-tabs" style="margin-bottom: 28px; border-bottom: 3px solid var(--border); padding-bottom: 0;">
         <button class="tab-btn main-tab-btn active" onclick="switchMainSection('system', this)"><i class="fa-solid fa-bell"></i> Sistem</button>
-        <button class="tab-btn main-tab-btn" onclick="switchMainSection('users', this)"><i class="fa-solid fa-users"></i> Kullanıcılar</button>
         <button class="tab-btn main-tab-btn" onclick="switchMainSection('management', this)"><i class="fa-solid fa-sliders"></i> Yönetim</button>
         <button class="tab-btn main-tab-btn" onclick="switchMainSection('moderation', this)"><i class="fa-solid fa-shield-check"></i> Denetim</button>
     </div>
@@ -438,72 +426,6 @@
         </div>
     </div>
 
-    <!-- KULLANICI PANELI -->
-    <div id="main-section-users" class="main-section">
-        <div class="admin-block admin-block-user">
-            <h2><i class="fa-solid fa-users"></i> Kullanıcı Yönetimi</h2>
-            <div class="admin-tabs">
-                <button class="tab-btn active" onclick="switchTab('users', this)"><i class="fa-solid fa-user-check"></i> Aktif Kullanıcılar</button>
-                <button class="tab-btn" onclick="switchTab('registered', this)"><i class="fa-solid fa-list"></i> Tüm Kayıtlılar</button>
-            </div>
-
-            <!-- AKTIF KULLANICILAR -->
-            <div id="section-users" class="admin-section active">
-            <div class="admin-subtabs">
-                <button class="subtab-btn active" onclick="switchUserSubtab('active', this)"><i class="fa-solid fa-database"></i> Veritabanı</button>
-                <button class="subtab-btn" onclick="switchUserSubtab('recent', this)"><i class="fa-solid fa-hourglass-end"></i> 24 Saat</button>
-                <button class="subtab-btn" onclick="switchUserSubtab('loginTimes', this)"><i class="fa-solid fa-history"></i> Geçmiş</button>
-            </div>
-
-            <div id="subsection-active" class="admin-subsection active">
-                <div class="section-subtitle"><i class="fa-solid fa-magnifying-glass"></i> Aktif Kullanıcı Arama</div>
-                <div class="search-filter-bar">
-                    <input type="text" id="activeUserSearch" class="search-input" placeholder="Adı veya kullanıcı adı ile ara..." onkeyup="filterActiveUsers()">
-                    <button class="search-btn" onclick="filterActiveUsers()"><i class="fa-solid fa-magnifying-glass"></i> Ara</button>
-                </div>
-                <table class="data-table">
-                    <thead><tr><th>Kullanıcı</th><th>Kullanıcı Adı</th><th>Rol</th><th>İşlem</th></tr></thead>
-                    <tbody id="user-list-body"></tbody>
-                </table>
-            </div>
-
-            <div id="subsection-recent" class="admin-subsection">
-                <div class="section-subtitle"><i class="fa-solid fa-person-circle-check"></i> 24 Saat İçinde Giriş</div>
-                <table class="data-table">
-                    <thead><tr><th>Kullanıcı</th><th>Kullanıcı Adı</th><th>Son Giriş</th><th>Durum</th></tr></thead>
-                    <tbody id="recent-logins-body"></tbody>
-                </table>
-            </div>
-
-            <div id="subsection-loginTimes" class="admin-subsection">
-                <div class="section-subtitle"><i class="fa-solid fa-calendar-alt"></i> Giriş Geçmişi</div>
-                <table class="data-table">
-                    <thead><tr><th>Kullanıcı</th><th>Kullanıcı Adı</th><th>Son Giriş</th><th>İşlem</th></tr></thead>
-                    <tbody id="last-login-times-body"></tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- TÜM KAYITLILAR -->
-        <div id="section-registered" class="admin-section">
-            <div class="admin-subtabs">
-                <button class="subtab-btn active" onclick="switchRegisteredSubtab('all', this)"><i class="fa-solid fa-users-line"></i> Tüm</button>
-                <button class="subtab-btn" onclick="switchRegisteredSubtab('week', this)"><i class="fa-solid fa-calendar-week"></i> 1 Hafta</button>
-                <button class="subtab-btn" onclick="switchRegisteredSubtab('month', this)"><i class="fa-solid fa-calendar-days"></i> 1 Ay</button>
-            </div>
-            <div class="section-subtitle" id="registered-section-title"><i class="fa-solid fa-database"></i> Tüm Kayıtlı Kullanıcılar</div>
-            <div class="search-filter-bar">
-                <input type="text" id="registeredUserSearch" class="search-input" placeholder="Kullanıcı adı veya email ile ara..." onkeyup="filterRegisteredUsers()">
-                <button class="search-btn" onclick="filterRegisteredUsers()"><i class="fa-solid fa-magnifying-glass"></i> Ara</button>
-            </div>
-            <table class="data-table">
-                <thead><tr><th>Kullanıcı</th><th>Kullanıcı Adı</th><th>Email</th><th>Kayıt Tarihi</th><th>Rol</th></tr></thead>
-                <tbody id="registered-users-body"></tbody>
-            </table>
-        </div>
-        </div>
-    </div>
-
     <!-- YÖNETIM PANELI -->
     <div id="main-section-management" class="main-section">
         <div class="admin-block">
@@ -526,7 +448,7 @@
                     <button class="search-btn" onclick="filterManagedUsers()"><i class="fa-solid fa-magnifying-glass"></i> Ara</button>
                 </div>
                 <table class="data-table">
-                    <thead><tr><th>Kullanıcı</th><th>Kullanıcı Adı</th><th>Email</th><th>Rol</th><th>İşlem</th></tr></thead>
+                    <thead><tr><th>Kullanıcı</th><th>Kullanıcı Adı</th><th>Email</th><th>İşlem</th></tr></thead>
                     <tbody id="managed-users-body"></tbody>
                 </table>
             </div>
@@ -756,7 +678,7 @@
 
             if (!managedTbody) return;
             if (managedSnap.empty) {
-                managedTbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color: var(--text-muted);">Kayıtlı kullanıcı bulunamadı</td></tr>';
+                managedTbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color: var(--text-muted);">Kayıtlı kullanıcı bulunamadı</td></tr>';
                 return;
             }
 
@@ -779,8 +701,7 @@
                         <td><img src="${avatarSrc}" alt="${name} avatar" style="width:32px;height:32px;border-radius:50%;object-fit:cover;"><b>${name}</b></td>
                         <td>@${username}</td>
                         <td>${email}</td>
-                        <td><span class="badge ${isUserAdmin ? 'badge-admin' : 'badge-user'}">${isUserAdmin ? 'Admin' : 'Üye'}</span></td>
-                        <td style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+                        <td style="display:flex; flex-direction: column; gap:8px; align-items:stretch;">
                             <button class="action-btn" onclick="toggleAdminPrivilege('${doc.id}', ${isUserAdmin ? 'false' : 'true'})">${isUserAdmin ? 'Yetki Kaldır' : 'Admin Yap'}</button>
                             <button class="action-btn btn-delete" onclick="openBanModal('${doc.id}')" ${isUserAdmin ? 'disabled' : ''}>${banActive ? 'Banı Kaldır' : 'Banla'}</button>
                             <button class="action-btn btn-delete" onclick="deleteRegisteredUser('${doc.id}')" ${isUserAdmin ? 'disabled' : ''}>Sil</button>
@@ -791,7 +712,7 @@
             });
         } catch (e) {
             console.error('Managed users load error:', e);
-            if (managedTbody) managedTbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color: var(--danger);">Veri yüklenirken hata oluştu</td></tr>';
+            if (managedTbody) managedTbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color: var(--danger);">Veri yüklenirken hata oluştu</td></tr>';
         }
     }
 
@@ -840,7 +761,7 @@
                         <td>${email}</td>
                         <td>${banUntilText}</td>
                         <td>${banReason}</td>
-                        <td style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+                        <td style="display:flex; flex-direction: column; gap:8px; align-items:stretch;">
                             <button class="action-btn" onclick="openBanModal('${doc.id}')" ${isUserAdmin ? 'disabled' : ''}>Banı Yönet</button>
                         </td>
                     </tr>`;
@@ -1981,7 +1902,17 @@
             
             announcementsSnap.forEach(doc => {
                 const data = doc.data();
-                const createdAt = data.timestamp ? data.timestamp.toDate().toLocaleString('tr-TR') : 'Bilinmiyor';
+                let createdAt = 'Bilinmiyor';
+                if (data.timestamp) {
+                    const date = data.timestamp.toDate();
+                    const day = String(date.getDate()).padStart(2, '0');
+                    const month = String(date.getMonth() + 1).padStart(2, '0');
+                    const year = date.getFullYear();
+                    const hours = String(date.getHours()).padStart(2, '0');
+                    const minutes = String(date.getMinutes()).padStart(2, '0');
+                    const seconds = String(date.getSeconds()).padStart(2, '0');
+                    createdAt = `${day}.${month}.${year} ${hours}:${minutes}:${seconds}`;
+                }
                 const adminEmail = 'official_system';
                 const content = (data.content || '(Boş duyuru)').trim();
                 
@@ -1996,10 +1927,10 @@
                         </div>
                     </div>
                     <div class="announcement-actions">
-                        <button class="announcement-delete-btn" onclick="editAnnouncement('${doc.id}')" title="Bu duyuruyu düzenle" style="background:linear-gradient(135deg, #3b82f6, #2563eb); border-radius:4px; padding:8px 12px; color:white; border:none; cursor:pointer;">
+                        <button class="post-edit-btn" style="position:static;" onclick="editAnnouncement('${doc.id}')" title="Bu duyuruyu düzenle">
                             <i class="fa-solid fa-pen"></i>
                         </button>
-                        <button class="announcement-delete-btn" onclick="deleteAnnouncement('${doc.id}')" title="Bu duyuruyu sil">
+                        <button class="post-delete-btn" style="position:static;" onclick="deleteAnnouncement('${doc.id}')" title="Bu duyuruyu sil">
                             <i class="fa-solid fa-trash"></i>
                         </button>
                     </div>
@@ -2134,9 +2065,9 @@
             loadAnnouncements();
         }
         
-        // Sistem bölümüne geçildiğinde duyuruları yükle
-        if (sectionId === 'system') {
-            loadAnnouncements();
+        // Yönetim tab'ına geçişte kullanıcıları yükle
+        if (sectionId === 'management') {
+            loadManagedUsers();
         }
     };
 
@@ -2188,8 +2119,8 @@
         const subsection = document.getElementById('userManagement-subsection-' + subtabId);
         const isAlreadyActive = subsection && subsection.classList.contains('active');
 
-        document.querySelectorAll('#section-userManagement .admin-subsection').forEach(s => s.classList.remove('active'));
-        document.querySelectorAll('#section-userManagement .subtab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('#main-section-management .admin-subsection').forEach(s => s.classList.remove('active'));
+        document.querySelectorAll('#main-section-management .subtab-btn').forEach(b => b.classList.remove('active'));
 
         if (!isAlreadyActive) {
             if (subsection) subsection.classList.add('active');

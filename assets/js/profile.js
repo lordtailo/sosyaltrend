@@ -83,7 +83,7 @@ function createPostCard(post) {
         <img src="${avatarUrl}" onerror="this.onerror=null;this.src='assets/img/strendsaydamv2.png';" class="user-avatar" style="width:48px; height:48px; border-radius:50%; object-fit:cover; cursor:pointer;" onclick="location.href='profil.html?id=${encodeURIComponent(authorUsername)}'">
         <div>
           <div style="font-weight:700; display:flex; align-items:center; gap:6px; cursor:pointer;" onclick="location.href='profil.html?id=${encodeURIComponent(authorUsername)}'">
-            ${authorName}
+            ${post.authorIsAdmin ? '<span style="font-size:0.75em;">👑</span>' : ''} ${authorName}
             <span class="post-time" style="font-weight:400; color:var(--text-muted); font-size:0.85rem;">• ${formatTimestamp(post.timestamp)}</span>
           </div>
           <div style="font-size:0.78rem; color:var(--text-muted); cursor:pointer;" onclick="location.href='profil.html?id=${encodeURIComponent(authorUsername)}'">@${authorUsername}</div>
