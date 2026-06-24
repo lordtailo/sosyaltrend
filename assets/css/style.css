@@ -4640,7 +4640,7 @@ font-size: 0.9rem; font-weight: 800; color: var(--primary); margin: 20px 0 10px;
   }
   .fab-compose { display: none; }
   /* Avoid content being hidden behind the bottom navigation */
-  body { padding-bottom: 92px; }
+  body { padding-bottom: 0px; }
 
 /* Small utility for bottom nav icon badges */
 .nav-badge { background: #ef4444; color: #fff; border-radius: 999px; padding: 2px 6px; font-size: 0.7rem; font-weight:700; }
