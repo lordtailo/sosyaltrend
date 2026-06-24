@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>SosyaLTrend • Sosyal Ağ - Profiliniz</title>
   <meta name="description" content="Profilinizi yönetin, arkadaşlarınızı görün, ayarlarınızı değiştirin.">
-  <link rel="stylesheet" href="assets/fontawesome/css/all.min.css">
+  <link rel="stylesheet" href="assets/css/all.min.css">
   <link rel="stylesheet" href="assets/css/style.css">
   <link rel="stylesheet" href="assets/css/chat-widget.css?v=20260240">
   <link rel="icon" type="image/x-icon" href="assets/img/strendsaydamv2.ico">
@@ -258,18 +258,6 @@
     .friends-widget-grid { display: grid; grid-template-columns: repeat(3, minmax(140px, 1fr)); gap: 12px; }
     .friend-card { background: var(--input-bg); padding: 15px; border-radius: 10px; text-align: center; transition: all 0.3s ease; border: none; box-shadow: none; }
     .friend-card:hover { transform: translateY(-3px); box-shadow: none; }
-    .tebrikler-preview-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
-    .tebrik-preview-item { background: linear-gradient(135deg, rgba(var(--primary-rgb,99,102,241),0.08), rgba(255,255,255,0.8)); border-radius: 14px; padding: 12px 10px; text-align: center; border: 1px solid rgba(0,0,0,0.04); transition: all 0.25s ease; min-height: 110px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; }
-    .tebrik-preview-item:hover { transform: translateY(-2px); background: linear-gradient(135deg, rgba(var(--primary-rgb,99,102,241),0.14), rgba(255,255,255,0.9)); }
-    .tebrik-preview-name { font-size: 0.7rem; font-weight: 600; line-height: 1.1; color: var(--text-main); word-break: break-word; }
-    .tebrik-preview-count { font-size: 0.65rem; color: var(--text-muted); margin-top: 2px; }
-    @media (max-width: 880px) {
-      .tebrikler-preview-grid { grid-template-columns: repeat(2, 1fr); }
-    }
-    @media (max-width: 620px) {
-      .tebrikler-preview-grid { grid-template-columns: 1fr; }
-    }
-
     .friends-widget-grid, .friends-widget-preview { grid-template-columns: repeat(2, minmax(140px, 1fr)); }
     
     @media (max-width: 620px) {
@@ -311,10 +299,6 @@
       .profile-avatar-wrap { width: 100px; height: 100px; }
       .profile-user-name { font-size: 2rem; }
       .profile-action-btn { width: 100%; justify-content: center; }
-    }
-    /* Mobilde Son Tebrikler önizlemesini gizle (profil sekmesi görünmüyorsa uyum sağlar) */
-    @media (max-width: 768px) {
-      #son-tebrikler-block { display: none !important; }
     }
   </style> 
 </head>
@@ -517,7 +501,6 @@
             <a class="tab-btn profile-tab-btn active" href="#posts" onclick="openTab(event, 'my-posts-tab')"><i class="fa-solid fa-feather"></i> Gönderiler</a>
             <a class="tab-btn profile-tab-btn" href="#likes" onclick="openTab(event, 'my-likes-tab')"><i class="fa-solid fa-heart"></i> Beğeniler</a>
             <a class="tab-btn profile-tab-btn" href="#saves" onclick="openTab(event, 'my-saves-tab')"><i class="fa-solid fa-bookmark"></i> Kayıtlar</a>
-            <a class="tab-btn profile-tab-btn" href="#tebrikler" onclick="openTab(event, 'my-congrats-tab')"><i class="fa-solid fa-gift"></i> Tebrikler</a>
             <a class="tab-btn profile-tab-btn" href="#friends" onclick="openTab(event, 'my-friends-tab')"><i class="fa-solid fa-users"></i> Arkadaşlar</a>
             <a class="tab-btn profile-tab-btn" href="#notifs" onclick="openTab(event, 'my-notifs-tab')"><i class="fa-solid fa-bell"></i> Bildirimler</a>
           </nav>
@@ -551,54 +534,6 @@
             <div id="no-saves-msg" style="display:none; text-align:center; color:var(--text-muted); padding:30px 0;">
               <i class="fa-solid fa-bookmark" style="font-size:2.4rem; margin-bottom:12px; display:block;"></i>
               Henüz kayıtlı gönderi yok.
-            </div>
-          </section>
-
-          <section id="my-congrats-tab" class="tab-content content-card">
-            <h3>Tebrikler</h3>
-            <p>Size gelen tebriklerin raporu burada listelenir.</p>
-            <article class="profile-card" style="margin-top: 16px;">
-              <div class="card-header">
-                <div>
-                  <h2 class="card-title">Tebrik Derecesi</h2>
-                  <p class="card-subtitle">Profiliniz için skor bilgisi.</p>
-                </div>
-                <span id="tebrikLevel" class="badge-pill">Yeni Başlayan</span>
-              </div>
-              <div class="card-body">
-                <div style="display:grid; gap:14px;">
-                  <div class="info-item" style="justify-content:flex-start;"><span style="color:var(--text-muted);">Tebrik Sayısı</span><strong id="tebrikCount">0</strong></div>
-                  <div class="info-item" style="justify-content:flex-start;"><span style="color:var(--text-muted);">Sıralama</span><strong id="tebrikRank">#--</strong></div>
-                  <div style="background:rgba(var(--primary-rgb,99,102,241),0.12); border-radius:16px; padding:16px 18px;">
-                    <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:10px;">
-                      <span style="font-weight:700; color:var(--primary);">Profil Gücü</span>
-                      <span id="tebrikPercent" style="font-size:0.9rem; color:var(--text-muted);">%0</span>
-                    </div>
-                    <div style="height:10px; background:rgba(0,0,0,0.08); border-radius:999px; overflow:hidden;"><div id="tebrikProgress" style="width:0%; height:100%; background:var(--primary); border-radius:999px;"></div></div>
-                  </div>
-                  <p id="tebrikSummaryText" style="margin: 0; color: var(--text-muted); font-size: 0.95rem; line-height: 1.5;">Henüz tebrik almadı. Şimdi ilk tebriği gönder!</p>
-                </div>
-              </div>
-              <div style="border-top: 1px solid rgba(0,0,0,0.06);"></div>
-            </article>
-            <div class="content-card" style="padding:16px; background:rgba(249,250,251,0.95); border:none;">
-              <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:14px;">
-                <span style="font-weight:700; color:var(--primary);">Tebrik Puanları</span>
-                <button id="congratsValuesBtn" type="button" onclick="window.toggleCongratsValueTable()" style="background:var(--primary); color:#fff; border:none; padding:8px 12px; border-radius:12px; font-weight:700; cursor:pointer; font-size:0.9rem;">Tebrik Değerleri</button>
-              </div>
-              <div id="my-congrats-list" style="display:flex; flex-direction:column; gap:12px; min-height:120px;"></div>
-              <div id="no-tebrikler-msg" style="display:none; text-align:center; color:var(--text-muted); padding:24px 0;">Henüz tebrik yok.</div>
-            </div>
-          </section>
-
-          <section id="my-friends-tab" class="tab-content content-card">
-            <h3>Arkadaşlarım</h3>
-            <p>Tüm arkadaşlarınızı buradan yönetebilirsiniz.</p>
-            <div style="margin-top:16px; display:flex; gap:10px; flex-wrap:wrap;"><input type="text" id="friendSearch" placeholder="Arkadaş ara..." style="flex:1; min-width:180px; padding:12px 14px; border:1px solid rgba(0,0,0,0.08); border-radius:16px; background:#fff;"></div>
-            <div id="friends-list" style="display:grid; grid-template-columns: repeat(3, minmax(160px, 1fr)); gap:18px; margin-top:20px;"></div>
-            <div id="no-friends-msg" style="display:none; text-align:center; color:var(--text-muted); padding:30px 0;">
-              <i class="fa-solid fa-user-group" style="font-size:2.4rem; margin-bottom:12px; display:block;"></i>
-              Henüz arkadaş yok.
             </div>
           </section>
 
@@ -643,7 +578,6 @@ function openProfileTabByHash(hash) {
     posts: 'my-posts-tab',
     likes: 'my-likes-tab',
     saves: 'my-saves-tab',
-    tebrikler: 'my-congrats-tab',
     friends: 'my-friends-tab',
     notifs: 'my-notifs-tab'
   };
@@ -954,8 +888,8 @@ function openEditSection(section) {
     }
     
     // Sadece kendi profilimizse verileri yükle
-    if (['my-posts-tab','my-likes-tab','my-saves-tab','my-congrats-tab'].includes(tabName) && isOwnProfile) {
-        const section = tabName === 'my-posts-tab' ? 'posts' : (tabName === 'my-likes-tab' ? 'likes' : (tabName === 'my-saves-tab' ? 'saves' : 'tebrikler'));
+    if (['my-posts-tab','my-likes-tab','my-saves-tab'].includes(tabName) && isOwnProfile) {
+        const section = tabName === 'my-posts-tab' ? 'posts' : (tabName === 'my-likes-tab' ? 'likes' : (tabName === 'my-saves-tab' ? 'saves' : 'posts'));
         requestAnimationFrame(() => {
             if (window.loadProfileSections && typeof window.loadProfileSections === 'function') {
                 try {
@@ -998,28 +932,6 @@ function openEditSection(section) {
 }
 
 </script>
-<!-- Tebrik Kartı Modal (profil sayfası) -->
-<div id="tebrikModal" class="modal-overlay" style="display:none; position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.5); z-index:2200; align-items:center; justify-content:center;">
-  <div class="glass-card" style="width: 92%; max-width: 520px; padding: 18px;">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-      <h3 style="margin:0">Tebrik Kartı Gönder</h3>
-      <button onclick="closeTebrikModal()" style="background:none;border:none;font-size:1.4rem;cursor:pointer;color:var(--text-main);">&times;</button>
-    </div>
-    <div style="margin-bottom:8px; font-size:0.9rem; color:var(--text-muted);">Kime göndermek istiyorsunuz? Kullanıcı adını yazın (ör: ahmet)</div>
-    <input id="tebrikTargetUsername" type="text" placeholder="Kullanıcı adı" style="width:100%; padding:10px; border:1px solid var(--border); border-radius:8px; margin-bottom:10px;">
-    <div style="margin-bottom:8px; font-size:0.9rem; color:var(--text-muted);">Şablonlar</div>
-    <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;">
-      <button type="button" onclick="document.getElementById('tebrikMessage').value='Muhteşem yazıların için tebrikler!';" class="admin-btn">Muhteşem!</button>
-      <button type="button" onclick="document.getElementById('tebrikMessage').value='Yazıların ilham veriyor, tebrikler!';" class="admin-btn">İlham Verici</button>
-      <button type="button" onclick="document.getElementById('tebrikMessage').value='Paylaşımların çok değerli, başarılar!';" class="admin-btn">Değerli Paylaşımlar</button>
-    </div>
-    <textarea id="tebrikMessage" rows="4" placeholder="Kendi tebriğinizi yazın (opsiyonel)" style="width:100%; padding:10px; border:1px solid var(--border); border-radius:8px; margin-bottom:12px;"></textarea>
-    <div style="display:flex; gap:8px; justify-content:flex-end;">
-      <button onclick="closeTebrikModal()" style="background:transparent; border:1px solid var(--border); padding:8px 14px; border-radius:10px;">İptal</button>
-      <button onclick="sendTebrikFromModal()" style="background: linear-gradient(135deg,#f97316,#f59e0b); color:white; border:none; padding:8px 14px; border-radius:10px; font-weight:700;">Gönder</button>
-    </div>
-  </div>
-</div>
 <script>
 window.handleProfileAction = function() {
     const urlParams = new URLSearchParams(window.location.search);

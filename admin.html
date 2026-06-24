@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>SosyaLTrend • Sosyal Ağ - Admin</title>
   <meta name="description" content="SosyaLTrend yönetim paneli. Kullanıcı yönetimi ve sistem ayarları.">
-  <link rel="stylesheet" href="assets/fontawesome/css/all.min.css">
+  <link rel="stylesheet" href="assets/css/all.min.css">
   <link rel="stylesheet" href="assets/css/style.css">
   <link rel="icon" type="image/x-icon" href="assets/img/strendsaydamv2.ico">
 </head>
@@ -64,7 +64,6 @@
             <h2>Yönetim</h2>
             <div class="admin-tabs">
                 <button class="tab-btn active" onclick="switchTab('announcement', this)">Sistem Duyurusu</button>
-                <button id="pollsTabBtn" class="tab-btn" onclick="switchTab('polls', this)">Anket Yönetimi</button>
             </div>
 
             <div id="section-announcement" class="admin-section active">
@@ -73,31 +72,7 @@
                 <button id="broadcastBtn" class="form-btn" style="width: auto; padding: 12px 30px;"><i class="fa-solid fa-paper-plane"></i> Duyuruyu Tüm Sisteme Gönder</button>
             </div>
 
-            <div id="section-polls" class="admin-section">
-                <div class="section-subtitle">Yeni Anket Oluştur</div>
-                <div style="display:grid; gap:12px; margin-bottom:20px;">
-                    <input id="pollQuestion" class="form-input" placeholder="Anket sorusunu yazın..." style="width:100%; padding:12px; border-radius:12px; border:1px solid var(--border); background:transparent; color:var(--text-main);">
-                    <div style="display:grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap:10px;">
-                        <input id="pollOption1" class="form-input" placeholder="Seçenek 1" style="padding:12px; border-radius:12px; border:1px solid var(--border); background:transparent; color:var(--text-main);">
-                        <input id="pollOption2" class="form-input" placeholder="Seçenek 2" style="padding:12px; border-radius:12px; border:1px solid var(--border); background:transparent; color:var(--text-main);">
-                        <input id="pollOption3" class="form-input" placeholder="Seçenek 3 (isteğe bağlı)" style="padding:12px; border-radius:12px; border:1px solid var(--border); background:transparent; color:var(--text-main);">
-                        <input id="pollOption4" class="form-input" placeholder="Seçenek 4 (isteğe bağlı)" style="padding:12px; border-radius:12px; border:1px solid var(--border); background:transparent; color:var(--text-main);">
-                    </div>
-                    <div style="display:flex; flex-wrap:wrap; gap:10px; align-items:center;">
-                        <div style="display:flex; gap:8px; align-items:center;">
-                            <label for="pollDays" style="font-size:0.9rem; color:var(--text-muted);">Süre:</label>
-                            <input id="pollDays" type="number" min="0" max="30" value="0" style="width:80px; padding:10px; border-radius:12px; border:1px solid var(--border); background:transparent; color:var(--text-main);" placeholder="Gün">
-                            <span style="font-size:0.9rem; color:var(--text-muted);">gün</span>
-                            <input id="pollHours" type="number" min="1" max="168" value="24" style="width:80px; padding:10px; border-radius:12px; border:1px solid var(--border); background:transparent; color:var(--text-main);" placeholder="Saat">
-                            <span style="font-size:0.9rem; color:var(--text-muted);">saat</span>
-                        </div>
-                        <button id="createPollBtn" class="form-btn" style="width:auto; padding:12px 24px;">Anket Oluştur</button>
-                    </div>
-                    <div style="font-size:0.85rem; color:var(--text-muted);">Oluşturduğunuz anket ana sayfada sol altta görünür. Kullanıcılar sadece bir kez oy verebilir; anket sonuçları ve oy kullananlar listesi gösterilir.</div>
-                </div>
-                <div class="section-subtitle">Mevcut ve Önceki Anketler</div>
-                <div id="admin-polls-list"></div>
-            </div>
+
         </div>
 
         <div class="admin-block admin-block-user">
@@ -193,65 +168,18 @@
             </div>
         </div>
 
-            <!-- Üst seviye 'Tebrikler & Teşekkürler' bloğu admin tarafından kaldırıldı. Kullanıcı yönetimindeki ilgili alt sekme korunuyor. -->
+
+            <!-- 'Tebrikler & Teşekkürler' özelliği kaldırıldı -->
 
             <div class="admin-block admin-block-page">
             <h2>Sayfa</h2>
             <div class="admin-tabs">
                 <button class="tab-btn active" onclick="switchTab('moderation', this)">İçerik Denetimi</button>
-                <button class="tab-btn" onclick="switchTab('pagepolls', this)">Anketler</button>
-                <button class="tab-btn" onclick="switchTab('tebrikpage', this)">Tebrikler & Teşekkürler</button>
-                <button class="tab-btn" onclick="switchTab('contenttebrik', this)">İçerik Tebrikleri</button>
             </div>
             <div id="section-moderation" class="admin-section active">
                 <div class="admin-block" style="padding:16px; margin-top:6px;">
                     <div class="section-subtitle">Tüm Paylaşımları Yönet</div>
                     <div id="admin-feed-list"></div>
-                </div>
-            </div>
-
-            <div id="section-tebrikpage" class="admin-section">
-                <div class="admin-block" style="padding:16px; margin-top:6px;">
-                    <div class="section-subtitle">Tebrikler ve Teşekkürler Yönetimi</div>
-                    <div style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:12px; margin-bottom:16px;">
-                        <div style="color:var(--text-muted);">Kullanıcıların tebrik ve teşekkür sayıları burada listelenir. Hızlı sıfırlama yapabilirsiniz.</div>
-                        <div style="display:flex; gap:8px; flex-wrap:wrap;">
-                            <button class="form-btn" onclick="loadUserManagementTebrikThanks()">Yenile</button>
-                        </div>
-                    </div>
-                    <table class="data-table">
-                        <thead><tr><th>Kullanıcı</th><th>Kullanıcı Adı</th><th>Tebrik</th><th>Teşekkür</th><th>İşlem</th></tr></thead>
-                        <tbody id="user-management-tebrik-table-body"></tbody>
-                    </table>
-                </div>
-            </div>
-
-            <div id="section-pagepolls" class="admin-section">
-                <div class="admin-block" style="padding:16px; margin-top:6px;">
-                    <div class="section-subtitle">Kullanıcı Gönderisi Anketleri</div>
-                    <div style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:12px; margin-bottom:16px;">
-                        <div style="color:var(--text-muted);">Kullanıcıların paylaştığı anketler burada listelenir. Anketleri bitirebilir veya silebilirsiniz.</div>
-                        <div style="display:flex; gap:8px; flex-wrap:wrap;">
-                            <button class="form-btn" onclick="loadPagePolls()">Yenile</button>
-                        </div>
-                    </div>
-                    <div id="admin-pagepolls-list"></div>
-                </div>
-            </div>
-
-            <div id="section-contenttebrik" class="admin-section">
-                <div class="admin-block" style="padding:16px; margin-top:6px;">
-                    <div class="section-subtitle">İçerik Tebrikleri Yönetimi</div>
-                    <div style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:12px; margin-bottom:16px;">
-                        <div style="color:var(--text-muted);">Gönderi ve yazılardaki tebrik sayıları burada listelenir. İçerik bazlı tebrikleri buradan sıfırlayabilirsiniz.</div>
-                        <div style="display:flex; gap:8px; flex-wrap:wrap;">
-                            <button class="form-btn" onclick="loadContentTebrikList()">Yenile</button>
-                        </div>
-                    </div>
-                    <table class="data-table">
-                        <thead><tr><th>Tür</th><th>Başlık / Gönderi</th><th>Kullanıcı</th><th>Tebrik</th><th>İşlem</th></tr></thead>
-                        <tbody id="content-tebrik-table-body"></tbody>
-                    </table>
                 </div>
             </div>
         </div>
@@ -345,7 +273,6 @@
         loadAllRegisteredUsers();
         loadBannedUsers();
         loadBanAppeals();
-        loadPollsAdmin();
         // Yeni Sayfa sekmesindeki tebrik/teşekkür listesini yalnızca kullanıcı seçerse yükle
         // loadTebrikThanksAdmin();
     }
@@ -712,96 +639,9 @@
         }
     };
 
-    // ---------------- Tebrik / Teşekkür Sıfırlama ----------------
-    window.resetUserTebrik = async (userDocId) => {
-        if (!userDocId) return;
-        if (!confirm('Bu kullanıcının tüm tebrik sayacı ve tebrik kayıtlarını sıfırlamak istediğinize emin misiniz?')) return;
-        try {
-            const userRef = doc(db, 'users', userDocId);
-            const userSnap = await getDoc(userRef);
-            if (!userSnap.exists()) {
-                alert('Kullanıcı bulunamadı.');
-                return;
-            }
-            const batch = writeBatch(db);
-            batch.update(userRef, {
-                tebrikCount: 0,
-                tebrikGivers: [],
-                tebrikMessages: [],
-                tebrikThanks: []
-            });
-
-            const userData = userSnap.data() || {};
-            const username = (userData.username || (userData.email || '').split('@')[0] || '').toString().trim();
-            const email = (userData.email || '').toString().trim();
-            const postIds = new Set();
-            const blogIds = new Set();
-
-            const addPostIdsFromQuery = async (field, value) => {
-                if (!value) return;
-                const snap = await getDocs(query(collection(db, 'posts'), where(field, '==', value)));
-                snap.forEach(p => postIds.add(p.id));
-            };
-            const addBlogIdsFromQuery = async (field, value) => {
-                if (!value) return;
-                const snap = await getDocs(query(collection(db, 'blogs'), where(field, '==', value)));
-                snap.forEach(b => blogIds.add(b.id));
-            };
-
-            await addPostIdsFromQuery('username', username);
-            await addPostIdsFromQuery('author', username);
-            await addPostIdsFromQuery('authorUsername', username);
-            await addPostIdsFromQuery('authorUid', userDocId);
-            await addPostIdsFromQuery('uid', userDocId);
-            await addPostIdsFromQuery('authorEmail', email);
-
-            postIds.forEach(id => {
-                batch.update(doc(db, 'posts', id), { tebrikCount: 0 });
-            });
-
-            await addBlogIdsFromQuery('authorUsername', username);
-            await addBlogIdsFromQuery('author', username);
-            await addBlogIdsFromQuery('authorUid', userDocId);
-            await addBlogIdsFromQuery('uid', userDocId);
-            await addBlogIdsFromQuery('authorEmail', email);
-
-            blogIds.forEach(id => {
-                batch.update(doc(db, 'blogs', id), { tebrikCount: 0 });
-            });
-
-            await batch.commit();
-            loadAllRegisteredUsers();
-            if (typeof loadUserManagementTebrikThanks === 'function') loadUserManagementTebrikThanks();
-            if (typeof refreshTebrikList === 'function') refreshTebrikList();
-            alert('Kullanıcının tebrik değerleri ve içerikteki tebrik sayıları sıfırlandı.');
-        } catch (e) {
-            console.error('Tebrik sıfırlama hatası:', e);
-            alert('Tebrikler sıfırlanamadı. Konsolu kontrol edin.');
-        }
-    };
-
-    window.resetUserThanks = async (userDocId) => {
-        if (!userDocId) return;
-        if (!confirm('Bu kullanıcının teşekkür sayacını ve teşekkür kayıtlarını sıfırlamak istediğinize emin misiniz?')) return;
-        try {
-            const userRef = doc(db, 'users', userDocId);
-            const userSnap = await getDoc(userRef);
-            if (!userSnap.exists()) {
-                alert('Kullanıcı bulunamadı.');
-                return;
-            }
-            await updateDoc(userRef, {
-                thanksReceived: 0,
-                thanksGiven: [],
-                tebrikThanks: []
-            });
-            loadAllRegisteredUsers();
-            alert('Kullanıcının teşekkür değerleri sıfırlandı.');
-        } catch (e) {
-            console.error('Teşekkür sıfırlama hatası:', e);
-            alert('Teşekkürler sıfırlanamadı. Konsolu kontrol edin.');
-        }
-    };
+    // --- Tebrik (congrats) feature REMOVED from admin ---
+    window.resetUserTebrik = async () => { };
+    window.resetUserThanks = async () => { };
 
     async function loadBanAppeals() {
         try {
@@ -1664,156 +1504,11 @@
         } catch (e) { console.error(e); }
     };
 
-    document.getElementById('createPollBtn').onclick = async () => {
-        const question = document.getElementById('pollQuestion').value.trim();
-        const optionInputs = [
-            document.getElementById('pollOption1').value.trim(),
-            document.getElementById('pollOption2').value.trim(),
-            document.getElementById('pollOption3').value.trim(),
-            document.getElementById('pollOption4').value.trim()
-        ];
-        const options = optionInputs.filter(opt => opt !== '').slice(0, 4);
-        const days = parseInt(document.getElementById('pollDays').value, 10) || 0;
-        const hours = parseInt(document.getElementById('pollHours').value, 10) || 0;
-        const durationMs = ((days * 24) + hours) * 60 * 60 * 1000;
 
-        if (!question) {
-            alert('Anket sorusunu yazın.');
-            return;
-        }
-        if (options.length < 2) {
-            alert('En az iki seçenek girin.');
-            return;
-        }
-        if (durationMs <= 0) {
-            alert('Anket süresi en az 1 saat olmalıdır.');
-            return;
-        }
 
-        try {
-            const now = Date.now();
-            const expiresAt = new Date(now + durationMs);
-            const optionList = options.map((label, index) => ({ id: `opt${index + 1}`, label }));
-            const counts = optionList.reduce((acc, opt) => ({ ...acc, [opt.id]: 0 }), {});
-            await addDoc(collection(db, 'polls'), {
-                question,
-                options: optionList,
-                counts,
-                voters: [],
-                createdAt: serverTimestamp(),
-                expiresAt,
-                createdBy: ADMIN_EMAIL.split('@')[0],
-                isActive: true
-            });
-            await cleanupOldPolls();
-            document.getElementById('pollQuestion').value = '';
-            document.getElementById('pollOption1').value = '';
-            document.getElementById('pollOption2').value = '';
-            document.getElementById('pollOption3').value = '';
-            document.getElementById('pollOption4').value = '';
-            document.getElementById('pollDays').value = '0';
-            document.getElementById('pollHours').value = '24';
-            alert('Anket oluşturuldu. Ana sayfada sol altta görünecek.');
-            loadPollsAdmin();
-        } catch (e) {
-            console.error('Anket oluşturma hatası:', e);
-            alert('Anket oluşturulurken hata oluştu.');
-        }
-    };
 
-    async function cleanupOldPolls() {
-        try {
-            const pollDocs = await getDocs(query(collection(db, 'polls'), orderBy('createdAt', 'desc')));
-            const polls = [];
-            pollDocs.forEach(docSnap => {
-                polls.push({ id: docSnap.id, data: docSnap.data() });
-            });
-            if (polls.length <= 10) return;
-            const toDelete = polls.slice(10);
-            await Promise.all(toDelete.map(p => deleteDoc(doc(db, 'polls', p.id))));
-        } catch (e) {
-            console.error('Anket temizleme hatası:', e);
-        }
-    }
 
-    async function loadPollsAdmin() {
-        try {
-            const pollsSnap = await getDocs(query(collection(db, 'polls'), orderBy('createdAt', 'desc')));
-            const list = document.getElementById('admin-polls-list');
-            list.innerHTML = '';
 
-            if (pollsSnap.empty) {
-                list.innerHTML = '<div style="color: var(--text-muted); padding: 12px;">Henüz anket oluşturulmamış.</div>';
-                return;
-            }
-
-            pollsSnap.forEach(pollDoc => {
-                const poll = pollDoc.data();
-                const expiresAt = poll.expiresAt?.toDate ? poll.expiresAt.toDate() : new Date(poll.expiresAt);
-                const isExpired = expiresAt < new Date();
-                const totalVotes = Object.values(poll.counts || {}).reduce((sum, val) => sum + (val || 0), 0);
-                const statusText = isExpired ? 'Süresi doldu' : `Aktif - bitiş: ${expiresAt.toLocaleString('tr-TR')}`;
-                const votersHtml = (poll.voters || []).slice(0, 10).map(v => `<span style="display:inline-block; margin:2px 4px; padding:4px 8px; border-radius:12px; background: rgba(99,102,241,0.08);">${escapeHtml(v.displayName || v.username || 'Anonim')}</span>`).join('') || '<span style="color: var(--text-muted);">Henüz oy yok</span>';
-
-                const optionsHtml = (poll.options || []).map(opt => {
-                    const voteCount = poll.counts?.[opt.id] || 0;
-                    const percentage = totalVotes ? Math.round((voteCount / totalVotes) * 100) : 0;
-                    return `<div style="margin-bottom:10px;">
-                                <div style="display:flex; justify-content:space-between; gap:10px; align-items:center; font-size:0.95rem;">
-                                    <strong>${escapeHtml(opt.label)}</strong>
-                                    <span>${voteCount} oy · ${percentage}%</span>
-                                </div>
-                                <div style="height:8px; background: var(--border); border-radius: 999px; overflow:hidden; margin-top:6px;">
-                                    <div style="width:${percentage}%; height:100%; background: linear-gradient(135deg, var(--primary), #8b5cf6);"></div>
-                                </div>
-                            </div>`;
-                }).join('');
-
-                list.innerHTML += `
-                    <div class="glass-card" style="padding:16px; margin-bottom:14px; border-left: 4px solid ${isExpired ? '#94a3b8' : 'var(--primary)'};">
-                        <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px; margin-bottom:12px;">
-                            <div>
-                                <h4 style="margin:0 0 6px;">${escapeHtml(poll.question)}</h4>
-                                <div style="font-size:0.85rem; color: var(--text-muted);">${statusText} · Toplam oy: ${totalVotes}</div>
-                            </div>
-                            <div style="display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end;">
-                                <button class="action-btn" style="background:#6366f1; color:white; min-width:140px; padding:12px 18px;" onclick="forceExpirePoll('${pollDoc.id}')">Bitir</button>
-                                <button class="action-btn btn-delete" onclick="deletePollAdmin('${pollDoc.id}')">Sil</button>
-                            </div>
-                        </div>
-                        ${optionsHtml}
-                        <div style="margin-top:10px; font-size:0.9rem; color:var(--text-muted);">Oy kullananlar:</div>
-                        <div>${votersHtml}</div>
-                    </div>`;
-            });
-        } catch (e) {
-            console.error('Anketler yüklenirken hata:', e);
-            const list = document.getElementById('admin-polls-list');
-            if (list) list.innerHTML = '<div style="color: var(--danger); padding: 12px;">Anketler yüklenirken hata oluştu.</div>';
-        }
-    }
-
-    window.forceExpirePoll = async (pollId) => {
-        if (!confirm('Bu anketi hemen bitirmek istiyor musunuz?')) return;
-        try {
-            await updateDoc(doc(db, 'polls', pollId), { expiresAt: new Date(), isActive: false });
-            loadPollsAdmin();
-        } catch (e) {
-            console.error('Anket süresini bitirme hatası:', e);
-            alert('Anket bitirilemedi.');
-        }
-    };
-
-    window.deletePollAdmin = async (pollId) => {
-        if (!confirm('Bu anketi silmek istediğinizden emin misiniz?')) return;
-        try {
-            await deleteDoc(doc(db, 'polls', pollId));
-            loadPollsAdmin();
-        } catch (e) {
-            console.error('Anket silme hatası:', e);
-            alert('Anket silinemedi.');
-        }
-    };
 
     window.switchTab = (tabId, button) => {
         const section = document.getElementById('section-' + tabId);
@@ -1838,18 +1533,6 @@
                     loadAllRegisteredUsers();
                     loadBannedUsers();
                     loadBanAppeals();
-                }
-                if (tabId === 'polls') {
-                    loadPollsAdmin();
-                }
-                if (tabId === 'pagepolls') {
-                    loadPagePolls();
-                }
-                if (tabId === 'tebrikpage') {
-                    loadUserManagementTebrikThanks();
-                }
-                if (tabId === 'contenttebrik') {
-                    loadContentTebrikList();
                 }
             }
     };
@@ -1916,70 +1599,6 @@
                     </div>`;
             });
         });
-    }
-
-    async function loadPagePolls() {
-        try {
-            const pollsList = document.getElementById('admin-pagepolls-list');
-            if (!pollsList) return;
-            pollsList.innerHTML = '<div style="color: var(--text-muted); padding: 12px;">Yükleniyor...</div>';
-
-            const q = query(collection(db, 'posts'), orderBy('timestamp', 'desc'), limit(500));
-            const snap = await getDocs(q);
-            const pollPosts = [];
-            snap.forEach(docSnap => {
-                const data = docSnap.data();
-                if (data && data.poll && typeof data.poll === 'object') {
-                    pollPosts.push({ id: docSnap.id, ...data });
-                }
-            });
-
-            if (pollPosts.length === 0) {
-                pollsList.innerHTML = '<div style="color: var(--text-muted); padding: 12px;">Henüz kullanıcı anketi bulunamadı.</div>';
-                return;
-            }
-
-            pollsList.innerHTML = '';
-            pollPosts.forEach(post => {
-                const poll = post.poll || {};
-                const question = poll.question || 'Anket verisi yok';
-                const expiresAt = poll.expiresAt?.toDate ? poll.expiresAt.toDate() : new Date(poll.expiresAt);
-                const isExpired = expiresAt <= new Date();
-                const totalVotes = Object.values(poll.counts || {}).reduce((sum, v) => sum + (v || 0), 0);
-                const statusText = isExpired ? 'Süresi doldu' : `Aktif - bitiş: ${expiresAt.toLocaleString('tr-TR')}`;
-                const optionRows = (poll.options || []).map(opt => {
-                    const voteCount = poll.counts?.[opt.id] || 0;
-                    const percentage = totalVotes ? Math.round((voteCount / totalVotes) * 100) : 0;
-                    return `
-                        <div style="margin-bottom:8px;">
-                            <div style="display:flex; justify-content:space-between; gap:10px; font-size:0.92rem;">
-                                <span>${escapeHtml(opt.label)}</span>
-                                <span>${voteCount} oy · ${percentage}%</span>
-                            </div>
-                            <div style="height:6px; background: var(--border); border-radius:999px; overflow:hidden; margin-top:6px;"><div style="width:${percentage}%; height:100%; background: linear-gradient(135deg, var(--primary), #8b5cf6);"></div></div>
-                        </div>`;
-                }).join('');
-
-                pollsList.innerHTML += `
-                    <div class="glass-card" style="padding:18px; margin-bottom:14px; border-left: 4px solid ${isExpired ? '#94a3b8' : 'var(--primary)'};">
-                        <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px; margin-bottom:12px; flex-wrap:wrap;">
-                            <div style="max-width:calc(100% - 220px);">
-                                <strong style="display:block; margin-bottom:8px;">${escapeHtml(question)}</strong>
-                                <div style="font-size:0.9rem; color: var(--text-muted);">@${escapeHtml(post.username || 'anonim')} · ${statusText} · Toplam oy: ${totalVotes}</div>
-                            </div>
-                            <div style="display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end;">
-                                ${!isExpired ? `<button class="action-btn" style="background:#ef4444; color:white; min-width:140px; padding:12px 18px;" onclick="finishPostPoll('${post.id}')">Bitir</button>` : ''}
-                                <button class="action-btn btn-delete" onclick="deletePostAdmin('${post.id}')">Sil</button>
-                            </div>
-                        </div>
-                        ${optionRows}
-                    </div>`;
-            });
-        } catch (e) {
-            console.error('Page polls yüklenirken hata:', e);
-            const pollsList = document.getElementById('admin-pagepolls-list');
-            if (pollsList) pollsList.innerHTML = '<div style="color: var(--danger); padding: 12px;">Kullanıcı anketleri yüklenemedi.</div>';
-        }
     }
 
     window.loadUserManagementTebrikThanks = async () => {

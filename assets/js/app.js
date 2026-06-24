@@ -109,397 +109,7 @@ function updatePostCount() {
 }
 window.updatePostCount = updatePostCount;
 
-function getComposerPollElements() {
-    return {
-        pollToggleBtn: document.getElementById('pollToggle'),
-        pollForm: document.getElementById('pollForm'),
-        cancelPollBtn: document.getElementById('cancelPollBtn'),
-        createPollButton: document.getElementById('createPollFromComposerBtn'),
-        pollFormMessage: document.getElementById('pollFormMessage'),
-        questionInput: document.getElementById('pollQuestionComposer'),
-        optionInputs: [
-            document.getElementById('pollOption1Composer'),
-            document.getElementById('pollOption2Composer'),
-            document.getElementById('pollOption3Composer'),
-            document.getElementById('pollOption4Composer')
-        ],
-        daysInput: document.getElementById('pollDaysComposer'),
-        hoursInput: document.getElementById('pollHoursComposer')
-    };
-}
-
-function clearPollForm() {
-    const {
-        pollForm,
-        pollToggleBtn,
-        questionInput,
-        optionInputs,
-        daysInput,
-        hoursInput,
-        pollFormMessage
-    } = getComposerPollElements();
-    if (questionInput) questionInput.value = '';
-    optionInputs.forEach(opt => { if (opt) opt.value = ''; });
-    if (daysInput) daysInput.value = '0';
-    if (hoursInput) hoursInput.value = '24';
-    if (pollFormMessage) pollFormMessage.textContent = '';
-    if (pollForm) pollForm.style.display = 'none';
-    if (pollToggleBtn) pollToggleBtn.classList.remove('active');
-}
-
-function initComposerPollControls() {
-    if (window.__composerPollControlsInitialized) return;
-    window.__composerPollControlsInitialized = true;
-
-    const postInput = document.getElementById('postInput');
-    if (postInput) {
-        postInput.addEventListener('keyup', updatePostCount);
-        postInput.addEventListener('paste', () => setTimeout(updatePostCount, 0));
-    }
-
-    const pollToggleBtn = document.getElementById('pollToggle');
-    if (pollToggleBtn) {
-        pollToggleBtn.addEventListener('click', togglePollForm);
-    }
-
-    const cancelPollBtn = document.getElementById('cancelPollBtn');
-    if (cancelPollBtn) {
-        cancelPollBtn.addEventListener('click', clearPollForm);
-    }
-
-    const createPollBtn = document.getElementById('createPollFromComposerBtn');
-    if (createPollBtn) {
-        createPollBtn.addEventListener('click', createPollPostFromComposer);
-    }
-}
-
-function showPollForm() {
-    const { pollForm, pollToggleBtn } = getComposerPollElements();
-    if (pollForm) pollForm.style.display = 'block';
-    if (pollToggleBtn) pollToggleBtn.classList.add('active');
-}
-
-function togglePollForm() {
-    const { pollForm } = getComposerPollElements();
-    if (!pollForm) return;
-    if (pollForm.style.display === 'block') {
-        clearPollForm();
-    } else {
-        showPollForm();
-    }
-}
-
-function getSidebarPollElements() {
-    return {
-        pollQuestion: document.getElementById('sidebarPollQuestion'),
-        pollOption1: document.getElementById('sidebarPollOption1'),
-        pollOption2: document.getElementById('sidebarPollOption2'),
-        pollOption3: document.getElementById('sidebarPollOption3'),
-        pollOption4: document.getElementById('sidebarPollOption4'),
-        pollDays: document.getElementById('sidebarPollDays'),
-        pollHours: document.getElementById('sidebarPollHours'),
-        pollMessage: document.getElementById('sidebarPollFormMessage')
-    };
-}
-
-function getSidebarPollData() {
-    const {
-        pollQuestion,
-        pollOption1,
-        pollOption2,
-        pollOption3,
-        pollOption4,
-        pollDays,
-        pollHours,
-        pollMessage
-    } = getSidebarPollElements();
-
-    const question = pollQuestion?.value.trim() || '';
-    const options = [pollOption1, pollOption2, pollOption3, pollOption4]
-        .filter(Boolean)
-        .map((input, index) => ({ id: `opt${index + 1}`, label: input.value.trim() }))
-        .filter(opt => opt.label);
-
-    const days = parseInt(pollDays?.value, 10) || 0;
-    const hours = parseInt(pollHours?.value, 10) || 0;
-    const totalHours = (days * 24) + hours;
-
-    if (!question) {
-        return { error: 'Anket sorusunu girin.' };
-    }
-    if (options.length < 2) {
-        return { error: 'En az iki geçerli seçenek girin.' };
-    }
-    if (totalHours <= 0) {
-        return { error: 'Lütfen geçerli bir süre girin.' };
-    }
-    if (totalHours > 720) {
-        return { error: 'Maksimum süre 30 gün (720 saat) olmalıdır.' };
-    }
-
-    const expiresAt = Timestamp.fromDate(new Date(Date.now() + totalHours * 3600 * 1000));
-    const counts = options.reduce((acc, opt) => {
-        acc[opt.id] = 0;
-        return acc;
-    }, {});
-
-    return {
-        question,
-        options,
-        expiresAt,
-        counts,
-        durationHours: totalHours
-    };
-}
-
-function clearSidebarPollForm() {
-    const {
-        pollQuestion,
-        pollOption1,
-        pollOption2,
-        pollOption3,
-        pollOption4,
-        pollDays,
-        pollHours,
-        pollMessage
-    } = getSidebarPollElements();
-
-    if (pollQuestion) pollQuestion.value = '';
-    if (pollOption1) pollOption1.value = '';
-    if (pollOption2) pollOption2.value = '';
-    if (pollOption3) pollOption3.value = '';
-    if (pollOption4) pollOption4.value = '';
-    if (pollDays) pollDays.value = '0';
-    if (pollHours) pollHours.value = '24';
-    if (pollMessage) pollMessage.textContent = '';
-}
-
-window.openSidebarPollCreator = function() {
-    if (!auth.currentUser || !user?.isAdmin) return;
-
-    const container = document.getElementById('poll-widget-content');
-    if (!container) return;
-
-    container.innerHTML = `
-        <div class="sidebar-poll-block">
-            <div class="sidebar-poll-header">
-                <div><strong>Anket Oluştur</strong></div>
-            </div>
-            <div class="sidebar-poll-form-grid">
-                <div class="sidebar-poll-field">
-                    <label class="sidebar-poll-label" for="sidebarPollQuestion">Anket Sorusu</label>
-                    <input id="sidebarPollQuestion" type="text" placeholder="Anket sorusunu yazın..." class="sidebar-poll-input">
-                </div>
-                <div class="sidebar-poll-field">
-                    <label class="sidebar-poll-label" for="sidebarPollOption1">Seçenek 1</label>
-                    <input id="sidebarPollOption1" type="text" placeholder="Seçenek 1" class="sidebar-poll-input">
-                </div>
-                <div class="sidebar-poll-field">
-                    <label class="sidebar-poll-label" for="sidebarPollOption2">Seçenek 2</label>
-                    <input id="sidebarPollOption2" type="text" placeholder="Seçenek 2" class="sidebar-poll-input">
-                </div>
-                <div class="sidebar-poll-field">
-                    <label class="sidebar-poll-label" for="sidebarPollOption3">Seçenek 3</label>
-                    <input id="sidebarPollOption3" type="text" placeholder="Seçenek 3 (isteğe bağlı)" class="sidebar-poll-input">
-                </div>
-                <div class="sidebar-poll-field">
-                    <label class="sidebar-poll-label" for="sidebarPollOption4">Seçenek 4</label>
-                    <input id="sidebarPollOption4" type="text" placeholder="Seçenek 4 (isteğe bağlı)" class="sidebar-poll-input">
-                </div>
-                <div class="sidebar-poll-duration-row">
-                    <div class="sidebar-poll-duration-group">
-                        <label class="sidebar-poll-label" for="sidebarPollDays">Gün</label>
-                        <input id="sidebarPollDays" type="number" min="0" max="30" value="0" class="sidebar-poll-input">
-                    </div>
-                    <div class="sidebar-poll-duration-group">
-                        <label class="sidebar-poll-label" for="sidebarPollHours">Saat</label>
-                        <input id="sidebarPollHours" type="number" min="1" max="168" value="24" class="sidebar-poll-input">
-                    </div>
-                </div>
-                <div class="sidebar-poll-form-actions">
-                    <button class="post-action-btn primary sidebar-poll-button sidebar-poll-action-btn" type="button" onclick="closeSidebarPollCreator()">İptal</button>
-                    <button class="post-action-btn primary sidebar-poll-button sidebar-poll-action-btn" type="button" onclick="createPollFromSidebar()">Oluştur</button>
-                </div>
-                <div id="sidebarPollFormMessage" class="sidebar-poll-empty sidebar-poll-form-message"></div>
-            </div>
-        </div>
-    `;
-};
-
-window.closeSidebarPollCreator = function() {
-    loadPollWidget();
-};
-
-window.createPollFromSidebar = async function() {
-    const { pollMessage } = getSidebarPollElements();
-    const pollData = getSidebarPollData();
-
-    if (pollData.error) {
-        if (pollMessage) pollMessage.textContent = pollData.error;
-        return;
-    }
-    if (!auth.currentUser) {
-        if (pollMessage) pollMessage.textContent = 'Anket oluşturmak için giriş yapmalısınız.';
-        return;
-    }
-    if (!user?.isAdmin) {
-        if (pollMessage) pollMessage.textContent = 'Bu işlemi sadece yöneticiler gerçekleştirebilir.';
-        return;
-    }
-
-    if (pollMessage) pollMessage.textContent = 'Oluşturuluyor...';
-
-    try {
-        const currentUser = auth.currentUser;
-        const createdBy = user.username || currentUser.email?.split('@')[0] || 'admin';
-
-        await addDoc(collection(db, 'polls'), {
-            question: pollData.question,
-            options: pollData.options,
-            counts: pollData.counts,
-            voters: [],
-            createdAt: serverTimestamp(),
-            expiresAt: pollData.expiresAt,
-            createdBy,
-            isActive: true
-        });
-
-        await cleanupOldPolls();
-
-        if (pollMessage) pollMessage.textContent = 'Anket oluşturuldu!';
-        setTimeout(() => {
-            if (pollMessage) pollMessage.textContent = '';
-            loadPollWidget();
-        }, 1200);
-    } catch (error) {
-        console.error('Sidebar anket oluşturma hatası:', error);
-        if (pollMessage) pollMessage.textContent = 'Anket oluşturulamadı. Lütfen tekrar deneyin.';
-    }
-};
-
-async function cleanupOldPolls() {
-    try {
-        const pollsSnap = await getDocs(query(collection(db, 'polls'), orderBy('createdAt', 'desc')));
-        const polls = [];
-        pollsSnap.forEach(docSnap => {
-            polls.push({ id: docSnap.id });
-        });
-
-        if (polls.length <= 10) return;
-        const toDelete = polls.slice(10);
-        await Promise.all(toDelete.map(p => deleteDoc(doc(db, 'polls', p.id))));
-    } catch (e) {
-        console.error('Sidebar anket temizleme hatası:', e);
-    }
-}
-
-function getComposerPollData() {
-    const {
-        questionInput,
-        optionInputs,
-        daysInput,
-        hoursInput,
-        pollFormMessage
-    } = getComposerPollElements();
-    if (!questionInput || optionInputs.length < 2 || !daysInput || !hoursInput) {
-        return { error: 'Anket formu eksik.' };
-    }
-    const question = questionInput.value.trim();
-    const options = optionInputs
-        .map((input, index) => ({
-            id: `option_${index + 1}`,
-            label: input?.value.trim() || ''
-        }))
-        .filter(opt => opt.label);
-    const days = parseInt(daysInput.value, 10) || 0;
-    const hours = parseInt(hoursInput.value, 10) || 0;
-    const totalHours = (days * 24) + hours;
-    if (!question) {
-        return { error: 'Anket sorusunu girin.' };
-    }
-    if (options.length < 2) {
-        return { error: 'En az iki geçerli seçenek girin.' };
-    }
-    if (totalHours <= 0) {
-        return { error: 'Lütfen anket süresi için geçerli bir zaman girin.' };
-    }
-    if (totalHours > 720) {
-        return { error: 'Maksimum süre 30 gün (720 saat) olmalıdır.' };
-    }
-    const expiresAt = Timestamp.fromDate(new Date(Date.now() + totalHours * 3600 * 1000));
-    const counts = options.reduce((acc, opt) => {
-        acc[opt.id] = 0;
-        return acc;
-    }, {});
-    return {
-        question,
-        options,
-        expiresAt,
-        counts,
-        durationHours: totalHours
-    };
-}
-
-async function createPollPostFromComposer() {
-    const { createPollButton, pollFormMessage } = getComposerPollElements();
-    const postInputEl = document.getElementById('postInput');
-    if (!createPollButton || !postInputEl) return;
-    const pollData = getComposerPollData();
-    if (pollData.error) {
-        if (pollFormMessage) pollFormMessage.textContent = pollData.error;
-        return;
-    }
-    if (!auth.currentUser) {
-        if (pollFormMessage) pollFormMessage.textContent = 'Oy kullanmak için lütfen giriş yapın.';
-        return;
-    }
-
-    let val = (postInputEl.innerText || postInputEl.textContent || '').trim();
-    if (val.length > 1000) val = val.substring(0, 1000);
-
-    try {
-        disableButton(createPollButton, 'Oluşturuluyor...');
-        await addDoc(collection(db, 'posts'), {
-            authorUid: auth.currentUser.uid,
-            name: user.displayName,
-            username: user.username,
-            avatarUrl: user.avatarUrl || user.photoURL || 'assets/img/strendsaydamv2.png',
-            content: val || '',
-            image: selectedImageBase64 || null,
-            poll: {
-                question: pollData.question,
-                options: pollData.options,
-                counts: pollData.counts,
-                voters: [],
-                expiresAt: pollData.expiresAt,
-                authorUid: auth.currentUser.uid
-            },
-            timestamp: serverTimestamp(),
-            likes: [],
-            savedBy: [],
-            comments: []
-        });
-
-        clearPollForm();
-        document.getElementById('postInput').innerText = '';
-        if (typeof updatePostCount === 'function') updatePostCount();
-        window.clearImagePreview();
-        if (pollFormMessage) pollFormMessage.textContent = 'Anket yayına alındı!';
-        setTimeout(() => { if (pollFormMessage) pollFormMessage.textContent = ''; }, 3000);
-        if (typeof loadPostsFeed === 'function') {
-            setTimeout(loadPostsFeed, 800);
-        }
-    } catch (error) {
-        console.error('Anket gönderi oluşturma hatası:', error);
-        if (pollFormMessage) pollFormMessage.textContent = 'Anket oluşturulamadı. Lütfen tekrar deneyin.';
-    } finally {
-        enableButton(createPollButton, 'Anket Oluştur');
-    }
-}
-
-window.addEventListener('DOMContentLoaded', () => {
-    initComposerPollControls();
-});
+// Poll feature removed
 
 function updateShareButtonState() {
     const shareBtn = document.getElementById('shareBtn');
@@ -577,53 +187,11 @@ async function loadComponents() {
     
     // Paylaş modalını önceden oluştur
     createShareModal();
-    loadPollWidget();
 }
 
 // Expose delete functions for HTML onclicks
 window.deleteVideo = deleteVideo;
 window.deleteMusic = deleteMusic;
-
-let pollWidgetUnsubscribe = null;
-window.pollWidgetLatestPolls = [];
-
-window.loadPollWidget = function() {
-    const container = document.getElementById('poll-widget-content');
-    if (!container) return;
-    if (pollWidgetUnsubscribe) pollWidgetUnsubscribe();
-
-    const pollQuery = query(collection(db, 'polls'), orderBy('createdAt', 'desc'), limit(10));
-    pollWidgetUnsubscribe = onSnapshot(pollQuery, (snap) => {
-        const polls = [];
-        snap.forEach(docSnap => {
-            const data = docSnap.data();
-            if (!data) return;
-            const expiresAt = data.expiresAt?.toDate ? data.expiresAt.toDate() : new Date(data.expiresAt);
-            polls.push({ id: docSnap.id, ...data, expiresAt });
-        });
-
-        window.pollWidgetLatestPolls = polls;
-        const now = new Date();
-        const activePoll = polls.find(p => p.expiresAt > now) || null;
-        const finishedPolls = polls.filter(p => p.expiresAt <= now).slice(0, 5);
-
-        if (!activePoll && finishedPolls.length === 0) {
-            const adminCreateButton = auth.currentUser && user?.isAdmin ? `<div style="display:flex; justify-content:center; margin-top:12px;"><button class="post-action-btn primary sidebar-poll-button sidebar-poll-create-btn" onclick="openSidebarPollCreator()">Anket Oluştur</button></div>` : '';
-            container.innerHTML = `<div style="color: var(--text-muted);">Henüz anket yok.</div>${adminCreateButton}`;
-            return;
-        }
-
-        if (activePoll) {
-            renderActivePoll(container, activePoll, now, finishedPolls);
-        } else {
-            renderFinishedPollList(container, finishedPolls, now);
-        }
-    }, (error) => {
-        console.error('Poll widget snapshot error:', error);
-        const containerErr = document.getElementById('poll-widget-content');
-        if (containerErr) containerErr.innerHTML = '<div style="color: var(--danger);">Anketler yüklenemedi.</div>';
-    });
-};
 
 async function loadTopLikedPosts() {
     const container = document.getElementById('top-liked-posts-list');
@@ -753,319 +321,60 @@ async function loadTopReadBlogs() {
     }
 }
 
-function renderActivePoll(container, activePoll, now, finishedPolls = []) {
-    const pollExpired = activePoll.expiresAt <= now;
-    const totalVotes = Object.values(activePoll.counts || {}).reduce((sum, count) => sum + (count || 0), 0);
-    const currentUserVote = auth.currentUser && (activePoll.voters || []).find(v => v.uid === auth.currentUser.uid);
-    const votedOptionId = currentUserVote?.optionId;
-    const votedAvatarUrl = getAvatarUrl(
-        currentUserVote?.avatarUrl || currentUserVote?.avatar || currentUserVote?.photoURL || user.avatarUrl || auth.currentUser?.photoURL || 'assets/img/strendsaydamv2.png',
-        'user'
-    );
-    const userVoted = !!currentUserVote;
-    const canVote = !pollExpired && auth.currentUser && !userVoted;
-    const canUnvote = !pollExpired && userVoted;
-    const canFinish = auth.currentUser && (activePoll.authorUid === auth.currentUser.uid || user.isAdmin);
-
-    const optionsHtml = (activePoll.options || []).map(opt => {
-        const count = activePoll.counts?.[opt.id] || 0;
-        const percent = totalVotes ? Math.round((count / totalVotes) * 100) : 0;
-        const selectedAvatarHtml = opt.id === votedOptionId ? `<img src="${votedAvatarUrl}" alt="Oyunuz" class="sidebar-poll-avatar">` : '';
-        return `
-            <div class="sidebar-poll-option${opt.id === votedOptionId ? ' active' : ''}">
-                <div class="sidebar-poll-option-header">
-                    <span>${escapeHtml(opt.label)}</span>
-                    <span style="display:flex; align-items:center; gap:8px;">${count} oy · ${percent}%${selectedAvatarHtml ? ` ${selectedAvatarHtml}` : ''}</span>
-                </div>
-                <div class="sidebar-poll-progress"><div class="sidebar-poll-progress-bar" style="width: ${percent}%;"></div></div>
-                ${canVote ? `<button class="poll-btn poll-btn-primary sidebar-poll-button" onclick="votePoll('${activePoll.id}', '${opt.id}')">Bu seçeneğe oy ver</button>` : ''}
-            </div>`;
-    }).join('');
-
-    const votersHtml = (activePoll.voters || []).slice(0, 12).map(v => `<span class="sidebar-voter-pill">${escapeHtml(v.displayName || v.username || 'Anonim')}</span>`).join('') || '<div class="sidebar-poll-empty">Henüz oy kullanan yok.</div>';
-
-    container.innerHTML = `
-        <div class="sidebar-poll-block">
-            <div class="sidebar-poll-header">
-                <div>
-                    <strong>${escapeHtml(activePoll.question)}</strong>
-                    <div class="sidebar-poll-meta">${pollExpired ? 'Anket süresi doldu' : `Bitiş: ${activePoll.expiresAt.toLocaleString('tr-TR')}`}</div>
-                </div>
-                <div class="sidebar-poll-button-row">
-                    ${canUnvote ? `<button class="poll-btn poll-btn-warning sidebar-poll-button" onclick="removePollVote('${activePoll.id}')">Oyumu Kaldır</button>` : ''}
-                    ${canFinish && !pollExpired ? `<button class="poll-btn poll-btn-danger sidebar-poll-button" onclick="finishPoll('${activePoll.id}')">Anketi Bitir</button>` : ''}
-                    ${canFinish ? `<button class="poll-btn poll-btn-danger sidebar-poll-button" onclick="deletePollFromWidget('${activePoll.id}')">Sil</button>` : ''}
-                </div>
-            </div>
-            <div class="sidebar-poll-meta">Toplam oy: ${totalVotes}</div>
-            <div class="sidebar-poll-options">${optionsHtml}</div>
-            <div class="sidebar-poll-meta" style="margin-top: 14px;">Oy kullananlar:</div>
-            <div style="display:flex; flex-wrap:wrap; gap:4px;">${votersHtml}</div>
-            ${!auth.currentUser ? '<div class="sidebar-poll-empty">Oy vermek için giriş yapın.</div>' : ''}
-            ${auth.currentUser && userVoted && !pollExpired ? '<div class="sidebar-poll-empty" style="color: var(--success);">Oyunuz kaydedildi. Sonuçları görebilirsiniz.</div>' : ''}
-        </div>
-        ${finishedPolls.length ? `<div class="sidebar-finished-section">
-                <div class="sidebar-finished-section-title">Biten Anketler</div>
-                ${finishedPolls.map(poll => {
-                    const total = Object.values(poll.counts || {}).reduce((sum, count) => sum + (count || 0), 0);
-                    return `
-                        <div class="sidebar-poll-finished-card">
-                            <div class="sidebar-poll-finished-title">${escapeHtml(poll.question)}</div>
-                            <div class="sidebar-poll-meta sidebar-poll-finished-meta">Toplam oy: ${total} · Bitiş: ${poll.expiresAt.toLocaleString('tr-TR')}</div>
-                            <div style="display:flex; gap:8px; margin-top:10px;">
-                                <button class="poll-btn poll-btn-primary sidebar-poll-button" style="flex:1;" onclick="showPollResults('${poll.id}')">Sonuçları Göster</button>
-                                ${auth.currentUser && user.isAdmin ? `<button class="poll-btn poll-btn-danger sidebar-poll-button" style="width:auto; min-width:50px;" onclick="deletePollFromWidget('${poll.id}')">Sil</button>` : ''}
-                            </div>
-                        </div>`;
-                }).join('')}
-            </div>` : ''}
-    `;
-}
-
-window.renderFinishedPollList = function(container, finishedPolls, now) {
-    if (finishedPolls.length === 0) {
-        container.innerHTML = '<div style="color: var(--text-muted);">Henüz tamamlanmış anket yok.</div>';
-        return;
-    }
-
-    const listHtml = finishedPolls.map(poll => {
-        const totalVotes = Object.values(poll.counts || {}).reduce((sum, count) => sum + (count || 0), 0);
-        return `
-            <div class="sidebar-poll-finished-card">
-                <div style="font-size:0.95rem; font-weight:700; margin-bottom: 6px;">${escapeHtml(poll.question)}</div>
-                <div class="sidebar-poll-meta" style="margin-bottom: 10px;">Toplam oy: ${totalVotes} · Bitiş: ${poll.expiresAt.toLocaleString('tr-TR')}</div>
-                <div style="display:flex; gap:8px;">
-                    <button class="poll-btn poll-btn-primary sidebar-poll-button" style="flex:1;" onclick="showPollResults('${poll.id}')">Sonuçları Göster</button>
-                    ${auth.currentUser && user.isAdmin ? `<button class="poll-btn poll-btn-danger sidebar-poll-button" style="width:auto; min-width:50px;" onclick="deletePollFromWidget('${poll.id}')">Sil</button>` : ''}
-                </div>
-            </div>`;
-    }).join('');
-
-    const adminCreateButton = auth.currentUser && user.isAdmin ? `<div style="display:flex; justify-content:center; margin-top:12px;"><button class="post-action-btn primary sidebar-poll-button sidebar-poll-create-btn" onclick="openSidebarPollCreator()">Anket Oluştur</button></div>` : '';
-
-    container.innerHTML = `
-        <div style="margin-bottom: 12px; font-size:0.95rem; font-weight:700; text-align:center;"><span style="color: #22c55e;">Aktif anket bulunmuyor.</span><br>Geçmiş anketler aşağıdadır.</div>
-        ${adminCreateButton}
-        <div class="sidebar-finished-section">
-            <div class="sidebar-finished-section-title">Biten Anketler</div>
-            ${listHtml}
-        </div>
-    `;
-}
-
-window.deletePollFromWidget = async (pollId) => {
-    if (!confirm('Bu anketi silmek istediğinizden emin misiniz?')) return;
-    if (!auth.currentUser || !user?.isAdmin) {
-        alert('Bu işlemi sadece yöneticiler gerçekleştirebilir.');
-        return;
-    }
-    try {
-        await deleteDoc(doc(db, 'polls', pollId));
-        loadPollWidget();
-    } catch (e) {
-        console.error('Anket silme hatası:', e);
-        alert('Anket silinemedi.');
-    }
-};
-
-window.showPollResults = async function(pollId) {
-    const container = document.getElementById('poll-widget-content');
-    if (!container) return;
-
-    try {
-        const pollDoc = await getDoc(doc(db, 'polls', pollId));
-        if (!pollDoc.exists()) {
-            container.innerHTML = '<div style="color: var(--danger);">Anket bulunamadı.</div>';
-            return;
-        }
-
-        const poll = pollDoc.data();
-        const expiresAt = poll.expiresAt?.toDate ? poll.expiresAt.toDate() : new Date(poll.expiresAt);
-        const now = new Date();
-        const totalVotes = Object.values(poll.counts || {}).reduce((sum, count) => sum + (count || 0), 0);
-        const optionsHtml = (poll.options || []).map(opt => {
-            const count = poll.counts?.[opt.id] || 0;
-            const percent = totalVotes ? Math.round((count / totalVotes) * 100) : 0;
-            return `
-                <div style="margin-bottom: 12px;">
-                    <div style="display:flex; justify-content:space-between; gap:10px; align-items:center; font-size:0.95rem;">
-                        <span>${escapeHtml(opt.label)}</span>
-                        <span>${count} oy · ${percent}%</span>
-                    </div>
-                    <div style="height: 10px; background: var(--border); border-radius: 999px; overflow:hidden; margin-top:6px;">
-                        <div style="width: ${percent}%; height:100%; background: linear-gradient(135deg, var(--primary), #8b5cf6);"></div>
-                    </div>
-                </div>`;
-        }).join('');
-
-        const votersHtml = (poll.voters || []).slice(0, 12).map(v => `<span style="display:inline-flex; margin:2px 4px; padding:6px 10px; border-radius:999px; border:1px solid var(--border); background: rgba(99,102,241,0.08);">${escapeHtml(v.displayName || v.username || 'Anonim')}</span>`).join('') || '<div style="color: var(--text-muted);">Henüz oy kullanan yok.</div>';
-
-        container.innerHTML = `
-            <div style="margin-bottom: 14px; display:flex; justify-content:space-between; align-items:flex-start; gap: 10px;">
-                <div>
-                    <strong style="font-size:0.95rem;">${escapeHtml(poll.question)}</strong>
-                    <div style="font-size:0.8rem; color: var(--text-muted); margin-top:4px;">Bitiş: ${expiresAt.toLocaleString('tr-TR')}</div>
-                </div>
-                <button onclick="loadPollWidget()" style="background: transparent; color: var(--primary); border: 1px solid var(--primary); border-radius: 12px; padding: 8px 12px; cursor:pointer;">Geri</button>
-            </div>
-            <div style="font-size:0.85rem; color: var(--text-muted); margin-bottom: 12px;">Toplam oy: ${totalVotes}</div>
-            <div>${optionsHtml}</div>
-            <div style="font-size:0.85rem; color: var(--text-muted); margin-top: 10px;">Oy kullananlar:</div>
-            <div style="margin-top: 10px; display:flex; flex-wrap:wrap; gap:4px;">${votersHtml}</div>
-        `;
-    } catch (error) {
-        console.error('Sonuçlar yüklenirken hata:', error);
-        container.innerHTML = '<div style="color: var(--danger);">Anket sonuçları yüklenemedi.</div>';
-    }
-};
-
-window.votePoll = async function(pollId, optionId) {
-    const currentUser = auth.currentUser;
-    if (!currentUser) {
-        alert('Oy kullanmak için giriş yapın.');
-        return;
-    }
-    try {
-        const pollRef = doc(db, 'polls', pollId);
-        const pollDoc = await getDoc(pollRef);
-        if (!pollDoc.exists()) {
-            alert('Anket bulunamadı.');
-            return;
-        }
-        const poll = pollDoc.data();
-        const expiresAt = poll.expiresAt?.toDate ? poll.expiresAt.toDate() : new Date(poll.expiresAt);
-        if (expiresAt <= new Date()) {
-            alert('Anket süresi dolmuş.');
-            return;
-        }
-        if ((poll.voters || []).some(v => v.uid === currentUser.uid)) {
-            alert('Bu ankete zaten oy verdiniz.');
-            return;
-        }
-        const voter = {
-            uid: currentUser.uid,
-            username: user.username || currentUser.email?.split('@')[0] || 'Anonim',
-            displayName: user.displayName || currentUser.displayName || currentUser.email?.split('@')[0] || 'Anonim',
-            avatarUrl: user.avatarUrl || currentUser.photoURL || 'assets/img/strendsaydamv2.png',
-            optionId,
-            votedAt: new Date()
-        };
-        await updateDoc(pollRef, {
-            [`counts.${optionId}`]: increment(1),
-            voters: arrayUnion(voter)
-        });
-        loadPollWidget();
-    } catch (error) {
-        console.error('Oy verme hatası:', error);
-        alert('Oyunuz kaydedilemedi. Lütfen tekrar deneyin.');
-    }
-};
-
 function renderPostPoll(poll, postId) {
-    const expiresAt = poll.expiresAt?.toDate ? poll.expiresAt.toDate() : new Date(poll.expiresAt);
-    const pollExpired = expiresAt <= new Date();
-    const totalVotes = Object.values(poll.counts || {}).reduce((sum, count) => sum + (count || 0), 0);
-    const currentUserVote = auth.currentUser && (poll.voters || []).find(v => v.uid === auth.currentUser.uid);
-    const votedOptionId = currentUserVote?.optionId;
-    const votedAvatarUrl = getAvatarUrl(
-        currentUserVote?.avatarUrl || currentUserVote?.avatar || currentUserVote?.photoURL || user.avatarUrl || auth.currentUser?.photoURL || 'assets/img/strendsaydamv2.png',
-        'user'
-    );
-    const userVoted = !!currentUserVote;
-    const canVote = !pollExpired && auth.currentUser && !userVoted;
-    const canUnvote = !pollExpired && userVoted;
-    const canFinish = auth.currentUser && (poll.authorUid === auth.currentUser.uid || user.isAdmin);
-    const votersHtml = (poll.voters || []).slice(0, 12).map(v => `<span style="display:inline-flex; margin:2px 4px; padding:6px 10px; border-radius:999px; border:1px solid rgba(99,102,241,0.3); background: rgba(99,102,241,0.08);">${escapeHtml(v.displayName || v.username || 'Anonim')}</span>`).join('') || '<div style="color: var(--text-muted);">Henüz oy kullanan yok.</div>';
-    const optionsHtml = (poll.options || []).map(opt => {
-        const count = poll.counts?.[opt.id] || 0;
-        const percent = totalVotes ? Math.round((count / totalVotes) * 100) : 0;
-        const selectedAvatarHtml = opt.id === votedOptionId ? `<img src="${votedAvatarUrl}" alt="Oyunuz" style="width:26px; height:26px; border-radius:50%; object-fit:cover; border:1px solid rgba(255,255,255,0.16);">` : '';
-        return `
-            <div style="margin-bottom: 12px;">
-                <div style="display:flex; justify-content:space-between; gap:10px; align-items:center; font-size:0.95rem;">
-                    <span>${escapeHtml(opt.label)}</span>
-                    <span style="display:flex; align-items:center; gap:8px;">${count} oy · ${percent}%${selectedAvatarHtml ? ` ${selectedAvatarHtml}` : ''}</span>
-                </div>
-                <div style="height: 10px; background: var(--border); border-radius: 999px; overflow:hidden; margin-top:6px;">
-                    <div style="width: ${percent}%; height:100%; background: linear-gradient(135deg, var(--primary), #8b5cf6);"></div>
-                </div>
-                ${canVote ? `<button class="poll-btn poll-btn-primary" style="display:block; margin-top:8px; width:100%;" onclick="votePostPoll('${postId}', '${opt.id}')">Bu seçeneğe oy ver</button>` : ''}
-            </div>`;
-    }).join('');
-    return `
-        <div class="post-poll-block" style="margin-bottom:14px; padding:16px; border-radius:18px; background: rgba(99,102,241,0.05); border:1px solid rgba(99,102,241,0.16);">
-            <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px; margin-bottom:12px; flex-wrap:wrap;">
-                <div>
-                    <strong style="font-size:0.95rem;">${escapeHtml(poll.question)}</strong>
-                    <div style="font-size:0.82rem; color: var(--text-muted); margin-top:4px;">Bitiş: ${expiresAt.toLocaleString('tr-TR')}</div>
-                </div>
-                <div style="display:flex; gap:10px; flex-wrap:wrap; justify-content:flex-end;">
-                    ${canUnvote ? `<button class="poll-btn poll-btn-warning" style="min-width:150px;" onclick="removePostPollVote('${postId}')">Oyumu Kaldır</button>` : ''}
-                    ${canFinish && !pollExpired ? `<button class="poll-btn poll-btn-danger" style="min-width:150px;" onclick="finishPostPoll('${postId}')">Anketi Bitir</button>` : ''}
-                </div>
+    if (!poll || !poll.question) return '';
+    
+    const now = Date.now();
+    const endTime = poll.endTime;
+    const isFinished = now > endTime;
+    const userVoted = poll.votes && poll.votes.some(v => v.voter === (auth.currentUser ? auth.currentUser.displayName || auth.currentUser.email : 'Guest'));
+    
+    let html = `
+        <div class="post-poll" data-poll-id="${poll.question}">
+            <div class="poll-question"><strong>${escapeHtml(poll.question)}</strong></div>
+            <div class="poll-options">
+    `;
+    
+    if (poll.options && Array.isArray(poll.options)) {
+        const totalVotes = poll.votes ? poll.votes.length : 0;
+        poll.options.forEach((opt, idx) => {
+            const optVotes = poll.votes ? poll.votes.filter(v => v.option === idx).length : 0;
+            const percent = totalVotes > 0 ? Math.round((optVotes / totalVotes) * 100) : 0;
+            html += `
+                <div class="poll-option" style="margin-bottom: 8px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                        <span>${escapeHtml(opt)}</span>
+                        <span style="font-size: 0.85rem; color: var(--text-muted);">${optVotes} oy (${percent}%)</span>
+                    </div>
+                    <div style="background: var(--border); border-radius: 4px; height: 6px; overflow: hidden;">
+                        <div style="background: var(--primary); height: 100%; width: ${percent}%;"></div>
+                    </div>
+            `;
+            
+            if (!isFinished && auth.currentUser) {
+                html += `<button class="poll-vote-btn" style="margin-top: 4px; font-size: 0.85rem; padding: 4px 8px; background: var(--primary-light); color: var(--primary); border: none; border-radius: 4px; cursor: pointer;" onclick="votePostPoll('${postId}', ${idx})">Oyla</button>`;
+            }
+            
+            html += `</div>`;
+        });
+    }
+    
+    const timeRemaining = isFinished ? 'Bitti' : `${Math.ceil((endTime - now) / (1000 * 60))} dakika kaldı`;
+    html += `
             </div>
-            <div style="font-size:0.85rem; color: var(--text-muted); margin-bottom:12px;">Toplam oy: ${totalVotes}</div>
-            <div>${optionsHtml}</div>
-            <div style="margin-top: 14px; font-size:0.85rem; color: var(--text-muted);">Oy kullananlar:</div>
-            <div style="margin-top: 8px; display:flex; flex-wrap:wrap; gap:4px;">${votersHtml}</div>
-        </div>`;
+            <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 8px;">${timeRemaining}</div>
+        </div>
+    `;
+    
+    return html;
 }
 
 window.votePostPoll = async function(postId, optionId) {
-    const currentUser = auth.currentUser;
-    if (!currentUser) {
-        alert('Oy kullanmak için giriş yapın.');
+    if (!auth.currentUser) {
+        alert('Oyla yapmak için giriş yapmalısınız.');
         return;
     }
-    try {
-        const postRef = doc(db, 'posts', postId);
-        const postDoc = await getDoc(postRef);
-        if (!postDoc.exists()) {
-            alert('Gönderi bulunamadı.');
-            return;
-        }
-        const post = postDoc.data();
-        const poll = post.poll;
-        if (!poll) {
-            alert('Bu gönderide anket yok.');
-            return;
-        }
-        const expiresAt = poll.expiresAt?.toDate ? poll.expiresAt.toDate() : new Date(poll.expiresAt);
-        if (expiresAt <= new Date()) {
-            alert('Anket süresi dolmuş.');
-            return;
-        }
-        if ((poll.voters || []).some(v => v.uid === currentUser.uid)) {
-            alert('Bu ankete zaten oy verdiniz.');
-            return;
-        }
-        const voter = {
-            uid: currentUser.uid,
-            username: user.username || currentUser.email?.split('@')[0] || 'Anonim',
-            displayName: user.displayName || currentUser.displayName || user.username || 'Anonim',
-            avatarUrl: user.avatarUrl || currentUser.photoURL || 'assets/img/strendsaydamv2.png',
-            optionId,
-            votedAt: new Date()
-        };
-        await updateDoc(postRef, {
-            [`poll.counts.${optionId}`]: increment(1),
-            [`poll.voters`]: arrayUnion(voter)
-        });
-        if (typeof loadPostsFeed === 'function') {
-            loadPostsFeed();
-        }
-    } catch (error) {
-        console.error('Anket oy hatası:', error);
-        alert('Oy kullanılamadı. Lütfen tekrar deneyin.');
-    }
-};
-
-window.finishPostPoll = async function(postId) {
-    const currentUser = auth.currentUser;
-    if (!currentUser) {
-        alert('Anketi bitirmek için giriş yapın.');
-        return;
-    }
+    
     try {
         const postRef = doc(db, 'posts', postId);
         const postSnap = await getDoc(postRef);
@@ -1073,184 +382,228 @@ window.finishPostPoll = async function(postId) {
             alert('Gönderi bulunamadı.');
             return;
         }
+        
         const post = postSnap.data();
         const poll = post.poll;
         if (!poll) {
-            alert('Bu gönderide anket yok.');
+            alert('Bu gönderiye anket bulunamadı.');
             return;
         }
-        if (poll.authorUid !== currentUser.uid && !user.isAdmin) {
-            alert('Bu anketi bitirme yetkiniz yok.');
+        
+        const voter = auth.currentUser.displayName || auth.currentUser.email;
+        const votes = poll.votes || [];
+        
+        // Check if already voted
+        const existingVote = votes.find(v => v.voter === voter);
+        if (existingVote) {
+            alert('Zaten oy verdiniz.');
             return;
         }
-        await updateDoc(postRef, {
-            'poll.expiresAt': serverTimestamp()
-        });
-        if (typeof loadPostsFeed === 'function') loadPostsFeed();
-    } catch (error) {
-        console.error('Anket bitirme hatası:', error);
-        alert('Anket bitirilemedi. Lütfen tekrar deneyin.');
+        
+        // Add vote
+        votes.push({ voter, option: optionId, timestamp: Date.now() });
+        await updateDoc(postRef, { 'poll.votes': votes });
+        
+        loadFeed();
+    } catch (e) {
+        console.error('Anket oy hatası:', e);
+        alert('Oy verilemedi.');
     }
 };
 
-window.votePoll = async function(pollId, optionId) {
-    const currentUser = auth.currentUser;
-    if (!currentUser) {
-        alert('Oy kullanmak için giriş yapın.');
-        return;
-    }
+window.finishPostPoll = async function(postId) {
     try {
-        const pollRef = doc(db, 'polls', pollId);
-        const pollSnap = await getDoc(pollRef);
-        if (!pollSnap.exists()) {
-            alert('Anket bulunamadı.');
-            return;
-        }
-        const poll = pollSnap.data();
-        if (!poll) {
-            alert('Anket verisi bulunamadı.');
-            return;
-        }
-        const expiresAt = poll.expiresAt?.toDate ? poll.expiresAt.toDate() : new Date(poll.expiresAt);
-        if (expiresAt <= new Date()) {
-            alert('Anket süresi dolmuş.');
-            return;
-        }
-        if ((poll.voters || []).some(v => v.uid === currentUser.uid)) {
-            alert('Bu ankete zaten oy verdiniz.');
-            return;
-        }
-        const voter = {
-            uid: currentUser.uid,
-            username: user.username || currentUser.email?.split('@')[0] || 'Anonim',
-            displayName: user.displayName || currentUser.displayName || user.username || 'Anonim',
-            optionId,
-            votedAt: new Date()
-        };
-        await updateDoc(pollRef, {
-            [`counts.${optionId}`]: increment(1),
-            voters: arrayUnion(voter)
-        });
-        if (typeof loadPollWidget === 'function') loadPollWidget();
-    } catch (error) {
-        console.error('Anket oy hatası:', error);
-        alert('Oy kullanılamadı. Lütfen tekrar deneyin.');
-    }
-};
-
-window.finishPoll = async function(pollId) {
-    const currentUser = auth.currentUser;
-    if (!currentUser) {
-        alert('Anketi bitirmek için giriş yapın.');
-        return;
-    }
-    try {
-        const pollRef = doc(db, 'polls', pollId);
-        const pollSnap = await getDoc(pollRef);
-        if (!pollSnap.exists()) {
-            alert('Anket bulunamadı.');
-            return;
-        }
-        const poll = pollSnap.data();
-        if (!poll) {
-            alert('Anket verisi bulunamadı.');
-            return;
-        }
-        if (poll.createdBy !== (user.username || (currentUser.email || '').split('@')[0]) && !user.isAdmin) {
-            alert('Bu anketi bitirme yetkiniz yok.');
-            return;
-        }
-        await updateDoc(pollRef, {
-            expiresAt: new Date(),
-            isActive: false
-        });
-        if (typeof loadPollWidget === 'function') loadPollWidget();
-    } catch (error) {
-        console.error('Anket bitirme hatası:', error);
-        alert('Anket bitirilemedi. Lütfen tekrar deneyin.');
+        const postRef = doc(db, 'posts', postId);
+        await updateDoc(postRef, { 'poll.endTime': Date.now() });
+        loadFeed();
+    } catch (e) {
+        console.error('Anket bitirme hatası:', e);
     }
 };
 
 window.removePostPollVote = async function(postId) {
-    const currentUser = auth.currentUser;
-    if (!currentUser) {
-        alert('Oy kullanmak için giriş yapın.');
+    if (!auth.currentUser) {
+        alert('İşlem için giriş yapmalısınız.');
         return;
     }
-
+    
     try {
         const postRef = doc(db, 'posts', postId);
-        await runTransaction(db, async (transaction) => {
-            const postSnap = await transaction.get(postRef);
-            if (!postSnap.exists()) {
-                throw new Error('Gönderi bulunamadı.');
-            }
-            const post = postSnap.data();
-            const poll = post.poll;
-            if (!poll) {
-                throw new Error('Bu gönderide anket yok.');
-            }
-
-            const voter = (poll.voters || []).find(v => v.uid === currentUser.uid);
-            if (!voter) {
-                throw new Error('Oyunuz bulunamadı.');
-            }
-
-            const optionId = voter.optionId;
-            const currentCount = poll.counts?.[optionId] || 0;
-            const updates = {
-                [`poll.voters`]: arrayRemove(voter)
-            };
-            updates[`poll.counts.${optionId}`] = currentCount > 0 ? increment(-1) : 0;
-            transaction.update(postRef, updates);
-        });
-
-        if (typeof loadPostsFeed === 'function') {
-            loadPostsFeed();
-        }
-    } catch (error) {
-        console.error('Oy kaldırma hatası:', error);
-        alert(error.message || 'Oy kaldırma işlemi başarısız oldu.');
+        const postSnap = await getDoc(postRef);
+        if (!postSnap.exists()) return;
+        
+        const post = postSnap.data();
+        const poll = post.poll;
+        if (!poll) return;
+        
+        const voter = auth.currentUser.displayName || auth.currentUser.email;
+        const votes = poll.votes || [];
+        const filtered = votes.filter(v => v.voter !== voter);
+        
+        await updateDoc(postRef, { 'poll.votes': filtered });
+        loadFeed();
+    } catch (e) {
+        console.error('Oy silme hatası:', e);
     }
 };
 
-window.removePollVote = async function(pollId) {
-    const currentUser = auth.currentUser;
-    if (!currentUser) {
-        alert('Oy kullanmak için giriş yapın.');
+function getComposerPollElements() {
+    return {
+        pollToggleBtn: document.getElementById('pollToggle'),
+        pollForm: document.getElementById('pollForm'),
+        cancelPollBtn: document.getElementById('cancelPollBtn'),
+        createPollButton: document.getElementById('createPollFromComposerBtn'),
+        pollFormMessage: document.getElementById('pollFormMessage'),
+        questionInput: document.getElementById('pollQuestionComposer'),
+        optionInputs: [
+            document.getElementById('pollOption1Composer'),
+            document.getElementById('pollOption2Composer'),
+            document.getElementById('pollOption3Composer'),
+            document.getElementById('pollOption4Composer')
+        ],
+        daysInput: document.getElementById('pollDaysComposer'),
+        hoursInput: document.getElementById('pollHoursComposer')
+    };
+}
+
+function clearPollForm() {
+    const {
+        pollForm,
+        pollToggleBtn,
+        questionInput,
+        optionInputs,
+        daysInput,
+        hoursInput,
+        pollFormMessage
+    } = getComposerPollElements();
+    if (questionInput) questionInput.value = '';
+    optionInputs.forEach(opt => { if (opt) opt.value = ''; });
+    if (daysInput) daysInput.value = '0';
+    if (hoursInput) hoursInput.value = '24';
+    if (pollFormMessage) pollFormMessage.textContent = '';
+    if (pollForm) pollForm.style.display = 'none';
+    if (pollToggleBtn) pollToggleBtn.classList.remove('active');
+}
+
+function initComposerPollControls() {
+    if (window.__composerPollControlsInitialized) return;
+    window.__composerPollControlsInitialized = true;
+
+    const pollToggleBtn = document.getElementById('pollToggle');
+    if (pollToggleBtn) {
+        pollToggleBtn.addEventListener('click', togglePollForm);
+    }
+
+    const cancelPollBtn = document.getElementById('cancelPollBtn');
+    if (cancelPollBtn) {
+        cancelPollBtn.addEventListener('click', clearPollForm);
+    }
+
+    const createPollBtn = document.getElementById('createPollFromComposerBtn');
+    if (createPollBtn) {
+        createPollBtn.addEventListener('click', createPollPostFromComposer);
+    }
+}
+
+function showPollForm() {
+    const { pollForm, pollToggleBtn } = getComposerPollElements();
+    if (pollForm) pollForm.style.display = 'block';
+    if (pollToggleBtn) pollToggleBtn.classList.add('active');
+}
+
+function togglePollForm() {
+    const { pollForm } = getComposerPollElements();
+    if (!pollForm) return;
+    if (pollForm.style.display === 'block') {
+        clearPollForm();
+    } else {
+        showPollForm();
+    }
+}
+
+function getComposerPollData() {
+    const {
+        questionInput,
+        optionInputs,
+        daysInput,
+        hoursInput
+    } = getComposerPollElements();
+    
+    const question = (questionInput ? questionInput.value.trim() : '').substring(0, 200);
+    const options = optionInputs
+        .map(inp => inp ? inp.value.trim() : '')
+        .filter(opt => opt.length > 0)
+        .slice(0, 4)
+        .map(opt => opt.substring(0, 100));
+    
+    if (!question || options.length < 2) {
+        return null;
+    }
+    
+    const days = parseInt(daysInput ? daysInput.value : 0) || 0;
+    const hours = parseInt(hoursInput ? hoursInput.value : 24) || 24;
+    const totalMs = (days * 24 + hours) * 60 * 60 * 1000;
+    
+    return {
+        question,
+        options,
+        endTime: Date.now() + totalMs,
+        votes: []
+    };
+}
+
+async function createPollPostFromComposer() {
+    if (!auth.currentUser) {
+        alert('Anket oluşturmak için giriş yapmalısınız.');
         return;
     }
-
-    try {
-        const pollRef = doc(db, 'polls', pollId);
-        await runTransaction(db, async (transaction) => {
-            const pollSnap = await transaction.get(pollRef);
-            if (!pollSnap.exists()) {
-                throw new Error('Anket bulunamadı.');
-            }
-            const poll = pollSnap.data();
-            const voter = (poll.voters || []).find(v => v.uid === currentUser.uid);
-            if (!voter) {
-                throw new Error('Oyunuz bulunamadı.');
-            }
-
-            const optionId = voter.optionId;
-            const currentCount = poll.counts?.[optionId] || 0;
-            const updates = {
-                voters: arrayRemove(voter)
-            };
-            updates[`counts.${optionId}`] = currentCount > 0 ? increment(-1) : 0;
-            transaction.update(pollRef, updates);
-        });
-
-        if (typeof loadPollWidget === 'function') {
-            loadPollWidget();
-        }
-    } catch (error) {
-        console.error('Oy kaldırma hatası:', error);
-        alert(error.message || 'Oy kaldırma işlemi başarısız oldu.');
+    
+    const poll = getComposerPollData();
+    if (!poll) {
+        const { pollFormMessage } = getComposerPollElements();
+        if (pollFormMessage) pollFormMessage.textContent = 'Soru ve en az 2 seçenek gereklidir.';
+        return;
     }
-};
+    
+    try {
+        disableButton(document.getElementById('createPollFromComposerBtn'), 'Oluşturuluyor...');
+        
+        const postInput = document.getElementById('postInput');
+        const text = postInput ? (postInput.innerText || '').trim() : '';
+        
+        const newPost = {
+            uid: auth.currentUser.uid,
+            username: auth.currentUser.displayName || auth.currentUser.email.split('@')[0],
+            email: auth.currentUser.email,
+            content: text,
+            timestamp: serverTimestamp(),
+            poll: poll,
+            likes: [],
+            comments: [],
+            bookmarks: [],
+            tebrikCount: 0
+        };
+        
+        await addDoc(collection(db, 'posts'), newPost);
+        
+        if (postInput) postInput.innerText = '';
+        clearPollForm();
+        loadFeed();
+        alert('Anket oluşturuldu!');
+        
+        enableButton(document.getElementById('createPollFromComposerBtn'), 'Anket Oluştur');
+    } catch (e) {
+        console.error('Anket oluşturma hatası:', e);
+        alert('Anket oluşturulamadı.');
+        enableButton(document.getElementById('createPollFromComposerBtn'), 'Anket Oluştur');
+    }
+}
+
+// Additional poll function stubs
+window.openSidebarPollCreator = function() { };
+window.closeSidebarPollCreator = function() { };
+window.createPollFromSidebar = async function() { };
+window.loadPollWidget = function() { };
 
 // Expose sendNotification for manual testing from console
 window.sendNotification = sendNotification;
@@ -1831,7 +1184,6 @@ onAuthStateChanged(auth, async (fbUser) => {
         updateSidebarCongratsPercent();
         // also update sidebar statistics such as total users and last signup
         updateSidebarStats();
-        loadPollWidget();
         loadTopTebrikList();
         loadTopLikedPosts();
         loadTopReadBlogs();
@@ -3065,6 +2417,16 @@ function getAvatarUrl(avatarUrlOrSeed, type = 'user') {
         if (avatarUrlOrSeed.startsWith('http') || avatarUrlOrSeed.startsWith('data:')) {
             return avatarUrlOrSeed;
         }
+        // Base64 / data URI images should be returned directly
+        if (avatarUrlOrSeed.startsWith('data:') || avatarUrlOrSeed.startsWith('blob:')) {
+            return avatarUrlOrSeed;
+        }
+
+        // External image URLs should be returned directly
+        if (avatarUrlOrSeed.startsWith('http://') || avatarUrlOrSeed.startsWith('https://')) {
+            return avatarUrlOrSeed;
+        }
+
         // Relative assets or absolute paths
         if (avatarUrlOrSeed.startsWith('assets/') || avatarUrlOrSeed.startsWith('/')) {
             return avatarUrlOrSeed;
@@ -4094,17 +3456,152 @@ window.performGlobalSearch = async (forcedQuery = null) => {
     }
 };
 
+// 3b. Arama önerileri
+const searchSuggestionCache = { users: null, pages: null };
+let searchSuggestionTimer = null;
+
+async function loadSearchSuggestionData() {
+    if (!searchSuggestionCache.pages) {
+        try {
+            const pagesSnap = await getDocs(collection(db, 'pages'));
+            searchSuggestionCache.pages = pagesSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        } catch (e) {
+            console.warn('Search suggestion pages load failed:', e);
+            searchSuggestionCache.pages = [];
+        }
+    }
+    if (!searchSuggestionCache.users) {
+        try {
+            const usersSnap = await getDocs(collection(db, 'users'));
+            searchSuggestionCache.users = usersSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        } catch (e) {
+            console.warn('Search suggestion users load failed:', e);
+            searchSuggestionCache.users = [];
+        }
+    }
+}
+
+function renderSearchSuggestions(suggestions, query) {
+    const dropdown = document.getElementById('searchSuggestionDropdown');
+    if (!dropdown) return;
+    if (!suggestions || suggestions.length === 0) {
+        dropdown.innerHTML = `<div class="search-suggestion-empty">${query ? 'Hiçbir öneri bulunamadı.' : 'Arama yaparken öneriler burada görüntülenecek.'}</div>`;
+        dropdown.style.display = query ? 'block' : 'none';
+        return;
+    }
+    dropdown.innerHTML = suggestions.map(item => `
+        <div class="search-suggestion-item" data-type="${item.type}" data-value="${item.value}" onclick="handleSearchSuggestionClick(event)">
+            <div class="search-suggestion-icon"><i class="fa-solid ${item.icon}"></i></div>
+            <div class="search-suggestion-meta">
+                <div class="search-suggestion-title">${item.title}</div>
+                <div class="search-suggestion-subtitle">${item.subtitle}</div>
+            </div>
+        </div>
+    `).join('');
+    dropdown.style.display = 'block';
+}
+
+function hideSearchSuggestions() {
+    const dropdown = document.getElementById('searchSuggestionDropdown');
+    if (dropdown) dropdown.style.display = 'none';
+}
+
+window.handleSearchSuggestionClick = (event) => {
+    const itemEl = event.currentTarget;
+    if (!itemEl) return;
+    const type = itemEl.dataset.type;
+    const value = itemEl.dataset.value;
+    hideSearchSuggestions();
+    if (type === 'user') {
+        window.location.href = `profil.html?u=${encodeURIComponent(value)}`;
+    } else if (type === 'page') {
+        window.location.href = value;
+    } else if (type === 'search') {
+        const searchInput = document.getElementById('globalSearch');
+        if (searchInput) {
+            searchInput.value = value;
+            performGlobalSearch();
+        }
+    }
+};
+
+async function getSearchSuggestions(query) {
+    const q = (query || '').trim().toLowerCase();
+    if (!q) return [];
+    await loadSearchSuggestionData();
+
+    const suggestions = [];
+    const staticMatches = staticDatabase.pages
+        .filter(p => p.name.toLowerCase().includes(q))
+        .slice(0, 4)
+        .map(p => ({ type: 'page', title: p.name, subtitle: p.link, icon: p.icon, value: p.link }));
+
+    const pageMatches = (searchSuggestionCache.pages || [])
+        .filter(p => ((p.name || p.title || '').toLowerCase().includes(q) || (p.pageName || '').toLowerCase().includes(q)))
+        .slice(0, 4)
+        .map(p => ({ type: 'page', title: p.name || p.title || p.pageName || 'Sayfa', subtitle: `${(p.subscribers || []).length} takipçi`, icon: 'fa-book-open', value: `page.html?id=${encodeURIComponent(p.id)}` }));
+
+    const userMatches = (searchSuggestionCache.users || [])
+        .filter(u => {
+            const username = (u.username || '').toLowerCase();
+            const name = (u.name || u.displayName || '').toLowerCase();
+            return username.includes(q) || name.includes(q);
+        })
+        .slice(0, 5)
+        .map(u => ({ type: 'user', title: u.name || u.displayName || '@' + (u.username || 'kullanici'), subtitle: '@' + (u.username || 'kullanici'), icon: 'fa-user', value: u.username || u.uid }));
+
+    suggestions.push(...userMatches, ...pageMatches, ...staticMatches);
+    return suggestions.slice(0, 8);
+}
+
+function initSearchSuggestions() {
+    const searchInput = document.getElementById('globalSearch');
+    const dropdown = document.getElementById('searchSuggestionDropdown');
+    if (!searchInput || !dropdown) return;
+    const wrapper = searchInput.closest('.search-page-input-wrapper');
+    if (wrapper) wrapper.style.position = 'relative';
+
+    searchInput.addEventListener('input', () => {
+        const query = searchInput.value.trim();
+        if (searchSuggestionTimer) clearTimeout(searchSuggestionTimer);
+        searchSuggestionTimer = setTimeout(async () => {
+            if (!query) {
+                hideSearchSuggestions();
+                return;
+            }
+            const suggestions = await getSearchSuggestions(query);
+            renderSearchSuggestions(suggestions, query);
+        }, 200);
+    });
+
+    searchInput.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'Escape') {
+            return;
+        }
+    });
+
+    document.addEventListener('click', (event) => {
+        if (!wrapper.contains(event.target)) {
+            hideSearchSuggestions();
+        }
+    });
+}
+
 // 4. Dinleyiciler ve Yardımcı Fonksiyonlar
 const mainSearchBtn = document.getElementById('mainSearchBtn');
 if(mainSearchBtn) mainSearchBtn.onclick = () => performGlobalSearch();
 
 const gSearch = document.getElementById('globalSearch');
-if(gSearch) gSearch.addEventListener('keydown', (e) => {
-    if(e.key === 'Enter') {
-        e.preventDefault();
-        performGlobalSearch();
-    }
-});
+if(gSearch) {
+    gSearch.addEventListener('keydown', (e) => {
+        if(e.key === 'Enter') {
+            e.preventDefault();
+            performGlobalSearch();
+        }
+    });
+}
+
+window.addEventListener('DOMContentLoaded', initSearchSuggestions);
 
 window.searchTrend = (tag) => { 
     const gSearch = document.getElementById('globalSearch');
@@ -4460,8 +3957,8 @@ window.loadPostsFeed = (showAll = false) => {
               // Decode content and prepare rendering
               const decoded = decodeEntities ? decodeEntities(p.content || "") : (p.content || "");
               const contentWithLinks = decoded.replace(/(#[\wığüşöçİĞÜŞÖÇ]+)/g, '<span class="hashtag-link" onclick="searchTrend(\'$1\')">$1</span>');
-              const avatarUrl = getAvatarUrl(p.avatarSeed, 'user');
-              
+              const avatarUrl = getAvatarUrl(p.avatarUrl || p.avatarSeed || 'assets/img/strendsaydamv2.png', 'user');
+          
           console.log(' post meta', { username: p.username, type: p.type, question: p.question });
               const targetNav = isMine ? 'profil' : (isPage ? 'pages' : 'feed');
               
@@ -4530,7 +4027,6 @@ window.loadPostsFeed = (showAll = false) => {
 
         <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:10px; min-height:28px;">
             <div id="likers-${d.id}" style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;"></div>
-            ${(p.tebrikCount && p.tebrikCount > 0) ? `<div title="Tebrik sayısı: ${p.tebrikCount}" style="font-size:0.85rem; color:#f97316; font-weight:700; white-space:nowrap;">+${p.tebrikCount} tebrik</div>` : ''}
         </div>
 
         <div style="display:flex; gap:12px;">
@@ -4538,7 +4034,6 @@ window.loadPostsFeed = (showAll = false) => {
               <button class="tool-btn" onclick="toggleCommentSection('${d.id}')" style="gap:5px;"><i class="fa-regular fa-comment"></i><span>${p.comments?.length || 0}</span></button>
               <button class="tool-btn" onclick="toggleBookmark('${d.id}', ${isSaved})" style="color:${isSaved ? '#f59e0b' : ''}"><i class="${isSaved ? 'fa-solid' : 'fa-regular'} fa-bookmark"></i></button>
               <button class="tool-btn" onclick="window.openShareMenu('${d.id}')" style="gap:5px; margin-left:auto;"><i class="fa-solid fa-share"></i></button>
-              <button class="tool-btn" onclick="sendTebrikToUsernameQuick('${p.username}', '${d.id}', this)" style="gap:5px; color:#f97316; margin-left:8px;"><i class="fa-solid fa-gift"></i></button>
         </div>
         
         <div id="comments-${d.id}" class="comment-area" style="display:none;">
@@ -5073,7 +4568,7 @@ const initMobilePanelsAndCalendar = () => {
         render();
     };
 
-    // Yaklaşan etkinlikleri yükle
+    // bui yükle
     const loadUpcomingEvents = () => {
         const eventsList = document.getElementById('upcomingEventsList');
         if (!eventsList) return;
@@ -5688,7 +5183,7 @@ async function loadVisitorProfile() {
                 </div>`;
             } else {
                 visitorPosts.forEach(post => {
-                    const avatarUrl = getAvatarUrl(post.avatarSeed, 'user');
+                    const avatarUrl = getAvatarUrl(post.avatarUrl || post.avatarSeed || 'assets/img/strendsaydamv2.png', 'user');
                     // Gelen içerikte HTML-entity olarak girilmiş emojiler olabilir,
                     // decodeEntities kullanarak bunları dönüştürelim.
                     const decodedPost = decodeEntities ? decodeEntities(post.content || "") : (post.content || "");
@@ -5720,7 +5215,6 @@ async function loadVisitorProfile() {
                             <p id="post-preview-${post.id}" class="post-text${postTextClass}" style="white-space: pre-wrap; margin-bottom:10px;">${contentWithLinks}</p>
                             ${postReadMoreButton}
                             ${postImageHtml}
-                            ${(post.tebrikCount && post.tebrikCount > 0) ? `<div title="Tebrik sayısı: ${post.tebrikCount}" style="font-size:0.85rem; color:#f97316; font-weight:700; margin-bottom:8px;">+${post.tebrikCount} tebrik</div>` : ''}
                             
                             <div style="display:flex; gap:12px;">
                                 <button class="tool-btn" onclick="likePost('${post.id}', ${isLiked}, this)" style="gap:5px; color:${isLiked ? '#ef4444' : ''}">
@@ -5728,7 +5222,6 @@ async function loadVisitorProfile() {
                                 </button>
                                 <button class="tool-btn" style="gap:5px;"><i class="fa-regular fa-comment"></i><span>${post.comments?.length || 0}</span></button>
                                 <button class="tool-btn" onclick="window.openShareMenu('${post.id}')" style="gap:5px; margin-left:auto;"><i class="fa-solid fa-share"></i></button>
-                                <button class="tool-btn" onclick="sendTebrikToUsernameQuick('${post.username}', '${post.id}', this)" style="gap:5px; color:#f97316; margin-left:8px;" title="Tebrik Gönder"><i class="fa-solid fa-gift"></i></button>
                             </div>
                         </div>
                     `;
@@ -6484,6 +5977,8 @@ function syncThemeButtonState() {
 document.addEventListener('DOMContentLoaded', () => {
     if (localStorage.getItem('st_theme') === 'dark') {
         document.body.classList.add('dark-mode');
+    } else {
+        document.body.classList.remove('dark-mode');
     }
     syncThemeButtonState();
 });
@@ -7826,10 +7321,6 @@ async function loadNotifications(userData) {
             text = `${n.fromName} size mesaj gönderdi`;
             detail = n.message ? `"${n.message.slice(0, 80)}${n.message.length > 80 ? '...' : ''}"` : '';
             icon = 'fa-envelope';
-        } else if (n.type === 'tebrik') {
-            text = `${n.fromName} size tebrik gönderdi`;
-            detail = n.message ? `"${n.message.slice(0, 80)}${n.message.length > 80 ? '...' : ''}"` : '';
-            icon = 'fa-hand-holding-heart';
         } else {
             text = n.message || `${n.fromName || 'Birileri'} bir bildirim gönderdi`;
         }
@@ -8049,30 +7540,19 @@ async function loadProfileNotifications() {
             const nDiv = document.createElement('div');
             nDiv.style.cssText = `padding:15px; border-radius:12px; background:var(--input-bg); border:1px solid var(--border); display:grid; grid-template-columns:auto 1fr auto; gap:12px; align-items:start; cursor:pointer; transition:all 0.2s ease; ${n.read ? 'opacity:0.65;' : 'background:var(--card-bg); border:1px solid var(--primary);'}`;
 
-            const icon = (n.type === 'tebrik') ? 'fa-gift' : (n.type && n.type.includes('like')) ? 'fa-heart' : (n.type && n.type.includes('comment') ? 'fa-comment' : (n.type && n.type.includes('friend') ? 'fa-user-check' : 'fa-info-circle'));
+            const icon = (n.type && n.type.includes('like')) ? 'fa-heart' : (n.type && n.type.includes('comment') ? 'fa-comment' : (n.type && n.type.includes('friend') ? 'fa-user-check' : 'fa-info-circle'));
             const iconColors = {
                 'fa-heart': '#ef4444',
                 'fa-comment': '#3b82f6',
                 'fa-user-check': '#10b981',
-                'fa-info-circle': '#8b5cf6',
-                'fa-gift': '#f97316'
+                'fa-info-circle': '#8b5cf6'
             };
             const iconColor = iconColors[icon] || 'var(--primary)';
 
             let mainText = '';
             let detailText = '';
 
-            if (n.type === 'tebrik') {
-                mainText = `${n.fromName} size tebrik gönderdi`;
-                if (n.cardType) {
-                    detailText = `Kart: ${n.cardType}`;
-                    if (n.message && n.message !== n.cardType) {
-                        detailText += ` • ${n.message}`;
-                    }
-                } else {
-                    detailText = n.message || 'Tebrik gönderildi.';
-                }
-            } else if (n.type === 'post_like' || n.type === 'like') {
+            if (n.type === 'post_like' || n.type === 'like') {
                 mainText = `${n.fromName} gönderinizi beğendi`;
                 detailText = n.postContent ? `"${n.postContent}${n.postContent.length >= 50 ? '...' : ''}"` : 'Gönderi hakkında daha fazla bilgi görmek için tıkla.';
             } else if (n.type === 'saved_self') {
@@ -8788,904 +8268,31 @@ function formatTebrikDate(value) {
     return date.toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
 
-// --- Tebrik (congrats) feature ---
-// Send a tebrik to a user by UID
-// send tebrik with optional message
-window.sendTebrikToUid = async function(targetUid, targetUsername, message = '', { postId = null, cardType = null } = {}) {
-    if (!auth.currentUser) {
-        alert('Tebrik göndermek için giriş yapın.');
-        return;
-    }
-    if (!targetUid) {
-        alert('Hedef kullanıcı bulunamadı.');
-        return;
-    }
-    const normalizedTargetUsername = typeof targetUsername === 'string' ? targetUsername.trim().toLowerCase() : '';
-    const myUsername = user.username ? user.username.trim().toLowerCase() : '';
-    if (targetUid === auth.currentUser.uid || (normalizedTargetUsername && normalizedTargetUsername === myUsername)) {
-        alert('Kendinize tebrik gönderemezsiniz.');
-        return;
-    }
-    try {
-        const targetRef = doc(db, 'users', targetUid);
-        // Prevent duplicate tebrik from same user
-        const targetSnap = await getDoc(targetRef);
-        const targetData = targetSnap.exists() ? targetSnap.data() : null;
-        const givers = Array.isArray(targetData?.tebrikGivers) ? targetData.tebrikGivers : [];
-        if (givers.some(g => g.uid === auth.currentUser.uid && g.postId === postId)) {
-            alert('Zaten bu kullanıcıya bu hedef için tebrik gönderdiniz.');
-            return;
-        }
 
-        const resolvedCardType = cardType || getGiftCardType(message);
-        const giverInfo = {
-            uid: auth.currentUser.uid,
-            username: user.username,
-            displayName: user.displayName,
-            message: message || '',
-            cardType: resolvedCardType || null,
-            postId: postId || null,
-            at: Timestamp.now()
-        };
 
-        await updateDoc(targetRef, {
-            tebrikCount: increment(1),
-            tebrikGivers: arrayUnion(giverInfo),
-            tebrikMessages: arrayUnion({ fromUid: auth.currentUser.uid, fromUsername: user.username, message: message || '', cardType: resolvedCardType || null, at: Timestamp.now(), postId: postId || null })
-        });
+// --- Tebrik (congrats) feature REMOVED ---
+// All tebrik/thanks functions stubbed to prevent runtime errors
+
+window.sendTebrikToUid = async function() { alert('Tebrik özelliği devre dışı bırakılmıştır.'); };
+window.sendBlogTebrikToAuthor = async function() { alert('Tebrik özelliği devre dışı bırakılmıştır.'); };
+window.sendTebrikThanksForUser = async function() { alert('Tebrik özelliği devre dışı bırakılmıştır.'); };
+window.retractTebrikFromProfile = async function() { alert('Tebrik özelliği devre dışı bırakılmıştır.'); };
+window.sendTebrikByUsername = async function() { alert('Tebrik özelliği devre dışı bırakılmıştır.'); };
+window.sendTebrikByUsernameWithMessage = async function() { alert('Tebrik özelliği devre dışı bırakılmıştır.'); };
+window.openTebrikModal = function() { alert('Tebrik özelliği devre dışı bırakılmıştır.'); };
+window.openTebrikModalForProfile = function() { alert('Tebrik özelliği devre dışı bırakılmıştır.'); };
+window.closeTebrikModal = function() { };
+window.sendTebrikFromModal = async function() { alert('Tebrik özelliği devre dışı bırakılmıştır.'); };
+window.sendTebrikToUsernameQuick = async function() { alert('Tebrik özelliği devre dışı bırakılmıştır.'); };
+window.sendTebrikCurrentProfile = async function() { alert('Tebrik özelliği devre dışı bırakılmıştır.'); };
+window.loadTopTebrikList = async function() { };
+window.updateProfileTebrikUI = async function() { };
+window.toggleCongratsValueTable = function() { };
+window.loadLatestTebriklerPreview = async function() { };
+window.loadProfileCongrats = async function() { };
+window.getGiftCardType = function() { return null; };
+window.renderCongratsValueTable = function() { };
 
-        // send notification to recipient
-        await sendNotification(targetUid, 'tebrik', user.displayName || user.username || 'Bir kullanıcı', {
-            message: message ? `${user.displayName || user.username} size tebrik gönderdi: ${message}` : `${user.displayName || user.username} size tebrik gönderdi.`,
-            postId: postId || null,
-            cardType: resolvedCardType || null
-        });
-
-        alert('Tebrik gönderildi — kullanıcı tebrik puanına sahip oldu.');
-        // refresh UI
-        loadTopTebrikList();
-        // if currently viewing that profile, refresh its badge
-        const visiting = localStorage.getItem('visiting_username');
-        if (!visiting || visiting === targetUsername) {
-            // reload profile UI
-            if (typeof loadVisitorProfile === 'function') loadVisitorProfile();
-        }
-    } catch (e) {
-        console.error('Tebrik gönderme hatası:', e);
-        alert('Tebrik gönderilemedi. Lütfen tekrar deneyin.');
-    }
-};
-
-window.sendBlogTebrikToAuthor = async function(authorUid, authorUsername, blogId) {
-    if (!auth.currentUser) {
-        alert('Yazıya yapılan tebrik göndermek için giriş yapın.');
-        return;
-    }
-    if (!authorUid && !authorUsername) {
-        alert('Yazı yazarı bulunamadı.');
-        return;
-    }
-    try {
-        let targetUid = authorUid;
-        if (!targetUid && authorUsername) {
-            const q = query(collection(db, 'users'), where('username', '==', authorUsername), limit(1));
-            const snap = await getDocs(q);
-            if (snap.empty) {
-                alert('Yazı yazarı bulunamadı.');
-                return;
-            }
-            targetUid = snap.docs[0].id;
-        }
-        await window.sendTebrikToUid(targetUid, authorUsername || '', 'yazıya yapılan tebrik', { postId: blogId, cardType: 'yazıya yapılan tebrik' });
-        alert('Yazıya yapılan tebrik gönderildi.');
-        if (typeof loadProfileCongrats === 'function') loadProfileCongrats();
-    } catch (e) {
-        console.error('Gönderi yazısı tebrik hatası:', e);
-        alert('Yazıya yapılan tebrik gönderilemedi.');
-    }
-};
-
-window.sendTebrikThanksForUser = async function(thankKey, senderUid) {
-    if (!auth.currentUser) {
-        alert('Tebriğe teşekkür etmek için giriş yapın.');
-        return;
-    }
-    if (!thankKey || !senderUid) {
-        alert('Geçersiz teşekkür bilgisi.');
-        return;
-    }
-    try {
-        const userRef = doc(db, 'users', auth.currentUser.uid);
-        const userSnap = await getDoc(userRef);
-        if (!userSnap.exists()) {
-            alert('Kullanıcı bilgisi bulunamadı.');
-            return;
-        }
-        const userData = userSnap.data() || {};
-        const tebrikThanks = Array.isArray(userData.tebrikThanks) ? userData.tebrikThanks : [];
-        if (tebrikThanks.includes(thankKey)) {
-            alert('Bu tebriğe zaten teşekkür ettiniz.');
-            return;
-        }
-
-        await updateDoc(userRef, {
-            thankPoints: increment(0.25),
-            tebrikThanks: arrayUnion(thankKey)
-        });
-
-        await sendNotification(senderUid, 'thank', user.displayName || user.username || 'Bir kullanıcı', {
-            message: `${user.displayName || user.username} size teşekkür gönderdi.`
-        });
-
-        // Increment recipient's received-thanks counter so we can display it in Top 10 lists
-        try {
-            if (senderUid) {
-                const recipientRef = doc(db, 'users', senderUid);
-                await updateDoc(recipientRef, { thanksReceived: increment(1) });
-            }
-        } catch (err) {
-            console.warn('Recipient thanks increment failed:', err);
-        }
-
-        alert('Teşekkür gönderildi, +%0,25 puan kazandınız.');
-        if (typeof loadProfileCongrats === 'function') loadProfileCongrats();
-    } catch (e) {
-        console.error('Teşekkür gönderme hatası:', e);
-        alert('Teşekkür gönderilemedi. Lütfen tekrar deneyin.');
-    }
-};
-
-window.retractTebrikFromProfile = async function(targetUid, targetUsername) {
-    if (!auth.currentUser) {
-        alert('Tebriği geri almak için giriş yapın.');
-        return;
-    }
-
-    try {
-        if (!targetUid && targetUsername) {
-            const q = query(collection(db, 'users'), where('username', '==', targetUsername), limit(1));
-            const snap = await getDocs(q);
-            if (snap.empty) {
-                alert('Hedef kullanıcı bulunamadı.');
-                return;
-            }
-            targetUid = snap.docs[0].id;
-        }
-
-        if (!targetUid) {
-            alert('Geri alınacak hedef kullanıcı bulunamadı.');
-            return;
-        }
-
-        const targetRef = doc(db, 'users', targetUid);
-        const targetSnap = await getDoc(targetRef);
-        if (!targetSnap.exists()) {
-            alert('Hedef kullanıcı bulunamadı.');
-            return;
-        }
-
-        const targetData = targetSnap.data() || {};
-        const currentUid = auth.currentUser.uid;
-        const existingGivers = Array.isArray(targetData.tebrikGivers) ? targetData.tebrikGivers : [];
-        const existingMessages = Array.isArray(targetData.tebrikMessages) ? targetData.tebrikMessages : [];
-
-        const filteredGivers = existingGivers.filter(g => !(g.uid === currentUid && !g.postId));
-        const filteredMessages = existingMessages.filter(m => !(m.fromUid === currentUid && !m.postId));
-        const removedCount = existingGivers.length - filteredGivers.length;
-
-        if (removedCount === 0) {
-            alert('Bu kullanıcıya gönderilmiş bir profil tebriki bulunamadı.');
-            return;
-        }
-
-        await updateDoc(targetRef, {
-            tebrikCount: increment(-removedCount),
-            tebrikGivers: filteredGivers,
-            tebrikMessages: filteredMessages
-        });
-
-        alert('Tebrik başarıyla geri alındı.');
-        if (typeof loadVisitorProfile === 'function') loadVisitorProfile();
-        if (typeof updateProfileTebrikUI === 'function' && targetUsername) updateProfileTebrikUI(targetUsername);
-        if (typeof loadTopTebrikList === 'function') loadTopTebrikList();
-    } catch (e) {
-        console.error('Tebriği geri alma hatası:', e);
-        alert('Tebrik geri alınamadı. Lütfen tekrar deneyin.');
-    }
-};
-
-// Send tebrik by username (used by quick prompt)
-window.sendTebrikByUsername = async function(username) {
-    if (!username) return;
-    try {
-        const q = query(collection(db, 'users'), where('username', '==', username), limit(1));
-        const snap = await getDocs(q);
-        if (snap.empty) {
-            alert('Kullanıcı bulunamadı: ' + username);
-            return;
-        }
-        const docSnap = snap.docs[0];
-        await window.sendTebrikToUid(docSnap.id, username);
-    } catch (e) {
-        console.error('sendTebrikByUsername hata:', e);
-        alert('Tebrik gönderilirken hata oluştu.');
-    }
-};
-
-// send by username with message
-window.sendTebrikByUsernameWithMessage = async function(username, message) {
-    if (!username) return;
-    try {
-        const q = query(collection(db, 'users'), where('username', '==', username), limit(1));
-        const snap = await getDocs(q);
-        if (snap.empty) {
-            alert('Kullanıcı bulunamadı: ' + username);
-            return;
-        }
-        const docSnap = snap.docs[0];
-        await window.sendTebrikToUid(docSnap.id, username, message);
-    } catch (e) {
-        console.error('sendTebrikByUsernameWithMessage hata:', e);
-        alert('Tebrik gönderilirken hata oluştu.');
-    }
-};
-
-// Open tebrik modal optionally prefilling username
-window.openTebrikModal = function(prefillUsername) {
-    const modal = document.getElementById('tebrikModal');
-    if (!modal) return;
-    const userInput = modal.querySelector('#tebrikTargetUsername');
-    const msgArea = modal.querySelector('#tebrikMessage');
-    if (userInput) userInput.value = prefillUsername || '';
-    if (msgArea) msgArea.value = '';
-    modal.style.display = 'flex';
-};
-
-window.openTebrikModalForProfile = function() {
-    const visitedUsername = getVisitedProfileUsername();
-    const myUsername = user?.username?.trim().toLowerCase();
-    if (!visitedUsername) {
-        alert('Bu profil için tebrik gönderilemez.');
-        return;
-    }
-    if (myUsername && visitedUsername.trim().toLowerCase() === myUsername) {
-        alert('Kendinize tebrik gönderemezsiniz.');
-        return;
-    }
-    openTebrikModal(visitedUsername);
-};
-
-window.closeTebrikModal = function() {
-    const modal = document.getElementById('tebrikModal');
-    if (!modal) return;
-    modal.style.display = 'none';
-};
-
-window.sendTebrikFromModal = async function() {
-    const modal = document.getElementById('tebrikModal');
-    if (!modal) return;
-    const userInput = modal.querySelector('#tebrikTargetUsername');
-    const msgArea = modal.querySelector('#tebrikMessage');
-    const username = userInput?.value?.trim();
-    const message = msgArea?.value?.trim() || '';
-    if (!username) { alert('Lütfen kullanıcı adını girin.'); return; }
-    const myUsername = user?.username?.trim().toLowerCase();
-    if (myUsername && username.toLowerCase() === myUsername) {
-        alert('Kendinize tebrik gönderemezsiniz.');
-        return;
-    }
-    await sendTebrikByUsernameWithMessage(username, message);
-    closeTebrikModal();
-};
-
-// Quick tebrik from post button - allows multiple clicks (increments each click)
-window.sendTebrikToUsernameQuick = async function(username, postId, btnEl) {
-    if (!auth.currentUser) {
-        alert('Tebrik göndermek için giriş yapın.');
-        return;
-    }
-    if (!username) return;
-    try {
-        // find user doc by username
-        const q = query(collection(db, 'users'), where('username', '==', username), limit(1));
-        const snap = await getDocs(q);
-        if (snap.empty) {
-            alert('Kullanıcı bulunamadı.');
-            return;
-        }
-        const userDoc = snap.docs[0];
-        const targetRef = doc(db, 'users', userDoc.id);
-        const targetData = userDoc.data() || {};
-        const givers = Array.isArray(targetData.tebrikGivers) ? targetData.tebrikGivers : [];
-        const msgs = Array.isArray(targetData.tebrikMessages) ? targetData.tebrikMessages : [];
-        const existingTebrik = postId ? msgs.find(m => m.fromUid === auth.currentUser.uid && m.postId === postId) : givers.find(g => g.uid === auth.currentUser.uid);
-
-        if (existingTebrik) {
-            // remove tebrik on second click
-            const updatedMsgs = msgs.filter(m => !(m.fromUid === auth.currentUser.uid && m.postId === postId));
-            const updatedGivers = givers.filter(g => !(g.uid === auth.currentUser.uid && g.postId === postId));
-            await updateDoc(targetRef, { tebrikCount: increment(-1), tebrikGivers: updatedGivers, tebrikMessages: updatedMsgs });
-            if (postId) {
-                try {
-                    const postRef = doc(db, 'posts', postId);
-                    await updateDoc(postRef, { tebrikCount: increment(-1) });
-                } catch (e) {
-                    console.warn('Post tebrik sayısı azaltılamadı:', e);
-                }
-            }
-            loadTopTebrikList();
-            if (typeof updateProfileTebrikUI === 'function') updateProfileTebrikUI(username);
-            return;
-        }
-
-        const giverInfo = { uid: auth.currentUser.uid, username: user.username, displayName: user.displayName || '', message: '', at: Timestamp.now(), postId: postId || null };
-        // increment tebrik count by 1 for the user and record giver
-        await updateDoc(targetRef, { tebrikCount: increment(1), tebrikGivers: arrayUnion(giverInfo), tebrikMessages: arrayUnion({ fromUid: auth.currentUser.uid, fromUsername: user.username, message: '', cardType: null, at: Timestamp.now(), postId }) });
-        // if a postId is provided, also increment tebrikCount on the post document
-        if (postId) {
-            try {
-                const postRef = doc(db, 'posts', postId);
-                await updateDoc(postRef, { tebrikCount: increment(1) });
-            } catch (e) {
-                console.warn('Post tebrik sayısı güncellenemedi:', e);
-            }
-        }
-        // send notification to recipient for quick tebrik
-        await sendNotification(userDoc.id, 'tebrik', user.displayName || user.username || 'Bir kullanıcı', {
-            message: `${user.displayName || user.username} size tebrik gönderdi.`,
-            postId: postId || null,
-            cardType: null
-        });
-
-        // show +1 animation on top of the tebrik icon/button
-        try {
-            const el = btnEl || document.querySelector(`#post-${postId} .tool-btn`);
-            if (el) {
-                el.style.overflow = 'visible';
-                if (el.parentElement) el.parentElement.style.overflow = 'visible';
-                const prevPosition = el.style.position;
-                if (!prevPosition || prevPosition === 'static') {
-                    el.style.position = 'relative';
-                }
-                const plus = document.createElement('span');
-                plus.className = 'tebrik-plus-page';
-                plus.innerText = '+1';
-                plus.style.position = 'absolute';
-                plus.style.right = '-8px';
-                plus.style.top = '-18px';
-                plus.style.fontSize = '12px';
-                plus.style.lineHeight = '14px';
-                plus.style.padding = '2px 4px';
-                plus.style.color = '#f97316';
-                plus.style.fontWeight = '800';
-                plus.style.background = 'rgba(255,255,255,0.95)';
-                plus.style.borderRadius = '999px';
-                plus.style.pointerEvents = 'none';
-                plus.style.zIndex = 9999;
-                plus.style.opacity = '1';
-                plus.style.transition = 'transform 900ms cubic-bezier(.2,.9,.2,1), opacity 900ms ease';
-                el.appendChild(plus);
-                requestAnimationFrame(() => { plus.style.transform = 'translateY(-20px)'; plus.style.opacity = '0'; });
-                setTimeout(() => {
-                    try { plus.remove(); } catch(_){}
-                    if (!prevPosition || prevPosition === 'static') el.style.position = prevPosition;
-                }, 950);
-            }
-        } catch (e) { console.warn('Animasyon esnasında hata', e); }
-
-        // refresh top list and profile badge
-        loadTopTebrikList();
-        if (typeof updateProfileTebrikUI === 'function') updateProfileTebrikUI(username);
-    } catch (e) {
-        console.error('Quick tebrik hatası:', e);
-        alert('Tebrik gönderilemedi.');
-    }
-};
-
-// Called from profile page button — sends tebrik to currently visited profile
-window.sendTebrikCurrentProfile = async function() {
-    const visitedUsername = getVisitedProfileUsername();
-    if (!visitedUsername) {
-        alert('Bu kullanıcı için tebrik gönderilemez.');
-        return;
-    }
-    try {
-        const q = query(collection(db, 'users'), where('username', '==', visitedUsername), limit(1));
-        const snap = await getDocs(q);
-        if (snap.empty) {
-            alert('Kullanıcı bulunamadı.');
-            return;
-        }
-        const docSnap = snap.docs[0];
-        await window.sendTebrikToUid(docSnap.id, visitedUsername);
-    } catch (e) {
-        console.error('sendTebrikCurrentProfile hata:', e);
-        alert('Tebrik gönderilemedi.');
-    }
-};
-
-// Load Top 10 tebrik list and render into right-aside
-window.loadTopTebrikList = async function() {
-    const container = document.getElementById('top-tebrik-list');
-    if (!container) return;
-    try {
-        const q = query(collection(db, 'users'), where('tebrikCount', '>', 0), orderBy('tebrikCount', 'desc'), limit(5));
-        const snap = await getDocs(q);
-        if (snap.empty) {
-            container.innerHTML = '<div style="color:var(--text-muted); font-size:0.85rem; text-align:center;">Henüz tebrik alan kullanıcı yok.</div>';
-            return;
-        }
-        const users = [];
-        snap.forEach(d => users.push({ id: d.id, ...d.data() }));
-        const max = users.reduce((m, u) => Math.max(m, (u.tebrikCount || 0)), 0);
-        container.style.display = '';
-        container.innerHTML = '';
-        if (max === 0) {
-            container.innerHTML = '<div style="color:var(--text-muted); font-size:0.85rem; text-align:center;">Henüz tebrik alan kullanıcı yok.</div>';
-            return;
-        }
-        users.forEach((u, idx) => {
-            const count = u.tebrikCount || 0;
-            const pct = Math.round((count / max) * 100);
-            const profileUsername = u.username || u.id;
-            const avatar = u.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.displayName || profileUsername || 'User')}&background=6366f1&color=fff`;
-            const item = document.createElement('div');
-            item.className = 'top-tebrik-item';
-            item.innerHTML = `
-                <div class="top-tebrik-rank">#${idx + 1}</div>
-                <div class="top-tebrik-user">
-                    <img class="top-tebrik-avatar" src="${avatar}" alt="${escapeHtml(u.displayName || profileUsername)}">
-                    <div class="top-tebrik-user-meta">
-                        <div class="top-tebrik-name">${escapeHtml(u.displayName || profileUsername)}</div>
-                        <div class="top-tebrik-stats">${count} tebrik · ${u.thanksReceived || 0} teşekkür</div>
-                        <div class="top-tebrik-progress-bar"><span style="width:${pct}%"></span></div>
-                    </div>
-                </div>
-            `;
-            const avatarEl = item.querySelector('.top-tebrik-avatar');
-            if (avatarEl) {
-                avatarEl.addEventListener('click', () => {
-                    location.href = `profil.html?id=${encodeURIComponent(profileUsername)}`;
-                });
-            }
-            container.appendChild(item);
-        });
-    } catch (e) {
-        console.error('loadTopTebrikList hata:', e);
-    }
-};
-
-// Update tebrik badge in profile header (shows raw count and percent relative to top)
-window.updateProfileTebrikUI = async function(username) {
-    try {
-        const badgeCount = document.getElementById('tebrikCount');
-        const badgePercent = document.getElementById('tebrikPercent');
-        if (!badgeCount || !badgePercent) return;
-        // find user doc
-        const q = query(collection(db, 'users'), where('username','==', username), limit(1));
-        const snap = await getDocs(q);
-        if (snap.empty) {
-            badgeCount.innerText = '0';
-            badgePercent.innerText = '%0';
-            return;
-        }
-        const data = snap.docs[0].data();
-        const count = data.tebrikCount || 0;
-        badgeCount.innerText = count;
-        // get top value
-        const topQ = query(collection(db, 'users'), orderBy('tebrikCount','desc'), limit(1));
-        const topSnap = await getDocs(topQ);
-        const topCount = topSnap.empty ? 0 : (topSnap.docs[0].data().tebrikCount || 0);
-        const pct = topCount > 0 ? Math.round((count / topCount) * 100) : (count > 0 ? 100 : 0);
-        badgePercent.innerText = `%${pct}`;
-        const progress = document.getElementById('tebrikProgress');
-        if (progress) {
-            progress.style.width = `${pct}%`;
-            if (pct >= 80) {
-                progress.style.background = 'linear-gradient(135deg, #10b981, #22c55e)';
-            } else if (pct >= 50) {
-                progress.style.background = 'linear-gradient(135deg, #f59e0b, #fbbf24)';
-            } else {
-                progress.style.background = 'linear-gradient(135deg, #6366f1, #a855f7)';
-            }
-        }
-        const summary = document.getElementById('tebrikSummaryText');
-        const levelLabel = document.getElementById('tebrikLevel');
-        const rank = document.getElementById('tebrikRank');
-        if (rank) {
-            if (count > 0) {
-                const rankQ = query(collection(db, 'users'), where('tebrikCount', '>', count));
-                const rankSnap = await getDocs(rankQ);
-                rank.innerText = `#${rankSnap.size + 1}`;
-            } else {
-                rank.innerText = '#--';
-            }
-        }
-        if (summary) {
-            if (count === 0) {
-                summary.innerText = 'Henüz tebrik almadı. Şimdi ilk tebriği gönder!';
-            } else if (pct >= 80) {
-                summary.innerText = 'Zirveye yaklaştın, tebriklerin yükselişte.';
-            } else if (pct >= 50) {
-                summary.innerText = 'Profilin güçlü; kısa sürede daha yukarı çıkabilirsin.';
-            } else {
-                summary.innerText = 'Tebrik sayını artırmak için paylaşımlarını büyüt.';
-            }
-        }
-        if (levelLabel) {
-            if (pct >= 80) {
-                levelLabel.innerText = 'Efsane';
-                levelLabel.className = 'tebrik-card-tag tebrik-level-pill success';
-            } else if (pct >= 50) {
-                levelLabel.innerText = 'Yıldız';
-                levelLabel.className = 'tebrik-card-tag tebrik-level-pill warning';
-            } else if (pct > 0) {
-                levelLabel.innerText = 'Yükselen';
-                levelLabel.className = 'tebrik-card-tag tebrik-level-pill';
-            } else {
-                levelLabel.innerText = 'Yeni Başlayan';
-                levelLabel.className = 'tebrik-card-tag tebrik-level-pill';
-            }
-        }
-    } catch (e) {
-        console.error('updateProfileTebrikUI hata:', e);
-    }
-};
-
-window.CONGRATS_VALUE_ROWS = [
-    { label: 'Teşekkür etme', value: '%0,25' },
-    { label: 'Profilden yapılan tebrik', value: '%0,50' },
-    { label: 'Gönderi yazısına tebrik', value: '%2,50' }
-];
-
-window.renderCongratsValueTable = function() {
-    const body = document.getElementById('congrats-values-table-body');
-    if (!body) return;
-    body.innerHTML = window.CONGRATS_VALUE_ROWS.map(row => `
-        <tr>
-            <td style="padding:12px 16px; border-top:1px solid var(--border); font-size:0.9rem;">${row.label}</td>
-            <td style="padding:12px 16px; border-top:1px solid var(--border); font-size:0.9rem;">${row.value}</td>
-        </tr>
-    `).join('');
-};
-
-window.toggleCongratsValueTable = function() {
-    const panel = document.getElementById('congrats-values-panel');
-    const button = document.getElementById('congratsValuesBtn');
-    if (!panel) return;
-    const isVisible = panel.style.display === 'block';
-    panel.style.display = isVisible ? 'none' : 'block';
-    if (!isVisible) {
-        if (button) button.innerText = 'Tabloyu Gizle';
-        window.renderCongratsValueTable();
-    } else if (button) {
-        button.innerText = 'Tebrik Değerleri';
-    }
-};
-
-window.CONGRATS_PAGE_SIZE = 5;
-window.congratsShowAll = false;
-
-// Son 3 tebriki preview alanında göster
-window.loadLatestTebriklerPreview = async function() {
-    const previewContainer = document.getElementById('latest-tebrikler-preview');
-    const emptyMsg = document.getElementById('no-tebrikler-preview-msg');
-    
-    if (!previewContainer) {
-        console.log('preview container bulunamadı');
-        return;
-    }
-    previewContainer.innerHTML = '';
-    if (emptyMsg) emptyMsg.style.display = 'none';
-
-    if (!auth.currentUser) {
-        console.log('currentUser yok');
-        return;
-    }
-
-    try {
-        const userRef = doc(db, 'users', auth.currentUser.uid);
-        const userSnap = await getDoc(userRef);
-        if (!userSnap.exists()) {
-            console.log('user doc yok');
-            return;
-        }
-
-        const data = userSnap.data() || {};
-        const tebrikGivers = Array.isArray(data.tebrikGivers) ? data.tebrikGivers : [];
-        console.log('tebrikGivers:', tebrikGivers);
-
-        if (tebrikGivers.length === 0) {
-            console.log('tebrik yok');
-            if (emptyMsg) emptyMsg.style.display = 'block';
-            return;
-        }
-
-        // Son 3 tebrik verenin bilgisini al
-        const latestTebrikler = tebrikGivers.slice(-3).reverse();
-        console.log('latestTebrikler:', latestTebrikler);
-
-        for (const giver of latestTebrikler) {
-            console.log('giver:', giver);
-            if (!giver.fromUid && !giver.uid) {
-                console.log('UID yok, atlanıyor');
-                continue;
-            }
-
-            const uid = giver.fromUid || giver.uid;
-            // Tebrik veren kişinin bilgisini firebase'den çek
-            try {
-                const giverRef = doc(db, 'users', uid);
-                const giverSnap = await getDoc(giverRef);
-                if (!giverSnap.exists()) {
-                    console.log('giver doc yok');
-                    continue;
-                }
-
-                const giverData = giverSnap.data();
-                const emojiMap = {
-                    'congratulation': '🎉',
-                    'birthday': '🎂',
-                    'anniversary': '🎊',
-                    'achievement': '🏆',
-                    'thank-you': '❤️'
-                };
-
-                const div = document.createElement('div');
-                div.className = 'tebrik-preview-item';
-                div.style.cursor = 'pointer';
-                div.onclick = () => {
-                    window.location.href = `profil.html?id=${encodeURIComponent(giverData.username)}`;
-                };
-                
-                div.innerHTML = `
-                    <img src="${giverData.avatarUrl || 'assets/img/strendsaydamv2.png'}" 
-                        style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: none;">
-                    <div class="tebrik-preview-name">${giverData.displayName || giverData.username}</div>
-                    <div class="tebrik-preview-count">${emojiMap[giver.cardType] || '⭐'} ${giver.message ? 'tebrik gönderdi' : 'tebrik yolladı'}</div>
-                `;
-                previewContainer.appendChild(div);
-            } catch (e) {
-                console.warn('Tebrik veren bilgisi alınamadı:', e);
-            }
-        }
-    } catch (e) {
-        console.error('loadLatestTebriklerPreview error:', e);
-    }
-};
-
-window.loadProfileCongrats = async function() {
-    const list = document.getElementById('my-congrats-list');
-    const emptyMessage = document.getElementById('no-tebrikler-msg');
-    if (!list) return;
-    list.innerHTML = '';
-    if (emptyMessage) {
-        emptyMessage.innerText = 'Yükleniyor...';
-        emptyMessage.style.display = 'block';
-    }
-
-    if (!auth.currentUser) {
-        if (emptyMessage) {
-            emptyMessage.innerText = 'Giriş yapın';
-        }
-        return;
-    }
-
-    try {
-        const userRef = doc(db, 'users', auth.currentUser.uid);
-        const userSnap = await getDoc(userRef);
-        if (!userSnap.exists()) {
-            if (emptyMessage) {
-                emptyMessage.innerText = 'Kullanıcı bulunamadı';
-            }
-            return;
-        }
-
-        const data = userSnap.data() || {};
-        const tebrikGivers = Array.isArray(data.tebrikGivers) ? data.tebrikGivers : [];
-        const tebrikMessages = Array.isArray(data.tebrikMessages) ? data.tebrikMessages : [];
-        const tebrikThanks = Array.isArray(data.tebrikThanks) ? data.tebrikThanks : [];
-
-        const normalizedItems = new Map();
-        const normalize = (item) => ({
-            uid: item.fromUid || item.uid || null,
-            username: item.fromUsername || item.username || null,
-            displayName: item.fromName || item.displayName || item.username || item.fromUsername || 'Bir kullanıcı',
-            message: item.message || '',
-            cardType: item.cardType || null,
-            postId: item.postId || null,
-            commentText: item.commentText || null,
-            at: item.at || item.timestamp || item.createdAt || null
-        });
-
-        const makeItemKey = (normalized) => `${normalized.uid || 'anon'}|${normalized.postId || 'profile'}|${normalized.commentText || 'none'}|${normalized.cardType || 'none'}|${normalized.message || 'none'}`;
-
-        const addItem = (item) => {
-            const normalized = normalize(item);
-            const key = makeItemKey(normalized);
-            normalized.key = key;
-            if (!normalizedItems.has(key)) {
-                normalizedItems.set(key, normalized);
-            } else {
-                const existing = normalizedItems.get(key);
-                if (!existing.displayName && normalized.displayName) existing.displayName = normalized.displayName;
-                if (!existing.message && normalized.message) existing.message = normalized.message;
-                if (!existing.cardType && normalized.cardType) existing.cardType = normalized.cardType;
-                if (!existing.postId && normalized.postId) existing.postId = normalized.postId;
-                if (!existing.commentText && normalized.commentText) existing.commentText = normalized.commentText;
-                if (!existing.at && normalized.at) existing.at = normalized.at;
-            }
-        };
-
-        tebrikGivers.forEach(addItem);
-        tebrikMessages.forEach(addItem);
-
-        const items = Array.from(normalizedItems.values());
-
-        if (items.length === 0) {
-            if (emptyMessage) {
-                emptyMessage.innerText = 'Henüz tebrik yok';
-            }
-            return;
-        }
-
-        if (emptyMessage) {
-            emptyMessage.style.display = 'none';
-        }
-
-        items.sort((a, b) => {
-            const aAt = a.at?.seconds ? a.at.seconds : (typeof a.at === 'number' ? a.at : 0);
-            const bAt = b.at?.seconds ? b.at.seconds : (typeof b.at === 'number' ? b.at : 0);
-            return bAt - aAt;
-        });
-
-        const statistics = {
-            total: items.length,
-            profile: items.filter(item => !item.postId).length,
-            posts: items.filter(item => item.postId && !item.commentText).length,
-            comments: items.filter(item => item.postId && item.commentText).length,
-            uniqueSenders: new Set(items.map(item => item.uid || item.username || 'anon')).size
-        };
-        const summaryContainer = document.getElementById('my-congrats-summary');
-        if (summaryContainer) {
-            summaryContainer.innerHTML = `
-                <div style="display:grid; gap:10px; grid-template-columns:repeat(auto-fit, minmax(160px, 1fr));">
-                    <div style="padding:14px; border-radius:16px; background:rgba(99,102,241,0.08); border:1px solid var(--border);">
-                        <div style="font-size:0.75rem; color:var(--text-muted);">Toplam Tebrik</div>
-                        <div style="margin-top:6px; font-size:1.15rem; font-weight:800;">${statistics.total}</div>
-                    </div>
-                    <div style="padding:14px; border-radius:16px; background:rgba(16,185,129,0.08); border:1px solid var(--border);">
-                        <div style="font-size:0.75rem; color:var(--text-muted);">Profil Tebriği</div>
-                        <div style="margin-top:6px; font-size:1.15rem; font-weight:800;">${statistics.profile}</div>
-                    </div>
-                    <div style="padding:14px; border-radius:16px; background:rgba(249,115,22,0.08); border:1px solid var(--border);">
-                        <div style="font-size:0.75rem; color:var(--text-muted);">Yazı Tebriği</div>
-                        <div style="margin-top:6px; font-size:1.15rem; font-weight:800;">${statistics.posts}</div>
-                    </div>
-                    <div style="padding:14px; border-radius:16px; background:rgba(59,130,246,0.08); border:1px solid var(--border);">
-                        <div style="font-size:0.75rem; color:var(--text-muted);">Yorum Tebriği</div>
-                        <div style="margin-top:6px; font-size:1.15rem; font-weight:800;">${statistics.comments}</div>
-                    </div>
-                </div>
-                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; padding:14px 18px; border-radius:16px; background:var(--card-bg); border:1px solid var(--border);">
-                    <div style="font-size:0.9rem; color:var(--text-main);">${statistics.uniqueSenders} farklı kişiden tebrik aldı.</div>
-                    <div style="font-size:0.8rem; color:var(--text-muted);">En güncel tebrik ilk sırada gösteriliyor.</div>
-                </div>
-            `;
-        }
-
-        const postIds = [...new Set(items.filter(item => item.postId).map(item => item.postId))];
-        const postsMap = {};
-        if (postIds.length > 0) {
-            const postDocs = await Promise.all(postIds.map(id => getDoc(doc(db, 'posts', id))));
-            postDocs.forEach(docSnap => {
-                if (docSnap.exists()) {
-                    postsMap[docSnap.id] = docSnap.data();
-                }
-            });
-        }
-        const blogIds = [...new Set(items.filter(item => item.postId && !postsMap[item.postId]).map(item => item.postId))];
-        const blogsMap = {};
-        if (blogIds.length > 0) {
-            const blogDocs = await Promise.all(blogIds.map(id => getDoc(doc(db, 'blogs', id))));
-            blogDocs.forEach(docSnap => {
-                if (docSnap.exists()) {
-                    blogsMap[docSnap.id] = docSnap.data();
-                }
-            });
-        }
-
-        for (const item of items) {
-            const senderName = item.displayName || item.username || 'Bir kullanıcı';
-            const profileLink = item.username ? `profil.html?id=${encodeURIComponent(item.username)}` : '#';
-            const senderHtml = item.username ? `<a href="${profileLink}" style="color:var(--text-main); font-weight:800; text-decoration:none;">${escapeHtml(senderName)}</a>` : `<span style="font-weight:800; color:var(--text-main);">${escapeHtml(senderName)}</span>`;
-            const rawCardType = item.cardType || '';
-            let displayCardType = '';
-            try {
-                const lower = rawCardType.toString().toLowerCase();
-                // match blog + tebrik/tebriği/tebri... variants
-                if (lower.includes('blog') && lower.includes('tebri')) {
-                    displayCardType = 'Yazıya yapılan tebrik';
-                } else if (rawCardType) {
-                    displayCardType = rawCardType;
-                } else {
-                    displayCardType = 'Standart Tebrik Kartı';
-                }
-            } catch (e) {
-                displayCardType = rawCardType || 'Standart Tebrik Kartı';
-            }
-            const cardTypeLabel = escapeHtml(displayCardType);
-            const post = item.postId ? (postsMap[item.postId] || blogsMap[item.postId] || null) : null;
-            const isBlogTarget = item.postId && !postsMap[item.postId] && blogsMap[item.postId];
-            const rawPostContent = post ? (post.title || post.content || '') : '';
-            const postTitle = rawPostContent ? `${escapeHtml(rawPostContent.slice(0, 80))}${rawPostContent.length > 80 ? '...' : ''}` : null;
-            const targetLabel = item.postId ? (item.commentText ? 'Yorumlu yazıya' : (isBlogTarget ? 'Gönderi yazısına' : 'Yazıya')) : 'Profil';
-            const commentLabel = item.commentText ? `<div style="font-size:0.9rem; color:var(--text-muted);"><strong>Hangi yorum:</strong> "${escapeHtml(item.commentText.slice(0, 80))}${item.commentText.length > 80 ? '...' : ''}"</div>` : `<div style="font-size:0.9rem; color:var(--text-muted);"><strong>Yorum:</strong> Yok</div>`;
-            const postLabel = post ? `<div style="font-size:0.9rem; color:var(--text-muted);"><strong>Hangi ${isBlogTarget ? 'gönderi yazısı' : 'yazı'}:</strong> "${postTitle || (isBlogTarget ? 'Başlıksız gönderi yazısı' : 'Başlıksız yazı')}"</div>` : (item.postId ? `<div style="font-size:0.9rem; color:var(--text-muted);"><strong>${isBlogTarget ? 'Gönderi yazısı ID' : 'Yazı ID'}:</strong> ${escapeHtml(item.postId)}</div>` : `<div style="font-size:0.9rem; color:var(--text-muted);"><strong>Hedef:</strong> Profil</div>`);
-            const messageLabel = item.message ? `<div style="font-size:0.9rem; color:var(--text-muted);"><strong>Mesaj:</strong> ${escapeHtml(item.message)}</div>` : `<div style="font-size:0.9rem; color:var(--text-muted);"><strong>Mesaj:</strong> Yok</div>`;
-            const dateText = formatTebrikDate(item.at);
-            const postLink = item.postId && post ? `<a href="index.html#post-${item.postId}" style="color:var(--primary); text-decoration:none; font-weight:700;">Gönderiye Git</a>` : '';
-            const hasThanked = tebrikThanks.includes(item.key);
-            const thankButton = item.uid ? `
-                <button type="button" ${hasThanked ? 'disabled' : ''} data-thank-key="${escapeHtml(item.key)}" data-thank-uid="${escapeHtml(item.uid)}" class="profile-thank-btn" style="background:${hasThanked ? 'rgba(16,185,129,0.15)' : 'var(--primary)'}; color:${hasThanked ? 'var(--text-muted)' : '#fff'}; border:none; padding:10px 14px; border-radius:12px; font-weight:700; cursor:${hasThanked ? 'default' : 'pointer'}; font-size:0.85rem;">${hasThanked ? 'Teşekkür edildi' : 'Teşekkür Gönder'}</button>
-            ` : '';
-
-            const card = document.createElement('div');
-            card.style.cssText = 'display:flex; flex-direction:column; gap:14px; padding:20px; border-radius:20px; background:var(--bg); border:1px solid rgba(99,102,241,0.15); box-shadow:0 10px 24px rgba(15,23,42,0.04);';
-            card.innerHTML = `
-                <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap;">
-                    <div style="display:flex; align-items:center; gap:10px; font-weight:700; color:var(--text-main);">
-                        <span style="width:34px; height:34px; display:flex; align-items:center; justify-content:center; border-radius:12px; background:rgba(249,115,22,0.12); color:#f97316;"><i class="fa-solid fa-gift"></i></span>
-                        <span>${senderHtml} size tebrik gönderdi</span>
-                    </div>
-                    <div style="font-size:0.82rem; color:var(--text-muted);">${escapeHtml(dateText)}</div>
-                </div>
-                <div style="display:flex; justify-content:space-between; gap:20px; align-items:flex-start; flex-wrap:wrap;">
-                    <div style="flex:1 1 320px; display:grid; gap:8px; font-size:0.95rem; color:var(--text-main);">
-                        <div><strong>Hangi kartı gönderdi:</strong> ${cardTypeLabel}</div>
-                        ${item.postId ? `<div><strong>Hangi hedefe gönderildi:</strong> ${escapeHtml(targetLabel)}</div>` : ''}
-                        ${postLabel}
-                        ${commentLabel}
-                        ${messageLabel}
-                        ${postLink ? `<div style="margin-top:10px;">${postLink}</div>` : ''}
-                    </div>
-                    ${thankButton ? `
-                        <div style="min-width:180px; display:flex; flex-direction:column; align-items:flex-end; gap:14px;">
-                            <div style="display:flex; align-items:center; justify-content:center; width:76px; height:76px; border-radius:50%; background:#fff8ed; border:2px solid #16a34a; color:#dc2626; font-size:0.95rem; font-weight:800; margin-bottom:-6px;">
-                                +%0,25
-                            </div>
-                            <div style="width:100%; display:flex; justify-content:flex-end; margin-top:8px;">
-                                ${thankButton}
-                            </div>
-                        </div>
-                    ` : ''}
-                </div>
-            `;
-            list.appendChild(card);
-
-            const thankBtnEl = card.querySelector('.profile-thank-btn');
-            if (thankBtnEl) {
-                thankBtnEl.addEventListener('click', async () => {
-                    const key = thankBtnEl.dataset.thankKey;
-                    const uid = thankBtnEl.dataset.thankUid;
-                    if (!key || !uid) {
-                        alert('Geçersiz teşekkür bilgisi.');
-                        return;
-                    }
-                    if (thankBtnEl.disabled) return;
-                    thankBtnEl.disabled = true;
-                    await window.sendTebrikThanksForUser(key, uid);
-                });
-            }
-        }
-    } catch (e) {
-        console.error('loadProfileCongrats error:', e);
-        if (emptyMessage) {
-            emptyMessage.innerText = 'Tebrikler yüklenemedi';
-            emptyMessage.style.display = 'block';
-        }
-    }
-};
 
 // Delegated input listener for character counts
 // works even when elements are injected later
@@ -9968,22 +8575,23 @@ function initChatWidget() {
     chatWidget.className = 'chat-widget-container';
     chatWidget.innerHTML = `
         <div class="chat-widget-header">
- <div class="chat-header-left">
-            <button class="back-btn" id="chat-back-btn" onclick="backToFriendList()" title="Geri Dön">
-                <i class="fa-solid fa-arrow-left"></i>
-            </button>
-            <div style="display:flex; align-items:center; gap:8px;">
-                <h3 id="chat-widget-title">Sohbet</h3>
-                <span id="chat-unread-count" class="chat-unread-badge" style="display:none;">0 yeni</span>
+            <div class="chat-header-left">
+                <button class="back-btn" id="chat-back-btn" onclick="backToFriendList()" title="Geri Dön">
+                    <i class="fa-solid fa-arrow-left"></i>
+                </button>
+                <div class="chat-header-title">
+                    <h3 id="chat-widget-title">Sohbet Et</h3>
+                    <span id="chat-unread-count" class="chat-unread-badge" style="display:none;">0 yeni</span>
+                </div>
             </div>
-            <div style="display:flex; align-items:center; gap:8px;">
-                <button id="chat-clear-btn" type="button" onclick="window.clearChatHistory()" style="display:none; align-items:center; gap:6px; padding:8px 12px; border:none; border-radius:999px; background: linear-gradient(90deg,#ef4444,#fb7185); color:white; font-size:0.85rem; cursor:pointer;">
+            <div class="chat-header-actions">
+                <button id="chat-clear-btn" type="button" onclick="window.clearChatHistory()" class="chat-clear-btn" style="display:none;">
                     <i class="fa-solid fa-trash-can"></i> Geçmişi Sil
                 </button>
-            </div>
-        </div>
-            <div style="display: flex; gap: 8px; align-items: center;">
-                <button class="close-btn" onclick="closeChatWidget()">
+                <button id="chat-widget-add-friend-btn" type="button" class="chat-action-secondary chat-widget-add-friend-btn" onclick="addFriendToChatUser()" title="Arkadaş ekle" style="display:none;">
+                    <i class="fa-solid fa-user-plus"></i> Arkadaş Ekle
+                </button>
+                <button class="close-btn" onclick="closeChatWidget()" title="Kapat">
                     <i class="fa-solid fa-times"></i>
                 </button>
             </div>
@@ -10038,29 +8646,17 @@ function initChatListsPanel() {
     chatListsPanel.className = 'chat-lists-panel';
     chatListsPanel.innerHTML = `
         <div class="chat-lists-header">
-            <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
-                <div style="display:flex; align-items:center; gap:10px;">
-                    <h3 style="margin: 0;"><span class="chat-btn-text">Sohbet Et</span></h3>
-                </div>
-                <div style="display: flex; gap: 8px;">
-                    <button class="close-btn" onclick="closeChatsList()">
-                        <i class="fa-solid fa-times"></i>
-                    </button>
-                </div>
+            <h3><i class="fa-solid fa-comment-dots"></i> <span class="chat-btn-text">Sohbet Et</span></h3>
+            <div class="chat-lists-header-actions">
+                <button class="icon-btn" onclick="toggleChatSearch()" title="Sohbet ara">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                </button>
+                <button class="close-btn" onclick="closeChatsList()">
+                    <i class="fa-solid fa-times"></i>
+                </button>
             </div>
         </div>
-        <div class="chat-lists-actions" style="display:flex; gap:10px; align-items:center; padding:5px 5px 0px;">
-            <button type="button" onclick="loadRecentChats()" style="flex:1; padding:10px 14px; border:none; border-radius: 12px; background: var(--primary); color:white; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;">
-                <i class="fa-solid fa-clock-rotate-left"></i> Son Sohbetler
-            </button>
-            <button id="chat-unread-btn" type="button" onclick="loadUnreadChats()" style="flex:1; padding:10px 14px; border:none; border-radius: 12px; background:#ef4444; color:white; cursor:pointer; display:none; align-items:center; justify-content:center; gap:8px;">
-                <i class="fa-solid fa-envelope-circle-check"></i> Okunmamış
-            </button>
-            <button type="button" onclick="loadChatFriends()" style="flex:1; padding:10px 14px; border:none; border-radius: 12px; background: var(--primary); color:white; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;">
-                <i class="fa-solid fa-users"></i> Arkadaşlarım
-            </button>
-        </div>
-        <div class="chat-lists-search">
+        <div class="chat-lists-search" id="chat-lists-search" style="display:none; padding:0 18px 10px;">
             <input 
                 type="text" 
                 id="chat-friends-search" 
@@ -10068,26 +8664,28 @@ function initChatListsPanel() {
                 oninput="filterChatFriends(this.value)"
             >
         </div>
-        <div class="chat-lists-title" style="padding:10px 12px; font-weight:600; color:var(--text);">Son Sohbetler</div>
+        <div class="chat-load-more-toolbar" style="display:none; padding:0 18px 10px;">
+            <button id="chat-load-more-btn" type="button" class="chat-action-secondary" onclick="showMoreRecentChats()" style="width:100%; justify-content:center;">
+                <i class="fa-solid fa-chevron-down"></i> Daha fazla yükle
+            </button>
+        </div>
         <div class="chat-lists-content" id="chat-friends-list">
             <div class="chat-lists-empty">
                 <i class="fa-solid fa-spinner"></i>
                 <p>Arkadaşlar yükleniyor...</p>
             </div>
         </div>
-        <div class="chat-lists-footer" style="display:flex; gap:8px; align-items:center;">
-            <input 
-                type="text" 
-                id="chat-new-user-input" 
-                placeholder="Kullanıcı adı yazınız.."
-                onkeypress="handleNewUserKeypress(event)"
-                style="flex:1;"
-            >
-            <button id="chat-start-btn" onclick="startChatWithUsername()" style="display:flex; align-items:center; gap:4px; padding:8px 12px; background:var(--primary); color:white; border:none; border-radius:6px; cursor:pointer; font-size:0.85rem;" title="Sohbete Et">
-                <i class="fa-solid fa-paper-plane"></i><span class="chat-btn-text">Sohbete Et</span>
-            </button>
-            <button id="chat-add-friend-btn" onclick="addFriendFromChat()" style="padding:8px 12px; background:var(--primary); color:white; border:none; border-radius:6px; cursor:pointer; font-size:0.85rem;" title="Arkadaş ekle">
-                <i class="fa-solid fa-user-plus"></i>
+        <div class="chat-lists-footer">
+            <div class="chat-lists-footer-actions" style="display:flex; gap:10px; flex-wrap:wrap;">
+                <button type="button" class="chat-action-btn chat-action-primary" onclick="loadRecentChats()" style="flex:1; min-width: 140px;">
+                    <i class="fa-solid fa-clock-rotate-left"></i> Son Sohbetler
+                </button>
+                <button type="button" class="chat-action-btn chat-action-primary" onclick="loadChatFriends()" style="flex:1; min-width: 140px;">
+                    <i class="fa-solid fa-users"></i> Arkadaşlarım
+                </button>
+            </div>
+            <button id="chat-add-friend-btn" class="chat-action-btn chat-action-secondary" onclick="addFriendFromChat()" title="Arkadaş ekle" style="display:none;">
+                <i class="fa-solid fa-user-plus"></i> Arkadaş ekle
             </button>
         </div>
     `;
@@ -10143,6 +8741,8 @@ window.openUnreadChatsPanel = async function() {
 
 window.loadChatFriends = async function() {
     const friendsList = document.getElementById('chat-friends-list');
+    const loadMoreToolbar = document.getElementById('chat-load-more-btn');
+    if (loadMoreToolbar) loadMoreToolbar.style.display = 'none';
     if (!friendsList) return;
     
     try {
@@ -10188,6 +8788,14 @@ window.loadChatFriends = async function() {
                                 <p class="chat-friend-username">@${escapeHtml(username)}</p>
                                 <p class="chat-friend-status">${escapeHtml(presence.label)}</p>
                             </div>
+                            <div class="chat-friend-actions">
+                                <button class="chat-friend-action chat-friend-chat" title="Mesaj yaz" onclick="event.stopPropagation(); openChatWithFriend('${friendId}', '${displayName}', '${username}')">
+                                    <i class="fa-solid fa-comment-dots"></i>
+                                </button>
+                                <button class="chat-friend-action chat-friend-profile" title="Profili git" onclick="event.stopPropagation(); window.location.href='profil.html?id=${encodeURIComponent(username)}'">
+                                    <i class="fa-solid fa-user"></i>
+                                </button>
+                            </div>
                         </div>
                     `;
                 }
@@ -10209,6 +8817,8 @@ window.loadChatFriends = async function() {
 // Load recent chats when opening list
 window.loadRecentChats = async function() {
     const friendsList = document.getElementById('chat-friends-list');
+    const loadMoreToolbar = document.getElementById('chat-load-more-btn');
+    if (loadMoreToolbar) loadMoreToolbar.style.display = 'none';
     if (!friendsList) return;
 
     try {
@@ -10241,10 +8851,11 @@ window.loadRecentChats = async function() {
                 const avatarUrl = getAvatarUrl(friendData.avatarUrl || 'assets/img/strendsaydamv2.png', 'user');
                 const displayName = friendData.displayName || friendData.username || otherParticipantId;
                 const username = friendData.username || 'user';
+                    const presence = resolvePresenceStatus(friendData);
                 const lastMessage = convData.lastMessage || 'Yeni sohbet';
                 const unreadCount = convData.unreadCount?.[currentUserId] || 0;
 
-                recentChats.push({ otherParticipantId, displayName, username, avatarUrl, lastMessage, unreadCount });
+                recentChats.push({ otherParticipantId, displayName, username, avatarUrl, lastMessage, unreadCount, presence });
             } catch (error) {
                 console.error('Sohbet kullanıcısı yüklenirken hata:', error);
             }
@@ -10252,6 +8863,11 @@ window.loadRecentChats = async function() {
 
         const titleEl = document.querySelector('.chat-lists-title');
         if (titleEl) titleEl.textContent = 'Son Sohbetler';
+
+        const loadMoreBtn = document.getElementById('chat-load-more-btn');
+        if (recentChats.length > 2 && loadMoreBtn) {
+            loadMoreBtn.style.display = 'inline-flex';
+        }
 
         if (recentChats.length === 0) {
             friendsList.innerHTML = '<div class="chat-lists-empty"><i class="fa-solid fa-comment-slash"></i><p>Henüz sohbetiniz yok</p></div>';
@@ -10261,25 +8877,26 @@ window.loadRecentChats = async function() {
         let friendsHtml = '';
         for (let i = 0; i < recentChats.length; i++) {
             const chat = recentChats[i];
-            if (i === 2) {
-                friendsHtml += `
-                    <div class="chat-friend-item chat-load-more" onclick="showMoreRecentChats()">
-                        <div class="chat-friend-info" style="width:100%; text-align:center; padding: 8px 0;">
-                            <p class="chat-friend-name" style="margin:0; font-size:0.85rem;">Daha fazla yükle</p>
-                        </div>
-                    </div>
-                `;
-                break;
-            }
             friendsHtml += `
                 <div class="chat-friend-item" data-recent-index="${i}" onclick="openChatWithFriend('${chat.otherParticipantId}', '${chat.displayName}', '${chat.username}')">
-                    <img src="${chat.avatarUrl}" class="chat-friend-avatar" alt="">
+                    <div class="chat-friend-avatar-wrap ${chat.presence?.status || 'offline'}">
+                        <img src="${chat.avatarUrl}" class="chat-friend-avatar" alt="">
+                        <span class="status-badge status-${chat.presence?.status || 'offline'}"></span>
+                    </div>
                     <div class="chat-friend-info">
                         <p class="chat-friend-name">${escapeHtml(chat.displayName)}</p>
                         <p class="chat-friend-lastmsg">${escapeHtml(chat.lastMessage)}</p>
                     </div>
                     <div class="chat-friend-meta">
-                        ${chat.unreadCount > 0 ? `<span class="chat-last-sender">Yeni Mesaj</span>` : ''}
+                        ${chat.unreadCount > 0 ? `<span class="chat-last-sender"><strong>${chat.unreadCount}</strong> Yeni Mesaj</span>` : ''}
+                        <div class="chat-friend-actions">
+                            <button class="chat-friend-action chat-friend-chat" title="Mesaj yaz" onclick="event.stopPropagation(); openChatWithFriend('${chat.otherParticipantId}', '${chat.displayName}', '${chat.username}')">
+                                <i class="fa-solid fa-comment-dots"></i>
+                            </button>
+                            <button class="chat-friend-action chat-friend-profile" title="Profili git" onclick="event.stopPropagation(); window.location.href='profil.html?id=${encodeURIComponent(chat.username)}'">
+                                <i class="fa-solid fa-user"></i>
+                            </button>
+                        </div>
                     </div>
                 </div>
             `;
@@ -10293,10 +8910,21 @@ window.loadRecentChats = async function() {
                 hiddenItem.className = 'chat-friend-item hidden-recent';
                 hiddenItem.style.display = 'none';
                 hiddenItem.innerHTML = `
-                    <img src="${chat.avatarUrl}" class="chat-friend-avatar" alt="">
+                    <div class="chat-friend-avatar-wrap ${chat.presence?.status || 'offline'}">
+                        <img src="${chat.avatarUrl}" class="chat-friend-avatar" alt="">
+                        <span class="status-badge status-${chat.presence?.status || 'offline'}"></span>
+                    </div>
                     <div class="chat-friend-info">
                         <p class="chat-friend-name">${escapeHtml(chat.displayName)}</p>
                         <p class="chat-friend-lastmsg">${escapeHtml(chat.lastMessage)}</p>
+                    </div>
+                    <div class="chat-friend-actions">
+                        <button class="chat-friend-action chat-friend-chat" title="Mesaj yaz" onclick="event.stopPropagation(); openChatWithFriend('${chat.otherParticipantId}', '${chat.displayName}', '${chat.username}')">
+                            <i class="fa-solid fa-comment-dots"></i>
+                        </button>
+                        <button class="chat-friend-action chat-friend-profile" title="Profili git" onclick="event.stopPropagation(); window.location.href='profil.html?id=${encodeURIComponent(chat.username)}'">
+                            <i class="fa-solid fa-user"></i>
+                        </button>
                     </div>
                 `;
                 hiddenItem.onclick = () => openChatWithFriend(chat.otherParticipantId, chat.displayName, chat.username);
@@ -10312,9 +8940,21 @@ window.loadRecentChats = async function() {
 window.showMoreRecentChats = function() {
     document.querySelectorAll('.chat-friend-item.hidden-recent').forEach(item => {
         item.style.display = 'flex';
+        item.classList.remove('hidden-recent');
     });
-    const loadMoreBtn = document.querySelector('.chat-load-more');
-    if (loadMoreBtn) loadMoreBtn.remove();
+    const loadMoreBtn = document.getElementById('chat-load-more-btn');
+    if (loadMoreBtn) loadMoreBtn.style.display = 'none';
+}
+
+window.toggleChatSearch = function() {
+    const searchRow = document.getElementById('chat-lists-search');
+    const searchInput = document.getElementById('chat-friends-search');
+    if (!searchRow) return;
+    const isVisible = searchRow.style.display === 'block' || searchRow.style.display === 'flex';
+    searchRow.style.display = isVisible ? 'none' : 'block';
+    if (!isVisible && searchInput) {
+        setTimeout(() => searchInput.focus(), 50);
+    }
 }
 
 async function updateChatUnreadIndicator() {
@@ -10385,6 +9025,8 @@ async function updateChatUnreadIndicator() {
 
 window.loadUnreadChats = async function() {
     const friendsList = document.getElementById('chat-friends-list');
+    const loadMoreToolbar = document.getElementById('chat-load-more-btn');
+    if (loadMoreToolbar) loadMoreToolbar.style.display = 'none';
     if (!friendsList) return;
     if (!auth.currentUser) {
         alert('Lütfen giriş yapın');
@@ -10444,7 +9086,7 @@ window.loadUnreadChats = async function() {
                             <p class="chat-friend-lastmsg">${escapeHtml(lastMessage)}</p>
                         </div>
                         <div class="chat-friend-meta">
-                            ${unreadCount > 0 ? `<span class="chat-last-sender">Yeni Mesaj</span>` : ''}
+                            ${unreadCount > 0 ? `<span class="chat-last-sender"><strong>${unreadCount}</strong> Yeni Mesaj</span>` : ''}
                         </div>
                     </div>
                 `;
@@ -10599,6 +9241,7 @@ window.openChatWithUser = async function(userId, displayName) {
         if (titleEl) {
             titleEl.textContent = currentChatUsername;
         }
+        await updateChatFriendActionButton(actualUserId, currentChatUsername);
         
         // Show widget
         const widgetEl = document.getElementById('chat-widget-container');
@@ -10620,6 +9263,61 @@ window.openChatWithUser = async function(userId, displayName) {
         alert('Sohbet açılırken bir hata oluştu');
     }
 }
+
+window.updateChatFriendActionButton = async function(targetUid, displayName) {
+    const btn = document.getElementById('chat-widget-add-friend-btn');
+    if (!btn) return;
+    btn.style.display = 'none';
+    btn.disabled = false;
+    btn.style.opacity = '1';
+    btn.style.cursor = 'pointer';
+
+    if (!auth.currentUser || !targetUid || targetUid === auth.currentUser.uid) {
+        return;
+    }
+
+    try {
+        const currentUserRef = doc(db, 'users', auth.currentUser.uid);
+        const currentUserSnap = await getDoc(currentUserRef);
+        const userData = currentUserSnap.exists() ? currentUserSnap.data() : {};
+        const friends = userData.friends || [];
+        const sentRequests = userData.sentRequests || [];
+        const friendRequests = userData.friendRequests || [];
+        const isFriend = friends.includes(targetUid);
+        const hasPending = sentRequests.some(req => req.toUid === targetUid) || friendRequests.some(req => req.fromUid === targetUid);
+
+        if (!isFriend) {
+            btn.style.display = 'inline-flex';
+            if (hasPending) {
+                btn.innerHTML = '<i class="fa-solid fa-hourglass-end"></i> İstek Bekleniyor';
+                btn.disabled = true;
+                btn.style.cursor = 'default';
+                btn.title = 'Arkadaşlık isteği bekleniyor';
+            } else {
+                btn.innerHTML = '<i class="fa-solid fa-user-plus"></i> Arkadaş Ekle';
+                btn.disabled = false;
+                btn.style.cursor = 'pointer';
+                btn.title = 'Arkadaş ekle';
+            }
+        }
+    } catch (error) {
+        console.error('Chat arkadaş butonu güncellenirken hata:', error);
+    }
+};
+
+window.addFriendToChatUser = async function() {
+    if (!currentChatUserId || !auth.currentUser) return;
+    if (currentChatUserId === auth.currentUser.uid) return;
+
+    await sendFriendRequestToUid(currentChatUserId, currentChatUsername);
+    const btn = document.getElementById('chat-widget-add-friend-btn');
+    if (btn) {
+        btn.innerHTML = '<i class="fa-solid fa-hourglass-end"></i> İstek Bekleniyor';
+        btn.disabled = true;
+        btn.style.opacity = '0.7';
+        btn.style.cursor = 'default';
+    }
+};
 
 // Open group chat (hobi grubu sohbeti)
 window.openGroupChat = async function(groupId, groupName, memberIds = []) {

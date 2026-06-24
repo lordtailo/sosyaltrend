@@ -153,8 +153,7 @@ async function handleRegister(event) {
         avatarUrl: 'assets/img/strendsaydamv2.png',
         createdAt: serverTimestamp(),
         friends: [],
-        friendRequests: [],
-        tebrikCount: 0
+        friendRequests: []
       },
       { merge: true }
     );
