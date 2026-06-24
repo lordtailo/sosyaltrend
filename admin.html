@@ -4,8 +4,8 @@
   <meta charset="utf-8" />
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>SosyaLTrend • Sosyal Ağ - Admin</title>
-  <meta name="description" content="SosyaLTrend yönetim paneli. Kullanıcı yönetimi ve sistem ayarları.">
+  <title>SosyaLTrend • Sosyal Ağ - Admin Paneli</title>
+  <meta name="description" content="SosyaLTrend Premium Admin Paneli - Sistem Yönetimi & Analitikler">
   <link rel="stylesheet" href="assets/css/all.min.css">
   <link rel="stylesheet" href="assets/css/style.css">
   <link rel="icon" type="image/x-icon" href="assets/img/strendsaydamv2.ico">
@@ -15,36 +15,364 @@
   <div data-include="partials/topbar.html"></div>
 
 <style>
-        :root { --primary: #6366f1; --danger: #ef4444; --success: #10b981; --warning: #f59e0b; }
-        .admin-main { padding: 20px; max-width: 1200px; margin: 0 auto; }
-        .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px; }
-        .stat-card { padding: 20px; text-align: center; border: 1px solid var(--border); }
-        .stat-card i { font-size: 2rem; color: var(--primary); margin-bottom: 10px; }
-        .stat-card h3 { font-size: 1.8rem; margin: 5px 0; }
-        .stat-card p { color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase; }
-        .admin-tabs { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; }
-        .tab-btn { background: var(--input-bg); border: 1px solid var(--border); color: var(--text-main); padding: 10px 16px; cursor: pointer; font-weight: 600; transition: 0.3s; border-radius: 12px; text-align: left; }
-        .tab-btn.active { color: white; background: var(--primary); border-color: var(--primary); }
-        .tab-btn:hover { transform: translateY(-1px); }
-        .admin-subtabs { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 16px; padding-bottom: 0; }
-        .subtab-btn { display: inline-flex; align-items: center; justify-content: center; background: none; border: none; color: var(--text-muted); padding: 10px 14px 6px; cursor: pointer; font-weight: 600; line-height: 1; transition: 0.3s; border-bottom: 2px solid transparent; }
-        .subtab-btn.active { color: var(--primary); border-bottom-color: var(--primary); }
-        .admin-section { display: none; }
+        :root { --primary: #6366f1; --danger: #ef4444; --success: #10b981; --warning: #f59e0b; --info: #3b82f6; }
+        * { box-sizing: border-box; }
+        
+        /* GLASSMORPHISM EFFECTS */
+        @supports (backdrop-filter: blur(10px)) {
+            .glass-card { backdrop-filter: blur(10px) saturate(180%); background-color: rgba(255, 255, 255, 0.75); }
+        }
+        
+        /* ANIMATIONS */
+        @keyframes slideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        
+        .admin-wrapper { display: flex; min-height: 100vh; }
+        .admin-sidebar { width: 280px; background: linear-gradient(180deg, var(--card-bg) 0%, rgba(99,102,241,0.05) 100%); border-right: 2px solid var(--border); padding: 20px; position: fixed; height: 100vh; overflow-y: auto; left: 0; top: 0; z-index: 100; box-shadow: 2px 0 8px rgba(0,0,0,0.05); }
+        .admin-sidebar-header { margin-bottom: 24px; padding-bottom: 16px; border-bottom: 2px solid var(--border); }
+        .admin-sidebar-header h2 { margin: 0; font-size: 1.2rem; color: var(--primary); display: flex; align-items: center; gap: 10px; font-weight: 700; letter-spacing: -0.5px; }
+        .admin-sidebar-header h2 i { font-size: 1.3rem; }
+        .admin-sidebar-menu { display: flex; flex-direction: column; gap: 6px; }
+        .sidebar-item { padding: 14px 16px; border-radius: 12px; cursor: pointer; transition: all 0.3s ease; color: var(--text-main); border: 2px solid transparent; display: flex; align-items: center; gap: 10px; font-weight: 600; position: relative; }
+        .sidebar-item:hover { background: rgba(99,102,241,0.08); border-color: var(--primary); transform: translateX(4px); }
+        .sidebar-item.active { background: linear-gradient(135deg, var(--primary) 0%, rgba(99,102,241,0.8) 100%); color: white; border-color: var(--primary); box-shadow: 0 4px 12px rgba(99,102,241,0.3); }
+        .sidebar-item i { font-size: 1.1rem; }
+        
+        .admin-main { padding: 32px; margin-left: 280px; max-width: calc(100% - 280px); background: linear-gradient(135deg, rgba(99,102,241,0.02) 0%, rgba(16,185,129,0.02) 100%); min-height: 100vh; transition: all 0.3s ease; }
+        .admin-header { margin-bottom: 40px; animation: slideIn 0.5s ease-out; }
+        .admin-header h1 { margin: 0 0 8px; font-size: 2.8rem; font-weight: 900; background: linear-gradient(135deg, var(--primary), var(--warning), var(--primary)); background-size: 200% auto; -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; animation: slideIn 0.6s ease-out; letter-spacing: -1px; }
+        .admin-header p { margin: 0; color: var(--text-muted); font-size: 1rem; animation: slideIn 0.7s ease-out; font-weight: 500; }
+        
+        /* QUICK ACTIONS - İyileştirilmiş */
+        .quick-actions { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 32px; }
+        .quick-action-btn { padding: 24px 16px; border-radius: 16px; border: 2px solid var(--border); background: linear-gradient(135deg, var(--card-bg) 0%, rgba(99,102,241,0.05) 100%); cursor: pointer; transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); text-align: center; display: flex; flex-direction: column; align-items: center; gap: 12px; position: relative; overflow: hidden; }
+        .quick-action-btn::before { content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent); transition: left 0.6s; }
+        .quick-action-btn::after { content: ''; position: absolute; top: -50%; right: -50%; width: 200%; height: 200%; background: radial-gradient(circle, rgba(99,102,241,0.15) 0%, transparent 70%); transition: all 0.6s; }
+        .quick-action-btn:hover { transform: translateY(-8px) scale(1.03); border-color: var(--primary); box-shadow: 0 16px 40px rgba(99,102,241,0.3); }
+        .quick-action-btn:hover::before { left: 100%; }
+        .quick-action-btn:hover::after { top: -25%; right: -25%; }
+        .quick-action-btn:active { transform: translateY(-4px) scale(1.01); }
+        .quick-action-btn i { font-size: 2.6rem; color: var(--primary); transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); }
+        .quick-action-btn:hover i { transform: scale(1.2) rotate(8deg); }
+        .quick-action-btn span { font-weight: 700; font-size: 0.95rem; color: var(--text-main); transition: all 0.3s; }
+        .quick-action-btn:hover span { color: var(--primary); }
+        
+        /* STAT CARDS - Geliştirilmiş */
+        .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 32px; }
+        .stat-card { padding: 20px 16px; text-align: center; border: 2px solid var(--border); border-radius: 16px; background: linear-gradient(135deg, var(--card-bg) 0%, rgba(99,102,241,0.08) 100%); transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); cursor: pointer; position: relative; overflow: hidden; }
+        .stat-card::before { content: ''; position: absolute; top: -50%; right: -50%; width: 200%; height: 200%; background: radial-gradient(circle, rgba(99,102,241,0.15) 0%, transparent 70%); border-radius: 50%; transition: all 0.6s; }
+        .stat-card:hover { transform: translateY(-8px) scale(1.03); border-color: var(--primary); box-shadow: 0 16px 40px rgba(99,102,241,0.25); }
+        .stat-card:hover::before { top: -25%; right: -25%; }
+        .stat-card i { font-size: 2.4rem; color: var(--primary); margin-bottom: 12px; display: block; transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); }
+        .stat-card:hover i { transform: rotate(12deg) scale(1.15); }
+        .stat-card h3 { font-size: 1.8rem; margin: 10px 0 8px; font-weight: 900; background: linear-gradient(135deg, var(--primary), var(--warning)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; letter-spacing: -0.5px; }
+        .stat-card p { color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; margin: 0; }
+        
+        /* SEARCH BAR - Geliştirilmiş */
+        .search-filter-bar { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; align-items: center; }
+        .search-input { flex: 1; min-width: 200px; padding: 12px 16px; border: 2px solid var(--border); border-radius: 12px; background: var(--input-bg); color: var(--text-main); font-size: 0.95rem; transition: all 0.3s; }
+        .search-input::placeholder { color: var(--text-muted); }
+        .search-input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 4px rgba(99,102,241,0.15); transform: scale(1.02); }
+        .search-btn { padding: 12px 24px; background: linear-gradient(135deg, var(--primary), rgba(99,102,241,0.8)); color: white; border: none; border-radius: 12px; cursor: pointer; font-weight: 700; transition: all 0.3s; display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 12px rgba(99,102,241,0.3); }
+        .search-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(99,102,241,0.4); }
+        .search-btn:active { transform: translateY(0); }
+        
+        /* TABS */
+        .admin-tabs { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 24px; }
+        .tab-btn { background: var(--input-bg); border: 2px solid var(--border); color: var(--text-main); padding: 12px 20px; cursor: pointer; font-weight: 700; transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); border-radius: 12px; text-align: center; display: inline-flex; align-items: center; gap: 8px; font-size: 0.95rem; position: relative; overflow: hidden; }
+        .tab-btn::before { content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent); transition: left 0.5s; }
+        .tab-btn.active { color: white; background: linear-gradient(135deg, var(--primary), rgba(99,102,241,0.8)); border-color: var(--primary); box-shadow: 0 8px 24px rgba(99,102,241,0.35); transform: scale(1.02); }
+        .tab-btn:hover { transform: translateY(-3px); border-color: var(--primary); }
+        .tab-btn:hover::before { left: 100%; }
+        
+        /* MAIN SECTION TABS */
+        .main-admin-tabs { margin-bottom: 28px; border-bottom: 3px solid var(--border); padding-bottom: 0; }
+        .main-tab-btn { font-size: 1rem; padding: 14px 24px; font-weight: 800; border-radius: 12px 12px 0 0; border-bottom: none; }
+        .main-tab-btn i { margin-right: 4px; font-size: 1.1rem; }
+        .main-tab-btn.active { background: linear-gradient(135deg, var(--primary), rgba(99,102,241,0.8)); color: white; border: 2px solid var(--primary); border-bottom: 3px solid var(--primary); }
+        .main-tab-btn:hover { border-color: var(--primary); color: var(--primary); }
+        
+        .main-section { display: none; animation: slideIn 0.3s ease-out; }
+        .main-section.active { display: block !important; }
+        
+        /* Main section içindeki tüm active elemanlar görünsün */
+        .main-section.active .admin-block { display: block !important; }
+        .main-section.active .admin-section.active { display: block !important; }
+        .main-section.active .admin-subsection.active { display: block !important; }
+        
+        /* Inactive elemanlar gizli */
+        .main-section.active .admin-section:not(.active) { display: none; }
+        .main-section.active .admin-subsection:not(.active) { display: none; }
+        
+        .admin-section { display: none; animation: fadeIn 0.3s ease-out; }
         .admin-section.active { display: block; }
-        .admin-block { margin-top: 22px; padding: 20px; background: var(--card-bg); border: 1px solid var(--border); border-radius: 22px; }
-        .admin-block h2 { margin: 0 0 18px; font-size: 1.1rem; font-weight: 700; color: var(--text-main); border-bottom: 1px solid var(--border); padding-bottom: 10px; }
-        .admin-subsection { display: none; }
+        .admin-subsection { display: none; animation: fadeIn 0.2s ease-out; }
         .admin-subsection.active { display: block; }
-        .data-table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-        .data-table th, .data-table td { padding: 12px; text-align: left; border-bottom: 1px solid var(--border); }
-        .user-row img { width: 32px; height: 32px; border-radius: 50%; vertical-align: middle; margin-right: 10px; }
-        .badge { padding: 4px 8px; border-radius: 12px; font-size: 0.7rem; font-weight: bold; }
-        .badge-admin { background: var(--primary); color: white; }
-        .badge-user { background: var(--border); color: var(--text-main); }
-        .badge-active { background: var(--success); color: white; }
-        .action-btn { padding: 5px 10px; border-radius: 6px; border: none; cursor: pointer; font-size: 0.8rem; transition: 0.2s; }
-        .btn-delete { background: rgba(239, 68, 68, 0.1); color: var(--danger); }
-        .btn-delete:hover { background: var(--danger); color: white; }
+        .admin-block { margin-top: 24px; padding: 32px; background: linear-gradient(135deg, var(--card-bg) 0%, rgba(99,102,241,0.04) 100%); border: 2px solid var(--border); border-radius: 18px; box-shadow: 0 4px 16px rgba(0,0,0,0.05); transition: all 0.3s ease; position: relative; overflow: hidden; }
+        .admin-block::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, var(--primary) 0%, transparent 100%); opacity: 0.6; }
+        .admin-block:hover { border-color: var(--primary); box-shadow: 0 8px 32px rgba(99,102,241,0.15); }
+        .admin-block h2 { margin: 0 0 28px; font-size: 1.4rem; font-weight: 900; color: var(--text-main); border-bottom: 3px solid var(--primary); padding-bottom: 16px; display: flex; align-items: center; gap: 12px; letter-spacing: -0.5px; }
+        .admin-block h2 i { color: var(--primary); font-size: 1.5rem; animation: fadeIn 0.5s ease-out; }
+        
+        .section-subtitle { font-size: 1.05rem; color: var(--text-main); margin-bottom: 18px; display: flex; align-items: center; gap: 10px; font-weight: 700; letter-spacing: -0.3px; padding: 8px 0; border-left: 4px solid var(--primary); padding-left: 12px; }
+        .section-subtitle i { color: var(--primary); font-size: 1.2rem; }
+        
+        /* APPEALS LIST */
+        #user-management-ban-appeals-list { display: grid; gap: 12px; }
+        
+        /* ANNOUNCEMENTS */
+        .announcement-card {
+            background: linear-gradient(135deg, rgba(99,102,241,0.08) 0%, rgba(99,102,241,0.03) 100%);
+            border: 2px solid var(--primary);
+            border-radius: 14px;
+            padding: 16px;
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 12px;
+            animation: slideIn 0.3s ease-out;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: visible;
+            z-index: 1;
+        }
+        
+        .announcement-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary), transparent);
+            z-index: -1;
+        }
+        
+        .announcement-card:hover {
+            border-color: var(--primary);
+            box-shadow: 0 8px 24px rgba(99,102,241,0.15);
+            transform: translateX(4px);
+        }
+        
+        .announcement-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            position: relative;
+            z-index: 2;
+        }
+        
+        .announcement-text {
+            color: var(--text-main);
+            font-size: 0.95rem;
+            line-height: 1.6;
+            word-break: break-word;
+            font-weight: 500;
+            white-space: normal;
+        }
+        
+        .announcement-meta {
+            display: flex;
+            gap: 12px;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            flex-wrap: nowrap;
+            align-items: center;
+            padding-top: 8px;
+            border-top: 1px solid rgba(99,102,241,0.2);
+        }
+        
+        .announcement-meta span {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            white-space: nowrap;
+        }
+        
+        .announcement-meta i {
+            color: var(--primary);
+            font-size: 0.85rem;
+        }
+        
+        .announcement-actions {
+            display: flex;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+        
+        .announcement-delete-btn {
+            background: linear-gradient(135deg, rgba(239,68,68,0.2), rgba(239,68,68,0.1));
+            color: var(--danger);
+            border: 2px solid var(--danger);
+            padding: 8px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 700;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.8rem;
+            white-space: nowrap;
+        }
+        
+        .announcement-delete-btn:hover {
+            background: linear-gradient(135deg, var(--danger), rgba(239,68,68,0.8));
+            color: white;
+            box-shadow: 0 6px 16px rgba(239,68,68,0.3);
+            transform: translateY(-2px);
+        }
+        
+        /* SUBTABS */
+        .admin-subtabs { 
+            display: flex; 
+            flex-wrap: wrap; 
+            gap: 24px; 
+            margin-bottom: 32px; 
+            padding-bottom: 20px; 
+            border-bottom: 3px solid var(--border); 
+            overflow-x: auto;
+            scroll-behavior: smooth;
+        }
+        
+        .subtab-btn { 
+            display: inline-flex; 
+            align-items: center; 
+            justify-content: center; 
+            background: none; 
+            border: none; 
+            color: var(--text-muted); 
+            padding: 16px 20px; 
+            cursor: pointer; 
+            font-weight: 700; 
+            font-size: 1rem;
+            white-space: nowrap;
+            position: relative;
+            letter-spacing: 0.3px;
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            border-bottom: 3px solid transparent;
+        }
+        
+        .subtab-btn i { 
+            font-size: 1.2rem; 
+            margin-right: 10px;
+            transition: all 0.3s ease;
+        }
+        
+        .subtab-btn:hover { 
+            color: var(--primary);
+            transform: translateY(-4px);
+        }
+        
+        .subtab-btn:hover i {
+            transform: scale(1.2) rotate(5deg);
+        }
+        
+        .subtab-btn.active { 
+            color: white;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--primary), rgba(99,102,241,0.8));
+            border-bottom-color: var(--primary);
+            padding: 16px 24px;
+            border-radius: 12px 12px 0 0;
+            box-shadow: 0 6px 20px rgba(99,102,241,0.3);
+        }
+        
+        .subtab-btn.active i {
+            transform: scale(1.25);
+        }
+        
+        /* TABLES */
+        .data-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        .data-table th { background: linear-gradient(135deg, var(--input-bg) 0%, rgba(99,102,241,0.1) 100%); padding: 16px 14px; text-align: left; border-bottom: 3px solid var(--primary); font-weight: 800; font-size: 0.95rem; color: var(--text-main); text-transform: uppercase; letter-spacing: 1px; }
+        .data-table td { padding: 15px 14px; text-align: left; border-bottom: 1px solid var(--border); transition: all 0.2s; }
+        .data-table tr { transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1); }
+        .data-table tr:hover { background: linear-gradient(135deg, rgba(99,102,241,0.1) 0%, rgba(99,102,241,0.05) 100%); transform: scale(1.01); }
+        .data-table tbody tr:hover td { border-color: var(--primary); }
+        
+        .user-row img { width: 36px; height: 36px; border-radius: 50%; vertical-align: middle; margin-right: 10px; object-fit: cover; border: 2px solid var(--border); }
+        .badge { padding: 8px 14px; border-radius: 12px; font-size: 0.8rem; font-weight: 700; display: inline-block; text-transform: uppercase; letter-spacing: 0.5px; }
+        .badge-admin { background: linear-gradient(135deg, var(--primary), rgba(99,102,241,0.8)); color: white; box-shadow: 0 4px 12px rgba(99,102,241,0.3); }
+        .badge-user { background: linear-gradient(135deg, var(--border), rgba(0,0,0,0.05)); color: var(--text-main); }
+        .badge-active { background: linear-gradient(135deg, var(--success), rgba(16,185,129,0.8)); color: white; box-shadow: 0 4px 12px rgba(16,185,129,0.3); }
+        .badge-banned { background: linear-gradient(135deg, var(--danger), rgba(239,68,68,0.8)); color: white; box-shadow: 0 4px 12px rgba(239,68,68,0.3); }
+        
+        /* BUTTONS */
+        .action-btn { padding: 12px 18px; border-radius: 10px; border: 2px solid transparent; cursor: pointer; font-size: 0.85rem; transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); font-weight: 800; background: linear-gradient(135deg, var(--primary), rgba(99,102,241,0.8)); color: white; box-shadow: 0 6px 16px rgba(99,102,241,0.3); position: relative; overflow: hidden; }
+        .action-btn::before { content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent); transition: left 0.5s; }
+        .action-btn:hover { transform: translateY(-3px); box-shadow: 0 10px 28px rgba(99,102,241,0.4); }
+        .action-btn:hover::before { left: 100%; }
+        .action-btn:active { transform: translateY(-1px); }
+        .btn-delete { background: linear-gradient(135deg, rgba(239,68,68,0.15), rgba(239,68,68,0.05)); color: var(--danger); border-color: var(--danger); box-shadow: none; }
+        .btn-delete:hover { background: linear-gradient(135deg, var(--danger), rgba(239,68,68,0.8)); color: white; box-shadow: 0 10px 28px rgba(239,68,68,0.4); }
+        .btn-group { display: flex; gap: 8px; flex-wrap: wrap; }
+        
+        .action-toolbar { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; padding: 16px 18px; background: linear-gradient(135deg, rgba(99,102,241,0.08) 0%, rgba(99,102,241,0.03) 100%); border-radius: 12px; border-left: 4px solid var(--primary); align-items: center; }
+        .action-toolbar i { color: var(--primary); font-size: 1.1rem; }
+        .action-toolbar span { color: var(--text-muted); font-size: 0.95rem; font-weight: 500; }
+        
+        /* TOAST & NOTIFICATIONS */
+        .toast { position: fixed; bottom: 20px; right: 20px; padding: 16px 24px; background: linear-gradient(135deg, var(--success), rgba(16,185,129,0.8)); color: white; border-radius: 12px; box-shadow: 0 8px 32px rgba(16,185,129,0.4); animation: slideIn 0.3s ease-out; z-index: 1000; font-weight: 600; display: flex; align-items: center; gap: 10px; }
+        .toast.error { background: linear-gradient(135deg, var(--danger), rgba(239,68,68,0.8)); box-shadow: 0 8px 32px rgba(239,68,68,0.4); }
+        .toast.warning { background: linear-gradient(135deg, var(--warning), rgba(245,158,11,0.8)); color: white; box-shadow: 0 8px 32px rgba(245,158,11,0.4); }
+        .toast i { font-size: 1.2rem; }
+        
+        /* LOADING STATE */
+        .loading { opacity: 0.6; pointer-events: none; }
+        .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid rgba(99,102,241,0.2); border-top-color: var(--primary); border-radius: 50%; animation: spin 0.8s linear infinite; }
+        
+        @media (max-width: 1024px) {
+            .admin-main { padding: 24px; }
+            .stat-grid { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; margin-bottom: 28px; }
+            .quick-actions { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+            .admin-block { padding: 24px; }
+        }
+        
+        @media (max-width: 768px) {
+            .admin-sidebar { width: 100%; height: auto; position: relative; border-right: none; border-bottom: 2px solid var(--border); padding: 16px; }
+            .admin-main { margin-left: 0; max-width: 100%; padding: 16px; }
+            .admin-header h1 { font-size: 2rem; }
+            .admin-header p { font-size: 0.9rem; }
+            .quick-actions { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 24px; }
+            .quick-action-btn { padding: 16px 12px; font-size: 0.85rem; }
+            .quick-action-btn i { font-size: 2rem; }
+            .stat-grid { grid-template-columns: 1fr; margin-bottom: 20px; }
+            .stat-card { padding: 16px 12px; }
+            .stat-card h3 { font-size: 1.6rem; margin: 8px 0 6px; }
+            .admin-tabs { gap: 6px; }
+            .tab-btn { font-size: 0.8rem; padding: 10px 14px; }
+            .admin-block { margin-top: 16px; padding: 20px; }
+            .admin-subtabs { gap: 12px; margin-bottom: 20px; padding-bottom: 12px; }
+            .subtab-btn { padding: 12px 16px; font-size: 0.9rem; }
+            .subtab-btn i { margin-right: 6px; font-size: 1rem; }
+            .subtab-btn.active { padding: 12px 20px; }
+            .announcement-card { flex-direction: column; }
+            .announcement-actions { flex-direction: row; }
+            .data-table { font-size: 0.85rem; }
+            .data-table th { padding: 12px 10px; font-size: 0.8rem; }
+            .data-table td { padding: 10px; }
+        }
+        
+        @media (max-width: 480px) {
+            .quick-actions { grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 16px; }
+            .quick-action-btn { padding: 14px 10px; gap: 6px; }
+            .quick-action-btn i { font-size: 1.8rem; }
+            .quick-action-btn span { font-size: 0.75rem; }
+            .stat-grid { margin-bottom: 16px; }
+            .stat-card { padding: 14px 10px; }
+            .stat-card i { font-size: 1.8rem; margin-bottom: 8px; }
+            .stat-card h3 { font-size: 1.4rem; margin: 6px 0 4px; }
+            .stat-card p { font-size: 0.65rem; letter-spacing: 0.8px; }
+            .admin-header h1 { font-size: 1.6rem; }
+            .tab-btn { font-size: 0.75rem; padding: 8px 12px; }
+            .admin-subtabs { gap: 8px; margin-bottom: 16px; padding-bottom: 10px; }
+            .subtab-btn { padding: 10px 12px; font-size: 0.8rem; }
+            .subtab-btn i { margin-right: 4px; font-size: 0.9rem; }
+            .subtab-btn.active { padding: 10px 14px; }
+            .data-table { font-size: 0.75rem; }
+        }
   </style>
   
 <div id="header-placeholder"></div>
@@ -53,134 +381,195 @@
   <div data-include="partials/left-aside.html"></div>
 
  <main id="main-content">
+  <div class="admin-header">
+    <h1>⚙️ Yönetim Paneli</h1>
+    <p>Sistem sağlığı ve kullanıcı yönetimi - Gerçek zamanlı istatistikler</p>
+  </div>
+
   <div class="stat-grid">
-        <div class="glass-card stat-card"><i class="fa-solid fa-signs-post"></i><h3 id="stat-posts">0</h3><p>Toplam Gönderi</p></div>
-        <div class="glass-card stat-card"><i class="fa-solid fa-users-gear"></i><h3 id="stat-users">0</h3><p>Aktif Kullanıcılar</p></div>
-        <div class="glass-card stat-card"><i class="fa-solid fa-clock"></i><h3 id="stat-recent-logins">0</h3><p>24 Saat İçinde Giriş</p></div>
+        <div class="glass-card stat-card">
+          <i class="fa-solid fa-signs-post"></i>
+          <h3 id="stat-posts">0</h3>
+          <p>Toplam Gönderi</p>
+        </div>
+        <div class="glass-card stat-card">
+          <i class="fa-solid fa-users-gear"></i>
+          <h3 id="stat-users">0</h3>
+          <p>Aktif Kullanıcılar</p>
+        </div>
+        <div class="glass-card stat-card">
+          <i class="fa-solid fa-clock"></i>
+          <h3 id="stat-recent-logins">0</h3>
+          <p>24 Saat İçinde Giriş</p>
+        </div>
     </div>
 
-    <div class="glass-card" style="padding: 25px;">
-        <div class="admin-block admin-block-system">
-            <h2>Yönetim</h2>
-            <div class="admin-tabs">
-                <button class="tab-btn active" onclick="switchTab('announcement', this)">Sistem Duyurusu</button>
-            </div>
+    <!-- ANA MENU TABS -->
+    <div class="admin-tabs main-admin-tabs" style="margin-bottom: 28px; border-bottom: 3px solid var(--border); padding-bottom: 0;">
+        <button class="tab-btn main-tab-btn active" onclick="switchMainSection('system', this)"><i class="fa-solid fa-bell"></i> Sistem</button>
+        <button class="tab-btn main-tab-btn" onclick="switchMainSection('users', this)"><i class="fa-solid fa-users"></i> Kullanıcılar</button>
+        <button class="tab-btn main-tab-btn" onclick="switchMainSection('management', this)"><i class="fa-solid fa-sliders"></i> Yönetim</button>
+        <button class="tab-btn main-tab-btn" onclick="switchMainSection('moderation', this)"><i class="fa-solid fa-shield-check"></i> Denetim</button>
+    </div>
 
+    <!-- SİSTEM PANELI -->
+    <div id="main-section-system" class="main-section active">
+        <div class="admin-block">
+            <h2><i class="fa-solid fa-bell"></i> Sistem Yönetimi</h2>
             <div id="section-announcement" class="admin-section active">
-                <div class="section-subtitle">Tüm Sisteme Duyuru Yayınla</div>
-                <textarea id="adminNoticeInput" class="form-input" style="min-height: 120px; margin-bottom: 15px;" placeholder="Tüm kullanıcılara görünecek resmi bir duyuru yazın..."></textarea>
-                <button id="broadcastBtn" class="form-btn" style="width: auto; padding: 12px 30px;"><i class="fa-solid fa-paper-plane"></i> Duyuruyu Tüm Sisteme Gönder</button>
+                <div class="section-subtitle"><i class="fa-solid fa-bullhorn"></i> Tüm Sisteme Duyuru Yayınla</div>
+                <div class="action-toolbar">
+                    <i class="fa-solid fa-info-circle"></i>
+                    <span style="color: var(--text-muted);">Tüm aktif kullanıcılara duyuru gönderebilirsiniz</span>
+                </div>
+                <textarea id="adminNoticeInput" class="form-input" style="min-height: 120px; margin-bottom: 15px; width: 100%; padding: 14px; border: 2px solid var(--border); border-radius: 12px; background: var(--input-bg); color: var(--text-main); font-family: inherit;" placeholder="Tüm kullanıcılara görünecek resmi bir duyuru yazın..."></textarea>
+                <button id="broadcastBtn" class="action-btn" style="width: auto; padding: 14px 28px; display: flex; align-items: center; gap: 10px;"><i class="fa-solid fa-paper-plane"></i> Duyuruyu Gönder</button>
+                
+                <!-- SİSTEM DUYURUSU LİSTESİ -->
+                <div style="margin-top: 32px; padding-top: 28px; border-top: 2px solid var(--border);">
+                    <div class="section-subtitle" style="margin-bottom: 20px;"><i class="fa-solid fa-list"></i> Sistem Duyurusu</div>
+                    <div id="activeAnnouncementsList" style="display: grid; gap: 16px;"></div>
+                    <div id="noAnnouncementsMsg" style="text-align: center; color: var(--text-muted); padding: 32px 20px; border: 2px dashed var(--border); border-radius: 12px;">
+                        <i class="fa-solid fa-inbox" style="font-size: 2.5rem; margin-bottom: 12px; display: block; opacity: 0.5;"></i>
+                        <p style="margin: 0; font-weight: 600;">Henüz hiç sistem duyurusu yayınlanmadı</p>
+                    </div>
+                </div>
             </div>
-
-
         </div>
+    </div>
 
+    <!-- KULLANICI PANELI -->
+    <div id="main-section-users" class="main-section">
         <div class="admin-block admin-block-user">
-            <h2>Kullanıcı</h2>
+            <h2><i class="fa-solid fa-users"></i> Kullanıcı Yönetimi</h2>
             <div class="admin-tabs">
-                <button class="tab-btn active" onclick="switchTab('users', this)">Aktif Kullanıcı Yönetimi</button>
-                <button class="tab-btn" onclick="switchTab('registered', this)">Tüm Kayıtlı Kullanıcılar</button>
-                <button class="tab-btn" onclick="switchTab('userManagement', this)">Kullanıcı Yönetimi</button>
+                <button class="tab-btn active" onclick="switchTab('users', this)"><i class="fa-solid fa-user-check"></i> Aktif Kullanıcılar</button>
+                <button class="tab-btn" onclick="switchTab('registered', this)"><i class="fa-solid fa-list"></i> Tüm Kayıtlılar</button>
             </div>
 
+            <!-- AKTIF KULLANICILAR -->
             <div id="section-users" class="admin-section active">
-                <div class="admin-subtabs">
-                    <button class="subtab-btn active" onclick="switchUserSubtab('active', this)">Aktif Kullanıcı Veritabanı</button>
-                    <button class="subtab-btn" onclick="switchUserSubtab('recent', this)">24 Saat İçinde Giriş Yapan Kullanıcılar</button>
-                    <button class="subtab-btn" onclick="switchUserSubtab('loginTimes', this)">En Son Ne Zaman Girdiler</button>
-                </div>
-
-                <div id="subsection-active" class="admin-subsection active">
-                    <div class="section-subtitle">Aktif Kullanıcı Veritabanı (Etkileşime Göre)</div>
-                    <table class="data-table">
-                        <thead><tr><th>Kullanıcı</th><th>Kullanıcı Adı</th><th>Rol</th><th>İşlem</th></tr></thead>
-                        <tbody id="user-list-body"></tbody>
-                    </table>
-                </div>
-
-                <div id="subsection-recent" class="admin-subsection">
-                    <div class="section-subtitle">24 Saat İçinde Giriş Yapan Kullanıcılar</div>
-                    <table class="data-table">
-                        <thead><tr><th>Kullanıcı</th><th>Kullanıcı Adı</th><th>Son Giriş</th><th>Durum</th></tr></thead>
-                        <tbody id="recent-logins-body"></tbody>
-                    </table>
-                </div>
-
-                <div id="subsection-loginTimes" class="admin-subsection">
-                    <div class="section-subtitle">En Son Ne Zaman Girdiler</div>
-                    <table class="data-table">
-                        <thead><tr><th>Kullanıcı</th><th>Kullanıcı Adı</th><th>Son Giriş</th><th>Kullanıcı Sil</th></tr></thead>
-                        <tbody id="last-login-times-body"></tbody>
-                    </table>
-                </div>
+            <div class="admin-subtabs">
+                <button class="subtab-btn active" onclick="switchUserSubtab('active', this)"><i class="fa-solid fa-database"></i> Veritabanı</button>
+                <button class="subtab-btn" onclick="switchUserSubtab('recent', this)"><i class="fa-solid fa-hourglass-end"></i> 24 Saat</button>
+                <button class="subtab-btn" onclick="switchUserSubtab('loginTimes', this)"><i class="fa-solid fa-history"></i> Geçmiş</button>
             </div>
 
-            <div id="section-registered" class="admin-section">
-                <div class="admin-subtabs">
-                    <button class="subtab-btn active" onclick="switchRegisteredSubtab('all', this)">Tüm Kayıtlılar</button>
-                    <button class="subtab-btn" onclick="switchRegisteredSubtab('week', this)">Yeni Kayıtlar (1 Hafta)</button>
-                    <button class="subtab-btn" onclick="switchRegisteredSubtab('month', this)">Yeni Kayıtlar (1 Ay)</button>
+            <div id="subsection-active" class="admin-subsection active">
+                <div class="section-subtitle"><i class="fa-solid fa-magnifying-glass"></i> Aktif Kullanıcı Arama</div>
+                <div class="search-filter-bar">
+                    <input type="text" id="activeUserSearch" class="search-input" placeholder="Adı veya kullanıcı adı ile ara..." onkeyup="filterActiveUsers()">
+                    <button class="search-btn" onclick="filterActiveUsers()"><i class="fa-solid fa-magnifying-glass"></i> Ara</button>
                 </div>
-                <div class="section-subtitle" id="registered-section-title">Tüm Kayıtlı Kullanıcılar</div>
                 <table class="data-table">
-                    <thead><tr><th>Kullanıcı</th><th>Kullanıcı Adı</th><th>Email</th><th>Kayıt Tarihi</th><th>Rol</th></tr></thead>
-                    <tbody id="registered-users-body"></tbody>
+                    <thead><tr><th>Kullanıcı</th><th>Kullanıcı Adı</th><th>Rol</th><th>İşlem</th></tr></thead>
+                    <tbody id="user-list-body"></tbody>
                 </table>
             </div>
 
-            <div id="section-userManagement" class="admin-section">
-                <div class="section-subtitle">Kullanıcı Yönetimi</div>
-                <div style="margin-bottom:16px; color: var(--text-muted);">Bu bölümde kullanıcıya yönetici yetkisi verebilir, geçici banlayabilir veya hesabını tamamen silebilirsiniz.</div>
-                <div class="admin-subtabs">
-                    <button class="subtab-btn active" onclick="switchUserManagementSubtab('managed', this)">Tüm Kullanıcılar</button>
-                    <button class="subtab-btn" onclick="switchUserManagementSubtab('banned', this)">Banlananlar</button>
-                    <button class="subtab-btn" onclick="switchUserManagementSubtab('appeals', this)">Ban İtirazları</button>
-                    <button class="subtab-btn" onclick="switchUserManagementSubtab('deleted', this)">Silinen Üyeler</button>
-                    <!-- 'Tebrikler & Teşekkürler' alt sekmesi taşındı: artık Sayfa bölümünde yer alıyor -->
-                </div>
+            <div id="subsection-recent" class="admin-subsection">
+                <div class="section-subtitle"><i class="fa-solid fa-person-circle-check"></i> 24 Saat İçinde Giriş</div>
+                <table class="data-table">
+                    <thead><tr><th>Kullanıcı</th><th>Kullanıcı Adı</th><th>Son Giriş</th><th>Durum</th></tr></thead>
+                    <tbody id="recent-logins-body"></tbody>
+                </table>
+            </div>
 
-                <div id="userManagement-subsection-managed" class="admin-subsection active">
-                    <table class="data-table">
-                        <thead><tr><th>Kullanıcı</th><th>Kullanıcı Adı</th><th>Email</th><th>Rol</th><th>İşlem</th></tr></thead>
-                        <tbody id="managed-users-body"></tbody>
-                    </table>
-                </div>
-
-                <div id="userManagement-subsection-banned" class="admin-subsection">
-                    <p style="margin:0 0 14px; color: var(--text-muted);">Sadece şu anda aktif banlı kullanıcılar listelenir. Kalıcı banlılar "Kalıcı" olarak gösterilir.</p>
-                    <table class="data-table">
-                        <thead><tr><th>Kullanıcı</th><th>Kullanıcı Adı</th><th>Email</th><th>Ban Bitiş</th><th>Ban Nedeni</th><th>İşlem</th></tr></thead>
-                        <tbody id="banned-users-body"></tbody>
-                    </table>
-                </div>
-
-                <div id="userManagement-subsection-appeals" class="admin-subsection">
-                    <div id="user-management-ban-appeals-list" style="display:grid; gap:12px;"></div>
-                </div>
-                <div id="userManagement-subsection-deleted" class="admin-subsection">
-                    <div class="section-subtitle">Silinen Üyeler</div>
-                    <table class="data-table">
-                        <thead><tr><th>Kullanıcı</th><th>Kullanıcı Adı</th><th>Email</th><th>Silme Tarihi</th><th>Silme Yapan</th></tr></thead>
-                        <tbody id="deleted-users-body"></tbody>
-                    </table>
-                </div>
-                <!-- 'Tebrikler & Teşekkürler' alt sekmesi taşındı: ilgili içerik Sayfa bölümüne eklendi -->
+            <div id="subsection-loginTimes" class="admin-subsection">
+                <div class="section-subtitle"><i class="fa-solid fa-calendar-alt"></i> Giriş Geçmişi</div>
+                <table class="data-table">
+                    <thead><tr><th>Kullanıcı</th><th>Kullanıcı Adı</th><th>Son Giriş</th><th>İşlem</th></tr></thead>
+                    <tbody id="last-login-times-body"></tbody>
+                </table>
             </div>
         </div>
 
+        <!-- TÜM KAYITLILAR -->
+        <div id="section-registered" class="admin-section">
+            <div class="admin-subtabs">
+                <button class="subtab-btn active" onclick="switchRegisteredSubtab('all', this)"><i class="fa-solid fa-users-line"></i> Tüm</button>
+                <button class="subtab-btn" onclick="switchRegisteredSubtab('week', this)"><i class="fa-solid fa-calendar-week"></i> 1 Hafta</button>
+                <button class="subtab-btn" onclick="switchRegisteredSubtab('month', this)"><i class="fa-solid fa-calendar-days"></i> 1 Ay</button>
+            </div>
+            <div class="section-subtitle" id="registered-section-title"><i class="fa-solid fa-database"></i> Tüm Kayıtlı Kullanıcılar</div>
+            <div class="search-filter-bar">
+                <input type="text" id="registeredUserSearch" class="search-input" placeholder="Kullanıcı adı veya email ile ara..." onkeyup="filterRegisteredUsers()">
+                <button class="search-btn" onclick="filterRegisteredUsers()"><i class="fa-solid fa-magnifying-glass"></i> Ara</button>
+            </div>
+            <table class="data-table">
+                <thead><tr><th>Kullanıcı</th><th>Kullanıcı Adı</th><th>Email</th><th>Kayıt Tarihi</th><th>Rol</th></tr></thead>
+                <tbody id="registered-users-body"></tbody>
+            </table>
+        </div>
+        </div>
+    </div>
 
-            <!-- 'Tebrikler & Teşekkürler' özelliği kaldırıldı -->
+    <!-- YÖNETIM PANELI -->
+    <div id="main-section-management" class="main-section">
+        <div class="admin-block">
+            <h2><i class="fa-solid fa-sliders"></i> Gelişmiş Yönetim</h2>
+            <div class="action-toolbar">
+                <i class="fa-solid fa-info-circle"></i>
+                <span style="color: var(--text-muted);">Admin yetkisi, ban ve silme işlemleri yapabilirsiniz</span>
+            </div>
+            <div class="admin-subtabs">
+                <button class="subtab-btn active" onclick="switchUserManagementSubtab('managed', this)"><i class="fa-solid fa-layer-group"></i> Tüm Kullanıcılar</button>
+                <button class="subtab-btn" onclick="switchUserManagementSubtab('banned', this)"><i class="fa-solid fa-ban"></i> Banlananlar</button>
+                <button class="subtab-btn" onclick="switchUserManagementSubtab('appeals', this)"><i class="fa-solid fa-flag"></i> İtirazlar</button>
+                <button class="subtab-btn" onclick="switchUserManagementSubtab('deleted', this)"><i class="fa-solid fa-trash"></i> Silinen</button>
+            </div>
 
-            <div class="admin-block admin-block-page">
-            <h2>Sayfa</h2>
-            <div class="admin-tabs">
-                <button class="tab-btn active" onclick="switchTab('moderation', this)">İçerik Denetimi</button>
+            <!-- TÜM KULLANICILAR TAB -->
+            <div id="userManagement-subsection-managed" class="admin-subsection active">
+                <div class="search-filter-bar">
+                    <input type="text" id="managedUserSearch" class="search-input" placeholder="Kullanıcı adı veya email ile ara..." onkeyup="filterManagedUsers()">
+                    <button class="search-btn" onclick="filterManagedUsers()"><i class="fa-solid fa-magnifying-glass"></i> Ara</button>
+                </div>
+                <table class="data-table">
+                    <thead><tr><th>Kullanıcı</th><th>Kullanıcı Adı</th><th>Email</th><th>Rol</th><th>İşlem</th></tr></thead>
+                    <tbody id="managed-users-body"></tbody>
+                </table>
+            </div>
+
+            <!-- BANLANAN KULLANICILAR TAB -->
+            <div id="userManagement-subsection-banned" class="admin-subsection">
+                <div class="action-toolbar">
+                    <i class="fa-solid fa-shield-exclamation"></i>
+                    <span style="color: var(--text-muted);">Sadece şu anda aktif banlı kullanıcılar listelenir</span>
+                </div>
+                <table class="data-table">
+                    <thead><tr><th>Kullanıcı</th><th>Kullanıcı Adı</th><th>Email</th><th>Ban Bitiş</th><th>Ban Nedeni</th><th>İşlem</th></tr></thead>
+                    <tbody id="banned-users-body"></tbody>
+                </table>
+            </div>
+
+            <!-- BAN İTİRAZLARI TAB -->
+            <div id="userManagement-subsection-appeals" class="admin-subsection">
+                <div id="user-management-ban-appeals-list"></div>
+            </div>
+
+            <!-- SİLİNEN ÜYELER TAB -->
+            <div id="userManagement-subsection-deleted" class="admin-subsection">
+                <div class="section-subtitle"><i class="fa-solid fa-trash-alt"></i> Silinen Üyeler Arşivi</div>
+                <table class="data-table">
+                    <thead><tr><th>Kullanıcı</th><th>Kullanıcı Adı</th><th>Email</th><th>Silme Tarihi</th><th>Silme Yapan</th></tr></thead>
+                    <tbody id="deleted-users-body"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- DENETİM PANELI -->
+    <div id="main-section-moderation" class="main-section">
+        <div class="admin-block admin-block-page">
+            <h2><i class="fa-solid fa-file-lines"></i> İçerik Denetimi</h2>
+            <div class="action-toolbar">
+                <i class="fa-solid fa-info-circle"></i>
+                <span style="color: var(--text-muted);">Tüm paylaşımlar burada düzenlenebilir ve yönetilir</span>
             </div>
             <div id="section-moderation" class="admin-section active">
-                <div class="admin-block" style="padding:16px; margin-top:6px;">
-                    <div class="section-subtitle">Tüm Paylaşımları Yönet</div>
-                    <div id="admin-feed-list"></div>
-                </div>
+                <div class="section-subtitle"><i class="fa-solid fa-list"></i> Tüm Paylaşımları Yönet</div>
+                <div id="admin-feed-list"></div>
             </div>
         </div>
     </div>
@@ -273,6 +662,7 @@
         loadAllRegisteredUsers();
         loadBannedUsers();
         loadBanAppeals();
+        loadAnnouncements();
         // Yeni Sayfa sekmesindeki tebrik/teşekkür listesini yalnızca kullanıcı seçerse yükle
         // loadTebrikThanksAdmin();
     }
@@ -1486,29 +1876,269 @@
         }
     }
 
-    // Duyuru Gönderme (Aynı kaldı)
-    document.getElementById('broadcastBtn').onclick = async () => {
-        const content = document.getElementById('adminNoticeInput').value.trim();
-        if(!content) return;
-        try {
-            await addDoc(collection(db, "posts"), {
-                name: "Sistem Duyurusu",
-                username: "official_system",
-                avatarSeed: "admin-shield",
-                content: content,
-                timestamp: serverTimestamp(),
-                likes: [], savedBy: [], comments: []
-            });
-            alert("Duyuru yayınlandı!");
-            document.getElementById('adminNoticeInput').value = "";
-        } catch (e) { console.error(e); }
+    // ===== TOAST & NOTIFICATIONS SYSTEM =====
+    window.showToast = (message, type = 'success', duration = 3000) => {
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
+        const icons = { success: 'fa-check-circle', error: 'fa-exclamation-circle', warning: 'fa-exclamation-triangle', info: 'fa-info-circle' };
+        toast.innerHTML = `<i class="fa-solid ${icons[type] || 'fa-bell'}"></i> <span>${message}</span>`;
+        document.body.appendChild(toast);
+        
+        setTimeout(() => {
+            toast.style.opacity = '0';
+            toast.style.transform = 'translateX(400px)';
+            toast.style.transition = 'all 0.3s ease-out';
+            setTimeout(() => toast.remove(), 300);
+        }, duration);
     };
 
+    // ===== SIDEBAR VE QUICK ACTIONS - İyileştirilmiş =====
+    window.activateSidebarSection = (section) => {
+        // Sidebar items aktifliğini güncelle
+        document.querySelectorAll('.sidebar-item').forEach(item => item.classList.remove('active'));
+        if (event && event.currentTarget) {
+            event.currentTarget.classList.add('active');
+        }
+        
+        // Her section'a kendi tab'ları göster
+        switch(section) {
+            case 'dashboard':
+                document.querySelector('[onclick*="switchTab(\'announcement\'"]')?.click();
+                break;
+            case 'system':
+                document.querySelector('[onclick*="switchTab(\'announcement\'"]')?.click();
+                showToast('📋 Sistem Yönetimi bölümü açıldı', 'info', 2000);
+                break;
+            case 'users':
+                document.querySelector('[onclick*="switchTab(\'users\'"]')?.click();
+                showToast('👥 Kullanıcı Yönetimi bölümü açıldı', 'info', 2000);
+                break;
+            case 'content':
+                document.querySelector('[onclick*="switchTab(\'moderation\'"]')?.click();
+                showToast('📄 İçerik Denetimi bölümü açıldı', 'info', 2000);
+                break;
+            case 'reports':
+                showToast('📊 Raporlar bölümü yakında açılacak', 'warning', 2000);
+                break;
+            case 'settings':
+                showToast('⚙️ Ayarlar bölümü yakında açılacak', 'warning', 2000);
+                break;
+        }
+    };
 
+    window.openQuickAction = (action) => {
+        switch(action) {
+            case 'duyuru':
+                document.querySelector('[onclick*="switchTab(\'announcement\'"]')?.click();
+                setTimeout(() => document.getElementById('adminNoticeInput')?.focus(), 200);
+                showToast('📢 Duyuru paneli açıldı', 'info', 1500);
+                break;
+            case 'kullanici':
+                document.querySelector('[onclick*="switchTab(\'users\'"]')?.click();
+                setTimeout(() => document.getElementById('registeredUserSearch')?.focus(), 300);
+                showToast('🔍 Kullanıcı arama paneli açıldı', 'info', 1500);
+                break;
+            case 'ban':
+                document.querySelector('[onclick*="switchTab(\'userManagement\'"]')?.click();
+                setTimeout(() => document.querySelector('[onclick*="switchUserManagementSubtab(\'banned\'"]')?.click(), 300);
+                showToast('🚫 Ban yönetimi açıldı', 'info', 1500);
+                break;
+            case 'rapor':
+                showToast('📊 Rapor indirme özelliği yakında kullanılabilir olacak', 'warning', 3000);
+                break;
+        }
+    };
 
+    // Duyuru Gönderme (İyileştirilmiş)
+    // ===== DUYURULAR =====
+    window.loadAnnouncements = async () => {
+        try {
+            const list = document.getElementById('activeAnnouncementsList');
+            const noMsg = document.getElementById('noAnnouncementsMsg');
+            
+            if (!list || !noMsg) {
+                console.error('Duyuru listesi elemanları bulunamadı');
+                return;
+            }
+            
+            const announcementsSnap = await getDocs(query(
+                collection(db, "announcements"),
+                orderBy("timestamp", "desc")
+            ));
+            
+            list.innerHTML = '';
+            
+            if (announcementsSnap.empty) {
+                console.log('Henüz hiç duyuru yok');
+                list.parentElement.style.display = 'none';
+                noMsg.style.display = 'block';
+                return;
+            }
+            
+            console.log(`${announcementsSnap.size} duyuru yüklendi`);
+            list.parentElement.style.display = 'block';
+            noMsg.style.display = 'none';
+            
+            announcementsSnap.forEach(doc => {
+                const data = doc.data();
+                const createdAt = data.timestamp ? data.timestamp.toDate().toLocaleString('tr-TR') : 'Bilinmiyor';
+                const adminEmail = 'official_system';
+                const content = (data.content || '(Boş duyuru)').trim();
+                
+                const card = document.createElement('div');
+                card.className = 'announcement-card';
+                card.innerHTML = `
+                    <div class="announcement-content">
+                        <div class="announcement-text"></div>
+                        <div class="announcement-meta">
+                            <span><i class="fa-solid fa-calendar"></i>${createdAt}</span>
+                            <span><i class="fa-solid fa-circle-user"></i>${adminEmail}</span>
+                        </div>
+                    </div>
+                    <div class="announcement-actions">
+                        <button class="announcement-delete-btn" onclick="editAnnouncement('${doc.id}')" title="Bu duyuruyu düzenle" style="background:linear-gradient(135deg, #3b82f6, #2563eb); border-radius:4px; padding:8px 12px; color:white; border:none; cursor:pointer;">
+                            <i class="fa-solid fa-pen"></i>
+                        </button>
+                        <button class="announcement-delete-btn" onclick="deleteAnnouncement('${doc.id}')" title="Bu duyuruyu sil">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </div>
+                `;
+                
+                // Content'i güvenli şekilde textContent ile ekle
+                card.querySelector('.announcement-text').textContent = content;
+                
+                list.appendChild(card);
+                console.log('Duyuru eklendi:', content.substring(0, 50) + '...');
+            });
+        } catch (e) {
+            console.error('Duyuru yükleme hatası:', e);
+            showToast('Duyuru yüklenemedi: ' + e.message, 'error');
+        }
+    };
+    
+    window.deleteAnnouncement = async (announcementId) => {
+        if (!confirm('Bu duyuruyu silmek istediğinize emin misiniz?')) return;
+        try {
+            await deleteDoc(doc(db, "announcements", announcementId));
+            showToast('Duyuru silindi', 'success');
+            loadAnnouncements();
+        } catch (e) {
+            console.error('Duyuru silme hatası:', e);
+            showToast('Duyuru silinirken hata oluştu', 'error');
+        }
+    };
 
+    window.editAnnouncement = async (announcementId) => {
+        try {
+            const ref = doc(db, "announcements", announcementId);
+            const snap = await getDoc(ref);
+            if (!snap.exists()) return;
+            
+            const data = snap.data();
+            const newContent = prompt('Duyuruyu düzenle:', data.content || '');
+            
+            if (newContent === null) return; // Kullanıcı cancel etti
+            if (!newContent.trim()) {
+                alert('Duyuru boş olamaz');
+                return;
+            }
+            
+            await updateDoc(ref, {
+                content: newContent.trim(),
+                updatedAt: serverTimestamp()
+            });
+            
+            showToast('Duyuru başarıyla güncellendi', 'success');
+            loadAnnouncements();
+        } catch (e) {
+            console.error('Duyuru düzenleme hatası:', e);
+            showToast('Duyuru düzenlenirken hata oluştu', 'error');
+        }
+    };
 
+    document.getElementById('broadcastBtn').onclick = async () => {
+        const content = document.getElementById('adminNoticeInput').value.trim();
+        if(!content) {
+            showToast('Lütfen bir duyuru yazın', 'warning');
+            return;
+        }
+        try {
+            const user = auth.currentUser;
+            
+            // Firestore'a duyuru kaydet
+            await addDoc(collection(db, "announcements"), {
+                content: content,
+                adminEmail: "official_system",
+                timestamp: serverTimestamp(),
+                isActive: true
+            });
+            
+            showToast('Duyuru başarıyla gönderildi!', 'success');
+            document.getElementById('adminNoticeInput').value = "";
+            loadAnnouncements();
+        } catch (e) { 
+            console.error(e);
+            showToast('Duyuru gönderilirken hata oluştu', 'error');
+        }
+    };
 
+    // ===== FILTRELEME FONKSİYONLARI =====
+    window.filterActiveUsers = () => {
+        const searchText = (document.getElementById('activeUserSearch')?.value || '').toLowerCase();
+        const rows = document.querySelectorAll('#user-list-body tr');
+        rows.forEach(row => {
+            const text = row.textContent.toLowerCase();
+            row.style.display = text.includes(searchText) ? '' : 'none';
+        });
+    };
+
+    window.filterRegisteredUsers = () => {
+        const searchText = (document.getElementById('registeredUserSearch')?.value || '').toLowerCase();
+        const rows = document.querySelectorAll('#registered-users-body tr');
+        rows.forEach(row => {
+            const text = row.textContent.toLowerCase();
+            row.style.display = text.includes(searchText) ? '' : 'none';
+        });
+    };
+
+    window.filterManagedUsers = () => {
+        const searchText = (document.getElementById('managedUserSearch')?.value || '').toLowerCase();
+        const rows = document.querySelectorAll('#managed-users-body tr');
+        rows.forEach(row => {
+            const text = row.textContent.toLowerCase();
+            row.style.display = text.includes(searchText) ? '' : 'none';
+        });
+    };
+
+    // ===== MAIN SECTION SWITCHER =====
+    window.switchMainSection = (sectionId, button) => {
+        // Tüm main sections'ı gizle
+        document.querySelectorAll('.main-section').forEach(s => s.classList.remove('active'));
+        // Tüm main tab buttons'ı pasif yap
+        document.querySelectorAll('.main-tab-btn').forEach(b => b.classList.remove('active'));
+        
+        // İlgili section'ı aç
+        const section = document.getElementById('main-section-' + sectionId);
+        if (section) {
+            section.classList.add('active');
+        }
+        
+        // Button'ı aktif yap
+        if (button) {
+            button.classList.add('active');
+        }
+        
+        // Sistem tab'ına geçişte duyuruları yenile
+        if (sectionId === 'system') {
+            loadAnnouncements();
+        }
+        
+        // Sistem bölümüne geçildiğinde duyuruları yükle
+        if (sectionId === 'system') {
+            loadAnnouncements();
+        }
+    };
 
     window.switchTab = (tabId, button) => {
         const section = document.getElementById('section-' + tabId);

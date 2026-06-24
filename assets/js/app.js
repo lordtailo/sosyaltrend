@@ -961,6 +961,441 @@ window.limit = typeof limit !== 'undefined' ? limit : undefined;
 window.updateDoc = typeof updateDoc !== 'undefined' ? updateDoc : undefined;
 window.setDoc = typeof setDoc !== 'undefined' ? setDoc : undefined;
 
+// Feed'e duyuruları ekle
+window.addAnnouncementsToFeed = async () => {
+    try {
+        const feed = document.getElementById('feed-items');
+        if (!feed) return;
+        
+        const announcementsSnap = await getDocs(
+            query(collection(db, "announcements"), orderBy("timestamp", "desc"), limit(10))
+        );
+        
+        if (announcementsSnap.empty) return;
+        
+        const currentUsername = (window.user && window.user.username) || (auth.currentUser && auth.currentUser.email.split('@')[0]) || null;
+        const announcementElements = [];
+        
+        announcementsSnap.forEach(doc => {
+            const data = doc.data();
+            const content = (data.content || '').trim();
+            if (!content) return;
+            
+            const announcementId = doc.id;
+            const createdAt = data.timestamp ? data.timestamp.toDate().toLocaleString('tr-TR') : 'Bilinmiyor';
+            const isLiked = currentUsername && data.likes ? data.likes.includes(currentUsername) : false;
+            const isSaved = currentUsername && data.savedBy ? data.savedBy.includes(currentUsername) : false;
+            const likeCount = data.likes ? data.likes.length : 0;
+            const commentCount = data.comments ? data.comments.length : 0;
+            
+            const card = document.createElement('div');
+            card.className = 'glass-card post';
+            card.setAttribute('data-announcement-id', announcementId);
+            card.setAttribute('data-announcement-data', JSON.stringify(data));
+            card.style.cssText = `
+                border: 2px solid var(--primary);
+                background: rgba(99, 102, 241, 0.08);
+                position: relative;
+            `;
+            
+            card.innerHTML = `
+                <div style="display:flex; gap:10px; margin-bottom:10px;">
+                    <img src="assets/img/strendsaydamv2.png" class="user-avatar" style="width:40px; height:40px; border-radius:50%; cursor:pointer;" onclick="location.href='profil.html?id=official_system'">
+                    <div>
+                        <div style="font-weight:700; display:flex; align-items:center; gap:5px; cursor:pointer;" onclick="location.href='profil.html?id=official_system'">
+                            SosyaLTrend <i class="fa-solid fa-circle-check" style="color:var(--primary); font-size:0.7rem;"></i>
+                            <span class="post-time">• ${createdAt}</span>
+                        </div>
+                        <div style="font-size:0.75rem; color:var(--text-muted); cursor:pointer;" onclick="location.href='profil.html?id=official_system'">@official_system</div>
+                    </div>
+                </div>
+                
+                <div class="post-content-block" style="margin-bottom:12px;">
+                    <p style="white-space: pre-wrap; margin:0; color: var(--text-main); font-size: 0.95rem; line-height: 1.5;">${content}</p>
+                </div>
+
+                <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:10px; min-height:28px;">
+                    <div id="likers-ann-${announcementId}" style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;"></div>
+                </div>
+
+                <div style="display:flex; gap:12px;">
+                    <button class="tool-btn" onclick="likeAnnouncement('${announcementId}', ${isLiked}, this)" style="gap:5px; color:${isLiked ? '#ef4444' : ''}"><i class="${isLiked ? 'fa-solid' : 'fa-regular'} fa-heart"></i><span>${likeCount}</span></button>
+                    <button class="tool-btn" onclick="toggleAnnouncementComments('${announcementId}')" style="gap:5px;"><i class="fa-regular fa-comment"></i><span>${commentCount}</span></button>
+                    <button class="tool-btn" onclick="bookmarkAnnouncement('${announcementId}', ${isSaved})" style="color:${isSaved ? '#f59e0b' : ''}"><i class="${isSaved ? 'fa-solid' : 'fa-regular'} fa-bookmark"></i></button>
+                    <button class="tool-btn" onclick="window.openShareMenu('${announcementId}')" style="gap:5px; margin-left:auto;"><i class="fa-solid fa-share"></i></button>
+                    ${(window.user && window.user.isAdmin) ? `
+                    <button class="tool-btn" onclick="editAnnouncement('${announcementId}')" style="gap:5px; color:#3b82f6;" title="Düzenle"><i class="fa-solid fa-pen"></i></button>
+                    <button class="tool-btn" onclick="deleteAnnouncement('${announcementId}')" style="gap:5px; color:#ef4444;" title="Sil"><i class="fa-solid fa-trash"></i></button>
+                    ` : ''}
+                </div>
+                
+                <div id="comments-ann-${announcementId}" class="comment-area" style="display:none;">
+                    <div class="comment-input-area" style="display:flex; gap:10px; margin-bottom:12px;">
+                        <img src="${(window.user && window.user.avatarUrl) || 'assets/img/strendsaydamv2.png'}" style="width:32px; height:32px; border-radius:50%;">
+                        <div style="flex:1; display:flex; gap:8px;">
+                            <input id="input-ann-${announcementId}" type="text" placeholder="Yorum yaz..." style="flex:1; border:1px solid var(--border); border-radius:20px; padding:8px 16px; background:var(--input-bg); color:var(--text-main); outline:none;">
+                            <button onclick="postAnnouncementComment('${announcementId}')" style="background:var(--primary); color:white; border:none; border-radius:20px; padding:8px 16px; cursor:pointer; font-weight:700;">Gönder</button>
+                        </div>
+                    </div>
+                    <div id="list-ann-${announcementId}"></div>
+                </div>
+            `;
+            
+            announcementElements.push({ card, data, id: announcementId });
+        });
+        
+        // Duyuruları feed'in en başına ekle
+        announcementElements.reverse().forEach(item => {
+            feed.insertBefore(item.card, feed.firstChild);
+            // Yorumları render et
+            if (item.data.comments && item.data.comments.length > 0) {
+                renderAnnouncementComments(item.id, item.data.comments);
+            }
+        });
+        
+    } catch (e) {
+        console.error('Feed duyuru ekleme hatası:', e);
+    }
+};
+
+// Duyuru beğeni
+window.likeAnnouncement = async (announcementId, isCurrentlyLiked, btn) => {
+    if (!auth.currentUser) {
+        alert('Beğenmek için giriş yapmalısınız');
+        return;
+    }
+    
+    try {
+        const ref = doc(db, "announcements", announcementId);
+        const snap = await getDoc(ref);
+        if (!snap.exists()) return;
+        
+        const data = snap.data();
+        const likes = data.likes || [];
+        const username = user.username || auth.currentUser.email;
+        
+        if (isCurrentlyLiked) {
+            await updateDoc(ref, { likes: likes.filter(u => u !== username) });
+        } else {
+            await updateDoc(ref, { likes: [...likes, username] });
+        }
+        
+        // UI güncelle
+        if (btn) {
+            const icon = btn.querySelector('i');
+            const count = btn.querySelector('span');
+            const newCount = isCurrentlyLiked ? Math.max(0, likes.length - 1) : likes.length + 1;
+            count.textContent = newCount;
+            if (isCurrentlyLiked) {
+                icon.classList.remove('fa-solid');
+                icon.classList.add('fa-regular');
+                btn.style.color = '';
+            } else {
+                icon.classList.remove('fa-regular');
+                icon.classList.add('fa-solid');
+                btn.style.color = '#ef4444';
+            }
+        }
+    } catch (e) {
+        console.error('Duyuru beğeni hatası:', e);
+    }
+};
+
+// Duyuru yorum
+window.toggleAnnouncementComments = (announcementId) => {
+    const commentArea = document.getElementById(`comments-ann-${announcementId}`);
+    if (commentArea) {
+        commentArea.style.display = commentArea.style.display === 'none' ? 'block' : 'none';
+    }
+};
+
+window.postAnnouncementComment = async (announcementId) => {
+    if (!auth.currentUser) {
+        alert('Yorum yapmak için giriş yapmalısınız');
+        return;
+    }
+    
+    const input = document.getElementById(`input-ann-${announcementId}`);
+    if (!input || !input.value.trim()) return;
+    
+    const commentText = input.value.trim();
+    
+    try {
+        const ref = doc(db, "announcements", announcementId);
+        const snap = await getDoc(ref);
+        if (!snap.exists()) return;
+        
+        const data = snap.data();
+        const comments = data.comments || [];
+        
+        const newComment = {
+            username: user.username || auth.currentUser.email,
+            displayName: user.displayName || auth.currentUser.email,
+            avatarUrl: user.avatarUrl || 'assets/img/strendsaydamv2.png',
+            text: commentText,
+            time: Date.now()
+        };
+        
+        await updateDoc(ref, { comments: [...comments, newComment] });
+        
+        input.value = '';
+        // Yorum listesini güncelle
+        renderAnnouncementComments(announcementId, [...comments, newComment]);
+        
+        // Yorum sayacını güncelle
+        const announcementCard = document.querySelector(`[data-announcement-id="${announcementId}"]`);
+        if (announcementCard) {
+            const commentBtn = announcementCard.querySelector('button:nth-of-type(2) span');
+            if (commentBtn) {
+                commentBtn.textContent = parseInt(commentBtn.textContent || 0) + 1;
+            }
+        }
+    } catch (e) {
+        console.error('Duyuru yorum hatası:', e);
+    }
+};
+
+window.renderAnnouncementComments = (announcementId, comments) => {
+    const listDiv = document.getElementById(`list-ann-${announcementId}`);
+    if (!listDiv) return;
+    
+    listDiv.innerHTML = comments.map((c, idx) => `
+        <div class="comment-item" style="margin-bottom:12px;">
+            <div style="display:flex; gap:10px;">
+                <img src="${c.avatarUrl || 'assets/img/strendsaydamv2.png'}" style="width:32px; height:32px; border-radius:50%;">
+                <div style="flex:1;">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <div style="font-weight:700; font-size:0.85rem;">${c.displayName} <span style="color:var(--text-muted);">@${c.username}</span></div>
+                        ${(window.user && window.user.isAdmin) ? `<button onclick="deleteAnnouncementComment('${announcementId}', ${idx})" style="background:none; border:none; color:#ef4444; cursor:pointer; padding:0; font-size:0.75rem;"><i class="fa-solid fa-trash"></i></button>` : ''}
+                    </div>
+                    <p style="margin:4px 0; font-size:0.9rem; color:var(--text-main);">${c.text}</p>
+                    <div style="font-size:0.75rem; color:var(--text-muted);">${new Date(c.time).toLocaleString('tr-TR')}</div>
+                </div>
+            </div>
+        </div>
+    `).join('');
+};
+
+// Duyuru kaydet
+window.bookmarkAnnouncement = async (announcementId, isCurrentlySaved) => {
+    if (!auth.currentUser) {
+        alert('Kaydetmek için giriş yapmalısınız');
+        return;
+    }
+    
+    try {
+        const ref = doc(db, "announcements", announcementId);
+        const snap = await getDoc(ref);
+        if (!snap.exists()) return;
+        
+        const data = snap.data();
+        const saved = data.savedBy || [];
+        const username = user.username || auth.currentUser.email;
+        
+        if (isCurrentlySaved) {
+            await updateDoc(ref, { savedBy: saved.filter(u => u !== username) });
+        } else {
+            await updateDoc(ref, { savedBy: [...saved, username] });
+        }
+    } catch (e) {
+        console.error('Duyuru kaydet hatası:', e);
+    }
+};
+
+// Duyuru sil
+window.deleteAnnouncement = async (announcementId) => {
+    if (!auth.currentUser || !user.isAdmin) {
+        alert('Sadece yöneticiler duyuru silebilir');
+        return;
+    }
+    
+    if (!confirm('Bu duyuruyu silmek istediğinizden emin misiniz?')) {
+        return;
+    }
+    
+    try {
+        await deleteDoc(doc(db, "announcements", announcementId));
+        showToast('Duyuru başarıyla silindi', 'success');
+    } catch (e) {
+        console.error('Duyuru silme hatası:', e);
+        showToast('Duyuru silinirken hata oluştu', 'error');
+    }
+};
+
+// Duyuru düzenle
+window.editAnnouncement = async (announcementId) => {
+    if (!auth.currentUser || !user.isAdmin) {
+        alert('Sadece yöneticiler duyuru düzenleyebilir');
+        return;
+    }
+    
+    try {
+        const ref = doc(db, "announcements", announcementId);
+        const snap = await getDoc(ref);
+        if (!snap.exists()) return;
+        
+        const data = snap.data();
+        const newContent = prompt('Duyuruyu düzenle:', data.content || '');
+        
+        if (newContent === null) return; // Kullanıcı cancel etti
+        if (!newContent.trim()) {
+            alert('Duyuru boş olamaz');
+            return;
+        }
+        
+        await updateDoc(ref, {
+            content: newContent.trim(),
+            updatedAt: serverTimestamp()
+        });
+        
+        showToast('Duyuru başarıyla güncellendi', 'success');
+    } catch (e) {
+        console.error('Duyuru düzenleme hatası:', e);
+        showToast('Duyuru düzenlenirken hata oluştu', 'error');
+    }
+};
+
+// Yorum sil
+window.deleteAnnouncementComment = async (announcementId, commentIndex) => {
+    if (!auth.currentUser || !user.isAdmin) {
+        alert('Sadece yöneticiler yorum silebilir');
+        return;
+    }
+    
+    if (!confirm('Bu yorumu silmek istediğinizden emin misiniz?')) {
+        return;
+    }
+    
+    try {
+        const ref = doc(db, "announcements", announcementId);
+        const snap = await getDoc(ref);
+        if (!snap.exists()) return;
+        
+        const data = snap.data();
+        const comments = data.comments || [];
+        
+        // Verilen indeks için yorumu sil
+        comments.splice(commentIndex, 1);
+        
+        await updateDoc(ref, { comments: comments });
+        
+        // Yorumları yeniden render et
+        renderAnnouncementComments(announcementId, comments);
+        showToast('Yorum başarıyla silindi', 'success');
+    } catch (e) {
+        console.error('Yorum silme hatası:', e);
+        showToast('Yorum silinirken hata oluştu', 'error');
+    }
+};
+
+// Feed real-time güncellemesi - duyuruları dinle
+window.listenForAnnouncementChanges = () => {
+    try {
+        const feed = document.getElementById('feed-items');
+        if (!feed) return;
+        
+        // User ready değilse, hata olmasın
+        const currentUsername = (window.user && window.user.username) || (auth.currentUser && auth.currentUser.email.split('@')[0]) || null;
+        
+        onSnapshot(
+            query(collection(db, "announcements"), orderBy("timestamp", "desc")),
+            (snap) => {
+                // Eski duyru kartlarını kaldır
+                feed.querySelectorAll('[data-announcement-id]').forEach(card => card.remove());
+                
+                // Yeni duyuruları ekle
+                const announcementElements = [];
+                
+                snap.forEach(doc => {
+                    const data = doc.data();
+                    const content = (data.content || '').trim();
+                    if (!content) return;
+                    
+                    const announcementId = doc.id;
+                    const createdAt = data.timestamp ? data.timestamp.toDate().toLocaleString('tr-TR') : 'Bilinmiyor';
+                    const isLiked = currentUsername && data.likes ? data.likes.includes(currentUsername) : false;
+                    const isSaved = currentUsername && data.savedBy ? data.savedBy.includes(currentUsername) : false;
+                    const likeCount = data.likes ? data.likes.length : 0;
+                    const commentCount = data.comments ? data.comments.length : 0;
+                    
+                    const card = document.createElement('div');
+                    card.className = 'glass-card post';
+                    card.setAttribute('data-announcement-id', announcementId);
+                    card.style.cssText = `
+                        border: 2px solid var(--primary);
+                        background: rgba(99, 102, 241, 0.08);
+                        position: relative;
+                        animation: slideIn 0.3s ease-out;
+                    `;
+                    
+                    card.innerHTML = `
+                        <div style="display:flex; gap:10px; margin-bottom:10px;">
+                            <img src="assets/img/strendsaydamv2.png" class="user-avatar" style="width:40px; height:40px; border-radius:50%; cursor:pointer;" onclick="location.href='profil.html?id=official_system'">
+                            <div>
+                                <div style="font-weight:700; display:flex; align-items:center; gap:5px; cursor:pointer;" onclick="location.href='profil.html?id=official_system'">
+                                    SosyaLTrend <i class="fa-solid fa-circle-check" style="color:var(--primary); font-size:0.7rem;"></i>
+                                    <span class="post-time">• ${createdAt}</span>
+                                </div>
+                                <div style="font-size:0.75rem; color:var(--text-muted); cursor:pointer;" onclick="location.href='profil.html?id=official_system'">@official_system</div>
+                            </div>
+                        </div>
+                        
+                        <div class="post-content-block" style="margin-bottom:12px;">
+                            <p style="white-space: pre-wrap; margin:0; color: var(--text-main); font-size: 0.95rem; line-height: 1.5;">${content}</p>
+                        </div>
+
+                        <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:10px; min-height:28px;">
+                            <div id="likers-ann-${announcementId}" style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;"></div>
+                        </div>
+
+                        <div style="display:flex; gap:12px;">
+                            <button class="tool-btn" onclick="likeAnnouncement('${announcementId}', ${isLiked}, this)" style="gap:5px; color:${isLiked ? '#ef4444' : ''}"><i class="${isLiked ? 'fa-solid' : 'fa-regular'} fa-heart"></i><span>${likeCount}</span></button>
+                            <button class="tool-btn" onclick="toggleAnnouncementComments('${announcementId}')" style="gap:5px;"><i class="fa-regular fa-comment"></i><span>${commentCount}</span></button>
+                            <button class="tool-btn" onclick="bookmarkAnnouncement('${announcementId}', ${isSaved})" style="color:${isSaved ? '#f59e0b' : ''}"><i class="${isSaved ? 'fa-solid' : 'fa-regular'} fa-bookmark"></i></button>
+                            <button class="tool-btn" onclick="window.openShareMenu('${announcementId}')" style="gap:5px; margin-left:auto;"><i class="fa-solid fa-share"></i></button>
+                            ${(window.user && window.user.isAdmin) ? `
+                            <button class="tool-btn" onclick="editAnnouncement('${announcementId}')" style="gap:5px; color:#3b82f6;" title="Düzenle"><i class="fa-solid fa-pen"></i></button>
+                            <button class="tool-btn" onclick="deleteAnnouncement('${announcementId}')" style="gap:5px; color:#ef4444;" title="Sil"><i class="fa-solid fa-trash"></i></button>
+                            ` : ''}
+                        </div>
+                        
+                        <div id="comments-ann-${announcementId}" class="comment-area" style="display:none;">
+                            <div class="comment-input-area" style="display:flex; gap:10px; margin-bottom:12px;">
+                                <img src="${(window.user && window.user.avatarUrl) || 'assets/img/strendsaydamv2.png'}" style="width:32px; height:32px; border-radius:50%;">
+                                <div style="flex:1; display:flex; gap:8px;">
+                                    <input id="input-ann-${announcementId}" type="text" placeholder="Yorum yaz..." style="flex:1; border:1px solid var(--border); border-radius:20px; padding:8px 16px; background:var(--input-bg); color:var(--text-main); outline:none;">
+                                    <button onclick="postAnnouncementComment('${announcementId}')" style="background:var(--primary); color:white; border:none; border-radius:20px; padding:8px 16px; cursor:pointer; font-weight:700;">Gönder</button>
+                                </div>
+                            </div>
+                            <div id="list-ann-${announcementId}"></div>
+                        </div>
+                    `;
+                    
+                    announcementElements.push({ card, data, id: announcementId });
+                });
+                
+                // Duyuruları feed'in en başına ekle
+                announcementElements.forEach(item => {
+                    feed.insertBefore(item.card, feed.firstChild);
+                });
+
+                // Her duyuru için yorumları render et
+                snap.forEach(doc => {
+                    const data = doc.data();
+                    if (data.comments && data.comments.length > 0) {
+                        renderAnnouncementComments(doc.id, data.comments);
+                    }
+                });
+            },
+            (error) => {
+                console.error('Feed duyuru dinleme hatası:', error);
+            }
+        );
+    } catch (e) {
+        console.error('Feed duyuru dinleme başlatma hatası:', e);
+    }
+};
+
 // Cache author avatars to avoid fetching multiple times
 const blogAuthorAvatarCache = {};
 
@@ -4129,7 +4564,13 @@ window.loadPostsFeed = (showAll = false) => {
           }
       } else {
           if(feed) {
+              // Duyuruları koru
+              const announcements = Array.from(feed.querySelectorAll('[data-announcement-id]'));
               feed.innerHTML = feedHtml;
+              // Duyuruları geri ekle (en başa)
+              announcements.reverse().forEach(card => {
+                  feed.insertBefore(card, feed.firstChild);
+              });
           }
       }
 
