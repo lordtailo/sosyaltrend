@@ -1563,13 +1563,22 @@ header {
 
 .nav-dot-badge {
     position: absolute;
-    top: 6px;
-    right: -4px;
-    background: #ef4444;
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
+    top: -6px;
+    right: -6px;
+    background: var(--danger);
+    color: white;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    padding: 2px 6px;
+    border-radius: 999px;
     border: 2px solid var(--card-bg);
+    font-size: 0.68rem;
+    font-weight: 700;
+    line-height: 1;
+    white-space: nowrap;
 }
 
 @media (max-width: 768px) {
@@ -2951,6 +2960,19 @@ table td, table th {
 /* Profil sekmeleri için dar ekranlarda düzgün sarma */
 .profile-tabs { display: flex; flex-wrap: wrap; }
 .profile-tabs .tab-btn { white-space: nowrap; }
+
+/* Profil aksiyon butonlarını dikey düzenle */
+.profile-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    align-items: flex-start;
+}
+
+.profile-actions button {
+    width: 100%;
+    max-width: 200px;
+}
 
 .main-content {
     font-size: 17px;

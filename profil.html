@@ -144,6 +144,58 @@
     .profile-action-btn.primary { background: var(--primary); color: #fff; }
     .profile-action-btn.secondary { background: rgba(var(--primary-rgb,99,102,241),0.1); color: var(--text-main); }
     .profile-action-btn:hover { transform: translateY(-1px); }
+    .card-edit-btn {
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      font-size: 1rem;
+      width: 42px;
+      height: 42px;
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background 0.2s ease, color 0.2s ease;
+    }
+    .card-edit-btn:hover {
+      background: rgba(var(--primary-rgb,99,102,241),0.12);
+      color: var(--primary);
+    }
+    .inline-edit-panel {
+      margin-top: 18px;
+      padding: 18px;
+      border-radius: 18px;
+      border: 1px solid rgba(99,102,241,0.12);
+      background: rgba(248,250,255,0.95);
+      display: grid;
+      gap: 14px;
+    }
+    .inline-edit-row {
+      display: grid;
+      gap: 8px;
+    }
+    .inline-edit-row label {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      font-weight: 700;
+    }
+    .inline-edit-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+    .save-btn,
+    .cancel-btn {
+      border: none;
+      border-radius: 999px;
+      padding: 12px 18px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .save-btn { background: var(--primary); color: #fff; }
+    .cancel-btn { background: rgba(0,0,0,0.06); color: var(--text-main); }
     .profile-meta { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 10px; }
     .profile-meta-item { display: inline-flex; align-items: center; gap: 8px; color: var(--text-muted); font-size: 0.95rem; }
     .profile-keymetrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-top: 22px; }
@@ -295,9 +347,11 @@
           <div class="profile-actions">
             <button id="editProfileBtn" onclick="toggleEditProfile()" class="profile-action-btn secondary"><i class="fa-solid fa-pen-to-square"></i> Profili Düzenle</button>
             <button id="profileActionBtn" onclick="handleProfileAction()" class="profile-action-btn primary"><i class="fa-solid fa-envelope"></i> Sohbet Et</button>
+            <button id="addFriendBtn" type="button" class="profile-action-btn secondary" style="display:none;"><i class="fa-solid fa-user-plus"></i> Arkadaş Ol</button>
           </div>
           <div class="profile-meta">
-            <span class="profile-meta-item"><i class="fa-solid fa-users"></i> <strong id="profileFriendCount">0</strong> Arkadaş</span>
+            <span class="profile-meta-item"><i class="fa-solid fa-user-friends"></i> <strong id="profileFriendCount">0</strong> Arkadaş</span>
+            <span class="profile-meta-item" id="profileMutualFriends"><i class="fa-solid fa-hands-helping"></i> <strong id="mutualFriendsCount">0</strong> Ortak Arkadaş</span>
           </div>
         </div>
       </div>
@@ -375,23 +429,39 @@
               <h2 class="card-title">Kişisel Bilgilerim</h2>
               <p class="card-subtitle">Profilinizdeki temel bilgiler.</p>
             </div>
-            <button type="button" class="badge-pill-button" onclick="toggleEditProfile()">Düzenle</button>
+            <button type="button" class="card-edit-btn" onclick="openCardEditSection('personal')" aria-label="Kişisel bilgileri düzenle"><i class="fa-solid fa-pen"></i></button>
           </div>
           <div class="card-body">
-            <ul class="info-list">
-              <li class="info-item"><span><i class="fa-solid fa-location-dot"></i> Konum</span><strong id="profileLocation">—</strong></li>
-              <li class="info-item"><span><i class="fa-solid fa-home"></i> Memleket</span><strong id="profileHometown">—</strong></li>
-              <li class="info-item"><span><i class="fa-solid fa-cake-candles"></i> Doğum Tarihi</span><strong id="profileDob">—</strong></li>
-              <li class="info-item"><span><i class="fa-solid fa-briefcase"></i> Meslek</span><strong id="profileOccupation">—</strong></li>
-              <li class="info-item info-item--social-links">
-                <div class="social-links">
-                  <a id="profileWebsite" class="social-link disabled" aria-label="Web Sitesi" tabindex="-1"><i class="fa-solid fa-earth-americas"></i></a>
-                  <a id="profileFacebook" class="social-link disabled" aria-label="Facebook" tabindex="-1"><i class="fa-brands fa-facebook-f"></i></a>
-                  <a id="profileTwitter" class="social-link disabled" aria-label="Twitter" tabindex="-1"><i class="fa-brands fa-twitter"></i></a>
-                  <a id="profileYoutube" class="social-link disabled" aria-label="YouTube" tabindex="-1"><i class="fa-brands fa-youtube"></i></a>
-                </div>
-              </li>
-            </ul>
+            <div class="card-display-view">
+              <ul class="info-list">
+                <li class="info-item"><span><i class="fa-solid fa-location-dot"></i> Konum</span><strong id="profileLocation">—</strong></li>
+                <li class="info-item"><span><i class="fa-solid fa-home"></i> Memleket</span><strong id="profileHometown">—</strong></li>
+                <li class="info-item"><span><i class="fa-solid fa-cake-candles"></i> Doğum Tarihi</span><strong id="profileDob">—</strong></li>
+                <li class="info-item"><span><i class="fa-solid fa-briefcase"></i> Meslek</span><strong id="profileOccupation">—</strong></li>
+                <li class="info-item info-item--social-links">
+                  <div class="social-links">
+                    <a id="profileWebsite" class="social-link disabled" aria-label="Web Sitesi" tabindex="-1"><i class="fa-solid fa-earth-americas"></i></a>
+                    <a id="profileFacebook" class="social-link disabled" aria-label="Facebook" tabindex="-1"><i class="fa-brands fa-facebook-f"></i></a>
+                    <a id="profileTwitter" class="social-link disabled" aria-label="Twitter" tabindex="-1"><i class="fa-brands fa-twitter"></i></a>
+                    <a id="profileYoutube" class="social-link disabled" aria-label="YouTube" tabindex="-1"><i class="fa-brands fa-youtube"></i></a>
+                  </div>
+                </li>
+              </ul>
+            </div>
+            <div id="personalInfoEditPanel" class="inline-edit-panel" style="display:none;">
+              <div class="inline-edit-row"><label for="editLocationInput">Konum</label><input id="editLocationInput" class="form-input" type="text" placeholder="Örn. İstanbul"></div>
+              <div class="inline-edit-row"><label for="editHometownInput">Memleket</label><input id="editHometownInput" class="form-input" type="text" placeholder="Örn. Ankara"></div>
+              <div class="inline-edit-row"><label for="editDobInput">Doğum Tarihi</label><input id="editDobInput" class="form-input" type="date"></div>
+              <div class="inline-edit-row"><label for="editOccupationInput">Meslek</label><input id="editOccupationInput" class="form-input" type="text" placeholder="Örn. Yazılım Geliştirici"></div>
+              <div class="inline-edit-row"><label for="editWebsiteInput">Web Sitesi</label><input id="editWebsiteInput" class="form-input" type="url" placeholder="https://..."></div>
+              <div class="inline-edit-row"><label for="editFacebookInput">Facebook</label><input id="editFacebookInput" class="form-input" type="url" placeholder="https://www.facebook.com/..."></div>
+              <div class="inline-edit-row"><label for="editTwitterInput">Twitter</label><input id="editTwitterInput" class="form-input" type="url" placeholder="https://twitter.com/..."></div>
+              <div class="inline-edit-row"><label for="editYoutubeInput">YouTube</label><input id="editYoutubeInput" class="form-input" type="url" placeholder="https://www.youtube.com/..."></div>
+              <div class="inline-edit-actions">
+                <button type="button" class="save-btn" onclick="saveCardEditChanges('personal')"><i class="fa-solid fa-floppy-disk"></i> Kaydet</button>
+                <button type="button" class="cancel-btn" onclick="closeCardEditSection('personal')">İptal</button>
+              </div>
+            </div>
           </div>
         </article>
 
@@ -402,9 +472,19 @@
                 <h2 class="card-title">Biyografi</h2>
                 <p class="card-subtitle">Kısa özgeçmişiniz ve kendinizi tanımlamanız.</p>
               </div>
+              <button type="button" class="card-edit-btn" onclick="openCardEditSection('bio')" aria-label="Biyografiyi düzenle"><i class="fa-solid fa-pen"></i></button>
             </div>
             <div class="card-body">
-              <p id="profileBio" class="bio-text">—</p>
+              <div class="card-display-view">
+                <p id="profileBio" class="bio-text">—</p>
+              </div>
+              <div id="bioEditPanel" class="inline-edit-panel" style="display:none;">
+                <div class="inline-edit-row"><label for="editBioInput">Biyografi</label><textarea id="editBioInput" class="form-input" rows="4" placeholder="Kısa biyografiniz..."></textarea></div>
+                <div class="inline-edit-actions">
+                  <button type="button" class="save-btn" onclick="saveCardEditChanges('bio')"><i class="fa-solid fa-floppy-disk"></i> Kaydet</button>
+                  <button type="button" class="cancel-btn" onclick="closeCardEditSection('bio')">İptal</button>
+                </div>
+              </div>
             </div>
           </article>
 
@@ -414,9 +494,19 @@
                 <h2 class="card-title">İlgi Alanları</h2>
                 <p class="card-subtitle">Sizinle ilgili konu ve hobiler.</p>
               </div>
+              <button type="button" class="card-edit-btn" onclick="openCardEditSection('interests')" aria-label="İlgi alanlarını düzenle"><i class="fa-solid fa-pen"></i></button>
             </div>
             <div class="card-body">
-              <p id="profileInterests" class="bio-text">—</p>
+              <div class="card-display-view">
+                <p id="profileInterests" class="bio-text">—</p>
+              </div>
+              <div id="interestsEditPanel" class="inline-edit-panel" style="display:none;">
+                <div class="inline-edit-row"><label for="editInterestsInput">İlgi Alanları</label><input id="editInterestsInput" class="form-input" type="text" placeholder="Virgülle ayrılmış kelimeler"></div>
+                <div class="inline-edit-actions">
+                  <button type="button" class="save-btn" onclick="saveCardEditChanges('interests')"><i class="fa-solid fa-floppy-disk"></i> Kaydet</button>
+                  <button type="button" class="cancel-btn" onclick="closeCardEditSection('interests')">İptal</button>
+                </div>
+              </div>
             </div>
           </article>
         </div>
@@ -436,6 +526,7 @@
           <section id="my-posts-tab" class="tab-content active content-card">
             <h3>Gönderiler</h3>
             <p>Profilinizde paylaşılan gönderiler burada görünecek.</p>
+            <div style="margin-bottom:20px;"></div>
             <div id="my-posts-list"></div>
             <div id="no-posts-msg" style="display:none; text-align:center; color:var(--text-muted); padding:30px 0;">
               <i class="fa-solid fa-clone" style="font-size:2.4rem; margin-bottom:12px; display:block;"></i>
@@ -584,64 +675,220 @@ window.addEventListener('hashchange', function() {
   openProfileTabByHash(hash);
 });
 
-// Basit bölüm düzenleyici: prompt ile alanları günceller
+// Basit bölüm düzenleyici: düzenleme panelini açıp ilgili alana odaklanır
 function openEditSection(section) {
-  function setBoth(id, text) {
-    const el = document.getElementById(id);
-    if (el) el.innerText = text;
-    const wEl = document.getElementById('widget-' + id);
-    if (wEl) wEl.innerText = text;
-  }
   try {
-    if (section === 'personal') {
-      const locEl = document.getElementById('pd-location') || document.getElementById('widget-pd-location');
-      const homeEl = document.getElementById('pd-hometown') || document.getElementById('widget-pd-hometown');
-      const dobEl = document.getElementById('pd-dob') || document.getElementById('widget-pd-dob');
-      const loc = locEl ? locEl.innerText.replace(/^Konum:\s*/,'') : '';
-      const newLoc = prompt('Konum', loc === '—' ? '' : loc);
-      if (newLoc !== null) setBoth('pd-location', 'Konum: ' + (newLoc || '—'));
-      const home = homeEl ? homeEl.innerText.replace(/^Memleketi:\s*/,'') : '';
-      const newHome = prompt('Memleketi', home === '—' ? '' : home);
-      if (newHome !== null) setBoth('pd-hometown', 'Memleketi: ' + (newHome || '—'));
-      const dob = dobEl ? dobEl.innerText.replace(/^Doğum Tarihi:\s*/,'') : '';
-      const newDob = prompt('Doğum Tarihi', dob === '—' ? '' : dob);
-      if (newDob !== null) setBoth('pd-dob', 'Doğum Tarihi: ' + (newDob || '—'));
+    const visitedUsername = new URLSearchParams(window.location.search).get('id');
+    if (visitedUsername && window.user && visitedUsername !== window.user.username) {
+      alert('Bu profili düzenleyemezsiniz.');
       return;
     }
-    if (section === 'education') {
-      const pEl = document.getElementById('edu-primary') || document.getElementById('widget-edu-primary');
-      const hEl = document.getElementById('edu-high') || document.getElementById('widget-edu-high');
-      const uEl = document.getElementById('edu-uni') || document.getElementById('widget-edu-uni');
-      const pVal = pEl ? pEl.innerText.replace(/^İlk Okul:\s*/,'') : '';
-      const newP = prompt('İlk Okul', pVal === '—' ? '' : pVal);
-      if (newP !== null) setBoth('edu-primary', 'İlk Okul: ' + (newP || '—'));
-      const hVal = hEl ? hEl.innerText.replace(/^Lise \(meslek-düz\):\s*/,'') : '';
-      const newH = prompt('Lise (meslek-düz)', hVal === '—' ? '' : hVal);
-      if (newH !== null) setBoth('edu-high', 'Lise (meslek-düz): ' + (newH || '—'));
-      const uVal = uEl ? uEl.innerText.replace(/^Üniversite \(bölüm\):\s*/,'') : '';
-      const newU = prompt('Üniversite (bölüm)', uVal === '—' ? '' : uVal);
-      if (newU !== null) setBoth('edu-uni', 'Üniversite (bölüm): ' + (newU || '—'));
+
+    const form = document.getElementById('editProfileSection');
+    if (!form) {
+      console.warn('editProfileSection bulunamadı.');
       return;
     }
-    if (section === 'contact') {
-      const wEl = document.getElementById('contact-whatsapp') || document.getElementById('widget-contact-whatsapp');
-      const igEl = document.getElementById('contact-instagram') || document.getElementById('widget-contact-instagram');
-      const emEl = document.getElementById('contact-email-phone') || document.getElementById('widget-contact-email-phone');
-      const wVal = wEl ? wEl.innerText.replace(/^WhatsApp:\s*/,'') : '';
-      const newW = prompt('WhatsApp', wVal === '—' ? '' : wVal);
-      if (newW !== null) setBoth('contact-whatsapp', 'WhatsApp: ' + (newW || '—'));
-      const igVal = igEl ? igEl.innerText.replace(/^Instagram:\s*/,'') : '';
-      const newIg = prompt('Instagram', igVal === '—' ? '' : igVal);
-      if (newIg !== null) setBoth('contact-instagram', 'Instagram: ' + (newIg || '—'));
-      const emVal = emEl ? emEl.innerText.replace(/^E-posta \/ Telefon:\s*/,'') : '';
-      const newEm = prompt('E-posta / Telefon', emVal === '—' ? '' : emVal);
-      if (newEm !== null) setBoth('contact-email-phone', 'E-posta / Telefon: ' + (newEm || '—'));
-      return;
+
+    form.classList.add('active');
+
+    const nameInput = document.getElementById('newNameInput');
+    if (nameInput) nameInput.value = user.displayName || "";
+
+    const urlInput = document.getElementById('newAvatarUrlInput');
+    if (urlInput && user.avatarUrl && user.avatarUrl.startsWith('http')) {
+      urlInput.value = user.avatarUrl;
+    }
+
+    const locationInput = document.getElementById('newLocationInput');
+    if (locationInput) locationInput.value = user.location || "";
+    const hometownInput = document.getElementById('newHometownInput');
+    if (hometownInput) hometownInput.value = user.hometown || "";
+    const dobInput = document.getElementById('newDobInput');
+    if (dobInput) dobInput.value = user.dob || "";
+    const occupationInput = document.getElementById('newOccupationInput');
+    if (occupationInput) occupationInput.value = user.occupation || "";
+    const websiteInput = document.getElementById('newWebsiteInput');
+    if (websiteInput) websiteInput.value = user.website || "";
+    const facebookInput = document.getElementById('newFacebookInput');
+    if (facebookInput) facebookInput.value = user.facebook || "";
+    const twitterInput = document.getElementById('newTwitterInput');
+    if (twitterInput) twitterInput.value = user.twitter || "";
+    const youtubeInput = document.getElementById('newYoutubeInput');
+    if (youtubeInput) youtubeInput.value = user.youtube || "";
+    const bioInput = document.getElementById('newBioInput');
+    if (bioInput) bioInput.value = user.bio || "";
+    const interestsInput = document.getElementById('newInterestsInput');
+    if (interestsInput) interestsInput.value = user.interests || "";
+
+    let focusId = 'newNameInput';
+    if (section === 'bio') focusId = 'newBioInput';
+    else if (section === 'interests') focusId = 'newInterestsInput';
+    else if (section === 'personal') focusId = 'newLocationInput';
+
+    const focusField = document.getElementById(focusId);
+    if (focusField) {
+      focusField.focus();
+      focusField.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
   } catch (e) {
     console.error('openEditSection hata:', e);
   }
 }
+
+    function openCardEditSection(section) {
+      const visitedUsername = new URLSearchParams(window.location.search).get('id');
+      if (visitedUsername && window.user && visitedUsername !== window.user.username) {
+        alert('Bu profili düzenleyemezsiniz.');
+        return;
+      }
+
+      const cardMap = {
+        personal: 'personalInfoEditPanel',
+        bio: 'bioEditPanel',
+        interests: 'interestsEditPanel'
+      };
+      const displayMap = {
+        personal: 'profilePersonalInfoCard',
+        bio: 'profileBioCard',
+        interests: 'profileInterestsCard'
+      };
+      const editPanelId = cardMap[section];
+      const cardId = displayMap[section];
+      if (!editPanelId || !cardId) return;
+
+      const editPanel = document.getElementById(editPanelId);
+      const card = document.getElementById(cardId);
+      if (!editPanel || !card) return;
+
+      document.querySelectorAll('.inline-edit-panel').forEach(panel => panel.style.display = 'none');
+      editPanel.style.display = 'grid';
+
+      document.querySelectorAll('.card-display-view').forEach(view => view.style.display = 'block');
+      const displayView = card.querySelector('.card-display-view');
+      if (displayView) displayView.style.display = 'none';
+
+      // mevcut değerleri doldur
+      if (section === 'personal') {
+        document.getElementById('editLocationInput').value = user.location || '';
+        document.getElementById('editHometownInput').value = user.hometown || '';
+        document.getElementById('editDobInput').value = user.dob || '';
+        document.getElementById('editOccupationInput').value = user.occupation || '';
+        document.getElementById('editWebsiteInput').value = user.website || '';
+        document.getElementById('editFacebookInput').value = user.facebook || '';
+        document.getElementById('editTwitterInput').value = user.twitter || '';
+        document.getElementById('editYoutubeInput').value = user.youtube || '';
+        document.getElementById('editLocationInput').focus();
+      } else if (section === 'bio') {
+        document.getElementById('editBioInput').value = user.bio || '';
+        document.getElementById('editBioInput').focus();
+      } else if (section === 'interests') {
+        document.getElementById('editInterestsInput').value = user.interests || '';
+        document.getElementById('editInterestsInput').focus();
+      }
+    }
+
+    function closeCardEditSection(section) {
+      const panelMap = {
+        personal: 'personalInfoEditPanel',
+        bio: 'bioEditPanel',
+        interests: 'interestsEditPanel'
+      };
+      const cardMap = {
+        personal: 'profilePersonalInfoCard',
+        bio: 'profileBioCard',
+        interests: 'profileInterestsCard'
+      };
+      const editPanel = document.getElementById(panelMap[section]);
+      const card = document.getElementById(cardMap[section]);
+      if (editPanel) editPanel.style.display = 'none';
+      if (card) {
+        const displayView = card.querySelector('.card-display-view');
+        if (displayView) displayView.style.display = 'block';
+      }
+    }
+
+    async function saveCardEditChanges(section) {
+      const visitedUsername = new URLSearchParams(window.location.search).get('id');
+      if (visitedUsername && window.user && visitedUsername !== window.user.username) {
+        alert('Bu profili düzenleyemezsiniz.');
+        return;
+      }
+
+      const updates = {};
+      if (section === 'personal') {
+        updates.location = document.getElementById('editLocationInput')?.value.trim() || null;
+        updates.hometown = document.getElementById('editHometownInput')?.value.trim() || null;
+        updates.dob = document.getElementById('editDobInput')?.value || null;
+        updates.occupation = document.getElementById('editOccupationInput')?.value.trim() || null;
+        updates.website = document.getElementById('editWebsiteInput')?.value.trim() || null;
+        updates.facebook = document.getElementById('editFacebookInput')?.value.trim() || null;
+        updates.twitter = document.getElementById('editTwitterInput')?.value.trim() || null;
+        updates.youtube = document.getElementById('editYoutubeInput')?.value.trim() || null;
+      } else if (section === 'bio') {
+        updates.bio = document.getElementById('editBioInput')?.value.trim() || null;
+      } else if (section === 'interests') {
+        updates.interests = document.getElementById('editInterestsInput')?.value.trim() || null;
+      }
+
+      if (!auth.currentUser) {
+        alert('Lütfen giriş yapın.');
+        return;
+      }
+
+      const userRef = doc(db, 'users', auth.currentUser.uid);
+      try {
+        await updateDoc(userRef, updates);
+        Object.assign(user, updates);
+        if (typeof updateUIWithUser === 'function') updateUIWithUser();
+        if (typeof renderProfileHeader === 'function') renderProfileHeader(user, true);
+        if (section === 'personal') {
+          document.getElementById('profileLocation').innerText = updates.location || '—';
+          document.getElementById('profileHometown').innerText = updates.hometown || '—';
+          document.getElementById('profileDob').innerText = updates.dob || '—';
+          document.getElementById('profileOccupation').innerText = updates.occupation || '—';
+          updateSocialLink('profileWebsite', updates.website);
+          updateSocialLink('profileFacebook', updates.facebook);
+          updateSocialLink('profileTwitter', updates.twitter);
+          updateSocialLink('profileYoutube', updates.youtube);
+        } else if (section === 'bio') {
+          document.getElementById('profileBio').innerText = updates.bio || '—';
+        } else if (section === 'interests') {
+          document.getElementById('profileInterests').innerText = updates.interests || '—';
+        }
+        closeCardEditSection(section);
+        alert('Profiliniz kaydedildi.');
+      } catch (err) {
+        console.error('Kart düzenleme kaydetme hatası:', err);
+        alert('Kaydedilemedi. Lütfen tekrar deneyin.');
+      }
+    }
+
+    function updateSocialLink(elementId, value) {
+      const el = document.getElementById(elementId);
+      if (!el) return;
+      if (value) {
+        el.href = escapeHtml(value);
+        el.target = '_blank';
+        el.rel = 'noopener noreferrer';
+        el.classList.remove('disabled');
+        el.removeAttribute('tabindex');
+        el.removeAttribute('aria-disabled');
+      } else {
+        el.removeAttribute('href');
+        el.removeAttribute('target');
+        el.removeAttribute('rel');
+        el.classList.add('disabled');
+        el.setAttribute('tabindex', '-1');
+        el.setAttribute('aria-disabled', 'true');
+      }
+    }
+
+    function escapeHtml(str) {
+      const div = document.createElement('div');
+      div.innerText = str;
+      return div.innerHTML;
+    }
 
     function openTab(evt, tabName) {
     var i, tabcontent, tablinks;
@@ -728,12 +975,11 @@ function openEditSection(section) {
                 const btnEl = document.getElementById('friends-tab-btn');
                 if (isOwnProfile) {
                     if (titleEl) titleEl.innerText = 'Arkadaşlarım';
-                    if (btnEl) btnEl.innerHTML = '<i class="fa-solid fa-users"></i> Arkadaşlar';
+                    if (btnEl) btnEl.innerHTML = '<i class="fa-solid fa-user-friends"></i> Arkadaşlar';
                 } else {
                     if (titleEl) titleEl.innerText = 'Ortak Arkadaşlar';
-                    if (btnEl) btnEl.innerHTML = '<i class="fa-solid fa-handshake"></i> Ortak Arkadaşlar';
+                    if (btnEl) btnEl.innerHTML = '<i class="fa-solid fa-handshake-simple"></i> Ortak Arkadaşlar';
                 }
-                
                 setTimeout(() => {
                     const searchInput = document.getElementById('friendSearch');
                     if (searchInput) searchInput.value = '';

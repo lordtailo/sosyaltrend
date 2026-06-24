@@ -1629,6 +1629,32 @@ function waitForElement(selector, timeout = 5000, interval = 200) {
     });
 }
 
+function parseDateValue(value) {
+    if (!value) return null;
+    if (typeof value === 'object' && typeof value.toDate === 'function') {
+        const parsed = value.toDate();
+        return parsed instanceof Date && !Number.isNaN(parsed.getTime()) ? parsed : null;
+    }
+    if (typeof value === 'object' && value.seconds != null) {
+        const seconds = Number(value.seconds);
+        if (!Number.isNaN(seconds)) {
+            return new Date(seconds * 1000);
+        }
+    }
+    const parsed = new Date(value);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function formatJoinDate(value) {
+    const date = parseDateValue(value);
+    if (!date) return '—';
+    return date.toLocaleDateString('tr-TR', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+    });
+}
+
 const ADMIN_EMAIL = "officialfthuzun@gmail.com";
 
 // Avatar sistemini otomatik olarak strendsaydamv2'ye initialize et
@@ -1757,6 +1783,8 @@ onAuthStateChanged(auth, async (fbUser) => {
                     user.createdAt = data.createdAt;
                 } else if (userDoc.createTime) {
                     user.createdAt = userDoc.createTime;
+                } else if (fbUser.metadata && fbUser.metadata.creationTime) {
+                    user.createdAt = new Date(fbUser.metadata.creationTime);
                 } else {
                     // if existing doc somehow lacks timestamp, write one
                     await setDoc(userRef, { createdAt: serverTimestamp() }, { merge: true });
@@ -1812,7 +1840,16 @@ onAuthStateChanged(auth, async (fbUser) => {
         try { loadPostsFeed(); } catch(e) { console.warn('loadPostsFeed retry failed', e); }
         // also populate profile sections if on profile page
         if (typeof window.loadProfileSections === 'function') {
-            try { window.loadProfileSections('all'); } catch(e) { console.warn('loadProfileSections call during auth state failed', e); }
+            try {
+                const visitedUsername = window.getVisitedProfileUsername ? window.getVisitedProfileUsername() : null;
+                if (!window.location.pathname.endsWith('profil.html') || !visitedUsername) {
+                    window.loadProfileSections('all');
+                } else {
+                    console.log('Skipping auth-state profile section load for visited profile:', visitedUsername);
+                }
+            } catch(e) {
+                console.warn('loadProfileSections call during auth state failed', e);
+            }
         }
         // update tebrik badge for own profile
         if (typeof updateProfileTebrikUI === 'function' && user.username) updateProfileTebrikUI(user.username);
@@ -3061,7 +3098,6 @@ function getAvatarUrl(avatarUrlOrSeed, type = 'user') {
     const sAv = document.getElementById('sidebarAvatar');
     const sDn = document.getElementById('sidebarDisplayName');
     const sUn = document.getElementById('sidebarUsername');
-    const sJd = document.getElementById('sidebarJoinDate');
     const sSi = document.getElementById('sidebarSignupInfo');
     const sLa = document.getElementById('sidebarLastActive');
     const sRo = document.getElementById('sidebarRole');
@@ -3111,7 +3147,6 @@ function getAvatarUrl(avatarUrlOrSeed, type = 'user') {
     if(sAv) sAv.src = avatarUrl;
     if(sDn) sDn.innerText = user.displayName || 'Misafir';
     if(sUn) sUn.innerText = user.username ? `@${user.username}` : '@kullanici';
-    if(sJd && !sJd.innerText) sJd.innerText = '—';
 
     // Post composer avatar güncelleme
     const composerAvatar = document.getElementById('composerAvatar');
@@ -3154,39 +3189,9 @@ function getAvatarUrl(avatarUrlOrSeed, type = 'user') {
             publishBtn.title = '';
         }
     }
-    if (sJd) {
-        const createdAt = user.createdAt;
-        if (createdAt) {
-            try {
-                const createdAtDate = createdAt.toDate ? createdAt.toDate() :
-                    (createdAt.seconds != null ? new Date(createdAt.seconds * 1000) : new Date(createdAt));
-                const joinDate = createdAtDate.toLocaleDateString('tr-TR', {
-                    year: 'numeric',
-                    month: '2-digit',
-                    day: '2-digit'
-                });
-                const now = new Date();
-                const diffMs = now - createdAtDate;
-                const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-                let durationText = `${diffDays}gün`;
-                if (diffDays >= 365) {
-                    const years = Math.floor(diffDays / 365);
-                    durationText = years === 1 ? '1yıl' : `${years}yıl`;
-                } else if (diffDays >= 30) {
-                    const months = Math.floor(diffDays / 30);
-                    durationText = months === 1 ? '1ay' : `${months}ay`;
-                }
-                sJd.innerText = `${joinDate}/${durationText}`;
-                if (isOwnProfile && pJd) pJd.innerText = `${joinDate}/${durationText}`;
-            } catch (e) {
-                console.error('Join date formatting error:', e);
-                sJd.innerText = '—';
-                if (isOwnProfile && pJd) pJd.innerText = '—';
-            }
-        } else {
-            sJd.innerText = '—';
-            if (isOwnProfile && pJd) pJd.innerText = '—';
-        }
+    if (pJd) {
+        const joinDate = formatJoinDate(user.createdAt || auth.currentUser?.metadata?.creationTime);
+        if (isOwnProfile && pJd) pJd.innerText = joinDate;
     }
     if (sLa) {
         const lastActiveAt = user.lastActiveAt || user.createdAt;
@@ -4425,29 +4430,25 @@ window.loadPostsFeed = (showAll = false) => {
   
   const queryConstraints = [orderBy("timestamp", "desc")];
   if (!showAllFeedPosts) {
-    queryConstraints.push(limit(7));
+    queryConstraints.push(limit(6));
   }
   
   currentPostsUnsubscribe = onSnapshot(query(collection(db, "posts"), ...queryConstraints), (snap) => {
       try {
           const feed = document.getElementById('feed-items'),
-                myPosts = document.getElementById('my-posts-list'),
-                myLikes = document.getElementById('my-liked-list'),
-                bookItems = document.getElementById('bookmark-items'),
                 t = translations[currentLang];
           
-          // accumulate HTML so we can replace in one shot
+          // accumulate HTML for feed only
           let feedHtml = '';
-          let myPostsHtml = '';
-          let likesHtml = '';
-          let bookHtml = '';
 
       let feedPostCount = 0;
       if (snap.empty) {
           console.warn('loadPostsFeed: empty snapshot');
           return;
       }
-      snap.forEach(d => {
+      const docsToRender = showAllFeedPosts ? snap.docs : snap.docs.slice(0, 5);
+      const feedHasMore = !showAllFeedPosts && snap.docs.length > 5;
+      docsToRender.forEach(d => {
           try {
               console.log('rendering post', d.id);
               const p = d.data(), 
@@ -4455,14 +4456,13 @@ window.loadPostsFeed = (showAll = false) => {
                     isMine = p.username === user.username || p.adminUser === user.username, 
                     isLiked = p.likes?.includes(user.username), 
                     isSaved = p.savedBy?.includes(user.username);
-              console.log(' post meta', { username: p.username, type: p.type, question: p.question });
-                  
-              const avatarUrl = getAvatarUrl(p.avatarUrl || p.avatarSeed || "assets/img/strendsaydamv2.png", isPage ? 'page' : 'user');
-              // içerikte varsa HTML entite formundaki emojileri çöz
-              const decoded = normalizePostText(p.content || "");
+              
+              // Decode content and prepare rendering
+              const decoded = decodeEntities ? decodeEntities(p.content || "") : (p.content || "");
               const contentWithLinks = decoded.replace(/(#[\wığüşöçİĞÜŞÖÇ]+)/g, '<span class="hashtag-link" onclick="searchTrend(\'$1\')">$1</span>');
-              // Profil linki: Kendi profili ise 'profil', başkasıysa 'profil.html?id=username'
-              const profileLink = isMine ? "javascript:navigateTo('profil')" : `profil.html?id=${encodeURIComponent(p.username)}`;
+              const avatarUrl = getAvatarUrl(p.avatarSeed, 'user');
+              
+          console.log(' post meta', { username: p.username, type: p.type, question: p.question });
               const targetNav = isMine ? 'profil' : (isPage ? 'pages' : 'feed');
               
              const postImageHtml = p.image ? `
@@ -4613,9 +4613,6 @@ window.loadPostsFeed = (showAll = false) => {
           const postHtmlForFeed = postHtmlBase.replace('<div class="glass-card post"', `<div id="post-${d.id}" class="glass-card post"`);
 
           if(feed) feedHtml += postHtmlForFeed;
-          if(p.username === user.username && myPosts) myPostsHtml += postHtmlBase;
-          if(isLiked && myLikes) likesHtml += postHtmlBase;
-          if(isSaved && bookItems) bookHtml += postHtmlBase;
           
           // Likers preview'ı doldur
           try {
@@ -4641,8 +4638,8 @@ window.loadPostsFeed = (showAll = false) => {
           }
       }
 
-      // Diğer Gönderiler Butonu
-      if (feed && feedPostCount >= 7) {
+      // Daha fazla yükle butonu
+      if (feed && feedHasMore) {
         const morePostsBtn = document.createElement('div');
         morePostsBtn.style.cssText = `
           text-align: center;
@@ -4661,7 +4658,7 @@ window.loadPostsFeed = (showAll = false) => {
             font-size: 0.95rem;
             transition: all 0.3s ease;
           " onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
-            <i class="fa-solid fa-ellipsis"></i> Diğer Gönderiler
+            <i class="fa-solid fa-chevron-down"></i> Daha fazla yükle
           </button>
         `;
         feed.appendChild(morePostsBtn);
@@ -5205,6 +5202,16 @@ async function loadVisitorProfile() {
         // force visitor state on own profile
         visitedUsername = '__simulate__';
     }
+
+    const myPostsList = document.getElementById('my-posts-list');
+    const myLikesList = document.getElementById('my-liked-list');
+    const bookmarkItems = document.getElementById('bookmark-items');
+    const isVisitedProfile = Boolean(visitedUsername && visitedUsername !== user.username);
+    if (isVisitedProfile) {
+        if (myPostsList) myPostsList.innerHTML = '';
+        if (myLikesList) myLikesList.innerHTML = '';
+        if (bookmarkItems) bookmarkItems.innerHTML = '';
+    }
     
     // Ziyaretçi modu değilse çık (kendi profili)
     if (!visitedUsername || visitedUsername === user.username) {
@@ -5257,6 +5264,14 @@ async function loadVisitorProfile() {
     document.querySelectorAll('button[onclick="toggleEditProfile()"]').forEach(btn => {
         btn.style.display = 'none';
     });
+    // Yeni inline düzenleme ikonlarını gizle
+    document.querySelectorAll('.card-edit-btn').forEach(btn => {
+        btn.style.display = 'none';
+    });
+    // Inline edit panellerini kapat
+    document.querySelectorAll('.inline-edit-panel').forEach(panel => {
+        panel.style.display = 'none';
+    });
     const avatarOverlay = document.querySelector('.avatar-camera-overlay');
     if (avatarOverlay) {
         avatarOverlay.style.display = 'none';
@@ -5308,6 +5323,7 @@ async function loadVisitorProfile() {
         let visitorUid = null;
         let visitedData = null;
         let isFriend = false;
+        let isVisitedPrivate = false;
         
         snap.forEach(doc => {
             const p = doc.data();
@@ -5322,10 +5338,8 @@ async function loadVisitorProfile() {
         if (!userSnap.empty) {
             visitorUid = userSnap.docs[0].id;
             visitedData = userSnap.docs[0].data();
-            // Visitor UID found
-
-            // normalize privacy flag so string values do not get treated as truthy/falsey incorrectly
-            const isVisitedPrivate = visitedData.isPrivate === true || visitedData.isPrivate === 'true';
+                window.currentVisitedProfileUid = visitorUid;
+            isVisitedPrivate = visitedData.isPrivate === true || visitedData.isPrivate === 'true';
             window.visitedProfileIsPrivate = isVisitedPrivate;
 
             // set display name & avatar from the user record (fall back to defaults)
@@ -5472,35 +5486,46 @@ async function loadVisitorProfile() {
             if (pFc) pFc.innerText = fc;
             if (pPr) pPr.innerText = visitedData.pendingRequests || 0;
 
-            // join date formatting
-            if (pJd) {
+            // Calculate and show mutual friends count for visited profile
+            if (auth.currentUser) {
                 try {
-                    const createdAt = visitedData.createdAt || visitedData.joinedAt || visitedData.created || userSnap.docs[0].createTime;
-                    if (createdAt) {
-                        const d = createdAt.toDate ? createdAt.toDate() : (createdAt.seconds != null ? new Date(createdAt.seconds * 1000) : new Date(createdAt));
-                        const day = String(d.getDate()).padStart(2,'0');
-                        const month = String(d.getMonth()+1).padStart(2,'0');
-                        const year = d.getFullYear();
-                        const joinDate = `${day}.${month}.${year}`;
-                        const now = new Date();
-                        const diffMs = now - d;
-                        const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-                        let durationText = `${diffDays}gün`;
-                        if (diffDays >= 365) {
-                            const years = Math.floor(diffDays / 365);
-                            durationText = years === 1 ? '1yıl' : `${years}yıl`;
-                        } else if (diffDays >= 30) {
-                            const months = Math.floor(diffDays / 30);
-                            durationText = months === 1 ? '1ay' : `${months}ay`;
-                        }
-                        pJd.innerText = `${joinDate}/${durationText}`;
-                    } else {
-                        pJd.innerText = '—';
+                    const currentRef = doc(db, "users", auth.currentUser.uid);
+                    const currentSnap = await getDoc(currentRef);
+                    const currentData = currentSnap.data() || {};
+                    const currentFriends = Array.isArray(currentData.friends) ? currentData.friends : [];
+                    const visitedFriends = Array.isArray(visitedData.friends) ? visitedData.friends : [];
+                    
+                    // Find mutual friends (intersection of both arrays)
+                    const mutualFriends = currentFriends.filter(uid => visitedFriends.includes(uid));
+                    const mutualCount = mutualFriends.length;
+                    
+                    const mutualElement = document.getElementById('profileMutualFriends');
+                    const mutualCountElement = document.getElementById('mutualFriendsCount');
+                    
+                    if (mutualElement && mutualCountElement) {
+                        mutualCountElement.innerText = mutualCount;
+                        mutualElement.style.display = 'inline-block';
                     }
                 } catch (e) {
-                    console.error('Visitor join date formatting error:', e);
-                    pJd.innerText = '—';
+                    console.warn('Could not calculate mutual friends:', e);
+                    if (mutualElement && mutualCountElement) {
+                        mutualCountElement.innerText = '0';
+                        mutualElement.style.display = 'inline-block';
+                    }
                 }
+            } else {
+                const mutualElement = document.getElementById('profileMutualFriends');
+                const mutualCountElement = document.getElementById('mutualFriendsCount');
+                if (mutualElement && mutualCountElement) {
+                    mutualCountElement.innerText = '0';
+                    mutualElement.style.display = 'inline-block';
+                }
+            }
+
+            // join date formatting
+            if (pJd) {
+                const createdAt = visitedData.createdAt || visitedData.joinedAt || visitedData.created || userSnap.docs[0].createTime;
+                pJd.innerText = formatJoinDate(createdAt);
             }
 
             // last active
@@ -5632,11 +5657,8 @@ async function loadVisitorProfile() {
         if (visitorUid && auth.currentUser) {
             const addFriendBtn = document.getElementById('addFriendBtn');
             if (addFriendBtn) {
-                // Updating friend button
                 addFriendBtn.style.display = 'inline-block';
                 await updateAddFriendButton(visitorUid);
-                // Doğrudan UID ile hızlı gönderim için onclick'i UID tabanlı fonksiyona bağla
-                addFriendBtn.onclick = () => sendFriendRequestToUid(visitorUid, visitedUsername);
             }
         } else {
             // Friend button update failed
@@ -5732,13 +5754,21 @@ window.loadVisitorProfile = loadVisitorProfile;
 
 // For profile page: load own posts/likes/bookmarks separately
 // section param determines which part(s) should be updated; 'all' (default), 'posts', 'likes', 'saves'
-window.loadProfileSections = async (section = 'all', showAllPosts = false, showAllLikes = false, showAllSaves = false) => {
+window.loadProfileSections = async (section = 'all', showAllPosts = false, showAllLikes = false, showAllSaves = false, targetUsername = null) => {
     // console.log removed
 
     if (!auth.currentUser) {
         return;
     }
     
+    const visitedUsername = typeof getVisitedProfileUsername === 'function' ? getVisitedProfileUsername() : null;
+    const isVisitedProfile = Boolean(visitedUsername && (!user || visitedUsername !== user.username));
+
+    if (isVisitedProfile && !targetUsername) {
+        console.warn('loadProfileSections: called on a visited profile without explicit targetUsername. Aborting to avoid showing the current user posts on someone else\'s profile.', { visitedUsername, user });
+        return;
+    }
+
     if (!user || !user.username) {
         console.log('loadProfileSections: waiting for user initialization...', user);
         // Wait for user to be initialized
@@ -5784,13 +5814,15 @@ window.loadProfileSections = async (section = 'all', showAllPosts = false, showA
         }
     }
 
-    if (!user || !user.username) {
+    // Calculate effectiveUsername AFTER all initialization attempts
+    const effectiveUsername = targetUsername || (isVisitedProfile ? visitedUsername : (user && user.username ? user.username : null));
+    const uname = effectiveUsername;
+    if (!uname) {
         console.warn('loadProfileSections: user initialization timeout or missing username, aborting section load', user);
         return;
     }
 
-    const uname = user.username;
-    console.log('[loadProfileSections]', 'section:', section, 'uname:', uname, 'user:', user);
+    console.log('[loadProfileSections]', 'section:', section, 'uname:', uname, 'visitedUsername:', visitedUsername, 'targetUsername:', targetUsername, 'user:', user);
 
     // if a specific section is requested, ensure only its tab-content is visible
     if (section && section !== 'all') {
@@ -5910,11 +5942,11 @@ window.loadProfileSections = async (section = 'all', showAllPosts = false, showA
 
         // GÖNDERİLER
         if ((section === 'all' || section === 'posts') && myPostsList && myPostsAll.length > 0) {
-            let postsToShow = showAllPosts ? myPostsAll.length : 7;
+            let postsToShow = showAllPosts ? myPostsAll.length : 5;
             let postsHtml = myPostsAll.slice(0, postsToShow).join('');
             myPostsList.innerHTML = postsHtml;
             
-            if (myPostsAll.length > 7 && !showAllPosts) {
+            if (myPostsAll.length > 5 && !showAllPosts) {
                 const btn = document.createElement('div');
                 btn.style.cssText = `text-align: center; padding: 20px; margin-top: 15px;`;
                 btn.innerHTML = `
@@ -5929,7 +5961,7 @@ window.loadProfileSections = async (section = 'all', showAllPosts = false, showA
                         font-size: 0.95rem;
                         transition: all 0.3s ease;
                     " onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
-                        <i class="fa-solid fa-ellipsis"></i> Diğer Gönderiler
+                        <i class="fa-solid fa-chevron-down"></i> Daha fazla yükle
                     </button>
                 `;
                 myPostsList.appendChild(btn);
@@ -5945,11 +5977,11 @@ window.loadProfileSections = async (section = 'all', showAllPosts = false, showA
             clearLikesDiv.innerHTML = `<button onclick="clearAllLikes()" style="background:#ef4444; color:#fff; border:none; padding:6px 12px; border-radius:6px; cursor:pointer; font-size:0.8rem;">Beğenilerin Hepsini Kaldır</button>`;
             myLikesList.appendChild(clearLikesDiv);
 
-            let likesToShow = showAllLikes ? myLikesAll.length : 7;
+            let likesToShow = showAllLikes ? myLikesAll.length : 5;
             let likesHtml = myLikesAll.slice(0, likesToShow).join('');
             myLikesList.innerHTML += likesHtml;
             
-            if (myLikesAll.length > 7 && !showAllLikes) {
+            if (myLikesAll.length > 5 && !showAllLikes) {
                 const btn = document.createElement('div');
                 btn.style.cssText = `text-align: center; padding: 20px; margin-top: 15px;`;
                 btn.innerHTML = `
@@ -5964,7 +5996,7 @@ window.loadProfileSections = async (section = 'all', showAllPosts = false, showA
                         font-size: 0.95rem;
                         transition: all 0.3s ease;
                     " onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
-                        <i class="fa-solid fa-ellipsis"></i> Diğer Gönderiler
+                        <i class="fa-solid fa-chevron-down"></i> Daha fazla yükle
                     </button>
                 `;
                 myLikesList.appendChild(btn);
@@ -5980,11 +6012,11 @@ window.loadProfileSections = async (section = 'all', showAllPosts = false, showA
             clearSavesDiv.innerHTML = `<button onclick="clearAllSaves()" style="background:#ef4444; color:#fff; border:none; padding:6px 12px; border-radius:6px; cursor:pointer; font-size:0.8rem;">Kayıtların Hepsini Kaldır</button>`;
             bookmarkList.appendChild(clearSavesDiv);
 
-            let savesToShow = showAllSaves ? mySavesAll.length : 7;
+            let savesToShow = showAllSaves ? mySavesAll.length : 5;
             let savesHtml = mySavesAll.slice(0, savesToShow).join('');
             bookmarkList.innerHTML += savesHtml;
             
-            if (mySavesAll.length > 7 && !showAllSaves) {
+            if (mySavesAll.length > 5 && !showAllSaves) {
                 const btn = document.createElement('div');
                 btn.style.cssText = `text-align: center; padding: 20px; margin-top: 15px;`;
                 btn.innerHTML = `
@@ -5999,7 +6031,7 @@ window.loadProfileSections = async (section = 'all', showAllPosts = false, showA
                         font-size: 0.95rem;
                         transition: all 0.3s ease;
                     " onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
-                        <i class="fa-solid fa-ellipsis"></i> Diğer Gönderiler
+                        <i class="fa-solid fa-chevron-down"></i> Daha fazla yükle
                     </button>
                 `;
                 bookmarkList.appendChild(btn);
@@ -7875,10 +7907,8 @@ async function loadNotifications(userData) {
                 }
                 // Remove from dropdown immediately
                 nDiv.remove();
-                // update badge
-                const countBadge = document.getElementById('notificationCountBadge');
-                const current = parseInt((countBadge && countBadge.textContent) || '0') || 0;
-                updateNotificationBadge(Math.max(0, current - 1));
+                const remainingCount = Math.max(0, totalCount - 1);
+                updateNotificationBadge(remainingCount);
             };
         }
 
@@ -7892,9 +7922,8 @@ async function loadNotifications(userData) {
                     console.error('header delete button error', err);
                 }
                 nDiv.remove();
-                const countBadge = document.getElementById('notificationCountBadge');
-                const current = parseInt((countBadge && countBadge.textContent) || '0') || 0;
-                updateNotificationBadge(Math.max(0, current - 1));
+                const remainingCount = Math.max(0, totalCount - 1);
+                updateNotificationBadge(remainingCount);
             };
         }
 
@@ -8518,19 +8547,23 @@ window.loadHeaderFriendsList = async function() {
 
 // Bildirim badge'ini güncelle
 function updateNotificationBadge(count) {
+    const normalizedCount = Number(count);
+    const safeCount = Number.isFinite(normalizedCount) && normalizedCount >= 0 ? normalizedCount : 0;
     const badge = document.getElementById('notificationBadge');
 
     if (badge) {
-        if (count > 0) {
-            badge.style.display = 'flex';
+        if (safeCount > 0) {
+            badge.style.display = 'inline-flex';
+            badge.textContent = safeCount > 99 ? '99+' : `${safeCount}`;
         } else {
             badge.style.display = 'none';
+            badge.textContent = '';
         }
     }
 
     const notificationsBtn = document.getElementById('notificationsBtn');
     if (notificationsBtn) {
-        if (count > 0) {
+        if (safeCount > 0) {
             notificationsBtn.classList.add('has-unread');
         } else {
             notificationsBtn.classList.remove('has-unread');
@@ -8539,12 +8572,11 @@ function updateNotificationBadge(count) {
 
     const headerBadges = document.querySelectorAll('.requestCountBadge');
     headerBadges.forEach((badge) => {
-        badge.textContent = count > 0 ? `${count > 99 ? '99+' : count} okunmamış` : '0';
+        badge.textContent = safeCount > 0 ? `${safeCount > 99 ? '99+' : safeCount} okunmamış` : '0';
     });
 
-    // Page title'a bildirim sayısı ekle
-    if (count > 0) {
-        document.title = `(${count}) SosyalTrend • Sosyal Ağ`;
+    if (safeCount > 0) {
+        document.title = `(${safeCount}) SosyalTrend • Sosyal Ağ`;
     } else {
         document.title = 'SosyalTrend • Sosyal Ağ';
     }
@@ -8599,18 +8631,14 @@ async function updateAddFriendButton(targetUid) {
         const targetUsername = targetUserData.username || "Kullanıcı";
 
         // --- SOHBET BUTONU AYARI ---
-chatBtn.style.display = 'inline-block';
-chatBtn.innerHTML = '<i class="fa-solid fa-comment"></i> <span class="chat-btn-text">Sohbet Et</span>';
-
-chatBtn.addEventListener('click', () => {
-    // Check if the required variables and function exist
-    if (typeof openChatWithUser === 'function') {
-        openChatWithUser(targetUid, targetUsername);
-    } else {
-        alert("Sohbet sistemi şu anda yüklenemedi. Lütfen sayfayı yenileyin.");
-        console.error("Critical: openChatWithUser function is missing.");
-    }
-});
+        chatBtn.onclick = () => {
+            if (typeof openChatWithUser === 'function') {
+                openChatWithUser(targetUid, targetUsername);
+            } else {
+                alert("Sohbet sistemi şu anda yüklenemedi. Lütfen sayfayı yenileyin.");
+                console.error("Critical: openChatWithUser function is missing.");
+            }
+        };
 
         // --- ARKADAŞLIK BUTONU DURUMLARI ---
         // Zaten arkadaş mı?
@@ -8643,7 +8671,7 @@ chatBtn.addEventListener('click', () => {
             addFriendBtn.disabled = false;
             addFriendBtn.style.opacity = '1';
             addFriendBtn.style.cursor = 'pointer';
-            addFriendBtn.onclick = () => sendFriendRequest();
+            addFriendBtn.onclick = () => sendFriendRequestToUid(targetUid, targetUsername);
         }
     } catch (error) {
         console.error("Buton güncelleme hatası:", error);
@@ -8719,21 +8747,20 @@ async function cancelFriendRequestToUid(targetUid, targetUsername) {
 
 function handleProfileAction() {
   const currentUser = auth.currentUser;
-  const viewedUserId = new URLSearchParams(window.location.search).get('uid'); // Profiline bakılan kişinin ID'si
+  const viewedUserId = new URLSearchParams(window.location.search).get('uid') || window.currentVisitedProfileUid;
 
   if (!currentUser) {
     window.location.href = 'login.html';
     return;
   }
 
-  if (viewedUserId === currentUser.uid) {
-    // KENDİ PROFİLİNDEYSE: Hiçbir şey yapma
+  if (!viewedUserId || viewedUserId === currentUser.uid) {
+    // KENDİ PROFİLİNDEYSE veya hedef bilinmiyorsa: Hiçbir şey yapma
     return;
-  } else {
-    // BAŞKASININ PROFİLİNDEYSE: Chat widget'ı aç
-    if (typeof openChatWithUser === 'function') {
-      openChatWithUser(viewedUserId, viewedUserId);
-    }
+  }
+
+  if (typeof openChatWithUser === 'function') {
+    openChatWithUser(viewedUserId, viewedUserId);
   }
 }
 
@@ -9182,7 +9209,7 @@ window.loadTopTebrikList = async function() {
     const container = document.getElementById('top-tebrik-list');
     if (!container) return;
     try {
-        const q = query(collection(db, 'users'), orderBy('tebrikCount', 'desc'), limit(10));
+        const q = query(collection(db, 'users'), where('tebrikCount', '>', 0), orderBy('tebrikCount', 'desc'), limit(5));
         const snap = await getDocs(q);
         if (snap.empty) {
             container.innerHTML = '<div style="color:var(--text-muted); font-size:0.85rem; text-align:center;">Henüz tebrik alan kullanıcı yok.</div>';
@@ -10301,8 +10328,9 @@ async function updateChatUnreadIndicator() {
         const snap = await getDocs(conversationsQuery);
         const totalUnread = snap.docs.reduce((sum, convDoc) => {
             const data = convDoc.data();
-            const unread = data.unreadCount?.[currentUserId] || 0;
-            return sum + (typeof unread === 'number' ? unread : 0);
+            const unreadValue = data.unreadCount?.[currentUserId];
+            const unread = Number(unreadValue || 0);
+            return sum + (Number.isFinite(unread) ? unread : 0);
         }, 0);
 
         const badge = document.getElementById('chat-unread-count');
@@ -10338,6 +10366,7 @@ async function updateChatUnreadIndicator() {
         // Update header 'Sohbet Et' badge
         const headerBadge = document.getElementById('header-chat-unread');
         const headerBtn = document.getElementById('sendHeaderMessageBtn');
+
         if (headerBadge) {
             if (totalUnread > 0) {
                 headerBadge.style.display = 'inline-flex';
