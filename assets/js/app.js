@@ -2756,7 +2756,7 @@ window.clearImagePreview = () => {
       navSubss: "Beğendiğiniz içerikleri bu sayfa altına topladık, buradan takip edebilir veya beğenileri kaldırabilirsiniz.",
       navSearch: "Aramalar",
       searchHeading: "Arama Sonuçları",
-      postPlaceholder: "Neler oluyor?",
+      postPlaceholder: "Ne hakkında paylaşımda bulunmak istersiniz?",
       shareBtn: "Paylaş",
       editProfileBtn: "Profili Düzenle",
       footerTagline: "Topluluğunuzla her zaman bir adım önde olun.",
