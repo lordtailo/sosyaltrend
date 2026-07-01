@@ -4973,8 +4973,9 @@ font-size: 0.9rem; font-weight: 800; color: var(--primary); margin: 20px 0 10px;
     font-size: 0.72rem;
     font-weight: 600;
   }
-    /* hide only the header theme toggle on small screens to avoid duplicate control */
-    #themeToggleBtn { display: none !important; }
+    /* hide header controls on small screens to avoid duplicate mobile actions */
+    #themeToggleBtn,
+    #headerChatBtn { display: none !important; }
   .mobile-bottom-nav .mobile-nav-item i {
     font-size: 1.1rem;
   }

@@ -995,6 +995,55 @@ await updateDoc(currentUserRef, {
   const auth = getAuth(app);
   const storage = getStorage(app);
 
+  async function handleCommunityInviteResponse(communityId, accept = true) {
+      if (!auth.currentUser || !communityId) return;
+
+      try {
+          const communityRef = doc(db, 'topluluklar', communityId);
+          const communitySnap = await getDoc(communityRef);
+          if (!communitySnap.exists()) return;
+
+          if (accept) {
+              const memberData = {
+                  uid: auth.currentUser.uid,
+                  displayName: auth.currentUser.displayName || auth.currentUser.email || auth.currentUser.uid
+              };
+              await updateDoc(communityRef, {
+                  members: arrayUnion(memberData),
+                  invitedUsers: arrayRemove(auth.currentUser.uid)
+              });
+          } else {
+              await updateDoc(communityRef, {
+                  invitedUsers: arrayRemove(auth.currentUser.uid)
+              });
+          }
+
+          const userRef = doc(db, 'users', auth.currentUser.uid);
+          const userSnap = await getDoc(userRef);
+          const notifications = Array.isArray(userSnap.data()?.notifications) ? userSnap.data().notifications : [];
+          const updatedNotifications = notifications.filter((notification) => !(notification.type === 'community_invite' && notification.communityId === communityId));
+          await updateDoc(userRef, {
+              notifications: updatedNotifications
+          });
+
+          window.dispatchEvent(new Event('notifications:changed'));
+
+          if (typeof window.openCommunityDetail === 'function' && window.location.pathname.includes('topluluk')) {
+              await window.openCommunityDetail(communityId);
+          }
+      } catch (error) {
+          console.error('Topluluk daveti yanıtlanırken hata:', error);
+      }
+  }
+
+  window.handleCommunityInviteResponse = handleCommunityInviteResponse;
+  window.acceptCommunityInvite = async function(communityId) {
+      await handleCommunityInviteResponse(communityId, true);
+  };
+  window.rejectCommunityInvite = async function(communityId) {
+      await handleCommunityInviteResponse(communityId, false);
+  };
+
   // sidebar statistics (last user plus total count)
   async function updateSidebarStats() {
       const totalSpan = document.getElementById('sidebarTotalUsers');
@@ -8175,10 +8224,12 @@ async function loadNotifications(userData) {
 
         // Tıklamayla okundu yap ve dropdown kapat
         nDiv.onclick = async (e) => {
+            if (e.target.closest('.notif-community-accept-btn, .notif-community-reject-btn, .notif-read-btn, .notif-hide-btn, .notif-go-btn')) {
+                return;
+            }
             e.stopPropagation();
             if (!n.read) {
                 await markNotificationRead(n);
-                // Dropdown'u yenile (okunmuş bildirimi çıkar)
                 if (auth.currentUser) {
                     const userRef = doc(db, 'users', auth.currentUser.uid);
                     const userSnap = await getDoc(userRef);
@@ -8187,7 +8238,6 @@ async function loadNotifications(userData) {
                     }
                 }
             }
-            // Eğer gönderi id'si varsa gönderiye git, mesaj bildirimi ise sohbeti aç
             const dropdown = document.getElementById('notificationsDropdown');
             if (dropdown) dropdown.style.display = 'none';
 
@@ -8197,11 +8247,9 @@ async function loadNotifications(userData) {
             } else if (n.postId) {
                 window.location.href = `index.html#post-${n.postId}`;
             } else {
-                // Açık profilden farklı bir sayfadaysak profil sayfasına git
                 if (!window.location.pathname.endsWith('profil.html')) {
                     window.location.href = 'profil.html#my-notifs-tab';
                 } else {
-                    // Eğer zaten profil sayfasındaysak, açılacak sekmeyi ayarla
                     const tabBtn = document.querySelector(".tab-btn[onclick*='my-notifs-tab']");
                     if (tabBtn) tabBtn.click();
                 }
@@ -8660,6 +8708,7 @@ window.deleteAllNotifications = deleteAllNotifications;
 window.markAllNotificationsRead = markAllNotificationsRead;
 window.showRestoreModal = showRestoreModal;
 window.restoreNotifications = restoreNotifications;
+window.sendNotification = sendNotification;
 
 window.reportUserFromProfile = async function() {
     const targetUid = window.currentVisitedProfileUid || null;

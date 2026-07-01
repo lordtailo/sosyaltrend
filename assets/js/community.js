@@ -855,8 +855,12 @@ async function openCommunityDetail(communityId) {
                 <h2 style="margin:0; color:white; font-size:1.8rem; font-weight:800;">${data.name || 'İsimsiz Topluluk'}</h2>
               </div>
               <div style="display:flex; gap:8px; flex-wrap:wrap;">
-                <span style="background:rgba(255,255,255,0.18); backdrop-filter:blur(8px); color:white; padding:7px 12px; border-radius:999px; font-size:0.85rem; font-weight:600;">👥 ${memberCount} üye</span>
-                <span style="background:rgba(255,255,255,0.18); backdrop-filter:blur(8px); color:white; padding:7px 12px; border-radius:999px; font-size:0.85rem; font-weight:600;">📝 ${data.postCount || 0} gönderi</span>
+                <button type="button" onclick="window.openCommunityGroupChat('${communityId}', '${escapeHtml(data.name || 'Topluluk')}')" style="border:none; border-radius:999px; background:rgba(255,255,255,0.20); backdrop-filter:blur(8px); color:white; padding:8px 14px; cursor:pointer; font-weight:700; box-shadow:0 8px 22px rgba(15,23,42,0.16);">
+                  <i class="fa-solid fa-comments" style="margin-right:6px;"></i>Sohbet Et
+                </button>
+                <button type="button" onclick="window.toggleCommunityMembersView('${communityId}')" style="border:none; border-radius:999px; background:rgba(255,255,255,0.20); backdrop-filter:blur(8px); color:white; padding:8px 14px; cursor:pointer; font-weight:700; box-shadow:0 8px 22px rgba(15,23,42,0.16);">
+                  <i class="fa-solid fa-users" style="margin-right:6px;"></i>Üyeler (${memberCount})
+                </button>
               </div>
             </div>
           </div>
@@ -865,16 +869,8 @@ async function openCommunityDetail(communityId) {
               <p style="margin:0; line-height:1.7; font-size:0.97rem;">${data.description || 'Açıklama yok.'}</p>
               <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
                 <span style="font-size:0.9rem; color:var(--text-main); font-weight:600;">${data.isPrivate ? 'Özel' : 'Herkese açık'}</span>
-                ${data.isPrivate && isOwner ? `<button type="button" onclick="window.openCommunityInvitePrompt('${communityId}')" style="padding:6px 10px; border:none; border-radius:999px; background:rgba(99,102,241,0.12); color:var(--primary); cursor:pointer; font-weight:700; font-size:0.8rem;">Davet Et</button>` : ''}
+                ${(isOwner || isJoined) ? `<button type="button" onclick="window.openCommunityInvitePrompt('${communityId}')" style="padding:6px 10px; border:none; border-radius:999px; background:rgba(99,102,241,0.12); color:var(--primary); cursor:pointer; font-weight:700; font-size:0.8rem;">Davet Et</button>` : ''}
               </div>
-            </div>
-            <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; justify-content:flex-end;">
-              <button type="button" onclick="window.openCommunityGroupChat('${communityId}', '${escapeHtml(data.name || 'Topluluk')}')" style="border:none; border-radius:999px; background:linear-gradient(135deg, var(--primary), #818cf8); color:white; padding:8px 14px; cursor:pointer; font-weight:700; box-shadow:0 8px 22px rgba(99,102,241,0.20);">
-                <i class="fa-solid fa-comments" style="margin-right:6px;"></i>Sohbet Et
-              </button>
-              <button type="button" onclick="window.toggleCommunityMembersView('${communityId}')" style="border:1px solid rgba(99,102,241,0.16); border-radius:999px; background:rgba(255,255,255,0.08); color:var(--text-main); padding:8px 14px; cursor:pointer; font-weight:700;">
-                <i class="fa-solid fa-users" style="margin-right:6px;"></i>Üyeler (${memberCount})
-              </button>
             </div>
           </div>
         </div>
@@ -1020,6 +1016,80 @@ function toggleCommunityMembersView(communityId) {
   }
 }
 
+async function inviteUserToCommunity(communityRef, communityData, targetUid) {
+  if (!targetUid || targetUid === currentUser?.uid) {
+    return { success: false, message: 'Kendinizi davet edemezsiniz.' };
+  }
+
+  const memberUids = getCommunityMemberUids(communityData);
+  const invitedUids = getCommunityInvitedUids(communityData);
+  if (memberUids.includes(targetUid) || invitedUids.includes(targetUid)) {
+    return { success: false, message: 'Bu kullanıcı zaten davet edilmiş ya da topluluğa üye.' };
+  }
+
+  await updateDoc(communityRef, {
+    invitedUsers: arrayUnion(targetUid)
+  });
+
+  const inviterName = currentUser?.displayName || currentUser?.email || 'Bir kullanıcı';
+  if (typeof window.sendNotification === 'function') {
+    await window.sendNotification(targetUid, 'community_invite', inviterName, {
+      title: 'Topluluk daveti',
+      message: `${inviterName} sizi "${communityData.name || 'Topluluk'}" topluluğuna davet etti.`,
+      communityId: communityRef.id,
+      communityName: communityData.name || 'Topluluk',
+      fromUid: currentUser?.uid,
+      fromName: inviterName,
+      fromUsername: currentUser?.displayName || currentUser?.email || '',
+      read: false
+    });
+  } else {
+    const targetUserRef = doc(db, 'users', targetUid);
+    const targetUserSnap = await getDoc(targetUserRef);
+    const existingNotifications = Array.isArray(targetUserSnap.data()?.notifications) ? targetUserSnap.data().notifications : [];
+    const inviteNotification = {
+      type: 'community_invite',
+      title: 'Topluluk daveti',
+      message: `${inviterName} sizi "${communityData.name || 'Topluluk'}" topluluğuna davet etti.`,
+      communityId: communityRef.id,
+      communityName: communityData.name || 'Topluluk',
+      fromUid: currentUser?.uid,
+      fromName: inviterName,
+      fromUsername: currentUser?.displayName || currentUser?.email || '',
+      timestamp: Date.now(),
+      read: false
+    };
+    await setDoc(targetUserRef, {
+      notifications: [...existingNotifications, inviteNotification]
+    }, { merge: true });
+  }
+
+  return { success: true, message: 'Davet gönderildi.' };
+}
+
+async function retractCommunityInvite(communityRef, communityData, targetUid) {
+  if (!targetUid || !currentUser?.uid) {
+    return { success: false, message: 'Davet geri alınamadı.' };
+  }
+
+  const invitedUids = getCommunityInvitedUids(communityData);
+  if (!invitedUids.includes(targetUid)) {
+    return { success: false, message: 'Bu davet zaten bulunmuyor.' };
+  }
+
+  await updateDoc(communityRef, {
+    invitedUsers: arrayRemove(targetUid)
+  });
+
+  const targetUserRef = doc(db, 'users', targetUid);
+  const targetUserSnap = await getDoc(targetUserRef);
+  const notifications = Array.isArray(targetUserSnap.data()?.notifications) ? targetUserSnap.data().notifications : [];
+  const updatedNotifications = notifications.filter((notification) => !(notification.type === 'community_invite' && notification.communityId === communityRef.id && notification.fromUid === currentUser.uid));
+  await updateDoc(targetUserRef, { notifications: updatedNotifications });
+
+  return { success: true, message: 'Davet geri alındı.' };
+}
+
 async function openCommunityInvitePrompt(communityId) {
   if (!communityId || !currentUser) return;
 
@@ -1032,70 +1102,188 @@ async function openCommunityInvitePrompt(communityId) {
     }
 
     const communityData = communitySnap.data();
-    if (communityData.ownerUid !== currentUser.uid) {
-      alert('Yalnızca topluluk sahibi davet edebilir.');
-      return;
-    }
-
-    const identifier = prompt('Davet etmek istediğiniz kullanıcının kullanıcı adını yazın:', '');
-    if (!identifier || !identifier.trim()) return;
-
-    const normalizedIdentifier = identifier.trim().toLowerCase();
-    const userQuery = query(collection(db, 'users'), where('username', '==', normalizedIdentifier));
-    const userSnap = await getDocs(userQuery);
-    let targetUserDoc = !userSnap.empty ? userSnap.docs[0] : null;
-
-    if (!targetUserDoc) {
-      const emailQuery = query(collection(db, 'users'), where('email', '==', normalizedIdentifier));
-      const emailSnap = await getDocs(emailQuery);
-      targetUserDoc = !emailSnap.empty ? emailSnap.docs[0] : null;
-    }
-
-    if (!targetUserDoc) {
-      alert('Bu kullanıcı bulunamadı.');
-      return;
-    }
-
-    const targetUid = targetUserDoc.id;
-    if (targetUid === currentUser.uid) {
-      alert('Kendinizi davet edemezsiniz.');
-      return;
-    }
-
     const memberUids = getCommunityMemberUids(communityData);
-    const invitedUids = getCommunityInvitedUids(communityData);
-    if (memberUids.includes(targetUid) || invitedUids.includes(targetUid)) {
-      alert('Bu kullanıcı zaten davet edilmiş ya da topluluğa üye.');
+    const isOwner = communityData.ownerUid === currentUser.uid;
+    const isMember = memberUids.includes(currentUser.uid);
+    if (!isOwner && !isMember) {
+      alert('Yalnızca topluluk sahibi veya üyesi davet edebilir.');
       return;
     }
 
-    await updateDoc(communityRef, {
-      invitedUsers: arrayUnion(targetUid)
+    const overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed; inset:0; background:rgba(255,255,255,0.96); backdrop-filter:blur(8px); display:flex; align-items:center; justify-content:center; z-index:9999; padding:20px;';
+    overlay.addEventListener('click', (event) => {
+      if (event.target === overlay) overlay.remove();
     });
 
-    const targetUserRef = doc(db, 'users', targetUid);
-    const inviterName = currentUser.displayName || currentUser.email || 'Bir kullanıcı';
-    const inviteNotification = {
-      type: 'community_invite',
-      title: 'Topluluk daveti',
-      message: `${inviterName} sizi "${communityData.name || 'Topluluk'}" topluluğuna davet etti.`,
-      communityId,
-      communityName: communityData.name || 'Topluluk',
-      fromUid: currentUser.uid,
-      fromName: inviterName,
-      fromUsername: currentUser.displayName || currentUser.email || '',
-      timestamp: serverTimestamp(),
-      read: false
+    const modal = document.createElement('div');
+    modal.style.cssText = 'width:min(560px, 100%); max-height:85vh; overflow:auto; background:#ffffff; border:1px solid #e5e7eb; border-radius:24px; box-shadow:0 24px 60px rgba(15, 23, 42, 0.12); padding:20px; color:#111827; backdrop-filter:blur(16px);';
+
+    const header = document.createElement('div');
+    header.style.cssText = 'display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:14px;';
+    header.innerHTML = `
+      <div>
+        <div style="font-size:1.1rem; font-weight:800;">Topluluğa davet et</div>
+        <div style="font-size:0.85rem; color:var(--text-secondary); margin-top:2px;">Arkadaşlarından seç veya arkadaş olmayan bir kullanıcıyı davet et.</div>
+      </div>
+      <button type="button" id="communityInviteCloseBtn" style="border:none; width:38px; height:38px; border-radius:50%; background:#f3f4f6; color:#111827; cursor:pointer; font-size:1rem;">✕</button>
+    `;
+
+    const searchBox = document.createElement('input');
+    searchBox.id = 'communityInviteSearch';
+    searchBox.placeholder = 'Arkadaş ara...';
+    searchBox.style.cssText = 'width:100%; box-sizing:border-box; border:1px solid #d1d5db; border-radius:999px; padding:10px 12px; margin-bottom:12px; background:#f9fafb; color:#111827;';
+
+    const friendsList = document.createElement('div');
+    friendsList.id = 'communityInviteFriendsList';
+    friendsList.style.cssText = 'display:grid; gap:8px; max-height:260px; overflow:auto; margin-bottom:12px;';
+
+    const manualSection = document.createElement('div');
+    manualSection.style.cssText = 'border-top:1px solid #e5e7eb; padding-top:12px;';
+    manualSection.innerHTML = `
+      <div style="font-size:0.9rem; font-weight:700; margin-bottom:8px;">Arkadaş olmayanı davet et</div>
+      <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <input id="communityInviteIdentifier" placeholder="Kullanıcı adı veya e-posta" style="flex:1; min-width:220px; box-sizing:border-box; border:1px solid #d1d5db; border-radius:999px; padding:10px 12px; background:#f9fafb; color:#111827;" />
+        <button type="button" id="communityInviteManualBtn" style="padding:10px 14px; border:none; border-radius:999px; background:linear-gradient(135deg, var(--primary), #818cf8); color:white; font-weight:700; cursor:pointer;">Davet Et</button>
+      </div>
+    `;
+
+    modal.appendChild(header);
+    modal.appendChild(searchBox);
+    modal.appendChild(friendsList);
+    modal.appendChild(manualSection);
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+
+    const closeBtn = document.getElementById('communityInviteCloseBtn');
+    closeBtn?.addEventListener('click', () => overlay.remove());
+
+    let inviteCommunityData = { ...communityData };
+    const meSnap = await getDoc(doc(db, 'users', currentUser.uid));
+    const currentUserData = meSnap.exists() ? meSnap.data() : {};
+    const friendUids = Array.isArray(currentUserData.friends) ? currentUserData.friends : [];
+    const friendProfiles = [];
+
+    for (const friendUid of friendUids) {
+      if (!friendUid) continue;
+      const friendSnap = await getDoc(doc(db, 'users', friendUid));
+      if (friendSnap.exists()) {
+        const friendData = friendSnap.data();
+        friendProfiles.push({ uid: friendSnap.id, displayName: friendData.displayName || friendData.username || friendData.email || 'Kullanıcı', username: friendData.username || '', email: friendData.email || '' });
+      }
+    }
+
+    const renderFriends = () => {
+      const term = searchBox.value.trim().toLowerCase();
+      const memberUids = getCommunityMemberUids(inviteCommunityData);
+      const invitedUids = getCommunityInvitedUids(inviteCommunityData);
+      const filteredFriends = friendProfiles.filter((friend) => {
+        const haystack = `${friend.displayName} ${friend.username} ${friend.email}`.toLowerCase();
+        return haystack.includes(term);
+      });
+
+      if (!filteredFriends.length) {
+        friendsList.innerHTML = '<div style="padding:12px; border:1px dashed #d1d5db; border-radius:16px; color:#6b7280;">Henüz arkadaşın yok veya arama sonucu boş.</div>';
+        return;
+      }
+
+      friendsList.innerHTML = filteredFriends.map((friend) => {
+        const isMember = memberUids.includes(friend.uid);
+        const isInvited = invitedUids.includes(friend.uid);
+        const disabled = isMember;
+        const label = isMember ? 'Üye' : isInvited ? 'Geri al' : 'Davet et';
+        const background = isMember ? '#f3f4f6' : isInvited ? '#fef2f2' : '#eef2ff';
+        const textColor = isMember ? '#6b7280' : isInvited ? '#dc2626' : '#4338ca';
+        return `
+          <button type="button" class="community-invite-friend-btn" data-uid="${friend.uid}" ${disabled ? 'disabled' : ''} style="display:flex; justify-content:space-between; align-items:center; gap:10px; width:100%; padding:10px 12px; border:1px solid ${isInvited ? '#fecaca' : '#e5e7eb'}; border-radius:16px; background:${background}; color:#111827; cursor:${disabled ? 'not-allowed' : 'pointer'}; text-align:left;">
+            <div>
+              <div style="font-weight:700;">${escapeHtml(friend.displayName)}</div>
+              <div style="font-size:0.78rem; color:#6b7280;">${escapeHtml(friend.username || friend.email || '')}</div>
+            </div>
+            <span style="font-size:0.8rem; font-weight:700; color:${textColor};">${escapeHtml(label)}</span>
+          </button>
+        `;
+      }).join('');
+
+      friendsList.querySelectorAll('.community-invite-friend-btn').forEach((button) => {
+        button.addEventListener('click', async () => {
+          const uid = button.getAttribute('data-uid');
+          const memberUidsNow = getCommunityMemberUids(inviteCommunityData);
+          const invitedUidsNow = getCommunityInvitedUids(inviteCommunityData);
+          const isInvitedNow = invitedUidsNow.includes(uid);
+          const isMemberNow = memberUidsNow.includes(uid);
+          if (isMemberNow) {
+            return;
+          }
+          const result = isInvitedNow
+            ? await retractCommunityInvite(communityRef, inviteCommunityData, uid)
+            : await inviteUserToCommunity(communityRef, inviteCommunityData, uid);
+          if (result.success) {
+            if (isInvitedNow) {
+              inviteCommunityData = {
+                ...inviteCommunityData,
+                invitedUsers: Array.isArray(inviteCommunityData.invitedUsers) ? inviteCommunityData.invitedUsers.filter((value) => value !== uid) : []
+              };
+            } else {
+              inviteCommunityData = {
+                ...inviteCommunityData,
+                invitedUsers: Array.isArray(inviteCommunityData.invitedUsers) ? [...new Set([...(inviteCommunityData.invitedUsers || []), uid])] : [uid]
+              };
+            }
+            renderFriends();
+            if (currentCommunityId === communityId) {
+              await openCommunityDetail(communityId);
+            }
+          } else {
+            alert(result.message);
+          }
+        });
+      });
     };
 
-    await updateDoc(targetUserRef, {
-      notifications: arrayUnion(inviteNotification)
-    });
+    renderFriends();
+    searchBox.addEventListener('input', renderFriends);
 
-    alert('Davet gönderildi.');
-    if (currentCommunityId === communityId) {
-      await openCommunityDetail(communityId);
-    }
+    const manualBtn = document.getElementById('communityInviteManualBtn');
+    const manualInput = document.getElementById('communityInviteIdentifier');
+    manualBtn?.addEventListener('click', async () => {
+      const identifier = manualInput?.value.trim();
+      if (!identifier) {
+        alert('Lütfen bir kullanıcı adı veya e-posta girin.');
+        return;
+      }
+
+      const normalizedIdentifier = identifier.toLowerCase();
+      const userQuery = query(collection(db, 'users'), where('username', '==', normalizedIdentifier));
+      const userSnap = await getDocs(userQuery);
+      let targetUserDoc = !userSnap.empty ? userSnap.docs[0] : null;
+
+      if (!targetUserDoc) {
+        const emailQuery = query(collection(db, 'users'), where('email', '==', normalizedIdentifier));
+        const emailSnap = await getDocs(emailQuery);
+        targetUserDoc = !emailSnap.empty ? emailSnap.docs[0] : null;
+      }
+
+      if (!targetUserDoc) {
+        alert('Bu kullanıcı bulunamadı.');
+        return;
+      }
+
+      const result = await inviteUserToCommunity(communityRef, inviteCommunityData, targetUserDoc.id);
+      if (result.success) {
+        inviteCommunityData = {
+          ...inviteCommunityData,
+          invitedUsers: Array.isArray(inviteCommunityData.invitedUsers) ? [...new Set([...(inviteCommunityData.invitedUsers || []), targetUserDoc.id])] : [targetUserDoc.id]
+        };
+        overlay.remove();
+        alert(result.message);
+        if (currentCommunityId === communityId) {
+          await openCommunityDetail(communityId);
+        }
+      } else {
+        alert(result.message);
+      }
+    });
   } catch (error) {
     console.error('Davet gönderilirken hata:', error);
     alert('Davet gönderilemedi.');
