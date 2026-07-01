@@ -10,7 +10,7 @@
     box-shadow: 0 24px 70px rgba(15, 23, 42, 0.18);
     display: none;
     flex-direction: column;
-    z-index: 9000;
+    z-index: 1000001;
     border: 1px solid rgba(148, 163, 184, 0.18);
     overflow: hidden;
     backdrop-filter: blur(12px);
@@ -402,8 +402,9 @@ body.dark-mode #emoji-picker button:hover {
         width: 28px;
         height: 28px;
     }
-    /* Mobilde butonlardaki metni gizle */
-    .chat-btn-text {
+    /* Mobilde yalnızca chat widget başlığındaki metni gizle */
+    .chat-widget-header .chat-btn-text,
+    .chat-lists-header .chat-btn-text {
         display: none !important;
     }
 }
@@ -467,7 +468,7 @@ body.dark-mode #emoji-picker button:hover {
     padding: 12px 20px;
     border-radius: 8px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    z-index: 9000;
+    z-index: 1000001;
     font-size: 0.9rem;
     font-weight: 600;
     cursor: pointer;
@@ -487,7 +488,7 @@ body.dark-mode #emoji-picker button:hover {
     padding: 12px 18px;
     border-radius: 12px;
     box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
-    z-index: 9000;
+    z-index: 1000001;
     font-size: 0.9rem;
     font-weight: 600;
     cursor: pointer;
@@ -529,7 +530,7 @@ body.dark-mode #emoji-picker button:hover {
     box-shadow: 0 24px 70px rgba(15, 23, 42, 0.18);
     display: none;
     flex-direction: column;
-    z-index: 9998;
+    z-index: 1000001;
     border: 1px solid rgba(148, 163, 184, 0.18);
     overflow: hidden;
     backdrop-filter: blur(12px);

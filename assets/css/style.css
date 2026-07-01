@@ -30,23 +30,16 @@
 
 /* Mobil: sohbet butonunda sadece metni ve rozetleri gizle, ikonu koru */
 @media (max-width: 768px) {
-    .header-msg-btn, #sendHeaderMessageBtn {
+    .header-msg-btn {
         display: inline-flex; /* keep layout but hide children */
         align-items: center;
         justify-content: center;
         gap: 0;
         padding: 6px;
     }
-    /* Gizlenecek: metin ve rozetler */
-    .header-msg-btn span,
-    #sendHeaderMessageBtn span,
-    #sendHeaderMessageBtn .nav-badge,
-    .header-msg-btn .nav-badge {
-        display: none !important;
-    }
+    /* Badge'leri göstermek isteyebilirsiniz; metinleri footer temasıyla göstermek için gizleme kaldırıldı */
     /* İkon görünür kalsın */
-    .header-msg-btn .fa-comments,
-    #sendHeaderMessageBtn .fa-comments {
+    .header-msg-btn .fa-comments {
         display: inline-block !important;
         font-size: 1.05rem;
     }
@@ -59,6 +52,10 @@ body {
     display: flex; 
     flex-direction: column; 
 }
+
+/* Floating theme button - hidden by default, shown on mobile */
+.floating-theme-btn { display: none; }
+
 
 /* Prevent horizontal overflow on mobile */
 html, body { overflow-x: hidden; }
@@ -1664,11 +1661,49 @@ header {
         min-width: 48px;
     }
 
-    /* Mobilde ana navigasyon butonlarındaki metinleri gizle (profil menüsü metinleri görünür kalsın) */
-    .header-nav-buttons .header-nav-btn span,
-    .header-logo-link .logo-text {
-        display: none !important;
+    /* Floating theme button (right-middle) */
+    .floating-theme-btn {
+        display: inline-flex !important;
+        position: fixed;
+        right: 14px;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        align-items: center;
+        justify-content: center;
+        background: var(--card-bg);
+        color: var(--text-main);
+        box-shadow: 0 10px 30px rgba(0,0,0,0.12);
+        z-index: 10080;
+        border: 1px solid var(--border);
+        cursor: pointer;
     }
+    .floating-theme-btn i { font-size: 1.05rem; }
+
+    .floating-theme-menu {
+        display: none;
+        position: fixed;
+        right: 74px;
+        top: 50%;
+        transform: translateY(-50%);
+        z-index: 10080;
+        background: var(--card-bg);
+        border: 1px solid var(--border);
+        box-shadow: 0 12px 40px rgba(0,0,0,0.12);
+        padding: 8px;
+        border-radius: 12px;
+        min-width: 120px;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+    .floating-theme-menu button { background: transparent; border: none; padding: 8px 10px; text-align: left; font-weight:700; color:var(--text-main); border-radius:8px; cursor:pointer; }
+    .floating-theme-menu button:hover{ background: rgba(99,102,241,0.06); }
+
+    /* Mobilde ana navigasyon butonlarındaki metinleri görünür bırak */
+    /* (Önceki kural kaldırıldı: logo ve ikon metinleri artık mobilde görünür) */
 
     .header-nav-btn {
         padding: 8px 10px;
@@ -2970,7 +3005,7 @@ transform: translateY(-5px); box-shadow: var(--shadow); border-color: var(--prim
 .card-cover { 
 height: 60px; background: var(--line-gradient); opacity: 0.7; }
 .card-body { 
-padding: 0 15px 15px; text-align: center; margin-top: -30px; }
+padding: 0 15px 15px; text-align: center; margin-top: -30px; gap: 0; }
 .card-avatar { 
 width: 60px; height: 60px; border-radius: 12px; border: 4px solid var(--card-bg); background: white; object-fit: cover; margin: 0 auto 10px; }
 
@@ -4080,10 +4115,17 @@ font-size: 0.9rem; font-weight: 800; color: var(--primary); margin: 20px 0 10px;
     /* Footer: don't force column layout on mobile — revert to desktop grid
        so footer appears as before on smaller screens. */
 
-    /* Hide chat-related button text on mobile (e.g. "Sohbet Et") */
-    .chat-btn-text,
-    .header-msg-btn span,
-    #sendHeaderMessageBtn span {
+    /* Hide mobile bottom nav when a side panel is open */
+    body.side-open #mobileBottomNav {
+        display: none !important;
+    }
+    /* Hide mobile bottom nav when chat is open */
+    body.chat-open #mobileBottomNav {
+        display: none !important;
+    }
+
+    /* Hide header chat button text on mobile, keep other chat texts visible */
+    .header-msg-btn span {
         display: none !important;
     }
 }
@@ -4588,6 +4630,9 @@ font-size: 0.9rem; font-weight: 800; color: var(--primary); margin: 20px 0 10px;
   .fab-compose { display: none; }
   /* Avoid content being hidden behind the bottom navigation */
   body { padding-bottom: 0px; }
+
+    /* Make header chat button look like mobile bottom nav action on small screens */
+    /* sendHeaderMessageBtn removed */
 
 /* Small utility for bottom nav icon badges */
 .nav-badge { background: #ef4444; color: #fff; border-radius: 999px; padding: 2px 6px; font-size: 0.7rem; font-weight:700; }

@@ -904,17 +904,14 @@ await updateDoc(currentUserRef, {
                   const imgEl = document.createElement('img');
                   if (avatar) {
                       imgEl.src = avatar;
+                      imgEl.alt = name;
+                      imgEl.style.cursor = 'pointer';
+                      imgEl.onclick = () => { window.location.href = `profil.html?id=${encodeURIComponent(uid)}`; };
                   } else {
                       imgEl.src = 'assets/img/strendsaydamv2.png';
+                      imgEl.alt = name;
                   }
-                  imgEl.onerror = function() { this.style.display = 'none'; };
                   item.appendChild(imgEl);
-                  const tooltip = document.createElement('div');
-                  tooltip.className = 'tooltip';
-                  tooltip.innerText = name;
-                  item.appendChild(tooltip);
-                  const profileId = docData.username || uid;
-                  item.onclick = () => { window.location.href = `profil.html?id=${encodeURIComponent(profileId)}`; };
                   recentList.appendChild(item);
                   console.log('Added user avatar:', name);
               });
@@ -6461,6 +6458,74 @@ document.addEventListener('DOMContentLoaded', () => {
         document.body.classList.remove('dark-mode');
     }
     syncThemeButtonState();
+    // Ensure mobile footer 'Tema' button (if present) is replaced with Chat button
+    try {
+        const mobileNav = document.getElementById('mobileBottomNav');
+        if (mobileNav) {
+            const themeBtn = document.getElementById('themeToggleBtnMobile');
+            if (themeBtn) {
+                themeBtn.id = 'mobileChatBtn';
+                themeBtn.classList.add('mobile-nav-item');
+                themeBtn.onclick = () => { if (typeof openChatsList === 'function') openChatsList(); };
+                themeBtn.setAttribute('aria-label', 'Sohbet');
+                themeBtn.innerHTML = '<i class="fa-solid fa-comments"></i><span>Sohbet</span>';
+            }
+        }
+    } catch (e) {
+        console.warn('Failed to normalize mobile footer chat button', e);
+    }
+
+    // Floating theme button (right-middle) for mobile: wire events
+    try {
+        const floatBtn = document.getElementById('floatingThemeBtn');
+        const floatMenu = document.getElementById('floatingThemeMenu');
+        if (floatBtn && floatMenu) {
+            // show button only on small screens
+            const onResize = () => {
+                if (window.innerWidth <= 768) {
+                    floatBtn.style.display = 'inline-flex';
+                } else {
+                    floatBtn.style.display = 'none';
+                    floatMenu.style.display = 'none';
+                }
+            };
+            onResize();
+            window.addEventListener('resize', onResize);
+
+            floatBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                floatMenu.style.display = (floatMenu.style.display === 'flex') ? 'none' : 'flex';
+            });
+
+            floatMenu.querySelectorAll('button').forEach(b => {
+                b.addEventListener('click', (ev) => {
+                    const mode = b.dataset.theme;
+                    if (mode === 'dark') {
+                        document.body.classList.add('dark-mode');
+                        localStorage.setItem('st_theme', 'dark');
+                    } else if (mode === 'light') {
+                        document.body.classList.remove('dark-mode');
+                        localStorage.setItem('st_theme', 'light');
+                    } else {
+                        // auto
+                        localStorage.removeItem('st_theme');
+                        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) document.body.classList.add('dark-mode'); else document.body.classList.remove('dark-mode');
+                    }
+                    syncThemeButtonState();
+                    floatMenu.style.display = 'none';
+                });
+            });
+
+            // close menu on outside click
+            document.addEventListener('click', (ev) => {
+                if (!floatMenu.contains(ev.target) && !floatBtn.contains(ev.target)) {
+                    floatMenu.style.display = 'none';
+                }
+            });
+        }
+    } catch (e) {
+        console.warn('floating theme init failed', e);
+    }
 });
 /* ============================ */
 
@@ -6985,6 +7050,7 @@ window.toggleLeftSidebar = function() {
     if (!sidebar) return;
     const isActive = sidebar.classList.toggle('active');
     if (overlay) overlay.classList.toggle('active', isActive);
+    document.body.classList.toggle('side-open', isActive);
     updatePanelCloseButton();
 }
 
@@ -6994,6 +7060,7 @@ window.toggleRightSidebar = function() {
     if (!rightPanel) return;
     const isActive = rightPanel.classList.toggle('active');
     if (overlay) overlay.classList.toggle('active', isActive);
+    document.body.classList.toggle('side-open', isActive);
     updatePanelCloseButton();
 }
 
@@ -7017,6 +7084,7 @@ window.closeSideMenus = function() {
     if (sidebar) sidebar.classList.remove('active');
     if (rightPanel) rightPanel.classList.remove('active');
     if (overlay) overlay.classList.remove('active');
+    document.body.classList.remove('side-open');
     updatePanelCloseButton();
 }
 
@@ -7290,6 +7358,21 @@ function applyFriendSearch() {
 
 // Arkadaşlar listesini yükle (isOwnProfile=true ise tüm arkadaşlar, false ise ortak arkadaşlar)
 async function loadFriendsList(userRef, isOwnProfile = true) {
+    // Koruma: aynı hedef için çok kısa sürede birden fazla çağrı gelirse tekrar işleme
+    try {
+        const visitedUsername = (new URLSearchParams(location.search)).get('id');
+        const targetKey = isOwnProfile ? (window.user?.uid || 'me') : (visitedUsername || 'visited');
+        window._friendsLoadMeta = window._friendsLoadMeta || { key: null, time: 0 };
+        const currentKey = `${targetKey}_${isOwnProfile ? 'own' : 'visited'}`;
+        if (window._friendsLoadMeta.key === currentKey && (Date.now() - window._friendsLoadMeta.time) < 800) {
+            // kısa süreli tekrarlanan çağrı varsa atla
+            return;
+        }
+        window._friendsLoadMeta.key = currentKey;
+        window._friendsLoadMeta.time = Date.now();
+    } catch (e) {
+        // ignore guard errors
+    }
     const friendsTab = document.getElementById('friends-list');
     const noFriendsMsg = document.getElementById('no-friends-msg');
     const friendsWidget = document.getElementById('friends-widget-list');
@@ -7303,7 +7386,16 @@ async function loadFriendsList(userRef, isOwnProfile = true) {
         searchInput.oninput = applyFriendSearch;
     }
 
-    if (!friendsTab || !auth || !auth.currentUser) return;
+    // Debug: DOM ve auth durumunu logla
+    console.debug('loadFriendsList called', { friendsTabExists: !!friendsTab, friendsWidgetExists: !!friendsWidget, friendsWidgetEmptyExists: !!friendsWidgetEmpty, friendsWidgetCountExists: !!friendsWidgetCount, authPresent: typeof auth !== 'undefined', currentUser: auth?.currentUser || null, userGlobal: window.user || null, isOwnProfile });
+    if (!friendsTab) {
+        console.warn('loadFriendsList: #friends-list bulunamadı');
+        return;
+    }
+    if (!auth || !auth.currentUser) {
+        console.warn('loadFriendsList: auth.currentUser yok, giriş yapılmamış olabilir');
+        return;
+    }
 
     try {
         let targetUserData = null;
@@ -7342,9 +7434,13 @@ async function loadFriendsList(userRef, isOwnProfile = true) {
             }
         }
         
-        if (!targetUserData) return;
+        if (!targetUserData) {
+            console.warn('loadFriendsList: targetUserData yok');
+            return;
+        }
         
         const friends = targetUserData.friends || [];
+        console.debug('loadFriendsList: targetUser:', targetUserData.username || targetUserData.displayName || targetUserData.email || targetUserData.uid, 'friendsRawCount:', friends.length, friends);
 
         // logged-in kullanıcının da arkadaş listesi (mutual hesapları için)
         let myFriends = [];
@@ -7364,14 +7460,17 @@ async function loadFriendsList(userRef, isOwnProfile = true) {
         if (!isOwnProfile) {
             displayFriends = friends.filter(f => myFriends.includes(f));
         }
+        // Tekrarlayan UID'leri kaldır (DB'de çift kayıt varsa tekrar gösterimi önle)
+        displayFriends = Array.isArray(displayFriends) ? Array.from(new Set(displayFriends)) : displayFriends;
 
-        if (displayFriends.length === 0) {
+        if (!Array.isArray(displayFriends) || displayFriends.length === 0) {
             friendsTab.innerHTML = '';
             if (friendsWidget) friendsWidget.innerHTML = '';
             if (friendsWidgetCount) friendsWidgetCount.innerText = '0 arkadaş';
             if (friendsWidgetEmpty) friendsWidgetEmpty.style.display = 'block';
             if (friendsWidgetViewAll) friendsWidgetViewAll.style.display = 'inline-block';
             noFriendsMsg.style.display = 'block';
+            console.debug('loadFriendsList: displayFriends boş veya array değil', displayFriends);
             return;
         }
 
@@ -7389,13 +7488,37 @@ async function loadFriendsList(userRef, isOwnProfile = true) {
 
         const previewLimit = displayFriends.length > 9 ? 8 : 9;
         const widgetItems = [];
-        // Her arkadaşın bilgisini çek
-        for (const friendUid of displayFriends) {
-            const friendRef = doc(db, "users", friendUid);
-            const friendDoc = await getDoc(friendRef);
-            
-            if (friendDoc.exists()) {
-                const friendData = friendDoc.data();
+        // Her arkadaşın bilgisini çek - önce UID ile dene, yoksa username olarak sorgula
+        for (const friendUidOrName of displayFriends) {
+            let friendDoc = null;
+            let friendData = null;
+            try {
+                // önce UID olarak dene
+                const potentialRef = doc(db, "users", friendUidOrName);
+                const potentialSnap = await getDoc(potentialRef);
+                if (potentialSnap && potentialSnap.exists()) {
+                    friendDoc = potentialSnap;
+                    friendData = friendDoc.data();
+                } else {
+                    // UID yoksa username ile ara
+                    try {
+                        const usersRef = collection(db, 'users');
+                        const q = query(usersRef, where('username', '==', friendUidOrName), limit(1));
+                        const qSnap = await getDocs(q);
+                        if (!qSnap.empty) {
+                            friendDoc = qSnap.docs[0];
+                            friendData = friendDoc.data();
+                        }
+                    } catch (innerErr) {
+                        console.warn('Friend lookup by username failed', innerErr);
+                    }
+                }
+            } catch (err) {
+                console.warn('Friend lookup error for', friendUidOrName, err);
+            }
+
+            if (friendDoc && friendDoc.exists()) {
+                // friendData already set above
 
                 // mutual friends sayısını hesapla
                 let mutualCount = 0;
@@ -7419,7 +7542,7 @@ async function loadFriendsList(userRef, isOwnProfile = true) {
                     min-height: 220px;
                 `;
                 
-                const mutualHtml = `<p class="mutual-info" data-uid="${friendUid}" 
+                const mutualHtml = `<p class="friend-card-mutual" data-uid="${friendDoc.id}" 
                         style="margin:4px 0 0 0; color:var(--text-muted); font-size:0.75rem; ${mutualCount > 0 ? 'cursor:pointer;' : ''}">
                         🌐 ${mutualCount} ortak arkadaş
                     </p>`;
@@ -7432,39 +7555,21 @@ async function loadFriendsList(userRef, isOwnProfile = true) {
                         <h4 style="margin: 8px 0 2px; font-size: 0.95rem; font-weight: 800; word-break: break-word;">${friendData.displayName || friendData.username}</h4>
                     </div>
                     ${mutualHtml}
-                    ${isOwnProfile ? `<button onclick="removeFriend('${friendUid}')" style="background: #ef4444; color: white; border: none; padding: 6px 12px; border-radius: 8px; cursor: pointer; font-size: 0.75rem; margin-top: 10px; transition: all 0.2s ease;" onmouseover="this.style.background='#dc2626'" onmouseout="this.style.background='#ef4444'">
+                    ${isOwnProfile ? `<button onclick="removeFriend('${friendDoc.id}')" style="background: #ef4444; color: white; border: none; padding: 6px 12px; border-radius: 8px; cursor: pointer; font-size: 0.75rem; margin-top: 10px; transition: all 0.2s ease;" onmouseover="this.style.background='#dc2626'" onmouseout="this.style.background='#ef4444'">
                         <i class="fa-solid fa-trash"></i> Sonlandır
                     </button>` : ''}
                 `;
-                // attach searchable text
-                friendCard.dataset.search = ((friendData.displayName || '') + ' ' + friendData.username).toLowerCase();
-                // removed debug
-
-                
-                // only need to bind mutual click, propagation no longer matters
+                // bind mutual click (uses .friend-card-mutual)
                 if (mutualCount > 0) {
-                    const mutualEl = friendCard.querySelector('.mutual-info');
-                    if (mutualEl) {
-                        mutualEl.addEventListener('click', () => {
-                            showMutuals(friendUid);
-                        });
-                    }
+                    const mutualEl = friendCard.querySelector('.friend-card-mutual');
+                    if (mutualEl) mutualEl.addEventListener('click', () => showMutuals(friendDoc.id));
                 }
-
                 // store searchable text as data attribute (name+username)
                 friendCard.dataset.search = ((friendData.displayName || '') + ' ' + friendData.username).toLowerCase();
                 
-                friendCard.addEventListener('mouseenter', () => {
-                    friendCard.style.transform = 'translateY(-5px)';
-                });
-                
-                friendCard.addEventListener('mouseleave', () => {
-                    friendCard.style.transform = 'translateY(0)';
-                });
-                
                 friendsTab.appendChild(friendCard);
                 if (widgetItems.length < previewLimit && friendsWidget) {
-                    widgetItems.push({ uid: friendUid, data: friendData, mutualCount });
+                    widgetItems.push({ uid: friendDoc.id, data: friendData, mutualCount });
                 }
             }
         }
@@ -9187,10 +9292,12 @@ window.openChatsList = async function() {
     const panel = document.getElementById('chat-lists-panel');
     if (panel.classList.contains('active')) {
         panel.classList.remove('active');
+        document.body.classList.remove('chat-open');
         return;
     }
     
     panel.classList.add('active');
+    document.body.classList.add('chat-open');
     loadRecentChats();
 }
 
@@ -9200,6 +9307,7 @@ window.closeChatsList = function() {
     if (panel) {
         panel.classList.remove('active');
     }
+    document.body.classList.remove('chat-open');
 }
 
 window.openUnreadChatsPanel = async function() {
@@ -9483,19 +9591,15 @@ async function updateChatUnreadIndicator() {
             }
         }
 
-        // Update header 'Sohbet Et' badge
+        // Update header 'Sohbet Et' badge only if header button is still used for chat
         const headerBadge = document.getElementById('header-chat-unread');
-        const headerBtn = document.getElementById('sendHeaderMessageBtn');
-
         if (headerBadge) {
             if (totalUnread > 0) {
                 headerBadge.style.display = 'inline-flex';
                 headerBadge.textContent = totalUnread === 1 ? '1' : `${totalUnread}`;
-                if (headerBtn) headerBtn.classList.add('has-unread');
             } else {
                 headerBadge.style.display = 'none';
                 headerBadge.textContent = '0';
-                if (headerBtn) headerBtn.classList.remove('has-unread');
             }
         }
     } catch (error) {
@@ -9726,6 +9830,7 @@ window.openChatWithUser = async function(userId, displayName) {
         // Show widget
         const widgetEl = document.getElementById('chat-widget-container');
         widgetEl.classList.add('active');
+        document.body.classList.add('chat-open');
 
         const clearButton = document.getElementById('chat-clear-btn');
         if (clearButton) {
@@ -10075,6 +10180,7 @@ window.closeChatWidget = function() {
     if (widgetEl) {
         widgetEl.classList.remove('active');
     }
+    document.body.classList.remove('chat-open');
 
     const clearButton = document.getElementById('chat-clear-btn');
     if (clearButton) {

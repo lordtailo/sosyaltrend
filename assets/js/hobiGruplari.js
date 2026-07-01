@@ -237,6 +237,7 @@ window.openGroupChat = async function(groupId, groupName, memberIds = []) {
 
   const widgetEl = document.getElementById('group-chat-widget-container');
   widgetEl.classList.add('active');
+  document.body.classList.add('chat-open');
 
   loadGroupChatMessages(conversationId);
 };
@@ -244,6 +245,7 @@ window.openGroupChat = async function(groupId, groupName, memberIds = []) {
 window.closeGroupChat = function() {
   const widget = document.getElementById('group-chat-widget-container');
   if (widget) widget.classList.remove('active');
+  document.body.classList.remove('chat-open');
 
   if (groupChatState.unsubscribe) {
     groupChatState.unsubscribe();

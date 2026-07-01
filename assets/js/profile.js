@@ -201,7 +201,9 @@ async function loadSaves(username) {
 }
 
 async function loadFriendProfiles(profileData) {
-  const friendUids = Array.isArray(profileData.friends) ? profileData.friends.slice(0, 12) : [];
+  let friendUids = Array.isArray(profileData.friends) ? profileData.friends.slice(0, 12) : [];
+  // Tekrarlayan UID'leri kaldır
+  friendUids = Array.from(new Set(friendUids));
   if (!friendUids.length) return [];
   const friends = [];
   await Promise.all(friendUids.map(async (uid) => {
