@@ -257,7 +257,7 @@ function renderPostComments(container, comments) {
     const commentUsername = comment.authorUsername || formatCommunityUsername(commentDisplayName);
     const commentAvatar = getCommunityAvatarUrl(comment.authorAvatarUrl);
     return `
-      <div style="padding:10px 0; border-top:1px solid var(--border); display:flex; justify-content:space-between; gap:8px; align-items:flex-start;">
+      <div class="comment-item" data-comment-id="${comment.id}" style="padding:10px 0; border-top:1px solid var(--border); display:flex; justify-content:space-between; gap:8px; align-items:flex-start;">
         <div style="display:flex; gap:8px; flex:1;">
           <img src="${escapeHtml(commentAvatar)}" alt="${escapeHtml(commentDisplayName)}" style="width:28px; height:28px; border-radius:50%; object-fit:cover;" onerror="this.onerror=null;this.src='assets/img/strendsaydamv2.png';">
           <div style="flex:1;">
@@ -273,17 +273,21 @@ function renderPostComments(container, comments) {
             </div>
           </div>
         </div>
-        ${canManageComment ? `<div style="display:flex; gap:6px;">
-          <button class="comment-edit-btn" data-comment-id="${comment.id}" data-post-id="${comment.postId || ''}" style="background:none; border:none; color:var(--primary); cursor:pointer; font-size:0.8rem;">Düzenle</button>
-          <button class="comment-delete-btn" data-comment-id="${comment.id}" data-post-id="${comment.postId || ''}" style="background:none; border:none; color:#ef4444; cursor:pointer; font-size:0.8rem;">Sil</button>
+        ${canManageComment ? `<div style="display:flex; align-items:center; gap:6px; flex-shrink:0; margin-left:8px;">
+          <button class="community-action-btn community-action-btn--edit" data-comment-id="${comment.id}" data-post-id="${comment.postId || ''}" title="Düzenle" aria-label="Düzenle">
+            <i class="fa-solid fa-pen"></i>
+          </button>
+          <button class="community-action-btn community-action-btn--delete" data-comment-id="${comment.id}" data-post-id="${comment.postId || ''}" title="Sil" aria-label="Sil">
+            <i class="fa-solid fa-trash"></i>
+          </button>
         </div>` : ''}
       </div>
     `;
   }).join('');
 
-  container.querySelectorAll('.comment-edit-btn').forEach((button) => {
+  container.querySelectorAll('.community-action-btn--edit[data-comment-id]').forEach((button) => {
     button.addEventListener('click', () => {
-      const commentCard = button.closest('div').parentElement;
+      const commentCard = button.closest('.comment-item');
       const contentView = commentCard?.querySelector('.comment-content-view');
       const editArea = commentCard?.querySelector('.comment-edit-area');
       if (contentView && editArea) {
@@ -295,7 +299,7 @@ function renderPostComments(container, comments) {
 
   container.querySelectorAll('.comment-cancel-edit-btn').forEach((button) => {
     button.addEventListener('click', () => {
-      const commentCard = button.closest('div').parentElement;
+      const commentCard = button.closest('.comment-item');
       const contentView = commentCard?.querySelector('.comment-content-view');
       const editArea = commentCard?.querySelector('.comment-edit-area');
       if (contentView && editArea) {
@@ -309,7 +313,7 @@ function renderPostComments(container, comments) {
     button.addEventListener('click', async () => {
       const commentId = button.getAttribute('data-comment-id');
       const postId = button.getAttribute('data-post-id');
-      const commentCard = button.closest('div').parentElement;
+      const commentCard = button.closest('.comment-item');
       const textarea = commentCard?.querySelector('.comment-edit-textarea');
       const content = textarea?.value.trim();
       if (!content) {
@@ -328,7 +332,7 @@ function renderPostComments(container, comments) {
     });
   });
 
-  container.querySelectorAll('.comment-delete-btn').forEach((button) => {
+  container.querySelectorAll('.community-action-btn--delete[data-comment-id]').forEach((button) => {
     button.addEventListener('click', async () => {
       const commentId = button.getAttribute('data-comment-id');
       const postId = button.getAttribute('data-post-id');
@@ -379,12 +383,12 @@ function renderCommunityPosts(container, posts) {
     const avatarUrl = getCommunityAvatarUrl(post.authorAvatarUrl);
     return `
       <article class="post" style="padding:20px; border-radius:18px; position:relative; margin-bottom:16px; background:linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03)); border:1px solid var(--border); box-shadow:0 10px 28px rgba(15, 23, 42, 0.06);">
-        <div style="position:absolute; top:16px; right:16px; display:flex; gap:8px; z-index:10;">
+        <div style="position:absolute; top:14px; right:14px; display:flex; align-items:center; gap:8px; z-index:10;">
           ${canManagePost ? `
-            <button class="post-edit-btn" data-post-id="${post.id}" title="Düzenle">
+            <button class="community-action-btn community-action-btn--edit" data-post-id="${post.id}" title="Düzenle" aria-label="Düzenle">
               <i class="fa-solid fa-pen"></i>
             </button>
-            <button class="post-delete-btn" data-post-id="${post.id}" title="Sil">
+            <button class="community-action-btn community-action-btn--delete" data-post-id="${post.id}" title="Sil" aria-label="Sil">
               <i class="fa-solid fa-trash"></i>
             </button>
           ` : ''}
@@ -427,7 +431,7 @@ function renderCommunityPosts(container, posts) {
     `;
   }).join('');
 
-  container.querySelectorAll('.post-edit-btn').forEach((button) => {
+  container.querySelectorAll('.community-action-btn--edit[data-post-id]:not([data-comment-id])').forEach((button) => {
     button.addEventListener('click', () => {
       const postCard = button.closest('.post');
       const contentView = postCard?.querySelector('.post-content-view');
@@ -480,7 +484,7 @@ function renderCommunityPosts(container, posts) {
     });
   });
 
-  container.querySelectorAll('.post-delete-btn').forEach((button) => {
+  container.querySelectorAll('.community-action-btn--delete[data-post-id]:not([data-comment-id])').forEach((button) => {
     button.addEventListener('click', async () => {
       const postId = button.getAttribute('data-post-id');
       const confirmed = confirm('Bu gönderiyi silmek istediğinize emin misiniz?');

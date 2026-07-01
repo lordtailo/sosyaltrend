@@ -3686,6 +3686,8 @@ transition: transform 0.3s ease, box-shadow 0.3s ease;
    opacity: 0.4; 
    transition: 0.2s; 
    font-size: 0.9rem;
+   padding: 0;
+   line-height: 1;
 }
 
 .post-delete-btn:hover { 
@@ -3700,6 +3702,8 @@ transition: transform 0.3s ease, box-shadow 0.3s ease;
    opacity: 0.6;
    transition: 0.2s;
    font-size: 0.9rem;
+   padding: 0;
+   line-height: 1;
 }
 
 .post-edit-btn:hover {
@@ -3715,10 +3719,61 @@ transition: transform 0.3s ease, box-shadow 0.3s ease;
    transition: 0.2s;
    padding: 0;
    font-size: 0.75rem;
+   line-height: 1;
 }
 
 .comment-delete-btn:hover {
    opacity: 1;
+}
+
+.comment-edit-btn {
+   background: none;
+   border: none;
+   color: var(--primary);
+   cursor: pointer;
+   opacity: 0.85;
+   transition: 0.2s;
+   padding: 0;
+   font-size: 0.75rem;
+   line-height: 1;
+}
+
+.comment-edit-btn:hover {
+   opacity: 1;
+}
+
+.community-action-btn {
+   display: inline-flex;
+   align-items: center;
+   justify-content: center;
+   width: 28px;
+   height: 28px;
+   border: none;
+   border-radius: 999px;
+   background: rgba(255,255,255,0.08);
+   color: var(--text-main);
+   cursor: pointer;
+   transition: transform 0.2s ease, background 0.2s ease, color 0.2s ease;
+   box-shadow: 0 4px 10px rgba(15, 23, 42, 0.08);
+   padding: 0;
+}
+
+.community-action-btn:hover {
+   transform: translateY(-1px);
+   background: rgba(255,255,255,0.16);
+}
+
+.community-action-btn--edit {
+   color: var(--primary);
+}
+
+.community-action-btn--delete {
+   color: #ef4444;
+}
+
+.community-action-btn i {
+   font-size: 0.8rem;
+   line-height: 1;
 }
 
 .post-time { 
