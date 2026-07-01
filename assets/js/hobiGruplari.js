@@ -73,7 +73,7 @@ const renderGroupCard = (docSnap, currentUid) => {
       <button class="form-btn" data-action="${isJoined ? 'leave' : 'join'}">${isJoined ? 'Ayrıl' : 'Katıl'}</button>
       <button class="form-btn" style="background: var(--primary);" data-action="chat">Sohbet</button>
       <button class="form-btn" style="background: var(--primary);" data-action="toggle">Detay</button>
-      ${isOwner ? `<button class="form-btn" style="background: var(--danger);" data-action="delete">Sil</button>` : ''}
+      ${isOwner ? `<button class="form-btn" style="background: #dc3545; color: #fff;" data-action="delete"><i class="fa-solid fa-trash"></i> Sil</button>` : ''}
     </div>
   `;
 
@@ -122,6 +122,10 @@ const renderGroupCard = (docSnap, currentUid) => {
       if (!yes) return;
       try {
         await deleteDoc(doc(groupsCollection, groupId));
+        try {
+          await deleteDoc(doc(db, 'conversations', `group_${groupId}`));
+        } catch (_) {}
+        card.remove();
       } catch (err) {
         console.error('Grup silme hatası:', err);
         alert('Grup silinemedi. Lütfen tekrar deneyin.');

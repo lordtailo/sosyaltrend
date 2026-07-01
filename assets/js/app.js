@@ -9473,6 +9473,48 @@ function resetConversationListItemState(conversationId) {
     });
 }
 
+function getHiddenConversationListStorageKey() {
+    return `chat-hidden-conversations:${auth.currentUser?.uid || 'guest'}`;
+}
+
+function getHiddenConversationIds() {
+    try {
+        const stored = localStorage.getItem(getHiddenConversationListStorageKey());
+        if (!stored) return [];
+        const parsed = JSON.parse(stored);
+        return Array.isArray(parsed) ? parsed.filter(Boolean) : [];
+    } catch (error) {
+        console.warn('Gizlenen sohbetler okunamadı:', error);
+        return [];
+    }
+}
+
+function saveHiddenConversationIds(hiddenIds) {
+    try {
+        localStorage.setItem(getHiddenConversationListStorageKey(), JSON.stringify(hiddenIds));
+    } catch (error) {
+        console.warn('Gizlenen sohbetler kaydedilemedi:', error);
+    }
+}
+
+function hideConversationFromRecentChats(conversationId) {
+    if (!conversationId) return;
+    const normalizedId = String(conversationId);
+    const currentHiddenIds = getHiddenConversationIds();
+    if (currentHiddenIds.includes(normalizedId)) return;
+    const nextHiddenIds = [...currentHiddenIds, normalizedId];
+    saveHiddenConversationIds(nextHiddenIds);
+}
+
+function unhideConversationFromRecentChats(conversationId) {
+    if (!conversationId) return;
+    const normalizedId = String(conversationId);
+    const currentHiddenIds = getHiddenConversationIds();
+    if (!currentHiddenIds.includes(normalizedId)) return;
+    const nextHiddenIds = currentHiddenIds.filter(id => id !== normalizedId);
+    saveHiddenConversationIds(nextHiddenIds);
+}
+
 async function markConversationAsRead(conversationId) {
     if (!conversationId || !auth.currentUser) return;
 
@@ -9511,16 +9553,24 @@ function initChatWidget() {
                 </div>
             </div>
             <div class="chat-header-actions">
-                <button id="chat-clear-btn" type="button" onclick="window.clearChatHistory()" class="chat-clear-btn" style="display:none;">
-                    <i class="fa-solid fa-trash-can"></i> Geçmişi Sil
-                </button>
                 <button id="chat-widget-add-friend-btn" type="button" class="chat-action-secondary chat-widget-add-friend-btn" onclick="addFriendToChatUser()" title="Arkadaş ekle" style="display:none;">
                     <i class="fa-solid fa-user-plus"></i> Arkadaş Ekle
                 </button>
-                <button class="close-btn" onclick="closeChatWidget()" title="Kapat">
-                    <i class="fa-solid fa-times"></i>
-                </button>
             </div>
+        </div>
+        <div id="group-chat-actions-bar" class="group-chat-actions-bar" style="display:none;">
+            <button id="group-chat-delete-btn" type="button" class="group-chat-header-action-btn danger" onclick="window.deleteCurrentGroupChat()" style="display:none;" title="Grubu sil">
+                <i class="fa-solid fa-trash"></i> <span>Sil</span>
+            </button>
+            <button id="group-chat-leave-btn" type="button" class="group-chat-header-action-btn secondary" onclick="window.leaveCurrentGroupChat()" style="display:none;" title="Gruptan ayrıl">
+                <i class="fa-solid fa-right-from-bracket"></i> <span>Gruptan Ayrıl</span>
+            </button>
+            <button id="chat-clear-btn" type="button" onclick="window.clearChatHistory()" class="chat-clear-btn" style="display:none;">
+                <i class="fa-solid fa-trash-can"></i> Geçmişi Sil
+            </button>
+            <button class="close-btn group-chat-close-btn" onclick="closeChatWidget()" title="Kapat">
+                <i class="fa-solid fa-times"></i>
+            </button>
         </div>
         <div id="group-chat-members-bar" class="group-chat-members-bar" style="display:none;"></div>
         <div class="chat-widget-messages" id="chat-widget-messages">
@@ -9539,9 +9589,6 @@ function initChatWidget() {
                 placeholder="Mesaj yaz..."
                 onkeypress="handleChatKeypress(event)"
             >
-            <button id="chat-emoji-btn" onclick="window.toggleEmojiPicker()" title="Emoji ekle" class="emoji-btn">
-                <i class="fa-solid fa-face-smile"></i>
-            </button>
             <button onclick="sendChatMessage()" id="chat-send-btn">
                 <i class="fa-solid fa-paper-plane"></i>
             </button>
@@ -9568,6 +9615,28 @@ function setGroupMembersBarVisible(visible) {
     const bar = document.getElementById('group-chat-members-bar');
     if (!bar) return;
     bar.style.display = visible ? 'flex' : 'none';
+}
+
+function setGroupChatHeaderActionsVisibility(isGroup = false, ownerUid = null) {
+    const actionsBar = document.getElementById('group-chat-actions-bar');
+    const deleteBtn = document.getElementById('group-chat-delete-btn');
+    const leaveBtn = document.getElementById('group-chat-leave-btn');
+    const clearBtn = document.getElementById('chat-clear-btn');
+    const currentUserId = auth.currentUser?.uid;
+    const canDelete = Boolean(isGroup && currentUserId && ownerUid && currentUserId === ownerUid);
+
+    if (actionsBar) {
+        actionsBar.style.display = isGroup ? 'flex' : 'none';
+    }
+    if (deleteBtn) {
+        deleteBtn.style.display = canDelete ? 'inline-flex' : 'none';
+    }
+    if (leaveBtn) {
+        leaveBtn.style.display = isGroup ? 'inline-flex' : 'none';
+    }
+    if (clearBtn) {
+        clearBtn.style.display = isGroup ? 'inline-flex' : 'none';
+    }
 }
 
 async function renderGroupChatMembersBar(participantIds = []) {
@@ -9748,6 +9817,10 @@ function removeGroupCreateActionButton(container) {
 
 window.openConversationFromList = async function(conversationId, displayName, isGroup) {
     if (!auth.currentUser) return;
+
+    if (conversationId) {
+        unhideConversationFromRecentChats(conversationId);
+    }
 
     if (isGroup) {
         const normalizedConversationId = String(conversationId || '');
@@ -10008,6 +10081,7 @@ window.loadRecentChats = async function() {
             return;
         }
 
+        const hiddenConversationIds = getHiddenConversationIds();
         const recentChats = [];
         for (const docSnap of convSnap.docs) {
             const convData = docSnap.data();
@@ -10015,6 +10089,10 @@ window.loadRecentChats = async function() {
             const conversationId = docSnap.id;
             const lastMessage = convData.lastMessage || 'Yeni sohbet';
             const unreadCount = convData.unreadCount?.[currentUserId] || 0;
+
+            if (hiddenConversationIds.includes(String(conversationId))) {
+                continue;
+            }
 
             if (isGroup) {
                 const groupName = convData.groupName || 'Grup Sohbeti';
@@ -10086,6 +10164,9 @@ window.loadRecentChats = async function() {
                             ${!chat.isGroup ? `<button class="chat-friend-action chat-friend-profile" title="Profili git" onclick="event.stopPropagation(); window.location.href='profil.html?id=${encodeURIComponent(chat.username)}'">
                                 <i class="fa-solid fa-user"></i>
                             </button>` : ''}
+                            <button class="chat-friend-action chat-friend-close" title="Sohbeti kapat" onclick="event.stopPropagation(); window.closeConversationFromList(this)">
+                                <i class="fa-solid fa-times"></i>
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -10116,6 +10197,9 @@ window.loadRecentChats = async function() {
                         ${!chat.isGroup ? `<button class="chat-friend-action chat-friend-profile" title="Profili git" onclick="event.stopPropagation(); window.location.href='profil.html?id=${encodeURIComponent(chat.username)}'">
                             <i class="fa-solid fa-user"></i>
                         </button>` : ''}
+                        <button class="chat-friend-action chat-friend-close" title="Sohbeti kapat" onclick="event.stopPropagation(); window.closeConversationFromList(this)">
+                            <i class="fa-solid fa-times"></i>
+                        </button>
                     </div>
                 `;
                 hiddenItem.onclick = () => window.openConversationFromList(chat.conversationId, chat.displayName, chat.isGroup);
@@ -10127,6 +10211,30 @@ window.loadRecentChats = async function() {
         friendsList.innerHTML = '<div class="chat-lists-empty"><i class="fa-solid fa-circle-exclamation"></i><p>Sohbetler yüklenemedi</p></div>';
     }
 }
+
+window.closeConversationFromList = function(buttonEl) {
+    const item = buttonEl?.closest('.chat-friend-item');
+    if (!item) return;
+
+    const conversationId = item.dataset.conversationId;
+    if (conversationId) {
+        hideConversationFromRecentChats(conversationId);
+    }
+
+    item.remove();
+
+    const friendsList = document.getElementById('chat-friends-list');
+    if (!friendsList) return;
+
+    const remainingItems = friendsList.querySelectorAll('.chat-friend-item');
+    if (remainingItems.length === 0) {
+        const titleEl = document.querySelector('.chat-lists-title');
+        const emptyMessage = titleEl?.textContent?.includes('Arkadaşlar')
+            ? '<div class="chat-lists-empty"><i class="fa-solid fa-user-check"></i><p>Liste temizlendi</p></div>'
+            : '<div class="chat-lists-empty"><i class="fa-solid fa-comment-slash"></i><p>Henüz sohbetiniz yok</p></div>';
+        friendsList.innerHTML = emptyMessage;
+    }
+};
 
 window.showMoreRecentChats = function() {
     document.querySelectorAll('.chat-friend-item.hidden-recent').forEach(item => {
@@ -10455,6 +10563,7 @@ window.openChatWithUser = async function(userId, displayName) {
         if (clearButton) {
             clearButton.style.display = 'inline-flex';
         }
+        setGroupChatHeaderActionsVisibility(false);
         
         // Load messages
         loadChatMessages(conversationId);
@@ -10524,7 +10633,7 @@ window.addFriendToChatUser = async function() {
 };
 
 // Open group chat (hobi grubu sohbeti)
-window.openGroupChat = async function(groupId, groupName, memberIds = []) {
+window.openGroupChat = async function(groupId, groupName, memberIds = [], ownerUid = null) {
     if (!auth.currentUser) {
         alert('Lütfen giriş yapın');
         return;
@@ -10541,9 +10650,10 @@ window.openGroupChat = async function(groupId, groupName, memberIds = []) {
     const convRef = doc(db, 'conversations', conversationId);
     const convSnap = await getDoc(convRef);
     const existingParticipants = convSnap.exists() ? (convSnap.data().participants || []) : [];
+    const shouldIncludeCurrentUser = !convSnap.exists() || existingParticipants.includes(currentUserId) || (memberIds || []).includes(currentUserId);
 
-    // Ensure current user is part of participants
-    const participants = Array.from(new Set([...(memberIds || []), ...existingParticipants, currentUserId]));
+    // Ensure current user is part of participants only when the group conversation should still include them.
+    const participants = Array.from(new Set([...(memberIds || []), ...existingParticipants, ...(shouldIncludeCurrentUser ? [currentUserId] : [])]));
 
     if (!convSnap.exists()) {
         const unreadCount = participants.reduce((acc, id) => ({ ...acc, [id]: 0 }), {});
@@ -10556,7 +10666,8 @@ window.openGroupChat = async function(groupId, groupName, memberIds = []) {
             createdAt: serverTimestamp(),
             group: true,
             groupId,
-            groupName: groupName || 'Hobi Grubu Sohbeti'
+            groupName: groupName || 'Hobi Grubu Sohbeti',
+            ownerUid: ownerUid || currentUserId
         });
     } else {
         const existing = convSnap.data().participants || [];
@@ -10566,11 +10677,13 @@ window.openGroupChat = async function(groupId, groupName, memberIds = []) {
         }
     }
 
+    const resolvedOwnerUid = convSnap.exists() ? (convSnap.data().ownerUid || ownerUid || currentUserId) : (ownerUid || currentUserId);
+
     currentConversationId = conversationId;
     currentChatUserId = conversationId;
     currentConversationIsGroup = true;
     currentGroupMembers = [];
-    currentChatUsername = `👥 ${groupName || 'Hobi Grubu Sohbeti'}`;
+    currentChatUsername = groupName || 'Hobi Grubu Sohbeti';
     await markConversationAsRead(conversationId);
 
     const titleEl = document.getElementById('chat-widget-title');
@@ -10586,9 +10699,106 @@ window.openGroupChat = async function(groupId, groupName, memberIds = []) {
         clearButton.style.display = 'inline-flex';
     }
 
+    setGroupChatHeaderActionsVisibility(true, resolvedOwnerUid);
     await renderGroupChatMembersBar(participants);
     loadChatMessages(conversationId);
     resetChatInactivityTimer();
+};
+
+window.deleteCurrentGroupChat = async function() {
+    if (!currentConversationId || !auth.currentUser || !currentConversationIsGroup) return;
+
+    const confirmed = confirm('Bu grubu silmek istediğinize emin misiniz?');
+    if (!confirmed) return;
+
+    try {
+        const conversationRef = doc(db, 'conversations', currentConversationId);
+        const conversationSnap = await getDoc(conversationRef);
+        if (!conversationSnap.exists()) {
+            alert('Bu grup bulunamadı.');
+            return;
+        }
+
+        const conversationData = conversationSnap.data() || {};
+        if (conversationData.ownerUid && conversationData.ownerUid !== auth.currentUser.uid) {
+            alert('Sadece grup kurucusu bu grubu silebilir.');
+            return;
+        }
+
+        await deleteDoc(conversationRef);
+        window.closeChatWidget();
+        alert('Grup silindi.');
+    } catch (error) {
+        console.error('Grup silme hatası:', error);
+        alert('Grup silinemedi. Lütfen tekrar deneyin.');
+    }
+};
+
+window.leaveCurrentGroupChat = async function() {
+    if (!currentConversationId || !auth.currentUser || !currentConversationIsGroup) return;
+
+    const confirmed = confirm('Bu gruptan ayrılmak istediğinize emin misiniz?');
+    if (!confirmed) return;
+
+    try {
+        const conversationRef = doc(db, 'conversations', currentConversationId);
+        const conversationSnap = await getDoc(conversationRef);
+        if (!conversationSnap.exists()) {
+            window.closeChatWidget();
+            return;
+        }
+
+        const conversationData = conversationSnap.data() || {};
+        const currentParticipants = Array.isArray(conversationData.participants) ? conversationData.participants : [];
+        const remainingParticipants = currentParticipants.filter((participantId) => participantId !== auth.currentUser.uid);
+        const unreadCount = { ...(conversationData.unreadCount || {}) };
+        delete unreadCount[auth.currentUser.uid];
+
+        if (!remainingParticipants.length) {
+            await deleteDoc(conversationRef);
+            window.closeChatWidget();
+            alert('Grup silindi çünkü son üye sizdiniz.');
+            return;
+        }
+
+        const userRef = doc(db, 'users', auth.currentUser.uid);
+        const userSnap = await getDoc(userRef);
+        const currentUserData = userSnap.exists() ? userSnap.data() : {};
+        const leavingUserName = currentUserData.displayName || currentUserData.username || 'Kullanıcı';
+
+        const systemMessage = {
+            senderId: 'system',
+            senderName: 'Sistem',
+            senderAvatar: 'assets/img/strendsaydamv2.png',
+            text: `${leavingUserName} sohbetten ayrıldı.`,
+            createdAt: serverTimestamp()
+        };
+
+        const updates = {
+            participants: remainingParticipants,
+            unreadCount
+        };
+
+        if (conversationData.ownerUid === auth.currentUser.uid) {
+            updates.ownerUid = remainingParticipants[0];
+        }
+
+        await Promise.all([
+            addDoc(collection(db, 'conversations', currentConversationId, 'messages'), systemMessage),
+            updateDoc(conversationRef, {
+                ...updates,
+                lastMessage: systemMessage.text,
+                lastMessageAt: serverTimestamp(),
+                lastSenderId: 'system'
+            })
+        ]);
+
+        window.closeChatWidget();
+        alert('Gruptan ayrıldınız.');
+    } catch (error) {
+        console.error('Grup ayrılma hatası:', error);
+        alert('Gruptan ayrılırken bir hata oluştu.');
+    }
 };
 
 // Load messages for current conversation
@@ -10818,6 +11028,7 @@ window.closeChatWidget = function() {
     currentConversationIsGroup = false;
     currentGroupMembers = [];
     setGroupMembersBarVisible(false);
+    setGroupChatHeaderActionsVisibility(false);
     
     if (messagesUnsubscribe) {
         messagesUnsubscribe();
