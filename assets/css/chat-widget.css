@@ -148,6 +148,55 @@
     font-weight: 700;
 }
 
+.group-chat-members-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border, rgba(15, 23, 42, 0.08));
+    background: rgba(15, 23, 42, 0.03);
+}
+
+.group-chat-members-list {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-wrap: wrap;
+}
+
+.group-chat-member-avatar {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 1px solid var(--card-bg);
+}
+
+.group-chat-member-more {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--primary);
+    color: #fff;
+    font-size: 0.72rem;
+    font-weight: 700;
+}
+
+.group-chat-view-members-btn {
+    border: none;
+    background: var(--danger);
+    color: #fff;
+    padding: 8px 10px;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+
 .chat-widget-messages {
     flex: 1;
     overflow-y: auto;
@@ -902,7 +951,18 @@ body.dark-mode #emoji-picker button:hover {
     background: rgba(99, 102, 241, 0.16);
     transform: translateY(-1px);
 }
+.chat-friend-action.group-conversation-action {
+    background: var(--danger);
+    color: #fff;
+}
 
+.chat-friend-action.group-conversation-action i {
+    color: #fff;
+}
+
+.chat-friend-action.group-conversation-action:hover {
+    background: #b91c1c;
+}
 .chat-last-sender {
     display: inline-flex;
     align-items: center;

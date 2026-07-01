@@ -9448,6 +9448,8 @@ window.cancelFriendRequestToUid = cancelFriendRequestToUid;
 let currentChatUserId = null;
 let currentChatUsername = null;
 let currentConversationId = null;
+let currentConversationIsGroup = false;
+let currentGroupMembers = [];
 let chatInactivityTimer = null;
 let messagesUnsubscribe = null;
 let typingUnsubscribe = null;
@@ -9483,6 +9485,7 @@ function initChatWidget() {
                 </button>
             </div>
         </div>
+        <div id="group-chat-members-bar" class="group-chat-members-bar" style="display:none;"></div>
         <div class="chat-widget-messages" id="chat-widget-messages">
             <div class="chat-empty">
                 <i class="fa-regular fa-comment"></i>
@@ -9523,6 +9526,104 @@ function initChatWidget() {
         updateChatUnreadIndicator();
     }
 }
+
+function setGroupMembersBarVisible(visible) {
+    const bar = document.getElementById('group-chat-members-bar');
+    if (!bar) return;
+    bar.style.display = visible ? 'flex' : 'none';
+}
+
+async function renderGroupChatMembersBar(participantIds = []) {
+    const bar = document.getElementById('group-chat-members-bar');
+    if (!bar) return;
+
+    if (!currentConversationIsGroup || !participantIds.length) {
+        currentGroupMembers = [];
+        setGroupMembersBarVisible(false);
+        bar.innerHTML = '';
+        return;
+    }
+
+    const uniqueIds = Array.from(new Set(participantIds.filter(Boolean)));
+    const members = [];
+    const currentUserId = auth.currentUser?.uid;
+
+    for (const memberId of uniqueIds) {
+        if (currentUserId && memberId === currentUserId) continue;
+
+        try {
+            const userSnap = await getDoc(doc(db, 'users', memberId));
+            if (userSnap.exists()) {
+                const data = userSnap.data();
+                members.push({
+                    uid: memberId,
+                    displayName: data.displayName || data.username || memberId,
+                    username: data.username || 'user',
+                    avatarUrl: getAvatarUrl(data.avatarUrl || 'assets/img/strendsaydamv2.png', 'user')
+                });
+            }
+        } catch (error) {
+            console.warn('Grup üyesi yüklenirken hata:', error);
+        }
+    }
+
+    currentGroupMembers = members;
+    if (!members.length) {
+        setGroupMembersBarVisible(false);
+        bar.innerHTML = '';
+        return;
+    }
+
+    const previewCount = 4;
+    bar.innerHTML = `
+        <div class="group-chat-members-list">
+            ${members.slice(0, previewCount).map(member => `
+                <img src="${member.avatarUrl}" class="group-chat-member-avatar" alt="${escapeHtml(member.displayName)}" title="${escapeHtml(member.displayName)}">
+            `).join('')}
+            ${members.length > previewCount ? `<span class="group-chat-member-more">+${members.length - previewCount}</span>` : ''}
+        </div>
+        <button type="button" class="group-chat-view-members-btn" onclick="window.showGroupMembersModal()">Tümünü gör</button>
+    `;
+    setGroupMembersBarVisible(true);
+}
+
+window.showGroupMembersModal = function() {
+    if (!currentGroupMembers.length) return;
+
+    const existingModal = document.getElementById('group-members-modal');
+    if (existingModal) existingModal.remove();
+
+    const modal = document.createElement('div');
+    modal.id = 'group-members-modal';
+    modal.style.cssText = 'position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:6000; display:flex; align-items:center; justify-content:center; padding:20px;';
+
+    const card = document.createElement('div');
+    card.style.cssText = 'width:min(480px, 100%); background:var(--card-bg, #fff); border-radius:16px; padding:18px; box-shadow:0 16px 48px rgba(0,0,0,0.25);';
+    card.innerHTML = `
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:12px;">
+            <h3 style="margin:0; font-size:1.02rem;">Grup Üyeleri</h3>
+            <button type="button" onclick="document.getElementById('group-members-modal')?.remove()" style="background:none; border:none; font-size:1.3rem; cursor:pointer; color:var(--text-main);">×</button>
+        </div>
+        <div style="display:grid; gap:10px;">
+            ${currentGroupMembers.map(member => `
+                <div style="display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:12px; background:rgba(255,255,255,0.04);">
+                    <img src="${member.avatarUrl}" style="width:42px; height:42px; border-radius:50%; object-fit:cover;">
+                    <div>
+                        <div style="font-weight:700;">${escapeHtml(member.displayName)}</div>
+                        <div style="font-size:0.85rem; color:var(--text-muted);">@${escapeHtml(member.username)}</div>
+                    </div>
+                </div>
+            `).join('')}
+        </div>
+    `;
+
+    modal.onclick = (e) => {
+        if (e.target === modal) modal.remove();
+    };
+
+    modal.appendChild(card);
+    document.body.appendChild(modal);
+};
 
 // Initialize chat lists panel
 function initChatListsPanel() {
@@ -9606,8 +9707,12 @@ window.openConversationFromList = async function(conversationId, displayName, is
     if (!auth.currentUser) return;
 
     if (isGroup) {
-        const groupIdentifier = String(conversationId || '').replace(/^group_/, '');
-        await window.openGroupChat(groupIdentifier, displayName, []);
+        const normalizedConversationId = String(conversationId || '');
+        const groupIdentifier = normalizedConversationId.replace(/^group_/, '');
+        const existingConvRef = doc(db, 'conversations', normalizedConversationId);
+        const existingConvSnap = await getDoc(existingConvRef);
+        const existingParticipants = existingConvSnap.exists() ? (existingConvSnap.data().participants || []) : [];
+        await window.openGroupChat(normalizedConversationId || groupIdentifier, displayName, existingParticipants);
     } else {
         const currentUserId = auth.currentUser.uid;
         const otherParticipantId = String(conversationId || '').split('_').find(id => id && id !== currentUserId);
@@ -9932,7 +10037,7 @@ window.loadRecentChats = async function() {
                     <div class="chat-friend-meta">
                         ${chat.unreadCount > 0 ? `<span class="chat-last-sender"><strong>${chat.unreadCount}</strong> Yeni Mesaj</span>` : ''}
                         <div class="chat-friend-actions">
-                            <button class="chat-friend-action chat-friend-chat" title="Mesaj yaz" onclick="event.stopPropagation(); window.openConversationFromList('${chat.conversationId}', '${chat.displayName}', ${chat.isGroup})">
+                            <button class="chat-friend-action chat-friend-chat${chat.isGroup ? ' group-conversation-action' : ''}" title="Mesaj yaz" onclick="event.stopPropagation(); window.openConversationFromList('${chat.conversationId}', '${chat.displayName}', ${chat.isGroup})">
                                 <i class="fa-solid fa-comment-dots"></i>
                             </button>
                             ${!chat.isGroup ? `<button class="chat-friend-action chat-friend-profile" title="Profili git" onclick="event.stopPropagation(); window.location.href='profil.html?id=${encodeURIComponent(chat.username)}'">
@@ -9961,12 +10066,12 @@ window.loadRecentChats = async function() {
                         <p class="chat-friend-lastmsg">${escapeHtml(chat.lastMessage)}</p>
                     </div>
                     <div class="chat-friend-actions">
-                        <button class="chat-friend-action chat-friend-chat" title="Mesaj yaz" onclick="event.stopPropagation(); openChatWithFriend('${chat.otherParticipantId}', '${chat.displayName}', '${chat.username}')">
+                        <button class="chat-friend-action chat-friend-chat${chat.isGroup ? ' group-conversation-action' : ''}" title="Mesaj yaz" onclick="event.stopPropagation(); window.openConversationFromList('${chat.conversationId}', '${chat.displayName}', ${chat.isGroup})">
                             <i class="fa-solid fa-comment-dots"></i>
                         </button>
-                        <button class="chat-friend-action chat-friend-profile" title="Profili git" onclick="event.stopPropagation(); window.location.href='profil.html?id=${encodeURIComponent(chat.username)}'">
+                        ${!chat.isGroup ? `<button class="chat-friend-action chat-friend-profile" title="Profili git" onclick="event.stopPropagation(); window.location.href='profil.html?id=${encodeURIComponent(chat.username)}'">
                             <i class="fa-solid fa-user"></i>
-                        </button>
+                        </button>` : ''}
                     </div>
                 `;
                 hiddenItem.onclick = () => window.openConversationFromList(chat.conversationId, chat.displayName, chat.isGroup);
@@ -10374,11 +10479,12 @@ window.openGroupChat = async function(groupId, groupName, memberIds = []) {
     const normalizedGroupId = String(groupId || '').startsWith('group_') ? String(groupId) : `group_${groupId}`;
     const conversationId = normalizedGroupId;
 
-    // Ensure current user is part of participants
-    const participants = Array.from(new Set([...(memberIds || []), currentUserId]));
-
     const convRef = doc(db, 'conversations', conversationId);
     const convSnap = await getDoc(convRef);
+    const existingParticipants = convSnap.exists() ? (convSnap.data().participants || []) : [];
+
+    // Ensure current user is part of participants
+    const participants = Array.from(new Set([...(memberIds || []), ...existingParticipants, currentUserId]));
 
     if (!convSnap.exists()) {
         const unreadCount = participants.reduce((acc, id) => ({ ...acc, [id]: 0 }), {});
@@ -10403,7 +10509,9 @@ window.openGroupChat = async function(groupId, groupName, memberIds = []) {
 
     currentConversationId = conversationId;
     currentChatUserId = conversationId;
-    currentChatUsername = groupName || 'Hobi Grubu Sohbeti';
+    currentConversationIsGroup = true;
+    currentGroupMembers = [];
+    currentChatUsername = `👥 ${groupName || 'Hobi Grubu Sohbeti'}`;
 
     const titleEl = document.getElementById('chat-widget-title');
     if (titleEl) {
@@ -10418,6 +10526,7 @@ window.openGroupChat = async function(groupId, groupName, memberIds = []) {
         clearButton.style.display = 'inline-flex';
     }
 
+    await renderGroupChatMembersBar(participants);
     loadChatMessages(conversationId);
     resetChatInactivityTimer();
 };
@@ -10646,6 +10755,9 @@ window.closeChatWidget = function() {
     currentChatUserId = null;
     currentChatUsername = null;
     currentConversationId = null;
+    currentConversationIsGroup = false;
+    currentGroupMembers = [];
+    setGroupMembersBarVisible(false);
     
     if (messagesUnsubscribe) {
         messagesUnsubscribe();

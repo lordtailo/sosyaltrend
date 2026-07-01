@@ -1073,6 +1073,22 @@ header {
     position: relative;
 }
 
+#headerChatBtn {
+    background: linear-gradient(135deg, #ef4444, #dc2626) !important;
+    color: #fff !important;
+    border-color: rgba(239, 68, 68, 0.35) !important;
+    box-shadow: 0 8px 20px rgba(239, 68, 68, 0.22) !important;
+}
+
+#headerChatBtn i {
+    color: #fff !important;
+}
+
+#headerChatBtn:hover {
+    background: linear-gradient(135deg, #dc2626, #b91c1c) !important;
+    border-color: rgba(220, 38, 38, 0.55) !important;
+}
+
 #header-chat-unread {
     position: absolute;
     top: -6px;
@@ -4657,6 +4673,24 @@ font-size: 0.9rem; font-weight: 800; color: var(--primary); margin: 20px 0 10px;
     gap: 12px;
     padding: 8px 14px;
   }
+  #mobileChatBtn {
+    background: linear-gradient(135deg, #ef4444, #dc2626) !important;
+    color: #fff !important;
+    border-color: rgba(239, 68, 68, 0.35) !important;
+    box-shadow: 0 8px 20px rgba(239, 68, 68, 0.2) !important;
+  }
+
+  #mobileChatBtn i {
+    color: #fff !important;
+  }
+
+  #mobileChatBtn:hover,
+  #mobileChatBtn:focus-visible {
+    background: linear-gradient(135deg, #dc2626, #b91c1c) !important;
+    border-color: rgba(220, 38, 38, 0.55) !important;
+    color: #fff !important;
+  }
+
   .mobile-bottom-nav .mobile-nav-item {
     display: inline-flex;
     flex-direction: column;
