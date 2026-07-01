@@ -44,8 +44,8 @@
         font-size: 1.05rem;
     }
 
-    #themeToggleBtn,
-    #headerChatBtn {
+    /* Mobilde sadece tema değiştirme butonunu gizle */
+    #themeToggleBtn {
         display: none !important;
     }
 }

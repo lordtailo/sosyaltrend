@@ -829,7 +829,7 @@ async function openCommunityDetail(communityId) {
               <p style="margin:0; line-height:1.7; font-size:0.97rem;">${data.description || 'Açıklama yok.'}</p>
               <div style="display:flex; gap:12px; flex-wrap:wrap; font-size:0.93rem; color:var(--text-main);">
                 <span>📌 ${data.isPrivate ? 'Özel topluluk' : 'Herkese açık topluluk'}</span>
-                <span>� Oluşturan: ${data.ownerName || '—'}</span>
+                <span>👤 Oluşturan: ${data.ownerName || '—'}</span>
               </div>
             </div>
             <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
