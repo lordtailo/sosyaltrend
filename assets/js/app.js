@@ -9454,6 +9454,43 @@ let chatInactivityTimer = null;
 let messagesUnsubscribe = null;
 let typingUnsubscribe = null;
 
+function resetConversationListItemState(conversationId) {
+    if (!conversationId) return;
+
+    const items = document.querySelectorAll('.chat-friend-item[data-conversation-id]');
+    items.forEach((item) => {
+        if (item.dataset.conversationId !== String(conversationId)) return;
+
+        const unreadBadge = item.querySelector('.chat-last-sender');
+        if (unreadBadge) {
+            unreadBadge.remove();
+        }
+
+        const actionButton = item.querySelector('.chat-friend-action.chat-friend-chat');
+        if (actionButton) {
+            actionButton.classList.remove('has-unread');
+        }
+    });
+}
+
+async function markConversationAsRead(conversationId) {
+    if (!conversationId || !auth.currentUser) return;
+
+    try {
+        const conversationRef = doc(db, 'conversations', conversationId);
+        await updateDoc(conversationRef, {
+            [`unreadCount.${auth.currentUser.uid}`]: 0
+        });
+    } catch (error) {
+        console.warn('Konuşma okunma durumu güncellenemedi:', error);
+    }
+
+    resetConversationListItemState(conversationId);
+    if (typeof updateChatUnreadIndicator === 'function') {
+        await updateChatUnreadIndicator();
+    }
+}
+
 // Initialize chat widget container
 function initChatWidget() {
     // Check if widget already exists
@@ -9555,11 +9592,14 @@ async function renderGroupChatMembersBar(participantIds = []) {
             const userSnap = await getDoc(doc(db, 'users', memberId));
             if (userSnap.exists()) {
                 const data = userSnap.data();
+                const presence = resolvePresenceStatus(data);
                 members.push({
                     uid: memberId,
                     displayName: data.displayName || data.username || memberId,
                     username: data.username || 'user',
-                    avatarUrl: getAvatarUrl(data.avatarUrl || 'assets/img/strendsaydamv2.png', 'user')
+                    avatarUrl: getAvatarUrl(data.avatarUrl || 'assets/img/strendsaydamv2.png', 'user'),
+                    isOnline: presence.status === 'online',
+                    presenceLabel: presence.label || 'Çevrimdışı'
                 });
             }
         } catch (error) {
@@ -9578,7 +9618,10 @@ async function renderGroupChatMembersBar(participantIds = []) {
     bar.innerHTML = `
         <div class="group-chat-members-list">
             ${members.slice(0, previewCount).map(member => `
-                <img src="${member.avatarUrl}" class="group-chat-member-avatar" alt="${escapeHtml(member.displayName)}" title="${escapeHtml(member.displayName)}">
+                <div class="group-chat-member-avatar-wrap" title="${escapeHtml(member.displayName)} (${member.presenceLabel})">
+                    <img src="${member.avatarUrl}" class="group-chat-member-avatar" alt="${escapeHtml(member.displayName)}">
+                    <span class="group-chat-member-status ${member.isOnline ? 'online' : 'offline'}"></span>
+                </div>
             `).join('')}
             ${members.length > previewCount ? `<span class="group-chat-member-more">+${members.length - previewCount}</span>` : ''}
         </div>
@@ -9745,10 +9788,10 @@ window.openCreateGroupChatModal = async function() {
 
     const modal = document.createElement('div');
     modal.id = 'create-group-chat-modal';
-    modal.style.cssText = 'position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:5000; display:flex; align-items:center; justify-content:center; padding:20px;';
+    modal.style.cssText = 'position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:1000002; display:flex; align-items:center; justify-content:center; padding:20px;';
 
     const card = document.createElement('div');
-    card.style.cssText = 'width:min(560px, 100%); max-height:80vh; overflow:auto; background:var(--card-bg, #fff); border-radius:16px; padding:18px; box-shadow:0 16px 48px rgba(0,0,0,0.25);';
+    card.style.cssText = 'width:min(560px, 100%); max-height:80vh; overflow:auto; background:var(--card-bg, #fff); border-radius:16px; padding:18px; box-shadow:0 16px 48px rgba(0,0,0,0.25); position:relative; z-index:1000003;';
 
     const friendItems = [];
     for (const friendId of friendsIds) {
@@ -10025,7 +10068,7 @@ window.loadRecentChats = async function() {
         for (let i = 0; i < recentChats.length; i++) {
             const chat = recentChats[i];
             friendsHtml += `
-                <div class="chat-friend-item" data-recent-index="${i}" onclick="window.openConversationFromList('${chat.conversationId}', '${chat.displayName}', ${chat.isGroup})">
+                <div class="chat-friend-item" data-conversation-id="${chat.conversationId}" data-recent-index="${i}" onclick="window.openConversationFromList('${chat.conversationId}', '${chat.displayName}', ${chat.isGroup})">
                     <div class="chat-friend-avatar-wrap ${chat.presence?.status || 'offline'}">
                         <img src="${chat.avatarUrl}" class="chat-friend-avatar" alt="">
                         <span class="status-badge status-${chat.presence?.status || 'offline'}"></span>
@@ -10037,7 +10080,7 @@ window.loadRecentChats = async function() {
                     <div class="chat-friend-meta">
                         ${chat.unreadCount > 0 ? `<span class="chat-last-sender"><strong>${chat.unreadCount}</strong> Yeni Mesaj</span>` : ''}
                         <div class="chat-friend-actions">
-                            <button class="chat-friend-action chat-friend-chat${chat.isGroup ? ' group-conversation-action' : ''}" title="Mesaj yaz" onclick="event.stopPropagation(); window.openConversationFromList('${chat.conversationId}', '${chat.displayName}', ${chat.isGroup})">
+                            <button class="chat-friend-action chat-friend-chat${chat.isGroup ? ' group-conversation-action' : ''}${chat.unreadCount > 0 ? ' has-unread' : ''}" title="Mesaj yaz" onclick="event.stopPropagation(); window.openConversationFromList('${chat.conversationId}', '${chat.displayName}', ${chat.isGroup})">
                                 <i class="fa-solid fa-comment-dots"></i>
                             </button>
                             ${!chat.isGroup ? `<button class="chat-friend-action chat-friend-profile" title="Profili git" onclick="event.stopPropagation(); window.location.href='profil.html?id=${encodeURIComponent(chat.username)}'">
@@ -10056,6 +10099,7 @@ window.loadRecentChats = async function() {
                 const hiddenItem = document.createElement('div');
                 hiddenItem.className = 'chat-friend-item hidden-recent';
                 hiddenItem.style.display = 'none';
+                hiddenItem.dataset.conversationId = chat.conversationId;
                 hiddenItem.innerHTML = `
                     <div class="chat-friend-avatar-wrap ${chat.presence?.status || 'offline'}">
                         <img src="${chat.avatarUrl}" class="chat-friend-avatar" alt="">
@@ -10066,7 +10110,7 @@ window.loadRecentChats = async function() {
                         <p class="chat-friend-lastmsg">${escapeHtml(chat.lastMessage)}</p>
                     </div>
                     <div class="chat-friend-actions">
-                        <button class="chat-friend-action chat-friend-chat${chat.isGroup ? ' group-conversation-action' : ''}" title="Mesaj yaz" onclick="event.stopPropagation(); window.openConversationFromList('${chat.conversationId}', '${chat.displayName}', ${chat.isGroup})">
+                        <button class="chat-friend-action chat-friend-chat${chat.isGroup ? ' group-conversation-action' : ''}${chat.unreadCount > 0 ? ' has-unread' : ''}" title="Mesaj yaz" onclick="event.stopPropagation(); window.openConversationFromList('${chat.conversationId}', '${chat.displayName}', ${chat.isGroup})">
                             <i class="fa-solid fa-comment-dots"></i>
                         </button>
                         ${!chat.isGroup ? `<button class="chat-friend-action chat-friend-profile" title="Profili git" onclick="event.stopPropagation(); window.location.href='profil.html?id=${encodeURIComponent(chat.username)}'">
@@ -10104,6 +10148,18 @@ window.toggleChatSearch = function() {
     }
 }
 
+function setChatButtonUnreadState(hasUnread) {
+    const headerBtn = document.getElementById('headerChatBtn');
+    if (headerBtn) {
+        headerBtn.classList.toggle('has-unread', hasUnread);
+    }
+
+    const mobileBtn = document.getElementById('mobileChatBtn');
+    if (mobileBtn) {
+        mobileBtn.classList.toggle('has-unread', hasUnread);
+    }
+}
+
 async function updateChatUnreadIndicator() {
     if (!auth.currentUser) return;
     try {
@@ -10119,6 +10175,8 @@ async function updateChatUnreadIndicator() {
             const unread = Number(unreadValue || 0);
             return sum + (Number.isFinite(unread) ? unread : 0);
         }, 0);
+
+        setChatButtonUnreadState(totalUnread > 0);
 
         const badge = document.getElementById('chat-unread-count');
         if (badge) {
@@ -10379,6 +10437,7 @@ window.openChatWithUser = async function(userId, displayName) {
         }
         
         currentConversationId = conversationId;
+        await markConversationAsRead(conversationId);
         
         // Update widget header
         const titleEl = document.getElementById('chat-widget-title');
@@ -10512,6 +10571,7 @@ window.openGroupChat = async function(groupId, groupName, memberIds = []) {
     currentConversationIsGroup = true;
     currentGroupMembers = [];
     currentChatUsername = `👥 ${groupName || 'Hobi Grubu Sohbeti'}`;
+    await markConversationAsRead(conversationId);
 
     const titleEl = document.getElementById('chat-widget-title');
     if (titleEl) {
