@@ -24,40 +24,96 @@
 
 
 
-  <div id="page-contact" class="page-content active"> <div class="glass-card" style="padding:20px;">
-    <section class="card" style="max-width: 100%; padding: 18px;">
-      <h2 style="margin-bottom: 20px; text-align: center; color: var(--primary);">Bizimle İletişime Geçin</h2>
-      <p style="text-align: center; color: var(--text-muted); margin-bottom: 30px;">
-        Görüş, öneri veya şikayetlerinizi aşağıdaki form aracılığıyla bize iletebilirsiniz.
-      </p>
+  <div id="page-contact" class="page-content active">
+    <div class="contact-page-shell">
+      <section class="contact-hero glass-card">
+        <div class="contact-hero-copy">
+          <div class="contact-pill"><i class="fa-solid fa-comments"></i> Hızlı iletişim</div>
+          <h2>Bizimle iletişime geçin</h2>
+          <p>Görüş, öneri, iş birliği ya da teknik destek taleplerinizi bize iletin. Mesajınızı aldığımızda en kısa sürede dönüş yapıyoruz.</p>
+          <div class="contact-hero-actions">
+            <a href="#contact-form-card" class="contact-hero-link"><i class="fa-solid fa-paper-plane"></i> Formu doldur</a>
+            <span class="contact-hero-note"><i class="fa-solid fa-clock"></i> Ortalama 24 saat içinde yanıt</span>
+          </div>
+        </div>
+        <div class="contact-hero-highlights">
+          <div class="contact-highlight">
+            <i class="fa-solid fa-bolt"></i>
+            <strong>Hızlı dönüş</strong>
+            <span>Mesajlarınız için kısa sürede geri dönüş planlıyoruz.</span>
+          </div>
+          <div class="contact-highlight">
+            <i class="fa-solid fa-users"></i>
+            <strong>Topluluk odaklı</strong>
+            <span>Görüşleriniz deneyimi geliştirmek için değerlidir.</span>
+          </div>
+          <div class="contact-highlight">
+            <i class="fa-solid fa-shield-heart"></i>
+            <strong>Güvenli iletişim</strong>
+            <span>Paylaştığınız bilgiler dikkatle ele alınıyor.</span>
+          </div>
+        </div>
+      </section>
 
-      <form class="contact-form" onsubmit="return false;"> <label class="form-label" for="contactSubject">Konu</label>
-        <input type="text" 
-               id="contactSubject" 
-               name="subject" 
-               class="form-input" 
-               placeholder="Mesajınızın konusu..."
-               required>
+      <section class="contact-grid">
+        <div class="contact-info-card glass-card">
+          <h3>İletişim bilgileri</h3>
+          <ul class="contact-info-list">
+            <li>
+              <i class="fa-solid fa-envelope"></i>
+              <div>
+                <strong>Mesaj formu</strong>
+                <span>Görüş ve önerilerinizi doğrudan iletebilirsiniz.</span>
+              </div>
+            </li>
+            <li>
+              <i class="fa-solid fa-headset"></i>
+              <div>
+                <strong>Destek</strong>
+                <span>Teknik sorunlar ve sayfa deneyimi için yardımcı oluyoruz.</span>
+              </div>
+            </li>
+            <li>
+              <i class="fa-solid fa-heart"></i>
+              <div>
+                <strong>Topluluk</strong>
+                <span>İş birliği ve geliştirme fikirleri için açıkız.</span>
+              </div>
+            </li>
+          </ul>
+        </div>
 
-        <label class="form-label" for="contactMessage">Mesajınız</label>
-        <textarea id="contactMessage" 
-                  name="message" 
-                  class="form-input" 
-                  rows="5" 
-                  placeholder="Buraya yazın..." 
-                  style="resize: none;"
-                  required></textarea>
+        <div id="contact-form-card" class="contact-form-card glass-card">
+          <h3>Mesaj gönder</h3>
+          <p>İsterseniz kısa bir konu başlığıyla başlayın. Ayrıntıyı yazdığınızda daha iyi yardımcı oluruz.</p>
 
-        <button id="sendMessageBtn" type="button" class="form-btn" style="margin-top: 10px;">
-          <i class="fa-solid fa-paper-plane"></i> Gönder
-        </button>
+          <form class="contact-form" onsubmit="return false;">
+            <label class="form-label" for="contactSubject">Konu</label>
+            <input type="text"
+                   id="contactSubject"
+                   name="subject"
+                   class="form-input"
+                   placeholder="Mesajınızın konusu..."
+                   required>
 
-        <p id="contactStatus" style="margin-top: 15px; font-weight: 600; text-align: center;"></p>
-      </form>
+            <label class="form-label" for="contactMessage">Mesajınız</label>
+            <textarea id="contactMessage"
+                      name="message"
+                      class="form-input"
+                      rows="6"
+                      placeholder="Buraya yazın..."
+                      required></textarea>
 
-    </section>
+            <button id="sendMessageBtn" type="button" class="form-btn">
+              <i class="fa-solid fa-paper-plane"></i> Gönder
+            </button>
+
+            <p id="contactStatus" class="contact-status"></p>
+          </form>
+        </div>
+      </section>
+    </div>
   </div>
-</div>
   </main>
 
 <div data-include="partials/right-aside.html"></div>
@@ -108,9 +164,10 @@
       try {
         // Butonu devre dışı bırak
         btn.disabled = true;
-        btn.innerText = "Gönderiliyor...";
+        btn.classList.add('is-loading');
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Gönderiliyor...';
         status.innerText = "Lütfen bekleyin...";
-        status.style.color = "var(--text-muted)";
+        status.className = 'contact-status pending';
 
         // EmailJS Şablon Parametreleri
         // Şablonunuzda {{subject}}, {{message}}, {{from_name}} gibi değişkenler olmalı
@@ -127,7 +184,7 @@
 
         // Başarılı durum
         status.innerText = "✅ Mesajınız başarıyla e-posta olarak gönderildi!";
-        status.style.color = "#10b981";
+        status.className = 'contact-status success';
         
         // Formu temizle
         document.getElementById('contactSubject').value = "";
@@ -136,9 +193,10 @@
       } catch (error) {
         console.error("Hata:", error);
         status.innerText = "❌ Mesaj gönderilemedi: " + (error.text || "Bir hata oluştu");
-        status.style.color = "#ef4444";
+        status.className = 'contact-status error';
       } finally {
         btn.disabled = false;
+        btn.classList.remove('is-loading');
         btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Gönder';
       }
     };

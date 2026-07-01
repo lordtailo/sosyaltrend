@@ -16,6 +16,31 @@ function safelyInjectIncludedScript(sourceScript, targetContainer) {
   }
 }
 
+async function loadPlaceholder(placeholderId, partialPath) {
+  const placeholder = document.getElementById(placeholderId);
+  if (!placeholder) return;
+  
+  try {
+    const res = await fetch(partialPath);
+    if (!res.ok) throw new Error(`Failed to load ${partialPath}: ${res.status}`);
+    const buffer = await res.arrayBuffer();
+    let text = new TextDecoder('utf-8').decode(buffer);
+    if (text.charCodeAt(0) === 0xfeff) text = text.slice(1);
+    
+    const safeHtml = text.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '');
+    placeholder.innerHTML = safeHtml;
+    
+    const scripts = Array.from(placeholder.querySelectorAll('script'));
+    const targetContainer = document.body || document.documentElement;
+    scripts.forEach((s) => {
+      safelyInjectIncludedScript(s, targetContainer);
+      s.remove();
+    });
+  } catch (err) {
+    console.error('Placeholder load error:', partialPath, err);
+  }
+}
+
 async function runIncludes() {
   const includes = Array.from(document.querySelectorAll('[data-include]'));
   await Promise.all(includes.map(async (el) => {
@@ -40,6 +65,12 @@ async function runIncludes() {
       console.error('Include error:', url, err);
     }
   }));
+
+  // Load header and footer placeholders
+  await Promise.all([
+    loadPlaceholder('header-placeholder', 'partials/header.html'),
+    loadPlaceholder('footer-placeholder', 'partials/footer.html')
+  ]);
 
   // signal that all includes have been processed so other scripts can act
   document.dispatchEvent(new Event('includesLoaded'));
