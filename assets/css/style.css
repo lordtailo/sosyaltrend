@@ -43,6 +43,11 @@
         display: inline-block !important;
         font-size: 1.05rem;
     }
+
+    #themeToggleBtn,
+    #headerChatBtn {
+        display: none !important;
+    }
 }
 
 body { 

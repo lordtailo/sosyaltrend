@@ -829,7 +829,7 @@ async function openCommunityDetail(communityId) {
               <p style="margin:0; line-height:1.7; font-size:0.97rem;">${data.description || 'Açıklama yok.'}</p>
               <div style="display:flex; gap:12px; flex-wrap:wrap; font-size:0.93rem; color:var(--text-main);">
                 <span>📌 ${data.isPrivate ? 'Özel topluluk' : 'Herkese açık topluluk'}</span>
-                <span>👤 Oluşturan: ${data.ownerName || '—'}</span>
+                <span>� Oluşturan: ${data.ownerName || '—'}</span>
               </div>
             </div>
             <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
@@ -852,9 +852,15 @@ async function openCommunityDetail(communityId) {
             </div>
 
             <div style="padding:20px 0; border:none; background:transparent;">
-              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-                <h3 style="margin:0; color:var(--text-main);">Gönderiler</h3>
-                <span style="background:transparent; color:var(--text-secondary); padding:0; border-radius:0; font-size:0.8rem;">Son paylaşım</span>
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; gap:12px; flex-wrap:wrap;">
+                <button type="button" style="display:inline-flex; align-items:center; gap:6px; border:1px solid rgba(99,102,241,0.16); background:linear-gradient(135deg, rgba(99,102,241,0.12), rgba(255,255,255,0.06)); color:var(--text-main); padding:8px 12px; border-radius:999px; font-size:0.8rem; font-weight:700; cursor:default; box-shadow:0 6px 16px rgba(15, 23, 42, 0.06);">
+                  <i class="fa-solid fa-comments"></i>
+                  <span>Gönderiler</span>
+                </button>
+                <button type="button" style="display:inline-flex; align-items:center; gap:6px; border:1px solid rgba(99,102,241,0.16); background:linear-gradient(135deg, rgba(99,102,241,0.12), rgba(255,255,255,0.06)); color:var(--text-main); padding:8px 12px; border-radius:999px; font-size:0.8rem; font-weight:700; cursor:default; box-shadow:0 6px 16px rgba(15, 23, 42, 0.06);">
+                  <i class="fa-solid fa-clock-rotate-left"></i>
+                  <span>Son paylaşım</span>
+                </button>
               </div>
               <div id="communityPostsList" style="display:flex; flex-direction:column; gap:8px;"></div>
             </div>
