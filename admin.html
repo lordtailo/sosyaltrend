@@ -117,6 +117,150 @@
         
         .section-subtitle { font-size: 1.05rem; color: var(--text-main); margin-bottom: 18px; display: flex; align-items: center; gap: 10px; font-weight: 700; letter-spacing: -0.3px; padding: 8px 0; border-left: 4px solid var(--primary); padding-left: 12px; }
         .section-subtitle i { color: var(--primary); font-size: 1.2rem; }
+
+        .page-hero {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 16px;
+            flex-wrap: wrap;
+            padding: 18px 20px;
+            border-radius: 16px;
+            margin-bottom: 20px;
+            background: linear-gradient(135deg, rgba(99,102,241,0.1) 0%, rgba(255,255,255,0.88) 100%);
+            border: 1px solid rgba(99,102,241,0.16);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.7);
+        }
+        .page-hero h3 {
+            margin: 0 0 6px;
+            font-size: 1.04rem;
+            font-weight: 800;
+            color: var(--text-main);
+        }
+        .page-hero p {
+            margin: 0;
+            color: var(--text-muted);
+            font-size: 0.92rem;
+            line-height: 1.5;
+        }
+        .page-hero-pills {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .page-hero-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 12px;
+            border-radius: 999px;
+            background: rgba(255,255,255,0.9);
+            border: 1px solid rgba(99,102,241,0.16);
+            color: var(--text-main);
+            font-size: 0.8rem;
+            font-weight: 700;
+        }
+        .page-hero-pill i {
+            color: var(--primary);
+            font-size: 0.9rem;
+        }
+        .page-section-grid {
+            display: grid;
+            gap: 12px;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            margin-bottom: 20px;
+        }
+        .moderation-card {
+            display: grid;
+            gap: 12px;
+            padding: 16px;
+            border-radius: 14px;
+            border: 1px solid var(--border);
+            background: linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(99,102,241,0.04) 100%);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.7);
+        }
+        .moderation-card-header {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+            align-items: flex-start;
+        }
+        .moderation-user {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+        .moderation-user small {
+            display: block;
+            color: var(--text-muted);
+            font-weight: 600;
+            margin-top: 2px;
+        }
+        .moderation-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            color: var(--text-muted);
+            font-size: 0.82rem;
+        }
+        .moderation-meta span {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 10px;
+            border-radius: 999px;
+            background: rgba(99,102,241,0.08);
+            border: 1px solid rgba(99,102,241,0.12);
+        }
+        .moderation-content {
+            color: var(--text-main);
+            line-height: 1.6;
+            font-size: 0.95rem;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .moderation-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .moderation-actions button {
+            min-width: 92px;
+            justify-content: center;
+        }
+        .moderation-empty {
+            padding: 24px;
+            text-align: center;
+            color: var(--text-muted);
+            border: 2px dashed var(--border);
+            border-radius: 14px;
+            background: rgba(255,255,255,0.5);
+        }
+        .page-section-card {
+            padding: 16px;
+            border-radius: 14px;
+            background: rgba(255,255,255,0.8);
+            border: 1px solid var(--border);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.7);
+        }
+        .page-section-card h3 {
+            margin: 0 0 8px;
+            font-size: 0.98rem;
+            font-weight: 800;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .page-section-card p {
+            margin: 0;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
         
         /* APPEALS LIST */
         #user-management-ban-appeals-list { display: grid; gap: 12px; }
@@ -217,10 +361,10 @@
         .admin-subtabs { 
             display: flex; 
             flex-wrap: wrap; 
-            gap: 24px; 
-            margin-bottom: 32px; 
-            padding-bottom: 20px; 
-            border-bottom: 3px solid var(--border); 
+            gap: 12px; 
+            margin-bottom: 24px; 
+            padding-bottom: 0; 
+            border-bottom: none; 
             overflow-x: auto;
             scroll-behavior: smooth;
         }
@@ -229,47 +373,48 @@
             display: inline-flex; 
             align-items: center; 
             justify-content: center; 
-            background: none; 
-            border: none; 
-            color: var(--text-muted); 
-            padding: 16px 20px; 
+            background: var(--input-bg); 
+            border: 2px solid var(--border); 
+            color: var(--text-main); 
+            padding: 12px 18px; 
             cursor: pointer; 
             font-weight: 700; 
-            font-size: 1rem;
+            font-size: 0.95rem;
             white-space: nowrap;
             position: relative;
             letter-spacing: 0.3px;
             transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-            border-bottom: 3px solid transparent;
+            border-radius: 999px;
+            box-shadow: none;
         }
         
         .subtab-btn i { 
-            font-size: 1.2rem; 
-            margin-right: 10px;
+            font-size: 1rem; 
+            margin-right: 8px;
             transition: all 0.3s ease;
         }
         
         .subtab-btn:hover { 
             color: var(--primary);
-            transform: translateY(-4px);
+            transform: translateY(-2px);
+            border-color: var(--primary);
         }
         
         .subtab-btn:hover i {
-            transform: scale(1.2) rotate(5deg);
+            transform: scale(1.1) rotate(4deg);
         }
         
         .subtab-btn.active { 
             color: white;
             font-weight: 800;
             background: linear-gradient(135deg, var(--primary), rgba(99,102,241,0.8));
-            border-bottom-color: var(--primary);
-            padding: 16px 24px;
-            border-radius: 12px 12px 0 0;
-            box-shadow: 0 6px 20px rgba(99,102,241,0.3);
+            border-color: var(--primary);
+            box-shadow: 0 8px 20px rgba(99,102,241,0.3);
+            transform: scale(1.01);
         }
         
         .subtab-btn.active i {
-            transform: scale(1.25);
+            transform: scale(1.1);
         }
         
         /* TABLES */
@@ -371,7 +516,6 @@
  <main id="main-content">
   <div class="admin-header">
     <h1>⚙️ Yönetim Paneli</h1>
-    <p>Sistem sağlığı ve kullanıcı yönetimi - Gerçek zamanlı istatistikler</p>
   </div>
 
   <div class="stat-grid">
@@ -395,8 +539,8 @@
     <!-- ANA MENU TABS -->
     <div class="admin-tabs main-admin-tabs" style="margin-bottom: 28px; border-bottom: 3px solid var(--border); padding-bottom: 0;">
         <button class="tab-btn main-tab-btn active" onclick="switchMainSection('system', this)"><i class="fa-solid fa-bell"></i> Sistem</button>
-        <button class="tab-btn main-tab-btn" onclick="switchMainSection('management', this)"><i class="fa-solid fa-users-gear"></i> Kullanıcı Yönetimi</button>
-        <button class="tab-btn main-tab-btn" onclick="switchMainSection('user-moderation', this)"><i class="fa-solid fa-user-shield"></i> Kullanıcı Denetimi</button>
+        <button class="tab-btn main-tab-btn" onclick="switchMainSection('management', this)"><i class="fa-solid fa-users-gear"></i> Kullanıcı Takibi</button>
+        <button class="tab-btn main-tab-btn" onclick="switchMainSection('user-moderation', this)"><i class="fa-solid fa-user-shield"></i> Kullanıcı Denetim</button>
         <button class="tab-btn main-tab-btn" onclick="switchMainSection('moderation', this)"><i class="fa-solid fa-shield-check"></i> İçerik Denetimi</button>
     </div>
 
@@ -429,35 +573,21 @@
     <!-- YÖNETIM PANELI -->
     <div id="main-section-management" class="main-section">
         <div class="admin-block">
-            <h2><i class="fa-solid fa-users-gear"></i> Kullanıcı ve Erişim Yönetimi</h2>
+            <h2><i class="fa-solid fa-users-gear"></i> Kullanıcı Takibi</h2>
             <div class="action-toolbar">
                 <i class="fa-solid fa-info-circle"></i>
-                <span style="color: var(--text-muted);">Yetkilendirme, ban, silme ve kullanıcı takibi işlemlerini burada yönetin.</span>
+                <span style="color: var(--text-muted);">En son 24 saatte aktif olan kullanıcılar ve son giriş takibi burada izlenebilir.</span>
             </div>
 
             <div style="display:grid; gap:16px; margin-bottom:20px;">
-                <div class="glass-card" style="padding:16px; border-radius:14px;">
-                    <h3 style="margin:0 0 12px; font-size:1rem;">Postlardan Derlenen Kullanıcılar</h3>
-                    <table class="data-table">
-                        <thead><tr><th>Kullanıcı</th><th>Kullanıcı Adı</th><th>Durum</th><th>İşlem</th></tr></thead>
-                        <tbody id="user-list-body"></tbody>
-                    </table>
-                </div>
-                <div class="glass-card" style="padding:16px; border-radius:14px;">
-                    <h3 id="registered-section-title" style="margin:0 0 12px; font-size:1rem;">Tüm Kayıtlı Kullanıcılar</h3>
-                    <table class="data-table">
-                        <thead><tr><th>Kullanıcı</th><th>Kullanıcı Adı</th><th>Email</th><th>Kayıt Tarihi</th><th>Durum</th></tr></thead>
-                        <tbody id="registered-users-body"></tbody>
-                    </table>
-                </div>
-                <div class="glass-card" style="padding:16px; border-radius:14px;">
+                <div class="glass-card page-section-card" style="padding:16px; border-radius:14px;">
                     <h3 style="margin:0 0 12px; font-size:1rem;">Son 24 Saatte Aktif Kullanıcılar</h3>
                     <table class="data-table">
                         <thead><tr><th>Kullanıcı</th><th>Kullanıcı Adı</th><th>Son Aktivite</th><th>Durum</th></tr></thead>
                         <tbody id="recent-logins-body"></tbody>
                     </table>
                 </div>
-                <div class="glass-card" style="padding:16px; border-radius:14px;">
+                <div class="glass-card page-section-card" style="padding:16px; border-radius:14px;">
                     <h3 style="margin:0 0 12px; font-size:1rem;">Son Giriş Zamanları</h3>
                     <table class="data-table">
                         <thead><tr><th>Kullanıcı</th><th>Kullanıcı Adı</th><th>Son Giriş</th><th>İşlem</th></tr></thead>
@@ -472,7 +602,7 @@
     <!-- KULLANICI DENETİM PANELI -->
     <div id="main-section-user-moderation" class="main-section">
         <div class="admin-block admin-block-page">
-            <h2><i class="fa-solid fa-user-shield"></i> Kullanıcı Denetimi</h2>
+            <h2><i class="fa-solid fa-user-shield"></i> Kullanıcı Denetim</h2>
             <div class="action-toolbar">
                 <i class="fa-solid fa-info-circle"></i>
                 <span style="color: var(--text-muted);">Banlanan kullanıcıları, itirazları ve silinen hesap arşivlerini buradan yönetin.</span>
@@ -495,10 +625,11 @@
             </div>
 
             <div class="admin-subtabs">
-                <button class="subtab-btn active" onclick="switchUserManagementSubtab('managed', this)"><i class="fa-solid fa-layer-group"></i> Tüm Kullanıcılar</button>
-                <button class="subtab-btn" onclick="switchUserManagementSubtab('banned', this)"><i class="fa-solid fa-ban"></i> Banlananlar</button>
-                <button class="subtab-btn" onclick="switchUserManagementSubtab('appeals', this)"><i class="fa-solid fa-flag"></i> İtirazlar</button>
-                <button class="subtab-btn" onclick="switchUserManagementSubtab('deleted', this)"><i class="fa-solid fa-trash"></i> Silinen</button>
+                <button class="tab-btn subtab-btn active" onclick="switchUserManagementSubtab('managed', this)"><i class="fa-solid fa-layer-group"></i> Tüm Kullanıcılar</button>
+                <button class="tab-btn subtab-btn" onclick="switchUserManagementSubtab('banned', this)"><i class="fa-solid fa-ban"></i> Banlananlar</button>
+                <button class="tab-btn subtab-btn" onclick="switchUserManagementSubtab('appeals', this)"><i class="fa-solid fa-flag"></i> İtirazlar</button>
+                <button class="tab-btn subtab-btn" onclick="switchUserManagementSubtab('deleted', this)"><i class="fa-solid fa-trash"></i> Silinen</button>
+                <button class="tab-btn subtab-btn" onclick="switchUserManagementSubtab('reports', this)"><i class="fa-solid fa-flag"></i> Şikayetler</button>
             </div>
 
             <div id="userManagement-subsection-managed" class="admin-subsection active">
@@ -534,30 +665,75 @@
                     <tbody id="deleted-users-body"></tbody>
                 </table>
             </div>
+
+            <div id="userManagement-subsection-reports" class="admin-subsection">
+                <div class="section-subtitle"><i class="fa-solid fa-flag"></i> Şikayet Listesi</div>
+                <div id="user-management-reports-list" style="display:grid; gap:12px;"></div>
+            </div>
         </div>
     </div>
 
     <!-- DENETİM PANELI -->
     <div id="main-section-moderation" class="main-section">
         <div class="admin-block admin-block-page">
-            <h2><i class="fa-solid fa-file-lines"></i> İçerik Denetimi</h2>
+            <h2><i class="fa-solid fa-file-lines"></i> 🛡️ İçerik Denetimi</h2>
             <div class="action-toolbar">
                 <i class="fa-solid fa-info-circle"></i>
-                <span style="color: var(--text-muted);">Tüm paylaşımlar burada düzenlenebilir ve yönetilir</span>
+                <span style="color: var(--text-muted);">Paylaşımları inceleyin, uygunsuz içerikleri yönetin ve düzenleme akışını kontrol edin.</span>
             </div>
             <div id="section-moderation" class="admin-section active">
-                <div class="section-subtitle"><i class="fa-solid fa-list"></i> Tüm Paylaşımları Yönet</div>
-                <div id="admin-feed-list"></div>
+                <div class="page-section-grid">
+                    <div class="glass-card page-section-card">
+                        <h3><i class="fa-solid fa-list-check"></i> İnceleme Akışı</h3>
+                        <p>Yayınlanan içerikler düzenli olarak gözden geçirilir ve gerekiyorsa müdahale edilir.</p>
+                    </div>
+                    <div class="glass-card page-section-card">
+                        <h3><i class="fa-solid fa-filter"></i> Hızlı Yönetim</h3>
+                        <p>Uygunsuz içeriklere hızlıca erişip silme, gizleme veya düzenleme işlemi yapabilirsiniz.</p>
+                    </div>
+                    <div class="glass-card page-section-card">
+                        <h3><i class="fa-solid fa-shield-halved"></i> Güvenli Denetim</h3>
+                        <p>Riskli gönderiler için kontrol mekanizması ve düzenli izleme akışı sunulur.</p>
+                    </div>
+                </div>
+
+                <div class="glass-card" style="padding: 18px; border-radius: 14px;">
+                    <div class="section-subtitle"><i class="fa-solid fa-list"></i> Tüm Paylaşımları Yönet</div>
+                    <div id="admin-feed-list"></div>
+                </div>
             </div>
         </div>
     </div>
 
 </main>
 
+<div id="adminEditPostModal" class="modal-overlay" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 2200; align-items: center; justify-content: center; padding: 20px;">
+    <div class="glass-card" style="width: min(760px, 100%); padding: 22px; border-radius: 18px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 14px;">
+            <h3 style="margin:0;">Gönderiyi Düzenle</h3>
+            <button onclick="window.closeAdminEditPostModal()" style="background:none; border:none; color: var(--text-main); font-size:1.4rem; cursor:pointer;">&times;</button>
+        </div>
+        <div style="display:grid; gap:12px;">
+            <div>
+                <label style="display:block; font-weight:700; margin-bottom:6px;">Eski yazı</label>
+                <div id="adminEditPostOldContent" style="white-space: pre-wrap; border:1px solid var(--border); border-radius:12px; padding:12px; min-height: 100px; max-height: 180px; overflow:auto; background: rgba(255,255,255,0.04); color: var(--text-main);"></div>
+            </div>
+            <div>
+                <label style="display:block; font-weight:700; margin-bottom:6px;">Yeni yazı</label>
+                <textarea id="adminEditPostNewContent" class="form-input" style="width:100%; min-height: 140px; resize: vertical;"></textarea>
+            </div>
+        </div>
+        <div style="display:flex; justify-content:flex-end; gap:10px; margin-top: 16px;">
+            <button onclick="window.closeAdminEditPostModal()" class="action-btn" style="background: transparent; color: var(--text-main); border-color: var(--border);">İptal</button>
+            <button onclick="window.saveAdminEditPost()" class="action-btn">Kaydet</button>
+        </div>
+    </div>
+</div>
+
 <script type="module">
     // Firebase importları ve config aynı kalıyor
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getFirestore, collection, getDocs, getDoc, addDoc, setDoc, serverTimestamp, query, orderBy, limit, deleteDoc, doc, onSnapshot, updateDoc, where, writeBatch } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getFirestore, collection, getDocs, getDoc, addDoc, setDoc, serverTimestamp, query, orderBy, limit, deleteDoc, doc, onSnapshot, updateDoc, where, writeBatch, arrayUnion } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
     const firebaseConfig = {
@@ -869,6 +1045,7 @@
     };
 
     let currentBanUserId = null;
+    let currentBanContext = null;
 
     async function archiveDeletedUser(userDocId, userData, deletedBy) {
         try {
@@ -883,17 +1060,85 @@
         }
     }
 
-    window.deleteRegisteredUser = async (userDocId) => {
+    async function sendAdminNotification(recipientUid, type, title, message, extra = {}) {
+        if (!recipientUid) return;
+        const notification = {
+            notificationId: `${Date.now()}_${Math.random().toString(36).slice(2)}`,
+            type,
+            title,
+            message,
+            fromName: 'Sistem / Yönetici',
+            fromUid: auth.currentUser?.uid || 'admin',
+            timestamp: serverTimestamp(),
+            read: false,
+            ...extra
+        };
+        const recipientRef = doc(db, 'users', recipientUid);
+        const recipientSnap = await getDoc(recipientRef);
+        if (recipientSnap.exists()) {
+            const existing = Array.isArray(recipientSnap.data().notifications) ? recipientSnap.data().notifications : [];
+            await updateDoc(recipientRef, { notifications: [...existing, notification] });
+        } else {
+            await setDoc(recipientRef, { notifications: [notification] }, { merge: true });
+        }
+    }
+
+    async function finalizeReport(reportId, actionLabel, note = '') {
+        if (!reportId) return;
+        try {
+            const reportRef = doc(db, 'reports', reportId);
+            await updateDoc(reportRef, {
+                status: 'resolved',
+                resolvedAt: serverTimestamp(),
+                resolvedBy: auth.currentUser?.uid || 'admin',
+                resolution: actionLabel,
+                resolutionNote: note
+            });
+        } catch (error) {
+            console.error('finalizeReport hatası:', error);
+        }
+    }
+
+    async function notifyReporterAboutReport(reportId, title, message, extra = {}) {
+        if (!reportId) return;
+        try {
+            const reportDoc = await getDoc(doc(db, 'reports', reportId));
+            if (!reportDoc.exists()) return;
+            const report = reportDoc.data();
+            if (report.reporterUid) {
+                await sendAdminNotification(report.reporterUid, 'report_result', title, message, extra);
+            }
+        } catch (error) {
+            console.error('notifyReporterAboutReport hatası:', error);
+        }
+    }
+
+    window.deleteRegisteredUser = async (userDocId, options = {}) => {
         if (!confirm('Bu kullanıcıyı tamamen silmek istediğinizden emin misiniz?')) return;
         try {
             const userDoc = await getDoc(doc(db, 'users', userDocId));
             if (userDoc.exists()) {
-                await archiveDeletedUser(userDocId, userDoc.data(), 'admin');
+                const userData = userDoc.data();
+                await archiveDeletedUser(userDocId, userData, 'admin');
+                if (options.reportId) {
+                    await sendAdminNotification(userDocId, 'account_deleted', 'Hesabınız silindi', 'Yönetici tarafından hesabınız kapatıldı.', {
+                        reportId: options.reportId,
+                        action: 'delete'
+                    });
+                    await finalizeReport(options.reportId, 'Kullanıcı silindi', 'Hesap kapatıldı');
+                    await notifyReporterAboutReport(options.reportId, 'Şikayet sonuçlandı', 'Yönetici tarafından kullanıcı silme işlemi gerçekleştirildi.', {
+                        reportId: options.reportId,
+                        action: 'delete'
+                    });
+                }
             }
             await deleteDoc(doc(db, "users", userDocId));
             loadAllRegisteredUsers();
             loadBannedUsers();
             loadBanAppeals();
+            if (options.reportId) {
+                loadUserReports();
+            }
             alert('Kullanıcı hesabı silindi.');
         } catch (e) {
             console.error('Kullanıcı silme hatası:', e);
@@ -940,7 +1185,7 @@
         }
     }
 
-    window.openBanModal = async (userDocId) => {
+    window.openBanModal = async (userDocId, context = null) => {
         try {
             const userDoc = await getDoc(doc(db, 'users', userDocId));
             if (!userDoc.exists()) {
@@ -949,6 +1194,7 @@
             }
             const userData = userDoc.data();
             currentBanUserId = userDocId;
+            currentBanContext = context;
             const username = userData.username || userData.email?.split('@')[0] || 'Bilinmeyen';
             const banUntilDate = userData.banUntil && userData.banUntil.toDate ? userData.banUntil.toDate() : null;
             const banActive = userData.isBanned === true && (!banUntilDate || banUntilDate > new Date());
@@ -978,6 +1224,7 @@
     window.closeBanModal = () => {
         document.getElementById('banModal').style.display = 'none';
         currentBanUserId = null;
+        currentBanContext = null;
     };
 
     window.saveBanUser = async () => {
@@ -1022,15 +1269,81 @@
                     banUntil: banUntil,
                     banAppealSent: false
                 });
+                await sendAdminNotification(currentBanUserId, 'account_banned', 'Hesabınız banlandı', isPermanentBan ? 'Hesabınız kalıcı olarak kapatıldı.' : `Hesabınız ${reason} nedeniyle geçici süreyle banlandı.`, {
+                    reportId: currentBanContext?.reportId || null,
+                    action: 'ban'
+                });
+                if (currentBanContext?.reportId) {
+                    await finalizeReport(currentBanContext.reportId, 'Banlandı', reason);
+                    await notifyReporterAboutReport(currentBanContext.reportId, 'Şikayet sonuçlandı', 'Yönetici tarafından kullanıcı banlandı.', {
+                        reportId: currentBanContext.reportId,
+                        action: 'ban'
+                    });
+                }
                 alert(isPermanentBan ? 'Kullanıcı kalıcı olarak banlandı.' : 'Kullanıcı banlandı.');
             }
             closeBanModal();
             loadAllRegisteredUsers();
             loadBannedUsers();
             loadBanAppeals();
+            if (currentBanContext?.reportId) {
+                loadUserReports();
+            }
         } catch (e) {
             console.error('Ban kaydedilemedi:', e);
             alert('Ban kaydedilemedi.');
+        }
+    };
+
+    window.warnReportTarget = async (reportId) => {
+        try {
+            const reportDoc = await getDoc(doc(db, 'reports', reportId));
+            if (!reportDoc.exists()) {
+                alert('Şikayet bulunamadı.');
+                return;
+            }
+
+            const report = reportDoc.data();
+            const targetUserDocId = await resolveReportTargetUserDocId(report);
+            if (!targetUserDocId) {
+                alert('Uyarı gönderilecek kullanıcı bulunamadı.');
+                return;
+            }
+
+            const message = prompt('Kullanıcıya gönderilecek uyarı metnini yazın:', 'Yönetici uyarısı: kurallara uygun davranın.');
+            if (message === null) return;
+
+            await sendAdminNotification(targetUserDocId, 'warning', 'Uyarı aldınız', message || 'Yönetici uyarısı', {
+                reportId,
+                action: 'warn'
+            });
+            await finalizeReport(reportId, 'Uyarıldı', message || 'Yönetici uyarısı');
+            await notifyReporterAboutReport(reportId, 'Şikayet sonuçlandı', 'Yönetici tarafından kullanıcıya uyarı gönderildi.', {
+                reportId,
+                action: 'warn'
+            });
+            loadUserReports();
+            alert('Kullanıcıya uyarı gönderildi.');
+        } catch (error) {
+            console.error('warnReportTarget hatası:', error);
+            alert('Uyarı gönderilemedi.');
+        }
+    };
+
+    window.resolveReportFromAdmin = async (reportId) => {
+        const note = prompt('Sonuç metnini yazın:', 'Şikayet sonuçlandırıldı.');
+        if (note === null) return;
+        try {
+            await finalizeReport(reportId, 'Sonuçlandırıldı', note || 'Şikayet sonuçlandırıldı.');
+            await notifyReporterAboutReport(reportId, 'Şikayet sonuçlandı', note || 'Şikayet sonuçlandırıldı.', {
+                reportId,
+                action: 'resolve'
+            });
+            loadUserReports();
+            alert('Şikayet sonuçlandırıldı.');
+        } catch (error) {
+            console.error('resolveReportFromAdmin hatası:', error);
+            alert('Şikayet sonuçlandırılamadı.');
         }
     };
 
@@ -2201,51 +2514,279 @@
     };
 
     window.switchUserManagementSubtab = (subtabId, button) => {
+        const moderationSection = document.getElementById('main-section-user-moderation');
         const subsection = document.getElementById('userManagement-subsection-' + subtabId);
-        const isAlreadyActive = subsection && subsection.classList.contains('active');
 
-        document.querySelectorAll('#main-section-management .admin-subsection').forEach(s => s.classList.remove('active'));
-        document.querySelectorAll('#main-section-management .subtab-btn').forEach(b => b.classList.remove('active'));
-
-        if (!isAlreadyActive) {
-            if (subsection) subsection.classList.add('active');
-            if (button) button.classList.add('active');
+        if (moderationSection) {
+            moderationSection.querySelectorAll('.admin-subsection').forEach(s => s.classList.remove('active'));
+            moderationSection.querySelectorAll('.subtab-btn').forEach(b => b.classList.remove('active'));
         }
 
-        if (!isAlreadyActive && subtabId === 'banned') {
+        if (subsection) {
+            subsection.classList.add('active');
+        }
+        if (button) {
+            button.classList.add('active');
+        }
+
+        if (subtabId === 'banned') {
             loadBannedUsers();
         }
 
-        if (!isAlreadyActive && subtabId === 'appeals') {
+        if (subtabId === 'appeals') {
             loadBanAppeals();
         }
 
-        if (!isAlreadyActive && subtabId === 'deleted') {
+        if (subtabId === 'deleted') {
             loadDeletedUsers();
         }
-        if (!isAlreadyActive && subtabId === 'tebrikthanks') {
+        if (subtabId === 'reports') {
+            loadUserReports();
+        }
+        if (subtabId === 'tebrikthanks') {
             loadUserManagementTebrikThanks();
         }
     };
 
 
-    // İçerik Denetimi (Aynı kaldı)
+    function getPostModerationFindings(text = '') {
+        const lower = String(text || '').toLowerCase();
+        const findings = [];
+
+        const rules = [
+            { label: 'Küfür', terms: ['siktir', 'amk', 'aq', 'orospu', 'pezevenk', 'fuck', 'shit', 'bitch', 'ibne', 'göt'] },
+            { label: 'Hakaret', terms: ['aptal', 'salak', 'gerizekalı', 'şerefsiz', 'zırva', 'pis', 'alçak'] },
+            { label: 'Cinsel içerik (+18)', terms: ['seks', 'porn', 'mastürbasyon', 'erotik', '18+', 'xvideos', 'xnxx', 'pornhub', 'siki', 'amcık'] },
+            { label: 'Irk / cins / cinsiyet ayrımı', terms: ['ırk', 'ırkçı', 'cinsiyet', 'cins ayrımı', 'ırk ayrımı', 'cinsiyet ayrımı'] }
+        ];
+
+        rules.forEach(rule => {
+            const match = rule.terms.find(term => lower.includes(term));
+            if (match) {
+                findings.push(`${rule.label} (ör. "${match}")`);
+            }
+        });
+
+        return findings;
+    }
+
+    // İçerik Denetimi
     async function loadAllPosts() {
-        const q = query(collection(db, "posts"), orderBy("timestamp", "desc"), limit(20));
+        const q = query(collection(db, "posts"), orderBy("timestamp", "desc"), limit(50));
         onSnapshot(q, (snap) => {
             const container = getAdminElement('admin-feed-list');
             if (!container) return;
             container.innerHTML = "";
+
+            if (snap.empty) {
+                container.innerHTML = '<div class="moderation-empty">Henüz inceleme için gönderi bulunmuyor.</div>';
+                return;
+            }
+
             snap.forEach(d => {
                 const p = d.data();
-                const contentText = p.content ? p.content.substring(0, 100) : "İçerik yok";
+                const isHidden = p.hidden === true;
+                const contentText = p.content ? String(p.content) : "İçerik yok";
+                const preview = contentText.length > 220 ? `${contentText.substring(0, 220)}...` : contentText;
+                const timestamp = p.timestamp?.toDate ? p.timestamp.toDate() : null;
+                const formattedTime = timestamp ? timestamp.toLocaleString('tr-TR', { dateStyle: 'medium', timeStyle: 'short' }) : 'Tarih yok';
+                const image = p.imageUrl ? `<div style="margin-top: 10px;"><img src="${escapeHtml(p.imageUrl)}" alt="post" style="max-width: 100%; max-height: 220px; object-fit: cover; border-radius: 12px; border: 1px solid var(--border);"></div>` : '';
+                const editHistory = p.lastEdit && p.lastEdit.from && p.lastEdit.to ? `
+                    <div style="margin-top: 12px; padding: 12px; border-radius: 10px; background: rgba(255,255,255,0.05); border: 1px solid var(--border);">
+                        <div style="font-size: 0.82rem; font-weight: 700; margin-bottom: 8px; color: var(--text-muted);">Düzenleme geçmişi</div>
+                        <div style="font-size: 0.9rem; margin-bottom: 6px;"><strong>Önce:</strong> ${escapeHtml(String(p.lastEdit.from))}</div>
+                        <div style="font-size: 0.9rem;"><strong>Sonra:</strong> ${escapeHtml(String(p.lastEdit.to))}</div>
+                    </div>` : '';
+                const hiddenBadge = isHidden ? '<span style="display:inline-flex; align-items:center; gap:6px; padding:6px 10px; border-radius:999px; background: rgba(239,68,68,0.14); color:#ef4444; font-size:0.8rem; font-weight:700;"><i class="fa-solid fa-eye-slash"></i> Gizli</span>' : '';
+                const visibilityButton = isHidden
+                    ? `<button class="action-btn" onclick="unhidePostAdmin('${d.id}')"><i class="fa-solid fa-eye"></i> Gizliliği Aç</button>`
+                    : `<button class="action-btn" onclick="hidePostAdmin('${d.id}')"><i class="fa-solid fa-eye-slash"></i> Gizle</button>`;
+
                 container.innerHTML += `
-                    <div class="glass-card" style="padding:15px; margin-bottom:10px; display:flex; border-left: 4px solid var(--primary); justify-content:space-between; align-items:center;">
-                        <div><small>@${p.username}</small><p style="margin:5px 0;">${contentText}...</p></div>
-                        <button class="action-btn btn-delete" onclick="deletePostAdmin('${d.id}')">Sil</button>
+                    <div class="moderation-card">
+                        <div class="moderation-card-header">
+                            <div class="moderation-user">
+                                <div style="width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, var(--primary), var(--warning)); display:flex; align-items:center; justify-content:center; color:white; font-weight:800;">
+                                    ${(p.username || 'U').charAt(0).toUpperCase()}
+                                </div>
+                                <div>
+                                    <div>${escapeHtml(p.displayName || p.username || 'Bilinmeyen kullanıcı')}</div>
+                                    <small>@${escapeHtml(p.username || 'unknown')}</small>
+                                </div>
+                            </div>
+                            <div class="moderation-meta">
+                                <span><i class="fa-solid fa-clock"></i> ${escapeHtml(formattedTime)}</span>
+                                <span><i class="fa-solid fa-hashtag"></i> ${escapeHtml(p.category || 'Genel')}</span>
+                                ${hiddenBadge}
+                            </div>
+                        </div>
+                        <div class="moderation-content">${escapeHtml(preview)}</div>
+                        ${image}
+                        ${editHistory}
+                        <div class="moderation-actions">
+                            <button class="action-btn" onclick="reviewPostAdmin('${d.id}')"><i class="fa-solid fa-eye"></i> İncele</button>
+                            <button class="action-btn" onclick="editPostAdmin('${d.id}')"><i class="fa-solid fa-pen"></i> Düzenle</button>
+                            ${visibilityButton}
+                            <button class="action-btn btn-delete" onclick="banPostAuthorAdmin('${d.id}')"><i class="fa-solid fa-user-slash"></i> Banla</button>
+                            <button class="action-btn btn-delete" onclick="deletePostAdmin('${d.id}')"><i class="fa-solid fa-trash"></i> Sil</button>
+                        </div>
                     </div>`;
             });
         });
+    }
+
+    async function resolveReportTargetUserDocId(report) {
+        if (report.targetUid) {
+            const targetDoc = await getDoc(doc(db, 'users', report.targetUid)).catch(() => null);
+            if (targetDoc?.exists()) {
+                return report.targetUid;
+            }
+        }
+
+        if (report.targetUsername) {
+            const userSnap = await getDocs(query(collection(db, 'users'), where('username', '==', report.targetUsername), limit(1)));
+            if (!userSnap.empty) {
+                return userSnap.docs[0].id;
+            }
+        }
+
+        return null;
+    }
+
+    window.banReportTarget = async (reportId) => {
+        try {
+            const reportDoc = await getDoc(doc(db, 'reports', reportId));
+            if (!reportDoc.exists()) {
+                alert('Şikayet bulunamadı.');
+                return;
+            }
+
+            const report = reportDoc.data();
+            const targetUserDocId = await resolveReportTargetUserDocId(report);
+            if (!targetUserDocId) {
+                alert('Banlanacak kullanıcı bulunamadı.');
+                return;
+            }
+
+            window.openBanModal(targetUserDocId, { reportId });
+        } catch (error) {
+            console.error('banReportTarget hatası:', error);
+            alert('Ban işlemi başlatılamadı.');
+        }
+    };
+
+    window.deleteReportedUserFromAdmin = async (reportId) => {
+        try {
+            const reportDoc = await getDoc(doc(db, 'reports', reportId));
+            if (!reportDoc.exists()) {
+                alert('Şikayet bulunamadı.');
+                return;
+            }
+
+            const report = reportDoc.data();
+            const targetUserDocId = await resolveReportTargetUserDocId(report);
+            if (!targetUserDocId) {
+                alert('Silinecek kullanıcı bulunamadı.');
+                return;
+            }
+
+            window.deleteRegisteredUser(targetUserDocId, { reportId });
+        } catch (error) {
+            console.error('deleteReportedUserFromAdmin hatası:', error);
+            alert('Kullanıcı silme işlemi başlatılamadı.');
+        }
+    };
+
+    window.deleteReportFromAdmin = async (reportId) => {
+        if (!confirm('Bu şikayeti silmek istediğinizden emin misiniz?')) return;
+        try {
+            await deleteDoc(doc(db, 'reports', reportId));
+            alert('Şikayet silindi.');
+            loadUserReports();
+        } catch (error) {
+            console.error('deleteReportFromAdmin hatası:', error);
+            alert('Şikayet silinemedi.');
+        }
+    };
+
+    async function loadUserReports() {
+        try {
+            const list = document.getElementById('user-management-reports-list');
+            if (!list) return;
+            list.innerHTML = '<div class="moderation-empty">Şikayetler yükleniyor...</div>';
+
+            const reportsSnap = await getDocs(query(collection(db, 'reports'), orderBy('createdAt', 'desc')));
+            if (reportsSnap.empty) {
+                list.innerHTML = '<div class="moderation-empty">Henüz şikayet bulunmuyor.</div>';
+                return;
+            }
+
+            const reportCards = await Promise.all(reportsSnap.docs.map(async (docSnap) => {
+                const report = docSnap.data();
+                const createdAt = report.createdAt?.toDate ? report.createdAt.toDate() : null;
+                const timeText = createdAt ? createdAt.toLocaleString('tr-TR', { dateStyle: 'medium', timeStyle: 'short' }) : 'Tarih yok';
+                const reporterUserDoc = report.reporterUid ? await getDoc(doc(db, 'users', report.reporterUid)).catch(() => null) : null;
+                const targetUserDoc = report.targetUid ? await getDoc(doc(db, 'users', report.targetUid)).catch(() => null) : null;
+                const reporterUser = reporterUserDoc?.exists() ? reporterUserDoc.data() : null;
+                const targetUser = targetUserDoc?.exists() ? targetUserDoc.data() : null;
+                const reporterName = reporterUser?.displayName || report.reporterName || 'Bilinmeyen';
+                const reporterUsername = reporterUser?.username || report.reporterUsername || 'unknown';
+                const targetName = targetUser?.displayName || report.targetName || report.targetUsername || 'Bilinmeyen';
+                const targetUsername = targetUser?.username || report.targetUsername || 'unknown';
+                const reporterAvatar = reporterUser?.avatarUrl && reporterUser.avatarUrl.trim() !== ''
+                    ? reporterUser.avatarUrl
+                    : `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(reporterUsername || 'reporter')}`;
+                const targetAvatar = targetUser?.avatarUrl && targetUser.avatarUrl.trim() !== ''
+                    ? targetUser.avatarUrl
+                    : `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(targetUsername || 'target')}`;
+                const statusText = report.status === 'resolved' ? 'Çözüldü' : 'Bekliyor';
+                const statusColor = report.status === 'resolved' ? '#10b981' : '#f59e0b';
+
+                return `
+                    <div class="glass-card" style="padding: 16px; border-left: 4px solid ${statusColor};">
+                        <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap; margin-bottom:12px;">
+                            <div style="display:flex; align-items:center; gap:10px; min-width:0;">
+                                <img src="${reporterAvatar}" alt="${escapeHtml(reporterName)}" style="width:44px; height:44px; border-radius:50%; object-fit:cover; border:1px solid var(--border);">
+                                <div style="min-width:0;">
+                                    <div style="font-weight:800;">${escapeHtml(reporterName)}</div>
+                                    <div style="color:var(--text-muted); font-size:0.9rem;">@${escapeHtml(reporterUsername)}</div>
+                                </div>
+                            </div>
+                            <span style="padding:6px 10px; border-radius:999px; background: rgba(255,255,255,0.06); color:${statusColor}; font-size:0.8rem; font-weight:800;">${escapeHtml(statusText)}</span>
+                        </div>
+                        <div style="display:grid; gap:10px;">
+                            <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                                <span style="font-weight:700;">Şikayet Edilen:</span>
+                                <div style="display:flex; align-items:center; gap:8px;">
+                                    <img src="${targetAvatar}" alt="${escapeHtml(targetName)}" style="width:32px; height:32px; border-radius:50%; object-fit:cover; border:1px solid var(--border);">
+                                    <span style="color:var(--text-muted);">${escapeHtml(targetName)} @${escapeHtml(targetUsername)}</span>
+                                </div>
+                            </div>
+                            <div style="padding: 12px; border-radius: 12px; background: rgba(255,255,255,0.05); border: 1px solid var(--border);">
+                                <div style="font-weight:700; margin-bottom:6px;">Şikayet Nedeni</div>
+                                <div style="white-space: pre-wrap; color: var(--text-main);">${escapeHtml(report.reason || 'Belirtilmedi')}</div>
+                            </div>
+                            <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; font-size:0.85rem; color:var(--text-muted);">
+                                <span><i class="fa-solid fa-clock"></i> ${escapeHtml(timeText)}</span>
+                                <span><i class="fa-solid fa-flag"></i> ${escapeHtml(report.category || 'Genel')}</span>
+                            </div>
+                            <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top: 8px;">
+                                <button class="action-btn" onclick="window.resolveReportFromAdmin('${docSnap.id}')"><i class="fa-solid fa-check"></i> Sonuçlandır</button>
+                                <button class="action-btn" onclick="window.warnReportTarget('${docSnap.id}')"><i class="fa-solid fa-triangle-exclamation"></i> Uyarı</button>
+                                <button class="action-btn" onclick="window.banReportTarget('${docSnap.id}')"><i class="fa-solid fa-user-slash"></i> Banla</button>
+                                <button class="action-btn btn-delete" onclick="window.deleteReportedUserFromAdmin('${docSnap.id}')"><i class="fa-solid fa-user-xmark"></i> Kullanıcı Sil</button>
+                                <button class="action-btn btn-delete" onclick="window.deleteReportFromAdmin('${docSnap.id}')"><i class="fa-solid fa-trash"></i> Şikayeti Sil</button>
+                            </div>
+                        </div>
+                    </div>`;
+            }));
+
+            list.innerHTML = reportCards.join('');
+        } catch (error) {
+            console.error('loadUserReports hatası:', error);
+            const list = document.getElementById('user-management-reports-list');
+            if (list) list.innerHTML = '<div class="moderation-empty">Şikayetler yüklenemedi.</div>';
+        }
     }
 
     window.loadUserManagementTebrikThanks = async () => {
@@ -2284,6 +2825,142 @@
             console.error('Kullanıcı tebrik/teşekkür listesi yüklenemedi:', e);
         }
     }
+
+    window.reviewPostAdmin = async (id) => {
+        try {
+            const snap = await getDoc(doc(db, 'posts', id));
+            if (!snap.exists()) {
+                alert('Gönderi bulunamadı.');
+                return;
+            }
+
+            const post = snap.data() || {};
+            const content = String(post.content || '');
+            const findings = getPostModerationFindings(content);
+
+            if (findings.length > 0) {
+                alert(`İnceleme sonucu:\n${findings.join('\n')}\n\nBu içerik manuel kontrol edilmelidir.`);
+            } else {
+                alert('İnceleme sonucu: Bu gönderide uygunsuz içerik tespit edilmedi.');
+            }
+        } catch (error) {
+            console.error('reviewPostAdmin hatası:', error);
+            alert('İnceleme sırasında bir hata oluştu.');
+        }
+    };
+
+    let adminEditPostState = null;
+
+    window.closeAdminEditPostModal = () => {
+        const modal = document.getElementById('adminEditPostModal');
+        if (modal) modal.style.display = 'none';
+        adminEditPostState = null;
+    };
+
+    window.openAdminEditPostModal = async (id) => {
+        try {
+            const snap = await getDoc(doc(db, 'posts', id));
+            if (!snap.exists()) {
+                alert('Gönderi bulunamadı.');
+                return;
+            }
+
+            const post = snap.data() || {};
+            const currentText = String(post.content || '');
+            const modal = document.getElementById('adminEditPostModal');
+            const oldContentEl = document.getElementById('adminEditPostOldContent');
+            const newContentEl = document.getElementById('adminEditPostNewContent');
+            if (!modal || !oldContentEl || !newContentEl) return;
+
+            oldContentEl.textContent = currentText || '(Boş içerik)';
+            newContentEl.value = currentText;
+            adminEditPostState = { id, oldText: currentText };
+            modal.style.display = 'flex';
+            newContentEl.focus();
+        } catch (error) {
+            console.error('openAdminEditPostModal hatası:', error);
+            alert('Düzenleme penceresi açılırken bir hata oluştu.');
+        }
+    };
+
+    window.saveAdminEditPost = async () => {
+        if (!adminEditPostState) return;
+        const newText = document.getElementById('adminEditPostNewContent')?.value || '';
+        if (newText.trim() === '') {
+            alert('Gönderi içeriği boş olamaz.');
+            return;
+        }
+
+        try {
+            await updateDoc(doc(db, 'posts', adminEditPostState.id), {
+                content: newText.trim(),
+                isEdited: true,
+                lastEdit: {
+                    from: adminEditPostState.oldText,
+                    to: newText.trim(),
+                    editedAt: serverTimestamp()
+                },
+                moderatedAt: serverTimestamp()
+            });
+            alert(`Gönderi güncellendi.\n\nÖnce:\n${adminEditPostState.oldText}\n\nSonra:\n${newText.trim()}`);
+            window.closeAdminEditPostModal();
+        } catch (error) {
+            console.error('saveAdminEditPost hatası:', error);
+            alert('Düzenleme sırasında bir hata oluştu.');
+        }
+    };
+
+    window.editPostAdmin = (id) => {
+        window.openAdminEditPostModal(id);
+    };
+
+    window.hidePostAdmin = async (id) => {
+        if (confirm('Bu gönderi gizlensin mi?')) {
+            await updateDoc(doc(db, 'posts', id), { hidden: true, moderatedAt: serverTimestamp() });
+            alert('Gönderi gizlendi.');
+        }
+    };
+
+    window.banPostAuthorAdmin = async (postId) => {
+        try {
+            const postSnap = await getDoc(doc(db, 'posts', postId));
+            if (!postSnap.exists()) {
+                alert('Gönderi bulunamadı.');
+                return;
+            }
+
+            const post = postSnap.data() || {};
+            const authorUid = post.authorUid || post.uid || post.userId || post.ownerUid || null;
+
+            if (authorUid) {
+                const userDoc = await getDoc(doc(db, 'users', authorUid));
+                if (userDoc.exists()) {
+                    window.openBanModal(authorUid);
+                    return;
+                }
+            }
+
+            if (post.username) {
+                const userQuery = await getDocs(query(collection(db, 'users'), where('username', '==', post.username), limit(1)));
+                if (!userQuery.empty) {
+                    window.openBanModal(userQuery.docs[0].id);
+                    return;
+                }
+            }
+
+            alert('Banlanacak kullanıcı bulunamadı.');
+        } catch (error) {
+            console.error('banPostAuthorAdmin hatası:', error);
+            alert('Ban işlemi başlatılırken bir hata oluştu.');
+        }
+    };
+
+    window.unhidePostAdmin = async (id) => {
+        if (confirm('Bu gönderinin gizliliği açılsın mı?')) {
+            await updateDoc(doc(db, 'posts', id), { hidden: false, moderatedAt: serverTimestamp() });
+            alert('Gönderinin gizliliği açıldı.');
+        }
+    };
 
     window.deletePostAdmin = async (id) => {
         if(confirm("Silinsin mi?")) {

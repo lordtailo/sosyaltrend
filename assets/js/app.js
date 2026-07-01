@@ -4562,8 +4562,10 @@ window.loadPostsFeed = (showAll = false) => {
       docsToRender.forEach(d => {
           try {
               console.log('rendering post', d.id);
-              const p = d.data(), 
-                    isPage = p.username?.startsWith('page_') || p.username === 'official_system', 
+              const p = d.data();
+              if (p.hidden === true) return;
+
+              const isPage = p.username?.startsWith('page_') || p.username === 'official_system', 
                     isMine = p.username === user.username || p.adminUser === user.username, 
                     isLiked = p.likes?.includes(user.username), 
                     isSaved = p.savedBy?.includes(user.username);
@@ -8550,6 +8552,60 @@ window.markAllNotificationsRead = markAllNotificationsRead;
 window.showRestoreModal = showRestoreModal;
 window.restoreNotifications = restoreNotifications;
 
+window.reportUserFromProfile = async function() {
+    const targetUid = window.currentVisitedProfileUid || null;
+    const targetUsername = typeof getVisitedProfileUsername === 'function' ? getVisitedProfileUsername() : null;
+    if (!targetUid || !auth.currentUser) {
+        alert('Şikayet edilecek kullanıcı belirlenemedi.');
+        return;
+    }
+
+    const reason = prompt('Şikayet nedenini yazın:\n\nÖrnek: Taciz, spam, uygunsuz içerik', '');
+    if (!reason || !reason.trim()) {
+        return;
+    }
+
+    try {
+        const reporterUid = auth.currentUser.uid;
+        const reporterRef = doc(db, 'users', reporterUid);
+        const reporterSnap = await getDoc(reporterRef);
+        const reporterData = reporterSnap.exists() ? reporterSnap.data() : {};
+        const reportDoc = {
+            reporterUid,
+            reporterName: reporterData.displayName || reporterData.name || reporterData.username || 'Bilinmeyen kullanıcı',
+            reporterUsername: reporterData.username || '',
+            targetUid,
+            targetUsername,
+            reason: reason.trim(),
+            createdAt: serverTimestamp(),
+            status: 'pending'
+        };
+
+        const reportsRef = collection(db, 'reports');
+        await addDoc(reportsRef, reportDoc);
+
+        const adminQuery = query(collection(db, 'users'), where('isAdmin', '==', true));
+        const adminSnap = await getDocs(adminQuery);
+        const adminIds = adminSnap.docs.map(docSnap => docSnap.id).filter(Boolean);
+
+        const reportText = `Yeni şikayet: ${reportDoc.reporterName} (@${reportDoc.reporterUsername || 'unknown'}) ${targetUsername ? 'kullanıcısını' : 'kullanıcıyı'} şikayet etti. Neden: ${reason.trim()}`;
+        for (const adminId of adminIds) {
+            if (adminId === reporterUid) continue;
+            await sendNotification(adminId, 'user_report', reportDoc.reporterName, {
+                reportReason: reason.trim(),
+                targetUsername,
+                targetUid,
+                reportText
+            });
+        }
+
+        alert('Şikayetiniz yöneticilere iletildi.');
+    } catch (error) {
+        console.error('reportUserFromProfile hatası:', error);
+        alert('Şikayet gönderilirken bir hata oluştu.');
+    }
+};
+
 // Fonksiyonu window nesnesine bağlayarak HTML'den erişilebilir yapıyoruz
 window.toggleNotifications = function() {
     const dropdown = document.getElementById('notificationsDropdown');
@@ -8803,6 +8859,7 @@ function updateNotificationBadge(count) {
 async function updateAddFriendButton(targetUid) {
     const addFriendBtn = document.getElementById('addFriendBtn');
     const chatBtn = document.getElementById('profileActionBtn');
+    const reportBtn = document.getElementById('reportUserBtn');
     if (!addFriendBtn || !chatBtn || !auth.currentUser) return;
 
     // Eğer profil sahibi kendimizsek butonları düzenle
@@ -8815,7 +8872,14 @@ async function updateAddFriendButton(targetUid) {
         addFriendBtn.onclick = (e) => e.preventDefault();
         
         chatBtn.style.display = 'none'; // Kendimizle sohbet edemeyiz
+        if (reportBtn) reportBtn.style.display = 'none';
         return;
+    }
+
+    if (reportBtn) {
+        reportBtn.style.display = 'inline-flex';
+        reportBtn.style.opacity = '1';
+        reportBtn.style.cursor = 'pointer';
     }
 
     // chat button default setup -- always visible for other users (friend or not)
