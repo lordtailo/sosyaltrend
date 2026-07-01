@@ -395,8 +395,9 @@
     <!-- ANA MENU TABS -->
     <div class="admin-tabs main-admin-tabs" style="margin-bottom: 28px; border-bottom: 3px solid var(--border); padding-bottom: 0;">
         <button class="tab-btn main-tab-btn active" onclick="switchMainSection('system', this)"><i class="fa-solid fa-bell"></i> Sistem</button>
-        <button class="tab-btn main-tab-btn" onclick="switchMainSection('management', this)"><i class="fa-solid fa-sliders"></i> Yönetim</button>
-        <button class="tab-btn main-tab-btn" onclick="switchMainSection('moderation', this)"><i class="fa-solid fa-shield-check"></i> Denetim</button>
+        <button class="tab-btn main-tab-btn" onclick="switchMainSection('management', this)"><i class="fa-solid fa-users-gear"></i> Kullanıcı Yönetimi</button>
+        <button class="tab-btn main-tab-btn" onclick="switchMainSection('user-moderation', this)"><i class="fa-solid fa-user-shield"></i> Kullanıcı Denetimi</button>
+        <button class="tab-btn main-tab-btn" onclick="switchMainSection('moderation', this)"><i class="fa-solid fa-shield-check"></i> İçerik Denetimi</button>
     </div>
 
     <!-- SİSTEM PANELI -->
@@ -428,13 +429,12 @@
     <!-- YÖNETIM PANELI -->
     <div id="main-section-management" class="main-section">
         <div class="admin-block">
-            <h2><i class="fa-solid fa-sliders"></i> Gelişmiş Yönetim</h2>
+            <h2><i class="fa-solid fa-users-gear"></i> Kullanıcı ve Erişim Yönetimi</h2>
             <div class="action-toolbar">
                 <i class="fa-solid fa-info-circle"></i>
-                <span style="color: var(--text-muted);">Admin yetkisi, ban ve silme işlemleri yapabilirsiniz</span>
+                <span style="color: var(--text-muted);">Yetkilendirme, ban, silme ve kullanıcı takibi işlemlerini burada yönetin.</span>
             </div>
 
-            <div class="section-subtitle"><i class="fa-solid fa-users"></i> Kullanıcı Özeti</div>
             <div style="display:grid; gap:16px; margin-bottom:20px;">
                 <div class="glass-card" style="padding:16px; border-radius:14px;">
                     <h3 style="margin:0 0 12px; font-size:1rem;">Postlardan Derlenen Kullanıcılar</h3>
@@ -466,6 +466,34 @@
                 </div>
             </div>
 
+        </div>
+    </div>
+
+    <!-- KULLANICI DENETİM PANELI -->
+    <div id="main-section-user-moderation" class="main-section">
+        <div class="admin-block admin-block-page">
+            <h2><i class="fa-solid fa-user-shield"></i> Kullanıcı Denetimi</h2>
+            <div class="action-toolbar">
+                <i class="fa-solid fa-info-circle"></i>
+                <span style="color: var(--text-muted);">Banlanan kullanıcıları, itirazları ve silinen hesap arşivlerini buradan yönetin.</span>
+            </div>
+
+            <div class="section-subtitle"><i class="fa-solid fa-users"></i> Yönetim Özeti</div>
+            <div style="display:grid; gap:12px; margin-bottom:20px; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));">
+                <div class="glass-card" style="padding:14px; border-radius:14px;">
+                    <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px; color:var(--primary);"><i class="fa-solid fa-user-shield"></i><strong>Yetki</strong></div>
+                    <div style="font-size:0.9rem; color:var(--text-muted);">Admin yetkisi verip kaldırabilirsiniz.</div>
+                </div>
+                <div class="glass-card" style="padding:14px; border-radius:14px;">
+                    <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px; color:var(--warning);"><i class="fa-solid fa-ban"></i><strong>Ban</strong></div>
+                    <div style="font-size:0.9rem; color:var(--text-muted);">Banlanan kullanıcıları yönetip itirazları inceleyebilirsiniz.</div>
+                </div>
+                <div class="glass-card" style="padding:14px; border-radius:14px;">
+                    <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px; color:var(--danger);"><i class="fa-solid fa-trash"></i><strong>Silme</strong></div>
+                    <div style="font-size:0.9rem; color:var(--text-muted);">İstenmeyen hesapları arşivleyebilir ve silebilirsiniz.</div>
+                </div>
+            </div>
+
             <div class="admin-subtabs">
                 <button class="subtab-btn active" onclick="switchUserManagementSubtab('managed', this)"><i class="fa-solid fa-layer-group"></i> Tüm Kullanıcılar</button>
                 <button class="subtab-btn" onclick="switchUserManagementSubtab('banned', this)"><i class="fa-solid fa-ban"></i> Banlananlar</button>
@@ -473,7 +501,6 @@
                 <button class="subtab-btn" onclick="switchUserManagementSubtab('deleted', this)"><i class="fa-solid fa-trash"></i> Silinen</button>
             </div>
 
-            <!-- TÜM KULLANICILAR TAB -->
             <div id="userManagement-subsection-managed" class="admin-subsection active">
                 <div class="search-filter-bar">
                     <input type="text" id="managedUserSearch" class="search-input" placeholder="Kullanıcı adı veya email ile ara..." onkeyup="filterManagedUsers()">
@@ -485,7 +512,6 @@
                 </table>
             </div>
 
-            <!-- BANLANAN KULLANICILAR TAB -->
             <div id="userManagement-subsection-banned" class="admin-subsection">
                 <div class="action-toolbar">
                     <i class="fa-solid fa-shield-exclamation"></i>
@@ -497,12 +523,10 @@
                 </table>
             </div>
 
-            <!-- BAN İTİRAZLARI TAB -->
             <div id="userManagement-subsection-appeals" class="admin-subsection">
                 <div id="user-management-ban-appeals-list"></div>
             </div>
 
-            <!-- SİLİNEN ÜYELER TAB -->
             <div id="userManagement-subsection-deleted" class="admin-subsection">
                 <div class="section-subtitle"><i class="fa-solid fa-trash-alt"></i> Silinen Üyeler Arşivi</div>
                 <table class="data-table">
