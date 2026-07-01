@@ -4434,10 +4434,31 @@ font-size: 0.9rem; font-weight: 800; color: var(--primary); margin: 20px 0 10px;
 @media (max-width: 768px) {
     /* Header smaller and more compact */
     header { height: 56px; padding: 0 12px; top: 0; }
-    .header-center { display: flex; }
-    .header-left { gap: 8px; }
-    .header-right { gap: 8px; }
+    .header-center {
+        display: flex;
+        flex-wrap: nowrap;
+        min-width: 0;
+    }
+    .header-nav-buttons {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        max-width: 100%;
+        min-width: 0;
+        -webkit-overflow-scrolling: touch;
+    }
+    .header-nav-buttons::-webkit-scrollbar {
+        display: none;
+    }
+    .header-nav-buttons > .header-nav-btn {
+        flex-shrink: 0;
+        white-space: nowrap;
+    }
+    .header-left, .header-right {
+        min-width: 0;
+    }
+    .logo-container { display: none !important; }
     .logo { font-size: 1.1rem; }
+    .header-friends-online-count { display: none !important; }
 
     /* App container becomes single column and full width */
     .app-container { grid-template-columns: 1fr; padding: 88px 12px 110px 12px; gap: 12px; }

@@ -6462,7 +6462,7 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
         const mobileNav = document.getElementById('mobileBottomNav');
         if (mobileNav) {
-            const themeBtn = document.getElementById('themeToggleBtnMobile');
+            const themeBtn = mobileNav.querySelector('#themeToggleBtnMobile');
             if (themeBtn) {
                 themeBtn.id = 'mobileChatBtn';
                 themeBtn.classList.add('mobile-nav-item');
@@ -6500,7 +6500,9 @@ document.addEventListener('DOMContentLoaded', () => {
             floatMenu.querySelectorAll('button').forEach(b => {
                 b.addEventListener('click', (ev) => {
                     const mode = b.dataset.theme;
-                    if (mode === 'dark') {
+                    if (!mode && b.id === 'themeToggleBtnMobile') {
+                        if (typeof toggleDarkMode === 'function') toggleDarkMode();
+                    } else if (mode === 'dark') {
                         document.body.classList.add('dark-mode');
                         localStorage.setItem('st_theme', 'dark');
                     } else if (mode === 'light') {

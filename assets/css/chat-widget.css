@@ -378,12 +378,17 @@ body.dark-mode #emoji-picker button:hover {
 @media (max-width: 768px) {
     .chat-widget-container,
     .chat-lists-panel {
-        width: calc(100% - 20px);
-        height: 400px;
-        bottom: 60px;
-        left: 50%;
-        right: auto;
-        transform: translateX(-50%); /* Kesin ortalama sağlar */
+        width: 100%;
+        max-width: 100%;
+        left: 0;
+        right: 0;
+        top: 56px;
+        bottom: 0;
+        transform: none;
+        border-radius: 0;
+        height: auto;
+        margin: 0;
+        box-shadow: none;
     }
     .chat-widget-header,
     .chat-lists-header {
