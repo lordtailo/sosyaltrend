@@ -515,7 +515,7 @@
 
  <main id="main-content">
   <div class="admin-header">
-    <h1>⚙️ Yönetim Paneli</h1>
+    <h1></h1>
   </div>
 
   <div class="stat-grid">
@@ -541,7 +541,7 @@
         <button class="tab-btn main-tab-btn active" onclick="switchMainSection('system', this)"><i class="fa-solid fa-bell"></i> Sistem</button>
         <button class="tab-btn main-tab-btn" onclick="switchMainSection('management', this)"><i class="fa-solid fa-users-gear"></i> Kullanıcı Takibi</button>
         <button class="tab-btn main-tab-btn" onclick="switchMainSection('user-moderation', this)"><i class="fa-solid fa-user-shield"></i> Kullanıcı Denetim</button>
-        <button class="tab-btn main-tab-btn" onclick="switchMainSection('moderation', this)"><i class="fa-solid fa-shield-check"></i> İçerik Denetimi</button>
+        <button class="tab-btn main-tab-btn" onclick="switchMainSection('moderation', this)"><i class="fa-solid fa-file-lines"></i> İçerik Denetimi</button>
     </div>
 
     <!-- SİSTEM PANELI -->
@@ -626,8 +626,7 @@
 
             <div class="admin-subtabs">
                 <button class="tab-btn subtab-btn active" onclick="switchUserManagementSubtab('managed', this)"><i class="fa-solid fa-layer-group"></i> Tüm Kullanıcılar</button>
-                <button class="tab-btn subtab-btn" onclick="switchUserManagementSubtab('banned', this)"><i class="fa-solid fa-ban"></i> Banlananlar</button>
-                <button class="tab-btn subtab-btn" onclick="switchUserManagementSubtab('appeals', this)"><i class="fa-solid fa-flag"></i> İtirazlar</button>
+                <button class="tab-btn subtab-btn" onclick="switchUserManagementSubtab('banAppeals', this)"><i class="fa-solid fa-ban"></i> Ban & İtirazlar</button>
                 <button class="tab-btn subtab-btn" onclick="switchUserManagementSubtab('deleted', this)"><i class="fa-solid fa-trash"></i> Silinen</button>
                 <button class="tab-btn subtab-btn" onclick="switchUserManagementSubtab('reports', this)"><i class="fa-solid fa-flag"></i> Şikayetler</button>
             </div>
@@ -643,19 +642,24 @@
                 </table>
             </div>
 
-            <div id="userManagement-subsection-banned" class="admin-subsection">
+            <div id="userManagement-subsection-banAppeals" class="admin-subsection">
                 <div class="action-toolbar">
                     <i class="fa-solid fa-shield-exclamation"></i>
-                    <span style="color: var(--text-muted);">Sadece şu anda aktif banlı kullanıcılar listelenir</span>
+                    <span style="color: var(--text-muted);">Aktif banlı kullanıcılar ve ban itirazları tek ekranda görüntülenir.</span>
                 </div>
-                <table class="data-table">
-                    <thead><tr><th>Kullanıcı</th><th>Kullanıcı Adı</th><th>Email</th><th>Ban Bitiş</th><th>Ban Nedeni</th><th>İşlem</th></tr></thead>
-                    <tbody id="banned-users-body"></tbody>
-                </table>
-            </div>
-
-            <div id="userManagement-subsection-appeals" class="admin-subsection">
-                <div id="user-management-ban-appeals-list"></div>
+                <div style="display:grid; gap:16px;">
+                    <div class="glass-card" style="padding:16px; border-radius:14px;">
+                        <div class="section-subtitle" style="margin-bottom:12px;"><i class="fa-solid fa-ban"></i> Banlanan Kullanıcılar</div>
+                        <table class="data-table">
+                            <thead><tr><th>Kullanıcı</th><th>Kullanıcı Adı</th><th>Email</th><th>Ban Bitiş</th><th>Ban Nedeni</th><th>İşlem</th></tr></thead>
+                            <tbody id="banned-users-body"></tbody>
+                        </table>
+                    </div>
+                    <div class="glass-card" style="padding:16px; border-radius:14px;">
+                        <div class="section-subtitle" style="margin-bottom:12px;"><i class="fa-solid fa-flag"></i> Ban İtirazları</div>
+                        <div id="user-management-ban-appeals-list"></div>
+                    </div>
+                </div>
             </div>
 
             <div id="userManagement-subsection-deleted" class="admin-subsection">
@@ -676,7 +680,7 @@
     <!-- DENETİM PANELI -->
     <div id="main-section-moderation" class="main-section">
         <div class="admin-block admin-block-page">
-            <h2><i class="fa-solid fa-file-lines"></i> 🛡️ İçerik Denetimi</h2>
+            <h2><i class="fa-solid fa-file-lines"></i> İçerik Denetimi</h2>
             <div class="action-toolbar">
                 <i class="fa-solid fa-info-circle"></i>
                 <span style="color: var(--text-muted);">Paylaşımları inceleyin, uygunsuz içerikleri yönetin ve düzenleme akışını kontrol edin.</span>
@@ -774,6 +778,20 @@
             shortDomain = 'hm..';
         }
         return `${localPart}@${shortDomain}`;
+    }
+
+    function formatAdminTimestamp(value) {
+        if (!value) return 'Tarih yok';
+        let date = null;
+        if (value && typeof value.toDate === 'function') {
+            date = value.toDate();
+        } else if (value && typeof value === 'object' && value.seconds !== undefined) {
+            date = new Date(value.seconds * 1000 + Math.floor((value.nanoseconds || 0) / 1000000));
+        } else if (typeof value === 'number') {
+            date = new Date(value);
+        }
+        if (!date || Number.isNaN(date.getTime())) return 'Tarih yok';
+        return date.toLocaleString('tr-TR', { dateStyle: 'medium', timeStyle: 'short' });
     }
 
     function getAdminElement(id) {
@@ -1069,17 +1087,21 @@
             message,
             fromName: 'Sistem / Yönetici',
             fromUid: auth.currentUser?.uid || 'admin',
-            timestamp: serverTimestamp(),
+            timestamp: Date.now(),
             read: false,
             ...extra
         };
         const recipientRef = doc(db, 'users', recipientUid);
         const recipientSnap = await getDoc(recipientRef);
         if (recipientSnap.exists()) {
-            const existing = Array.isArray(recipientSnap.data().notifications) ? recipientSnap.data().notifications : [];
-            await updateDoc(recipientRef, { notifications: [...existing, notification] });
+            await updateDoc(recipientRef, { notifications: arrayUnion(notification) });
         } else {
             await setDoc(recipientRef, { notifications: [notification] }, { merge: true });
+        }
+        try {
+            window.dispatchEvent(new CustomEvent('notifications:changed'));
+        } catch (e) {
+            // ignore browser event errors
         }
     }
 
@@ -1313,6 +1335,19 @@
             const message = prompt('Kullanıcıya gönderilecek uyarı metnini yazın:', 'Yönetici uyarısı: kurallara uygun davranın.');
             if (message === null) return;
 
+            const targetUserRef = doc(db, 'users', targetUserDocId);
+            const targetUserSnap = await getDoc(targetUserRef);
+            const targetUserData = targetUserSnap.exists() ? targetUserSnap.data() : {};
+            const warningEntry = {
+                reportId,
+                message: message || 'Yönetici uyarısı',
+                warnedAt: Date.now(),
+                warnedBy: auth.currentUser?.uid || 'admin'
+            };
+            await updateDoc(targetUserRef, {
+                warningHistory: arrayUnion(warningEntry),
+                warningCount: (targetUserData.warningCount || 0) + 1
+            });
             await sendAdminNotification(targetUserDocId, 'warning', 'Uyarı aldınız', message || 'Yönetici uyarısı', {
                 reportId,
                 action: 'warn'
@@ -2258,7 +2293,7 @@
                 break;
             case 'ban':
                 document.querySelector('[onclick*="switchTab(\'userManagement\'"]')?.click();
-                setTimeout(() => document.querySelector('[onclick*="switchUserManagementSubtab(\'banned\'"]')?.click(), 300);
+                setTimeout(() => document.querySelector('[onclick*="switchUserManagementSubtab(\'banAppeals\'"]')?.click(), 300);
                 showToast('🚫 Ban yönetimi açıldı', 'info', 1500);
                 break;
             case 'rapor':
@@ -2529,11 +2564,8 @@
             button.classList.add('active');
         }
 
-        if (subtabId === 'banned') {
+        if (subtabId === 'banAppeals') {
             loadBannedUsers();
-        }
-
-        if (subtabId === 'appeals') {
             loadBanAppeals();
         }
 
@@ -2741,6 +2773,14 @@
                     : `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(targetUsername || 'target')}`;
                 const statusText = report.status === 'resolved' ? 'Çözüldü' : 'Bekliyor';
                 const statusColor = report.status === 'resolved' ? '#10b981' : '#f59e0b';
+                const warningHistory = Array.isArray(targetUser?.warningHistory) ? targetUser.warningHistory.slice().reverse() : [];
+                const warningSummary = warningHistory.length > 0
+                    ? warningHistory.slice(0, 3).map(entry => `
+                        <div style="padding:8px 10px; border-radius:10px; background:rgba(245,158,11,0.08); border:1px solid rgba(245,158,11,0.2);">
+                            <div style="font-weight:700; color:var(--warning); margin-bottom:4px;">${escapeHtml(entry.message || 'Yönetici uyarısı')}</div>
+                            <div style="font-size:0.8rem; color:var(--text-muted);">${escapeHtml(formatAdminTimestamp(entry.warnedAt || entry.timestamp))}</div>
+                        </div>`).join('')
+                    : '<div style="font-size:0.9rem; color:var(--text-muted);">Bu kullanıcı daha önce uyarılmadı.</div>';
 
                 return `
                     <div class="glass-card" style="padding: 16px; border-left: 4px solid ${statusColor};">
@@ -2770,8 +2810,14 @@
                                 <span><i class="fa-solid fa-clock"></i> ${escapeHtml(timeText)}</span>
                                 <span><i class="fa-solid fa-flag"></i> ${escapeHtml(report.category || 'Genel')}</span>
                             </div>
+                            <div style="padding: 12px; border-radius: 12px; background: rgba(245,158,11,0.06); border: 1px solid rgba(245,158,11,0.22); margin-top: 8px;">
+                                <div style="font-weight:800; color:var(--warning); margin-bottom:8px; display:flex; align-items:center; gap:8px;"><i class="fa-solid fa-triangle-exclamation"></i> Uyarılan Kullanıcılar</div>
+                                <div style="display:grid; gap:8px;">
+                                    ${warningSummary}
+                                </div>
+                                ${warningHistory.length > 0 ? `<div style="margin-top:8px; font-size:0.8rem; color:var(--text-muted);">Toplam uyarı: ${warningHistory.length}</div>` : ''}
+                            </div>
                             <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top: 8px;">
-                                <button class="action-btn" onclick="window.resolveReportFromAdmin('${docSnap.id}')"><i class="fa-solid fa-check"></i> Sonuçlandır</button>
                                 <button class="action-btn" onclick="window.warnReportTarget('${docSnap.id}')"><i class="fa-solid fa-triangle-exclamation"></i> Uyarı</button>
                                 <button class="action-btn" onclick="window.banReportTarget('${docSnap.id}')"><i class="fa-solid fa-user-slash"></i> Banla</button>
                                 <button class="action-btn btn-delete" onclick="window.deleteReportedUserFromAdmin('${docSnap.id}')"><i class="fa-solid fa-user-xmark"></i> Kullanıcı Sil</button>

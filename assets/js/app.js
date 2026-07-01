@@ -1886,6 +1886,9 @@ onAuthStateChanged(auth, async (fbUser) => {
                 }
                 // Bildirimleri (arkadaş istekleri + diğer bildirimler) güncelle
                 loadNotifications(userData);
+                if (typeof window.loadProfileNotifications === 'function') {
+                    window.loadProfileNotifications();
+                }
                 updateBanOverlay(userData);
                 if (typeof userData.isAdmin !== 'undefined') {
                     const newAdminStatus = userData.isAdmin === true || fbUser.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
@@ -7482,6 +7485,8 @@ async function sendNotification(recipientUid, type, fromName, extra = {}) {
             fromUid: auth.currentUser ? auth.currentUser.uid : null,
             timestamp: Date.now(),
             read: false,
+            title: extra.title || '',
+            message: extra.message || extra.text || '',
             ...extra
         };
 
@@ -7494,6 +7499,12 @@ async function sendNotification(recipientUid, type, fromName, extra = {}) {
                 }, { merge: true });
             }
         });
+
+        try {
+            window.dispatchEvent(new CustomEvent('notifications:changed'));
+        } catch (e) {
+            // ignore browser event errors
+        }
     } catch (error) {
         console.error("Bildirim gönderme hatası:", error);
     }
@@ -7961,6 +7972,67 @@ async function loadFriendRequests(requests) {
     checkIfNoRequests();
 }
 
+function normalizeNotifications(notifications) {
+    if (!Array.isArray(notifications)) return [];
+    return notifications.filter(Boolean).map((n, index) => {
+        const item = typeof n === 'object' ? n : { message: String(n) };
+        const timestamp = item.timestamp;
+        return {
+            ...item,
+            read: item.read === true,
+            type: item.type || 'info',
+            title: item.title || item.header || '',
+            message: item.message || item.body || item.text || item.title || 'Yeni bildirim',
+            notificationId: item.notificationId || item.id || `notif-${index}-${_normalizeTs(timestamp) || Date.now()}`
+        };
+    });
+}
+
+function getNotificationDisplayText(n) {
+    if (!n) return 'Yeni bildirim';
+    const title = String(n.title || n.header || '').trim();
+    const message = String(n.message || n.body || n.text || '').trim();
+    if (title) return title;
+    if (message) return message;
+    if (n.type === 'report_result') return 'Şikayet sonuçlandı';
+    if (n.type === 'account_banned') return 'Hesabınız banlandı';
+    if (n.type === 'warning') return 'Uyarı aldınız';
+    if (n.type === 'account_deleted') return 'Hesabınız silindi';
+    return n.fromName || 'Sistem';
+}
+
+function getNotificationDetailText(n) {
+    if (!n) return '';
+    const message = String(n.message || n.body || n.text || '').trim();
+    if (n.postContent) return `"${n.postContent}${n.postContent.length > 50 ? '...' : ''}"`;
+    if (n.commentText) return `"${n.commentText.slice(0, 60)}${n.commentText.length > 60 ? '...' : ''}"`;
+    if (n.reportReason) return `Neden: ${n.reportReason}`;
+    if (message && n.title) return message;
+    if (message && !n.title) return message;
+    return '';
+}
+
+async function refreshNotificationsUI() {
+    if (!auth?.currentUser) return;
+    try {
+        const userRef = doc(db, 'users', auth.currentUser.uid);
+        const userSnap = await getDoc(userRef);
+        if (userSnap.exists()) {
+            loadNotifications(userSnap.data());
+            if (typeof window.loadProfileNotifications === 'function') {
+                window.loadProfileNotifications();
+            }
+        }
+    } catch (err) {
+        console.warn('refreshNotificationsUI hatası:', err);
+    }
+}
+
+window.refreshNotificationsUI = refreshNotificationsUI;
+window.addEventListener('notifications:changed', () => {
+    refreshNotificationsUI();
+});
+
 // Birleştirilmiş bildirim yükleyici: arkadaş istekleri + diğer bildirimler
 async function loadNotifications(userData) {
     const requestsList = document.getElementById('friendRequestsList');
@@ -7978,7 +8050,7 @@ async function loadNotifications(userData) {
     }
 
     const friendRequests = Array.isArray(userData.friendRequests) ? userData.friendRequests : [];
-    const otherNotifs = Array.isArray(userData.notifications) ? userData.notifications : [];
+    const otherNotifs = normalizeNotifications(userData.notifications);
 
     const unreadOther = otherNotifs.filter(n => !n.read).length;
     const totalCount = friendRequests.length + unreadOther;
@@ -8038,30 +8110,35 @@ async function loadNotifications(userData) {
             icon = 'fa-user-check';
         } else if (n.type === 'like' || n.type === 'post_like') {
             text = `${n.fromName} gönderinizi beğendi`;
-            detail = n.postContent ? `"${n.postContent}${n.postContent.length > 50 ? '...' : ''}"` : '';
+            detail = getNotificationDetailText(n);
             icon = 'fa-heart';
         } else if (n.type === 'saved_self') {
             text = `Gönderiyi kaydettiniz`;
-            detail = n.postContent ? `"${n.postContent}${n.postContent.length > 50 ? '...' : ''}"` : '';
+            detail = getNotificationDetailText(n);
             icon = 'fa-bookmark';
         } else if (n.type === 'saved' || n.type === 'post_saved') {
             text = `${n.fromName} gönderinizi kaydetti`;
-            detail = n.postContent ? `"${n.postContent}${n.postContent.length > 50 ? '...' : ''}"` : '';
+            detail = getNotificationDetailText(n);
             icon = 'fa-bookmark';
         } else if (n.type === 'comment' || n.type === 'post_comment') {
             text = `${n.fromName} gönderinize yorum yaptı`;
-            detail = n.commentText ? `"${n.commentText.slice(0, 50)}${n.commentText.length > 50 ? '...' : ''}"` : '';
+            detail = getNotificationDetailText(n);
             icon = 'fa-comment';
         } else if (n.type === 'comment_reply') {
             text = `${n.fromName} yorumunuza yanıt yazdı`;
-            detail = n.commentText ? `"${n.commentText.slice(0, 50)}${n.commentText.length > 50 ? '...' : ''}"` : '';
+            detail = getNotificationDetailText(n);
             icon = 'fa-reply';
         } else if (n.type === 'message' || n.type === 'msg') {
             text = `${n.fromName} size mesaj gönderdi`;
-            detail = n.message ? `"${n.message.slice(0, 80)}${n.message.length > 80 ? '...' : ''}"` : '';
+            detail = getNotificationDetailText(n);
             icon = 'fa-envelope';
+        } else if (n.type === 'report_result' || n.type === 'account_banned' || n.type === 'warning' || n.type === 'account_deleted') {
+            text = getNotificationDisplayText(n);
+            detail = n.message && n.title ? n.message : getNotificationDetailText(n);
+            icon = 'fa-shield-halved';
         } else {
-            text = n.message || `${n.fromName || 'Birileri'} bir bildirim gönderdi`;
+            text = getNotificationDisplayText(n);
+            detail = getNotificationDetailText(n);
         }
 
         const timeStr = _formatNotificationTime(n.timestamp);
@@ -8265,7 +8342,7 @@ async function loadProfileNotifications() {
 
         const userRef = doc(db, 'users', auth.currentUser.uid);
         const userSnap = await getDoc(userRef);
-        const allNotifs = (userSnap.exists() && Array.isArray(userSnap.data().notifications)) ? userSnap.data().notifications : [];
+        const allNotifs = normalizeNotifications(userSnap.exists() ? userSnap.data().notifications : []);
 
         list.innerHTML = '';
         if (allNotifs.length === 0) {
@@ -8404,7 +8481,7 @@ async function deleteNotification(targetNotif) {
         const userRef = doc(db, 'users', auth.currentUser.uid);
         const userSnap = await getDoc(userRef);
         if (!userSnap.exists()) return;
-        const notifs = Array.isArray(userSnap.data().notifications) ? userSnap.data().notifications : [];
+        const notifs = normalizeNotifications(userSnap.data().notifications);
 
         const updated = notifs.filter(n => !_isSameNotification(n, targetNotif));
         await updateDoc(userRef, { notifications: updated });
@@ -8420,7 +8497,7 @@ async function markNotificationRead(targetNotif) {
         const userRef = doc(db, 'users', auth.currentUser.uid);
         const userSnap = await getDoc(userRef);
         if (!userSnap.exists()) return;
-        const notifs = Array.isArray(userSnap.data().notifications) ? userSnap.data().notifications : [];
+        const notifs = normalizeNotifications(userSnap.data().notifications);
 
         const updated = notifs.map(n => {
             if (_isSameNotification(n, targetNotif)) {
@@ -8443,7 +8520,7 @@ async function deleteAllNotifications() {
         const userRef = doc(db, 'users', auth.currentUser.uid);
         const userSnap = await getDoc(userRef);
         if (userSnap.exists()) {
-            const notifs = Array.isArray(userSnap.data().notifications) ? userSnap.data().notifications : [];
+            const notifs = normalizeNotifications(userSnap.data().notifications);
             notifs.forEach(n => saveDeletedNotification(n));
         }
         await updateDoc(userRef, { notifications: [] });
@@ -8506,7 +8583,7 @@ async function restoreNotifications(notificationsToRestore) {
         const userRef = doc(db, 'users', auth.currentUser.uid);
         const userSnap = await getDoc(userRef);
         if (!userSnap.exists()) return;
-        const notifs = Array.isArray(userSnap.data().notifications) ? userSnap.data().notifications : [];
+        const notifs = normalizeNotifications(userSnap.data().notifications);
         
         const cleanedRestore = notificationsToRestore.map(({ deletedAt, ...n }) => n);
         const combined = [...notifs, ...cleanedRestore];
@@ -8533,7 +8610,7 @@ async function markAllNotificationsRead() {
         const userRef = doc(db, 'users', auth.currentUser.uid);
         const userSnap = await getDoc(userRef);
         if (!userSnap.exists()) return;
-        const notifs = Array.isArray(userSnap.data().notifications) ? userSnap.data().notifications : [];
+        const notifs = normalizeNotifications(userSnap.data().notifications);
         if (notifs.length === 0) return;
 
         const updated = notifs.map(n => ({ ...n, read: true }));
@@ -8598,6 +8675,15 @@ window.reportUserFromProfile = async function() {
                 reportText
             });
         }
+
+        await sendNotification(reporterUid, 'report_submitted', 'Sistem / Yönetici', {
+            title: 'Şikayetiniz iletildi',
+            message: 'Şikayetinizi yöneticilere ilettik. İnceleme sonuçlarını bildirimlerinizden takip edebilirsiniz.',
+            reportReason: reason.trim(),
+            targetUsername,
+            targetUid,
+            reportText
+        });
 
         alert('Şikayetiniz yöneticilere iletildi.');
     } catch (error) {
@@ -9494,6 +9580,137 @@ function initChatListsPanel() {
     document.body.appendChild(chatListsPanel);
 }
 
+function ensureGroupCreateActionButton(container) {
+    if (!container) return;
+    let existing = container.querySelector('#chat-create-group-btn-wrap');
+    if (existing) return;
+
+    const wrap = document.createElement('div');
+    wrap.id = 'chat-create-group-btn-wrap';
+    wrap.style.cssText = 'padding: 10px 14px 0; border-top: 1px solid var(--border, rgba(255,255,255,0.12)); margin-top: 8px;';
+    wrap.innerHTML = `
+        <button type="button" class="chat-action-btn chat-action-primary" onclick="window.openCreateGroupChatModal()" style="width:100%; justify-content:center;">
+            <i class="fa-solid fa-user-group"></i> + Grup Oluştur
+        </button>
+    `;
+    container.appendChild(wrap);
+}
+
+function removeGroupCreateActionButton(container) {
+    if (!container) return;
+    const existing = container.querySelector('#chat-create-group-btn-wrap');
+    if (existing) existing.remove();
+}
+
+window.openConversationFromList = async function(conversationId, displayName, isGroup) {
+    if (!auth.currentUser) return;
+
+    if (isGroup) {
+        const groupIdentifier = String(conversationId || '').replace(/^group_/, '');
+        await window.openGroupChat(groupIdentifier, displayName, []);
+    } else {
+        const currentUserId = auth.currentUser.uid;
+        const otherParticipantId = String(conversationId || '').split('_').find(id => id && id !== currentUserId);
+        if (otherParticipantId) {
+            await openChatWithUser(otherParticipantId, displayName);
+        }
+    }
+
+    window.closeChatsList();
+};
+
+window.openCreateGroupChatModal = async function() {
+    if (!auth.currentUser) {
+        alert('Lütfen giriş yapın');
+        return;
+    }
+
+    const currentUserId = auth.currentUser.uid;
+    const userRef = doc(db, 'users', currentUserId);
+    const userSnap = await getDoc(userRef);
+    const friendsIds = Array.isArray(userSnap.exists() ? userSnap.data().friends : []) ? (userSnap.data().friends || []) : [];
+
+    if (!friendsIds.length) {
+        alert('Önce en az bir arkadaş ekleyin.');
+        return;
+    }
+
+    const existingModal = document.getElementById('create-group-chat-modal');
+    if (existingModal) existingModal.remove();
+
+    const modal = document.createElement('div');
+    modal.id = 'create-group-chat-modal';
+    modal.style.cssText = 'position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:5000; display:flex; align-items:center; justify-content:center; padding:20px;';
+
+    const card = document.createElement('div');
+    card.style.cssText = 'width:min(560px, 100%); max-height:80vh; overflow:auto; background:var(--card-bg, #fff); border-radius:16px; padding:18px; box-shadow:0 16px 48px rgba(0,0,0,0.25);';
+
+    const friendItems = [];
+    for (const friendId of friendsIds) {
+        try {
+            const friendSnap = await getDoc(doc(db, 'users', friendId));
+            if (!friendSnap.exists()) continue;
+            const friendData = friendSnap.data();
+            const displayName = friendData.displayName || friendData.username || friendId;
+            const username = friendData.username || 'user';
+            const avatarUrl = getAvatarUrl(friendData.avatarUrl || 'assets/img/strendsaydamv2.png', 'user');
+            friendItems.push(`
+                <label style="display:flex; align-items:center; gap:10px; padding:10px 12px; border:1px solid var(--border, rgba(255,255,255,0.12)); border-radius:12px; cursor:pointer; background:rgba(255,255,255,0.03);">
+                    <input type="checkbox" class="group-member-checkbox" value="${friendId}" style="accent-color: var(--primary, #6366f1);">
+                    <img src="${avatarUrl}" style="width:40px; height:40px; border-radius:50%; object-fit:cover;">
+                    <span style="display:flex; flex-direction:column; min-width:0;">
+                        <strong style="font-size:0.92rem;">${escapeHtml(displayName)}</strong>
+                        <small style="color:var(--text-muted);">@${escapeHtml(username)}</small>
+                    </span>
+                </label>
+            `);
+        } catch (error) {
+            console.error('Grup arkadaşı yüklenirken hata:', error);
+        }
+    }
+
+    card.innerHTML = `
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:12px;">
+            <div>
+                <h3 style="margin:0; font-size:1.05rem;">Yeni Grup Sohbeti</h3>
+                <p style="margin:4px 0 0; color:var(--text-muted); font-size:0.9rem;">İstediğin kadar arkadaş seçip grup sohbeti oluşturabilirsin.</p>
+            </div>
+            <button type="button" onclick="this.closest('#create-group-chat-modal').remove()" style="background:none; border:none; color:var(--text-main); font-size:1.3rem; cursor:pointer;">×</button>
+        </div>
+        <div style="display:grid; gap:10px; margin-bottom:12px;">
+            <label style="font-weight:700; font-size:0.9rem;">Grup adı</label>
+            <input id="group-chat-name-input" type="text" placeholder="Örn. Takım Sohbeti" style="width:100%; padding:10px 12px; border-radius:10px; border:1px solid var(--border, rgba(255,255,255,0.12)); background:var(--input-bg, rgba(255,255,255,0.05)); color:var(--text-main);">
+        </div>
+        <div style="display:grid; gap:8px; margin-bottom:12px;">
+            ${friendItems.length ? friendItems.join('') : '<div style="color:var(--text-muted);">Arkadaş bulunamadı.</div>'}
+        </div>
+        <div style="display:flex; justify-content:flex-end; gap:10px;">
+            <button type="button" onclick="document.getElementById('create-group-chat-modal')?.remove()" class="chat-action-btn chat-action-secondary">İptal</button>
+            <button type="button" id="create-group-chat-btn" class="chat-action-btn chat-action-primary"><i class="fa-solid fa-comments"></i> Oluştur</button>
+        </div>
+    `;
+
+    const createBtn = card.querySelector('#create-group-chat-btn');
+    createBtn.onclick = async () => {
+        const selectedIds = Array.from(card.querySelectorAll('.group-member-checkbox:checked')).map(el => el.value).filter(Boolean);
+        if (!selectedIds.length) {
+            alert('En az bir arkadaş seçin.');
+            return;
+        }
+        const groupName = card.querySelector('#group-chat-name-input').value.trim() || 'Yeni Grup';
+        const members = Array.from(new Set([currentUserId, ...selectedIds]));
+        await window.openGroupChat(Date.now().toString(), groupName, members);
+        modal.remove();
+    };
+
+    modal.onclick = (e) => {
+        if (e.target === modal) modal.remove();
+    };
+
+    modal.appendChild(card);
+    document.body.appendChild(modal);
+};
+
 // Open or close chat friends list
 window.openChatsList = async function() {
     if (!auth.currentUser) {
@@ -9550,6 +9767,7 @@ window.loadChatFriends = async function() {
     if (!friendsList) return;
     
     try {
+        removeGroupCreateActionButton(friendsList);
         const currentUserId = auth.currentUser.uid;
         const userRef = doc(db, 'users', currentUserId);
         const userSnap = await getDoc(userRef);
@@ -9611,6 +9829,7 @@ window.loadChatFriends = async function() {
         const titleEl = document.querySelector('.chat-lists-title');
         if (titleEl) titleEl.textContent = 'Arkadaşlarım';
         friendsList.innerHTML = friendsHtml || '<div class="chat-lists-empty"><i class="fa-solid fa-circle-exclamation"></i><p>Arkadaş yüklenemedi</p></div>';
+        ensureGroupCreateActionButton(friendsList);
         
     } catch (error) {
         console.error('Arkadaşlar yüklenirken hata:', error);
@@ -9626,6 +9845,7 @@ window.loadRecentChats = async function() {
     if (!friendsList) return;
 
     try {
+        removeGroupCreateActionButton(friendsList);
         const currentUserId = auth.currentUser.uid;
         const q = query(
             collection(db, 'conversations'),
@@ -9643,6 +9863,26 @@ window.loadRecentChats = async function() {
         const recentChats = [];
         for (const docSnap of convSnap.docs) {
             const convData = docSnap.data();
+            const isGroup = !!convData.group;
+            const conversationId = docSnap.id;
+            const lastMessage = convData.lastMessage || 'Yeni sohbet';
+            const unreadCount = convData.unreadCount?.[currentUserId] || 0;
+
+            if (isGroup) {
+                const groupName = convData.groupName || 'Grup Sohbeti';
+                recentChats.push({
+                    conversationId,
+                    isGroup: true,
+                    displayName: groupName,
+                    username: 'group',
+                    avatarUrl: 'assets/img/strendsaydamv2.png',
+                    lastMessage,
+                    unreadCount,
+                    presence: { status: 'online', label: 'Grup' }
+                });
+                continue;
+            }
+
             const otherParticipantId = (convData.participants || []).find(id => id !== currentUserId);
             if (!otherParticipantId) continue;
 
@@ -9655,11 +9895,9 @@ window.loadRecentChats = async function() {
                 const avatarUrl = getAvatarUrl(friendData.avatarUrl || 'assets/img/strendsaydamv2.png', 'user');
                 const displayName = friendData.displayName || friendData.username || otherParticipantId;
                 const username = friendData.username || 'user';
-                    const presence = resolvePresenceStatus(friendData);
-                const lastMessage = convData.lastMessage || 'Yeni sohbet';
-                const unreadCount = convData.unreadCount?.[currentUserId] || 0;
+                const presence = resolvePresenceStatus(friendData);
 
-                recentChats.push({ otherParticipantId, displayName, username, avatarUrl, lastMessage, unreadCount, presence });
+                recentChats.push({ conversationId, otherParticipantId, displayName, username, avatarUrl, lastMessage, unreadCount, presence, isGroup: false });
             } catch (error) {
                 console.error('Sohbet kullanıcısı yüklenirken hata:', error);
             }
@@ -9682,7 +9920,7 @@ window.loadRecentChats = async function() {
         for (let i = 0; i < recentChats.length; i++) {
             const chat = recentChats[i];
             friendsHtml += `
-                <div class="chat-friend-item" data-recent-index="${i}" onclick="openChatWithFriend('${chat.otherParticipantId}', '${chat.displayName}', '${chat.username}')">
+                <div class="chat-friend-item" data-recent-index="${i}" onclick="window.openConversationFromList('${chat.conversationId}', '${chat.displayName}', ${chat.isGroup})">
                     <div class="chat-friend-avatar-wrap ${chat.presence?.status || 'offline'}">
                         <img src="${chat.avatarUrl}" class="chat-friend-avatar" alt="">
                         <span class="status-badge status-${chat.presence?.status || 'offline'}"></span>
@@ -9694,12 +9932,12 @@ window.loadRecentChats = async function() {
                     <div class="chat-friend-meta">
                         ${chat.unreadCount > 0 ? `<span class="chat-last-sender"><strong>${chat.unreadCount}</strong> Yeni Mesaj</span>` : ''}
                         <div class="chat-friend-actions">
-                            <button class="chat-friend-action chat-friend-chat" title="Mesaj yaz" onclick="event.stopPropagation(); openChatWithFriend('${chat.otherParticipantId}', '${chat.displayName}', '${chat.username}')">
+                            <button class="chat-friend-action chat-friend-chat" title="Mesaj yaz" onclick="event.stopPropagation(); window.openConversationFromList('${chat.conversationId}', '${chat.displayName}', ${chat.isGroup})">
                                 <i class="fa-solid fa-comment-dots"></i>
                             </button>
-                            <button class="chat-friend-action chat-friend-profile" title="Profili git" onclick="event.stopPropagation(); window.location.href='profil.html?id=${encodeURIComponent(chat.username)}'">
+                            ${!chat.isGroup ? `<button class="chat-friend-action chat-friend-profile" title="Profili git" onclick="event.stopPropagation(); window.location.href='profil.html?id=${encodeURIComponent(chat.username)}'">
                                 <i class="fa-solid fa-user"></i>
-                            </button>
+                            </button>` : ''}
                         </div>
                     </div>
                 </div>
@@ -9731,7 +9969,7 @@ window.loadRecentChats = async function() {
                         </button>
                     </div>
                 `;
-                hiddenItem.onclick = () => openChatWithFriend(chat.otherParticipantId, chat.displayName, chat.username);
+                hiddenItem.onclick = () => window.openConversationFromList(chat.conversationId, chat.displayName, chat.isGroup);
                 friendsList.appendChild(hiddenItem);
             }
         }
@@ -9834,6 +10072,7 @@ window.loadUnreadChats = async function() {
     }
 
     try {
+        removeGroupCreateActionButton(friendsList);
         const currentUserId = auth.currentUser.uid;
         const conversationsQuery = query(
             collection(db, 'conversations'),
@@ -10132,7 +10371,8 @@ window.openGroupChat = async function(groupId, groupName, memberIds = []) {
     }
 
     const currentUserId = auth.currentUser.uid;
-    const conversationId = `group_${groupId}`;
+    const normalizedGroupId = String(groupId || '').startsWith('group_') ? String(groupId) : `group_${groupId}`;
+    const conversationId = normalizedGroupId;
 
     // Ensure current user is part of participants
     const participants = Array.from(new Set([...(memberIds || []), currentUserId]));
