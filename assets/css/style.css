@@ -4080,8 +4080,37 @@ background: var(--input-bg); }
 }
 
 .settings-row { 
-display: flex; justify-content: space-between; align-items: center; padding: 15px 0; border-bottom: 1px solid var(--border); }
+display: flex; justify-content: space-between; align-items: center; gap: 18px; padding: 18px 0; border-bottom: 1px solid var(--border); }
 .settings-row:last-child { border: none; }
+
+.settings-card .settings-hero { display: grid; grid-template-columns: 1.4fr 1fr; gap: 20px; align-items: center; margin-bottom: 32px; }
+.settings-badge { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 999px; background: rgba(99,102,241,0.12); color: var(--primary); font-weight: 700; font-size: 0.82rem; margin-bottom: 14px; }
+.settings-card .settings-hero h1 { font-size: clamp(2.2rem, 2.8vw, 3rem); margin: 0 0 12px; }
+.settings-card .settings-hero p { margin: 0; color: var(--text-muted); max-width: 620px; line-height: 1.7; }
+.settings-hero-info { display: grid; gap: 18px; }
+.hero-box { display: flex; gap: 14px; padding: 18px; border-radius: 20px; border: 1px solid var(--border); background: var(--input-bg); }
+.hero-box-icon { width: 44px; height: 44px; border-radius: 14px; background: rgba(99,102,241,0.12); display: grid; place-items: center; color: var(--primary); }
+.hero-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.settings-action-btn { min-width: 0; }
+.settings-card-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+.settings-section { padding: 24px; border-radius: 24px; border: 1px solid var(--border); background: var(--input-bg); box-shadow: var(--shadow); }
+.settings-section-title { display: flex; align-items: center; gap: 10px; font-size: 1rem; font-weight: 800; margin-bottom: 12px; color: var(--primary); }
+.section-note { margin: 0 0 18px; color: var(--text-muted); line-height: 1.7; }
+.danger-card { border-color: rgba(220, 38, 38, 0.2); background: rgba(254, 226, 226, 0.55); }
+.help-row { padding: 18px 0; margin-top: 20px; border-top: 1px solid var(--border); }
+
+.form-btn { min-width: 180px; padding: 12px 18px; border-radius: 14px; }
+.danger-btn { background: #dc2626; color: white; }
+
+@media (max-width: 980px) {
+  .settings-card .settings-hero { grid-template-columns: 1fr; }
+  .settings-card-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 900px) {
+  .settings-row { flex-direction: column; align-items: stretch; text-align: left; }
+  .settings-row button, .settings-row .form-btn { width: 100%; }
+}
 
 .toggle-switch { 
 position: relative; display: inline-block; width: 44px; height: 22px; }

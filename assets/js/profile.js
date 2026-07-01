@@ -461,6 +461,19 @@ async function initProfilePage() {
     return;
   }
 
+  // Gizli profil davranışı: eğer profil gizliyse ve ziyaretçi sahibi değilse ve arkadaş değilse,
+  // sadece sekme kartını (profile-tabs-card) gizle.
+  const isPrivateProfile = [profileData.private, profileData.isPrivate, profileData.privateProfile].some((v) => v === true || v === 'true');
+  let isFriend = false;
+  try {
+    const friendsList = Array.isArray(profileData.friends) ? profileData.friends : [];
+    if (window.user && window.user.uid) {
+      isFriend = friendsList.includes(window.user.uid) || friendsList.includes(window.user.username) || friendsList.includes(window.user?.email);
+    }
+  } catch (e) {
+    console.warn('Friend check hata:', e);
+  }
+
   renderProfileHeader(profileData, isOwnProfile);
   updateTabVisibility(isOwnProfile);
 
@@ -482,6 +495,28 @@ async function initProfilePage() {
     setActiveTab(tabKey);
     await loadAndRenderTab(tabKey, profileData, isOwnProfile);
   });
+
+  // Eğer gizli profil ise ve ziyaretçi arkadaş değilse, sekmeleri gizle
+  try {
+    if (isPrivateProfile && !isOwnProfile && !isFriend) {
+      const tabsCard = document.querySelector('.profile-tabs-card');
+      if (tabsCard) tabsCard.style.display = 'none';
+      // Ayrıca, gizli profil ziyaretçisine bilgi göstermeyi sağlayan basit bir not ekleyebiliriz
+      const headerCard = document.querySelector('.profile-header-card');
+      if (headerCard) {
+        const note = document.createElement('div');
+        note.style.marginTop = '14px';
+        note.style.padding = '14px';
+        note.style.borderRadius = '12px';
+        note.style.background = 'rgba(255,255,255,0.96)';
+        note.style.border = '1px solid var(--border)';
+        note.innerHTML = '<strong>Bu hesap sadece arkadaşlarına açık</strong><div style="color:var(--text-muted); margin-top:6px;">Profil sahibinin gizlilik ayarları nedeniyle diğer sekmeler gizlenmiştir.</div>';
+        headerCard.parentNode.insertBefore(note, headerCard.nextSibling);
+      }
+    }
+  } catch (e) {
+    console.warn('Gizli profil DOM güncelleme hatası:', e);
+  }
 }
 
 document.addEventListener('DOMContentLoaded', initProfilePage);

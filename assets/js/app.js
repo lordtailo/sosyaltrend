@@ -4090,7 +4090,7 @@ window.performGlobalSearch = async (forcedQuery = null) => {
                     </div>
                     <div style="flex:1; min-width:0;">
                         <div class="search-result-card-title">${pageName}</div>
-                        <div class="search-result-card-subtitle">Topluluk • ${(data.subscribers || []).length} takipçi</div>
+                        <div class="search-result-card-subtitle">Sayfa • ${(data.subscribers || []).length} takipçi</div>
                     </div>
                     <div style="margin-top:auto;">
                         <button class="btn-subscribe ${isSub ? 'subscribed' : ''}" onclick="toggleSubscription('${docSnap.id}', ${isSub})">${isSub ? t.unsubBtn : t.subBtn}</button>
@@ -4099,7 +4099,34 @@ window.performGlobalSearch = async (forcedQuery = null) => {
             }
         });
 
-        // --- C. FIREBASE KULLANICI ARAMASI ---
+        // --- C. FIREBASE TOPLULUK ARAMASI ---
+        const communitiesSnap = await getDocs(collection(db, "topluluklar"));
+        communitiesSnap.forEach(docSnap => {
+            const data = docSnap.data();
+            const communityName = (data.name || '').trim();
+            const communityDesc = (data.description || '').trim();
+            const isPrivate = Boolean(data.isPrivate);
+            if (isPrivate) return;
+
+            const matchesName = communityName.toLowerCase().includes(queryStr);
+            const matchesDesc = communityDesc.toLowerCase().includes(queryStr);
+            if (matchesName || matchesDesc) {
+                totalFound++;
+                if (secPages) secPages.style.display = "block";
+                if (pagesContainer) {
+                    pagesContainer.innerHTML += `
+                    <a href="topluluk.html?community=${encodeURIComponent(docSnap.id)}" class="search-result-card">
+                        <div class="search-result-card-icon"><i class="fa-solid fa-users"></i></div>
+                        <div>
+                            <div class="search-result-card-title">${communityName || 'Topluluk'}</div>
+                            <div class="search-result-card-subtitle">Topluluk • ${communityDesc ? communityDesc.substring(0, 60) : 'Açıklama yok'}</div>
+                        </div>
+                    </a>`;
+                }
+            }
+        });
+
+        // --- D. FIREBASE KULLANICI ARAMASI ---
         const usersSnap = await getDocs(collection(db, "users"));
         usersSnap.forEach(docSnap => {
             const userData = docSnap.data();
@@ -5958,10 +5985,10 @@ window.loadProfileSections = async (section = 'all', showAllPosts = false, showA
 
     if (isVisitedProfile && !targetUsername) {
         if (visitedUsername) {
-            console.warn('loadProfileSections: visited profile detected without explicit targetUsername. Falling back to visitedUsername.', { visitedUsername, user });
+            console.debug('loadProfileSections: falling back to visitedUsername', visitedUsername);
             targetUsername = visitedUsername;
         } else {
-            console.warn('loadProfileSections: called on a visited profile without explicit targetUsername and no visitedUsername found. Aborting.', { visitedUsername, user });
+            console.debug('loadProfileSections: no visitedUsername available; aborting');
             return;
         }
     }
@@ -7071,7 +7098,13 @@ async function loadComponent(elementId, filePath) {
     }
 }
 
+let headerInteractionsInitialized = false;
+
 function initHeaderInteractions() {
+    const hasHeaderSearch = document.getElementById('headerSearchButton') && document.getElementById('headerSearchInput') && document.getElementById('headerSearchWrapper');
+    if (headerInteractionsInitialized && hasHeaderSearch) return;
+    headerInteractionsInitialized = true;
+
     const profileTrigger = document.getElementById('profileTrigger');
     if (profileTrigger) {
         profileTrigger.onclick = (e) => {
@@ -7157,7 +7190,21 @@ function initHeaderInteractions() {
             }
         });
     }
+
+    document.body.addEventListener('click', (event) => {
+        const target = event.target;
+        if (target && target.id === 'headerSearchSubmit') {
+            event.preventDefault();
+            const headerSearchInput = document.getElementById('headerSearchInput');
+            if (headerSearchInput) {
+                const query = headerSearchInput.value.trim();
+                if (query) runHeaderSearch(query);
+            }
+        }
+    });
 }
+
+window.initHeaderInteractions = initHeaderInteractions;
 
 window.toggleHeaderSearch = function(event) {
     event = event || window.event;
@@ -7254,6 +7301,13 @@ if (window.includesLoaded) {
     initHeaderInteractions();
     syncThemeButtonState();
 }
+
+// Fallback: if header search controls appear later, retry init once after a short delay
+setTimeout(() => {
+    if (document.getElementById('headerSearchButton') && document.getElementById('headerSearchInput')) {
+        initHeaderInteractions();
+    }
+}, 1000);
 
 // Safety: if header/footer didn't render (some environments block fetch), retry once after 700ms
 setTimeout(() => {

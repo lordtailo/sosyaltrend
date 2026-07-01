@@ -571,10 +571,10 @@ onAuthStateChanged(auth, (user) => {
   currentUser = user;
   if (user) {
     console.log('Kullanıcı giriş yaptı:', user.email);
-    loadCommunities();
   } else {
     console.log('Kullanıcı çıkış yaptı');
   }
+  loadCommunities();
 });
 
 // Toplulukları Firebase'den yükle
@@ -673,7 +673,7 @@ function createCommunityCard(docSnap) {
         </div>
         <div style="flex: 1;">
           <h3 style="margin: 0 0 5px 0; color: var(--text-main);">${data.name || 'İsimsiz Topluluk'}</h3>
-          <span style="background: ${categoryStyle.color}; color: white; padding: 3px 10px; border-radius: 15px; font-size: 0.75rem; font-weight: bold;">
+          <span class="community-card-category" style="background: ${categoryStyle.color}; color: white; padding: 3px 10px; border-radius: 15px; font-size: 0.75rem; font-weight: bold;">
             ${capitalizeCategory(data.category)}
           </span>
         </div>
@@ -2092,7 +2092,7 @@ function filterCommunities() {
   cards.forEach(card => {
     const titleEl = card.querySelector('h3');
     const descEl = card.querySelector('p');
-    const categoryEl = card.querySelector('span');
+    const categoryEl = card.querySelector('.community-card-category');
 
     const title = titleEl ? titleEl.textContent.toLowerCase() : '';
     const description = descEl ? descEl.textContent.toLowerCase() : '';

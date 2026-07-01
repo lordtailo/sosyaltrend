@@ -1,16 +1,30 @@
+import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getFirestore, collection, onSnapshot, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBegJHqlfPagx8biFyS_FnE3iXOksgfoAU",
+  authDomain: "sosyaltrend-21d21.firebaseapp.com",
+  projectId: "sosyaltrend-21d21",
+  storageBucket: "sosyaltrend-21d21.firebasestorage.app",
+  messagingSenderId: "207734473261",
+  appId: "1:207734473261:web:f31b6bf2908c6d88986ea4"
+};
+
+const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+const db = getFirestore(app);
 const TOP_COMMUNITIES_WIDGET_LIMIT = 3;
 
-function getCommunityMemberCount(communityData) {
-  if (!communityData || !Array.isArray(communityData.members)) return 0;
-  return communityData.members.filter((member) => Boolean(typeof member === 'object' ? member.uid : member)).length;
+function getCommunityMemberCount(community) {
+  if (!community || !Array.isArray(community.members)) return 0;
+  return community.members.filter((member) => Boolean(typeof member === 'object' ? member.uid : member)).length;
 }
 
-function getCommunityDisplayName(communityData) {
-  return communityData?.name || 'Topluluk';
+function getCommunityDisplayName(community) {
+  return community?.name || 'Topluluk';
 }
 
-function getCommunityCategory(communityData) {
-  const category = communityData?.category;
+function getCommunityCategory(community) {
+  const category = community?.category;
   const labels = {
     teknoloji: 'Teknoloji',
     sanat: 'Sanat',
@@ -25,12 +39,12 @@ function getCommunityCategory(communityData) {
   return labels[category] || 'Genel';
 }
 
-function getCommunityDescription(communityData) {
-  const description = (communityData?.description || '').toString().trim();
+function getCommunityDescription(community) {
+  const description = (community?.description || '').toString().trim();
   return description.length > 70 ? `${description.slice(0, 67)}...` : description || 'Aktif topluluk';
 }
 
-function renderTopCommunitiesWidget(communities = []) {
+function renderRecentCommunities(communities = []) {
   const container = document.getElementById('recentCommunitiesWidgetList');
   if (!container) return;
 
@@ -79,96 +93,29 @@ function renderTopCommunitiesWidget(communities = []) {
   `;
 }
 
-function safelyInjectIncludedScript(sourceScript, targetContainer) {
-  if (!sourceScript || !sourceScript.src) return false;
+function loadRecentCommunitiesWidget() {
+  const container = document.getElementById('recentCommunitiesWidgetList');
+  if (!container) return;
 
   try {
-    const scriptTag = document.createElement('script');
-    scriptTag.src = sourceScript.src;
-    if (sourceScript.type) scriptTag.type = sourceScript.type;
-    if (sourceScript.async) scriptTag.async = true;
-    if (sourceScript.defer) scriptTag.defer = true;
-    scriptTag.dataset.includeInjected = 'true';
-    targetContainer.appendChild(scriptTag);
-    return true;
-  } catch (err) {
-    console.warn('Included external script could not be injected safely:', err);
-    return false;
-  }
-}
+    const communitiesCollection = collection(db, 'topluluklar');
+    const recentQuery = query(communitiesCollection, orderBy('createdAt', 'desc'), limit(5));
 
-async function loadPlaceholder(placeholderId, partialPath) {
-  const placeholder = document.getElementById(placeholderId);
-  if (!placeholder) return;
-  
-  try {
-    const res = await fetch(partialPath);
-    if (!res.ok) throw new Error(`Failed to load ${partialPath}: ${res.status}`);
-    const buffer = await res.arrayBuffer();
-    let text = new TextDecoder('utf-8').decode(buffer);
-    if (text.charCodeAt(0) === 0xfeff) text = text.slice(1);
-    
-    const tempElement = document.createElement('div');
-    tempElement.innerHTML = text;
-    const scripts = Array.from(tempElement.querySelectorAll('script'));
-    scripts.forEach((s) => s.remove());
-
-    placeholder.innerHTML = tempElement.innerHTML;
-    const targetContainer = document.body || document.documentElement;
-    scripts.forEach((s) => {
-      safelyInjectIncludedScript(s, targetContainer);
+    onSnapshot(recentQuery, (snapshot) => {
+      const communities = snapshot.docs
+        .map(docSnap => ({ id: docSnap.id, ...docSnap.data() }))
+        .filter(comm => !comm.isPrivate);
+      renderRecentCommunities(communities);
+    }, (error) => {
+      console.error('Son Açılan Topluluklar widget yükleme hatası:', error);
     });
-  } catch (err) {
-    console.error('Placeholder load error:', partialPath, err);
+  } catch (error) {
+    console.error('Son Açılan Topluluklar widget başlatma hatası:', error);
   }
 }
-
-async function runIncludes() {
-  const includes = Array.from(document.querySelectorAll('[data-include]'));
-  await Promise.all(includes.map(async (el) => {
-    const url = el.getAttribute('data-include');
-    try {
-      const res = await fetch(url);
-      if (!res.ok) throw new Error(`Failed to load ${url}: ${res.status}`);
-      const buffer = await res.arrayBuffer();
-      let text = new TextDecoder('utf-8').decode(buffer);
-      if (text.charCodeAt(0) === 0xfeff) text = text.slice(1);
-
-      const tempElement = document.createElement('div');
-      tempElement.innerHTML = text;
-      const scripts = Array.from(tempElement.querySelectorAll('script'));
-      scripts.forEach((s) => s.remove());
-
-      el.innerHTML = tempElement.innerHTML;
-      const targetContainer = document.body || document.documentElement;
-      scripts.forEach((s) => {
-        safelyInjectIncludedScript(s, targetContainer);
-      });
-    } catch (err) {
-      console.error('Include error:', url, err);
-    }
-  }));
-
-  // Load header and footer placeholders
-  await Promise.all([
-    loadPlaceholder('header-placeholder', 'partials/header.html'),
-    loadPlaceholder('footer-placeholder', 'partials/footer.html')
-  ]);
-
-  // signal that all includes have been processed so other scripts can act
-  document.dispatchEvent(new Event('includesLoaded'));
-  // mark globally so late listeners can still act
-  window.includesLoaded = true;
-}
-
-window.addEventListener('topCommunitiesUpdated', (event) => {
-  renderTopCommunitiesWidget(event.detail || []);
-});
 
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', () => {
-    runIncludes();
-  });
+  document.addEventListener('DOMContentLoaded', loadRecentCommunitiesWidget);
 } else {
-  runIncludes();
+  loadRecentCommunitiesWidget();
 }
