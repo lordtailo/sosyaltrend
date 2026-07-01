@@ -1819,45 +1819,14 @@ header {
         min-width: 48px;
     }
 
-    /* Floating theme button (right-middle) */
+    /* Floating theme button (right-middle) hidden on mobile */
     .floating-theme-btn {
-        display: inline-flex !important;
-        position: fixed;
-        right: 14px;
-        top: 50%;
-        transform: translateY(-50%);
-        width: 48px;
-        height: 48px;
-        border-radius: 50%;
-        align-items: center;
-        justify-content: center;
-        background: var(--card-bg);
-        color: var(--text-main);
-        box-shadow: 0 10px 30px rgba(0,0,0,0.12);
-        z-index: 10080;
-        border: 1px solid var(--border);
-        cursor: pointer;
+        display: none !important;
     }
-    .floating-theme-btn i { font-size: 1.05rem; }
 
     .floating-theme-menu {
-        display: none;
-        position: fixed;
-        right: 74px;
-        top: 50%;
-        transform: translateY(-50%);
-        z-index: 10080;
-        background: var(--card-bg);
-        border: 1px solid var(--border);
-        box-shadow: 0 12px 40px rgba(0,0,0,0.12);
-        padding: 8px;
-        border-radius: 12px;
-        min-width: 120px;
-        display: flex;
-        flex-direction: column;
-        gap: 6px;
+        display: none !important;
     }
-    .floating-theme-menu button { background: transparent; border: none; padding: 8px 10px; text-align: left; font-weight:700; color:var(--text-main); border-radius:8px; cursor:pointer; }
     .floating-theme-menu button:hover{ background: rgba(99,102,241,0.06); }
 
     /* Mobilde ana navigasyon butonlarındaki metinleri görünür bırak */

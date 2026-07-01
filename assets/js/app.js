@@ -8132,6 +8132,10 @@ async function loadNotifications(userData) {
             text = `${n.fromName} size mesaj gönderdi`;
             detail = getNotificationDetailText(n);
             icon = 'fa-envelope';
+        } else if (n.type === 'community_invite') {
+            text = `${n.fromName || 'Bir kullanıcı'} sizi "${n.communityName || 'topluluk'}" topluluğuna davet etti`;
+            detail = 'Katılmak için daveti kabul edebilir veya reddedebilirsiniz.';
+            icon = 'fa-user-group';
         } else if (n.type === 'report_result' || n.type === 'account_banned' || n.type === 'warning' || n.type === 'account_deleted') {
             text = getNotificationDisplayText(n);
             detail = n.message && n.title ? n.message : getNotificationDetailText(n);
@@ -8143,12 +8147,20 @@ async function loadNotifications(userData) {
 
         const timeStr = _formatNotificationTime(n.timestamp);
 
+        const inviteActions = n.type === 'community_invite' ? `
+            <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:8px;">
+                <button class="notif-community-accept-btn" style="background:linear-gradient(135deg,var(--primary),#4f46e5); color:#fff; border:none; padding:6px 10px; border-radius:8px; font-size:0.75rem; font-weight:700; cursor:pointer;">Kabul Et</button>
+                <button class="notif-community-reject-btn" style="background:linear-gradient(135deg,#ef4444,#dc2626); color:#fff; border:none; padding:6px 10px; border-radius:8px; font-size:0.75rem; font-weight:700; cursor:pointer;">Reddet</button>
+            </div>
+        ` : '';
+
         nDiv.innerHTML = `
             <i class="fa-solid ${icon}" style="font-size:1.1rem; width:34px; text-align:center; color:var(--primary);"></i>
             <div style="flex:1; min-width:0;">
                 <p style="margin:0; font-size:0.85rem; font-weight:600;">${n.fromName || 'Sistem'}</p>
                 <p style="margin:3px 0 0 0; font-size:0.75rem; color:var(--text-muted);">${text}</p>
                 ${detail ? `<p style="margin:4px 0 0 0; font-size:0.7rem; color:var(--text-muted); font-style:italic;">${detail}</p>` : ''}
+                ${inviteActions}
                 <p style="margin:4px 0 0 0; font-size:0.7rem; color:var(--text-muted);">${timeStr}</p>
             </div>
             <div style="display:flex; flex-direction:column; gap:6px; align-items:flex-end;">
@@ -8202,6 +8214,8 @@ async function loadNotifications(userData) {
         const readBtn = nDiv.querySelector('.notif-read-btn');
         const hideBtn = nDiv.querySelector('.notif-hide-btn');
         const goBtn = nDiv.querySelector('.notif-go-btn');
+        const acceptInviteBtn = nDiv.querySelector('.notif-community-accept-btn');
+        const rejectInviteBtn = nDiv.querySelector('.notif-community-reject-btn');
 
         if (readBtn) {
             readBtn.onclick = async (e) => {
@@ -8240,6 +8254,24 @@ async function loadNotifications(userData) {
                 const dropdown = document.getElementById('notificationsDropdown');
                 if (dropdown) dropdown.style.display = 'none';
                 window.location.href = `index.html#post-${n.postId}`;
+            };
+        }
+
+        if (acceptInviteBtn) {
+            acceptInviteBtn.onclick = async (e) => {
+                e.stopPropagation();
+                if (typeof window.acceptCommunityInvite === 'function') {
+                    await window.acceptCommunityInvite(n.communityId);
+                }
+            };
+        }
+
+        if (rejectInviteBtn) {
+            rejectInviteBtn.onclick = async (e) => {
+                e.stopPropagation();
+                if (typeof window.rejectCommunityInvite === 'function') {
+                    await window.rejectCommunityInvite(n.communityId);
+                }
             };
         }
     }

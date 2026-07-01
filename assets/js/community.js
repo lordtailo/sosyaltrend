@@ -1,5 +1,5 @@
 import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getFirestore, collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, arrayUnion, arrayRemove, serverTimestamp, getDoc, increment } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getFirestore, collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, arrayUnion, arrayRemove, serverTimestamp, getDoc, increment, getDocs, setDoc, query, where } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
 // Firebase Config
@@ -54,7 +54,7 @@ function loadCommunities() {
       snapshot.forEach((docSnap) => {
         try {
           const card = createCommunityCard(docSnap);
-          container.appendChild(card);
+          if (card) container.appendChild(card);
         } catch (error) {
           console.error('Kart oluşturma hatası:', error);
         }
@@ -80,9 +80,13 @@ function createCommunityCard(docSnap) {
   const communityId = docSnap.id;
   
   const isOwner = data.ownerUid === currentUser?.uid;
-  const memberUids = Array.isArray(data.members) ? data.members.map(m => typeof m === 'object' ? m.uid : m) : [];
+  const memberUids = getCommunityMemberUids(data);
+  const invitedUids = getCommunityInvitedUids(data);
   const isJoined = currentUser && memberUids.includes(currentUser.uid);
   const memberCount = memberUids.length;
+  const isAccessible = isCommunityVisibleToUser(data, currentUser);
+
+  if (!isAccessible) return null;
 
   // Kategori rengini belirle
   const categoryColors = {
@@ -205,6 +209,24 @@ function formatCommunityUsername(authorName) {
     .toLowerCase()
     .replace(/[^a-z0-9_]+/g, '_')
     .replace(/^_+|_+$/g, '') || 'kullanici';
+}
+
+function getCommunityMemberUids(data = {}) {
+  const members = Array.isArray(data.members) ? data.members : [];
+  return members.map((member) => typeof member === 'object' ? member.uid : member).filter(Boolean);
+}
+
+function getCommunityInvitedUids(data = {}) {
+  const invitedUsers = Array.isArray(data.invitedUsers) ? data.invitedUsers : [];
+  return invitedUsers.map((entry) => typeof entry === 'object' ? entry.uid : entry).filter(Boolean);
+}
+
+function isCommunityVisibleToUser(data = {}, user = null) {
+  if (!data?.isPrivate) return true;
+  if (!user?.uid) return false;
+  const memberUids = getCommunityMemberUids(data);
+  const invitedUids = getCommunityInvitedUids(data);
+  return data.ownerUid === user.uid || memberUids.includes(user.uid) || invitedUids.includes(user.uid);
 }
 
 function getCommunityProfileData(user) {
@@ -679,6 +701,8 @@ async function toggleCommunityMembership(communityId, isJoined) {
 
   try {
     const communityRef = doc(communitiesCollection, communityId);
+    const communitySnap = await getDoc(communityRef);
+    const communityData = communitySnap.exists() ? communitySnap.data() : {};
     const memberData = {
       uid: currentUser.uid,
       displayName: currentUser.displayName || currentUser.email
@@ -690,6 +714,10 @@ async function toggleCommunityMembership(communityId, isJoined) {
       });
       console.log('Topluluğundan ayrıldı:', communityId);
     } else {
+      if (communityData.isPrivate && communityData.ownerUid !== currentUser.uid && !getCommunityInvitedUids(communityData).includes(currentUser.uid)) {
+        alert('Bu özel topluluğa katılmak için davet almanız gerekir.');
+        return;
+      }
       await updateDoc(communityRef, {
         members: arrayUnion(memberData)
       });
@@ -778,8 +806,16 @@ async function openCommunityDetail(communityId) {
     }
 
     const data = snap.data();
-    currentCommunityData = { id: snap.id, ...data };
-    const memberUids = Array.isArray(data.members) ? data.members.map((m) => typeof m === 'object' ? m.uid : m) : [];
+    const memberUids = getCommunityMemberUids(data);
+    const invitedUids = getCommunityInvitedUids(data);
+    const isAccessible = isCommunityVisibleToUser(data, currentUser);
+    if (data.isPrivate && !isAccessible) {
+      detailView.innerHTML = '<div style="padding: 20px; color: var(--text-secondary);">Bu özel topluluk sadece davet edilen kişiler tarafından görülebilir.</div>';
+      currentCommunityData = { id: snap.id, ...data, memberUids, invitedUids };
+      return;
+    }
+
+    currentCommunityData = { id: snap.id, ...data, memberUids, invitedUids };
     const memberCount = memberUids.length;
     const isOwner = data.ownerUid === currentUser?.uid;
     const isJoined = currentUser && memberUids.includes(currentUser.uid);
@@ -827,22 +863,40 @@ async function openCommunityDetail(communityId) {
           <div style="padding:20px 24px 24px; display:flex; justify-content:space-between; gap:18px; flex-wrap:wrap; align-items:flex-start;">
             <div style="display:flex; flex-direction:column; gap:8px; color:var(--text-secondary); flex:1; min-width:260px;">
               <p style="margin:0; line-height:1.7; font-size:0.97rem;">${data.description || 'Açıklama yok.'}</p>
-              <div style="display:flex; gap:12px; flex-wrap:wrap; font-size:0.93rem; color:var(--text-main);">
-                <span>📌 ${data.isPrivate ? 'Özel topluluk' : 'Herkese açık topluluk'}</span>
-                <span>👤 Oluşturan: ${data.ownerName || '—'}</span>
+              <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+                <span style="font-size:0.9rem; color:var(--text-main); font-weight:600;">${data.isPrivate ? 'Özel' : 'Herkese açık'}</span>
+                ${data.isPrivate && isOwner ? `<button type="button" onclick="window.openCommunityInvitePrompt('${communityId}')" style="padding:6px 10px; border:none; border-radius:999px; background:rgba(99,102,241,0.12); color:var(--primary); cursor:pointer; font-weight:700; font-size:0.8rem;">Davet Et</button>` : ''}
               </div>
             </div>
-            <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
-              <span style="background:rgba(255,255,255,0.08); color:var(--text-main); padding:8px 12px; border-radius:999px; font-size:0.9rem;">✨ Aktif topluluk</span>
+            <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; justify-content:flex-end;">
+              <button type="button" onclick="window.openCommunityGroupChat('${communityId}', '${escapeHtml(data.name || 'Topluluk')}')" style="border:none; border-radius:999px; background:linear-gradient(135deg, var(--primary), #818cf8); color:white; padding:8px 14px; cursor:pointer; font-weight:700; box-shadow:0 8px 22px rgba(99,102,241,0.20);">
+                <i class="fa-solid fa-comments" style="margin-right:6px;"></i>Sohbet Et
+              </button>
+              <button type="button" onclick="window.toggleCommunityMembersView('${communityId}')" style="border:1px solid rgba(99,102,241,0.16); border-radius:999px; background:rgba(255,255,255,0.08); color:var(--text-main); padding:8px 14px; cursor:pointer; font-weight:700;">
+                <i class="fa-solid fa-users" style="margin-right:6px;"></i>Üyeler (${memberCount})
+              </button>
             </div>
           </div>
+        </div>
+
+        <div id="communityMembersSection" style="display:none; padding:20px; border:1px solid rgba(99,102,241,0.16); border-radius:20px; background:linear-gradient(135deg, rgba(99,102,241,0.10), rgba(255,255,255,0.03)); box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);">
+          <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:14px; flex-wrap:wrap;">
+            <div>
+              <h3 style="margin:0; color:var(--text-main);">Topluluk üyeleri</h3>
+              <div style="margin-top:4px; font-size:0.85rem; color:var(--text-secondary);">Bu topluluğa katılan kişiler burada görünür.</div>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+              <span style="padding:6px 10px; border-radius:999px; background:rgba(99,102,241,0.12); color:var(--primary); font-size:0.8rem; font-weight:700;">${memberCount} kişi</span>
+              <button type="button" onclick="window.toggleCommunityMembersView('${communityId}')" style="background:none; border:none; color:var(--text-secondary); cursor:pointer; font-size:0.95rem;">Kapat</button>
+            </div>
+          </div>
+          <div id="communityMembersList" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:10px;"></div>
         </div>
 
         <div style="display:flex; flex-direction:column; gap:16px;">
             <div class="glass-card" style="padding:20px; border:1px solid rgba(99,102,241,0.16); background:linear-gradient(135deg, rgba(99,102,241,0.10), rgba(255,255,255,0.03));">
               <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
                 <h3 style="margin:0; color:var(--text-main);">Gönderi paylaş</h3>
-                <span style="background:rgba(255,255,255,0.08); color:var(--text-main); padding:6px 10px; border-radius:999px; font-size:0.8rem;">💬 Topluluk sohbeti</span>
               </div>
               <textarea id="communityPostInput" rows="4" placeholder="Bu toplulukta neler paylaşmak istersin?" style="width:100%; border:1px solid var(--border); border-radius:14px; padding:12px 14px; background:rgba(255,255,255,0.04); color:var(--text-main); resize:vertical; box-sizing:border-box; min-height:96px;"></textarea>
               <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px; gap:10px; flex-wrap:wrap;">
@@ -874,6 +928,232 @@ async function openCommunityDetail(communityId) {
     detailView.innerHTML = '<div style="padding: 20px; color: var(--text-secondary);">Topluluk detayı yüklenemedi.</div>';
   }
 }
+
+async function openCommunityGroupChat(communityId, communityName) {
+  if (!communityId) return;
+
+  if (!currentUser) {
+    alert('Lütfen giriş yapın.');
+    return;
+  }
+
+  try {
+    const snap = await getDoc(doc(communitiesCollection, communityId));
+    if (!snap.exists()) {
+      alert('Bu topluluk bulunamadı.');
+      return;
+    }
+
+    const data = snap.data();
+    const memberUids = Array.isArray(data.members)
+      ? data.members
+          .map((member) => typeof member === 'object' ? member.uid : member)
+          .filter(Boolean)
+      : [];
+    const participants = Array.from(new Set([...(memberUids || []), currentUser.uid, data.ownerUid].filter(Boolean)));
+
+    if (typeof window.openGroupChat === 'function') {
+      await window.openGroupChat(communityId, communityName || data.name || 'Topluluk Sohbeti', participants, data.ownerUid || currentUser.uid);
+    } else {
+      alert('Sohbet sistemi şu anda hazır değil.');
+    }
+  } catch (error) {
+    console.error('Topluluk sohbeti açılırken hata:', error);
+    alert('Grup sohbeti açılırken bir hata oluştu.');
+  }
+}
+
+function renderCommunityMembersList(memberUids = []) {
+  const membersList = document.getElementById('communityMembersList');
+  if (!membersList) return;
+
+  if (!memberUids.length) {
+    membersList.innerHTML = '<div style="padding:16px; border:1px dashed var(--border); border-radius:14px; text-align:center; color:var(--text-secondary);">Henüz üye yok.</div>';
+    return;
+  }
+
+  const memberItems = memberUids.map((member) => {
+    const uid = typeof member === 'object' ? member.uid : member;
+    const displayName = typeof member === 'object' ? (member.displayName || 'Üye') : 'Üye';
+    const isOwner = uid === currentCommunityData?.ownerUid;
+    const isCurrentUser = uid === currentUser?.uid;
+    const roleLabel = isOwner ? 'Yönetici' : isCurrentUser ? 'Sen' : 'Üye';
+    const roleText = isOwner ? 'Topluluğun kurucusu' : isCurrentUser ? 'Bu topluluğun üyesisin' : 'Katılan üye';
+    const badgeStyle = isOwner
+      ? 'background:rgba(99,102,241,0.14); color:var(--primary);'
+      : isCurrentUser
+        ? 'background:rgba(16,185,129,0.16); color:#10b981;'
+        : 'background:rgba(255,255,255,0.06); color:var(--text-secondary);';
+
+    return `
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; padding:12px 14px; border:1px solid rgba(99,102,241,0.12); border-radius:16px; background:rgba(255,255,255,0.05); box-shadow:0 6px 16px rgba(15,23,42,0.04);">
+        <div style="display:flex; align-items:center; gap:10px; min-width:0;">
+          <div style="width:40px; height:40px; border-radius:50%; background:linear-gradient(135deg, var(--primary), #818cf8); display:flex; align-items:center; justify-content:center; color:white; font-weight:700; flex-shrink:0;">
+            ${displayName.charAt(0).toUpperCase()}
+          </div>
+          <div style="min-width:0;">
+            <div style="font-weight:700; color:var(--text-main); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(displayName)}</div>
+            <div style="font-size:0.8rem; color:var(--text-secondary); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(roleText)}</div>
+          </div>
+        </div>
+        <span style="padding:4px 8px; border-radius:999px; font-size:0.75rem; font-weight:700; ${badgeStyle}">${escapeHtml(roleLabel)}</span>
+      </div>
+    `;
+  }).join('');
+
+  membersList.innerHTML = memberItems;
+}
+
+function toggleCommunityMembersView(communityId) {
+  const section = document.getElementById('communityMembersSection');
+  if (!section) return;
+
+  const isVisible = section.style.display === 'block';
+  section.style.display = isVisible ? 'none' : 'block';
+
+  if (!isVisible && communityId) {
+    const data = currentCommunityData || {};
+    const memberUids = Array.isArray(data.members)
+      ? data.members.map((member) => typeof member === 'object' ? member : { uid: member, displayName: 'Üye' })
+      : [];
+    renderCommunityMembersList(memberUids);
+  }
+}
+
+async function openCommunityInvitePrompt(communityId) {
+  if (!communityId || !currentUser) return;
+
+  try {
+    const communityRef = doc(communitiesCollection, communityId);
+    const communitySnap = await getDoc(communityRef);
+    if (!communitySnap.exists()) {
+      alert('Bu topluluk bulunamadı.');
+      return;
+    }
+
+    const communityData = communitySnap.data();
+    if (communityData.ownerUid !== currentUser.uid) {
+      alert('Yalnızca topluluk sahibi davet edebilir.');
+      return;
+    }
+
+    const identifier = prompt('Davet etmek istediğiniz kullanıcının kullanıcı adını yazın:', '');
+    if (!identifier || !identifier.trim()) return;
+
+    const normalizedIdentifier = identifier.trim().toLowerCase();
+    const userQuery = query(collection(db, 'users'), where('username', '==', normalizedIdentifier));
+    const userSnap = await getDocs(userQuery);
+    let targetUserDoc = !userSnap.empty ? userSnap.docs[0] : null;
+
+    if (!targetUserDoc) {
+      const emailQuery = query(collection(db, 'users'), where('email', '==', normalizedIdentifier));
+      const emailSnap = await getDocs(emailQuery);
+      targetUserDoc = !emailSnap.empty ? emailSnap.docs[0] : null;
+    }
+
+    if (!targetUserDoc) {
+      alert('Bu kullanıcı bulunamadı.');
+      return;
+    }
+
+    const targetUid = targetUserDoc.id;
+    if (targetUid === currentUser.uid) {
+      alert('Kendinizi davet edemezsiniz.');
+      return;
+    }
+
+    const memberUids = getCommunityMemberUids(communityData);
+    const invitedUids = getCommunityInvitedUids(communityData);
+    if (memberUids.includes(targetUid) || invitedUids.includes(targetUid)) {
+      alert('Bu kullanıcı zaten davet edilmiş ya da topluluğa üye.');
+      return;
+    }
+
+    await updateDoc(communityRef, {
+      invitedUsers: arrayUnion(targetUid)
+    });
+
+    const targetUserRef = doc(db, 'users', targetUid);
+    const inviterName = currentUser.displayName || currentUser.email || 'Bir kullanıcı';
+    const inviteNotification = {
+      type: 'community_invite',
+      title: 'Topluluk daveti',
+      message: `${inviterName} sizi "${communityData.name || 'Topluluk'}" topluluğuna davet etti.`,
+      communityId,
+      communityName: communityData.name || 'Topluluk',
+      fromUid: currentUser.uid,
+      fromName: inviterName,
+      fromUsername: currentUser.displayName || currentUser.email || '',
+      timestamp: serverTimestamp(),
+      read: false
+    };
+
+    await updateDoc(targetUserRef, {
+      notifications: arrayUnion(inviteNotification)
+    });
+
+    alert('Davet gönderildi.');
+    if (currentCommunityId === communityId) {
+      await openCommunityDetail(communityId);
+    }
+  } catch (error) {
+    console.error('Davet gönderilirken hata:', error);
+    alert('Davet gönderilemedi.');
+  }
+}
+
+async function handleCommunityInviteResponse(communityId, accept = true) {
+  if (!currentUser || !communityId) return;
+
+  try {
+    const communityRef = doc(communitiesCollection, communityId);
+    const communitySnap = await getDoc(communityRef);
+    if (!communitySnap.exists()) return;
+
+    if (accept) {
+      const memberData = {
+        uid: currentUser.uid,
+        displayName: currentUser.displayName || currentUser.email
+      };
+      await updateDoc(communityRef, {
+        members: arrayUnion(memberData),
+        invitedUsers: arrayRemove(currentUser.uid)
+      });
+      alert('Topluluğa katılma daveti kabul edildi.');
+    } else {
+      await updateDoc(communityRef, {
+        invitedUsers: arrayRemove(currentUser.uid)
+      });
+      alert('Topluluk daveti reddedildi.');
+    }
+
+    const userRef = doc(db, 'users', currentUser.uid);
+    const userSnap = await getDoc(userRef);
+    const notifications = Array.isArray(userSnap.data()?.notifications) ? userSnap.data().notifications : [];
+    const updatedNotifications = notifications.filter((notification) => !(notification.type === 'community_invite' && notification.communityId === communityId));
+    await updateDoc(userRef, {
+      notifications: updatedNotifications
+    });
+
+    window.dispatchEvent(new Event('notifications:changed'));
+
+    if (currentCommunityId === communityId) {
+      await openCommunityDetail(communityId);
+    }
+  } catch (error) {
+    console.error('Topluluk daveti yanıtlanırken hata:', error);
+  }
+}
+
+window.acceptCommunityInvite = async function(communityId) {
+  await handleCommunityInviteResponse(communityId, true);
+};
+
+window.rejectCommunityInvite = async function(communityId) {
+  await handleCommunityInviteResponse(communityId, false);
+};
+
+window.openCommunityInvitePrompt = openCommunityInvitePrompt;
 
 function openEditCommunityModal(communityId, data) {
   if (!communityId || !data) return;
@@ -947,6 +1227,7 @@ async function createNewCommunity() {
       isPrivate: isPrivate,
       ownerUid: currentUser.uid,
       ownerName: currentUser.displayName || currentUser.email,
+      invitedUsers: [],
       members: [
         {
           uid: currentUser.uid,
@@ -993,6 +1274,8 @@ window.createNewCommunity = createNewCommunity;
 window.deleteCommunity = deleteCommunity;
 window.toggleCommunityMembership = toggleCommunityMembership;
 window.createCommunityPost = createCommunityPost;
+window.openCommunityGroupChat = openCommunityGroupChat;
+window.toggleCommunityMembersView = toggleCommunityMembersView;
 
 // Arama ve Filtreleme
 function setupSearchAndFilter() {
