@@ -21,6 +21,550 @@ let currentUser = null;
 let currentCommunityId = null;
 let currentCommunityData = null;
 let currentPostsUnsubscribe = null;
+let communityComposerState = { imageBase64: null, poll: null };
+
+function resetCommunityComposerState() {
+  communityComposerState = { imageBase64: null, poll: null };
+}
+
+function setCommunityComposerImage(base64) {
+  communityComposerState.imageBase64 = base64 || null;
+}
+
+function clearCommunityComposerImage() {
+  communityComposerState.imageBase64 = null;
+}
+
+function buildCommunityPollFromForm() {
+  const questionInput = document.getElementById('communityPollQuestion');
+  const option1Input = document.getElementById('communityPollOption1');
+  const option2Input = document.getElementById('communityPollOption2');
+  const option3Input = document.getElementById('communityPollOption3');
+  const option4Input = document.getElementById('communityPollOption4');
+  const daysInput = document.getElementById('communityPollDays');
+  const hoursInput = document.getElementById('communityPollHours');
+  const minutesInput = document.getElementById('communityPollMinutes');
+
+  const question = questionInput?.value?.trim() || '';
+  const options = [option1Input?.value?.trim(), option2Input?.value?.trim(), option3Input?.value?.trim(), option4Input?.value?.trim()]
+    .filter(Boolean);
+
+  if (!question || options.length < 2) return null;
+
+  const days = Number(daysInput?.value || 0) || 0;
+  const hours = Number(hoursInput?.value || 0) || 0;
+  const minutes = Number(minutesInput?.value || 0) || 0;
+  const durationMs = Math.max(60000, ((days * 86400) + (hours * 3600) + (minutes * 60)) * 1000);
+
+  return {
+    question,
+    options,
+    endTime: Date.now() + durationMs,
+    createdAt: Date.now(),
+    votes: []
+  };
+}
+
+function isPollUserAuthenticated() {
+  const currentUser = auth && auth.currentUser ? auth.currentUser : (window.user || null);
+  const profileUser = window.user || {};
+  return Boolean(currentUser || profileUser.uid || profileUser.username || profileUser.displayName || profileUser.email);
+}
+
+function getCurrentPollVoterValues() {
+  const currentUser = auth && auth.currentUser ? auth.currentUser : (window.user || null);
+  const profileUser = window.user || {};
+  const username = profileUser.username || currentUser?.displayName || currentUser?.email?.split('@')[0] || '';
+  const displayName = profileUser.displayName || currentUser?.displayName || username || '';
+  const email = currentUser?.email || profileUser.email || '';
+  const uid = currentUser?.uid || profileUser.uid || '';
+
+  return [uid, username, displayName, email].filter(Boolean).map(value => String(value).toLowerCase());
+}
+
+function getPollVoteValues(vote) {
+  if (!vote) return [];
+  if (typeof vote === 'string') return [vote.toLowerCase()];
+
+  return [
+    vote.voterUid,
+    vote.uid,
+    vote.userId,
+    vote.voter,
+    vote.username,
+    vote.displayName,
+    vote.name
+  ].filter(Boolean).map(value => String(value).toLowerCase());
+}
+
+function hasCurrentUserVotedForPoll(poll) {
+  if (!poll || !Array.isArray(poll.votes)) return false;
+  if (!isPollUserAuthenticated()) return false;
+
+  const currentVoterValues = getCurrentPollVoterValues();
+  return poll.votes.some(vote => getPollVoteValues(vote).some(value => currentVoterValues.includes(value)));
+}
+
+function hasCurrentUserVotedForPollOption(poll, optionIndex) {
+  if (!poll || !Array.isArray(poll.votes) || !Number.isInteger(optionIndex)) return false;
+  if (!isPollUserAuthenticated()) return false;
+
+  const currentVoterValues = getCurrentPollVoterValues();
+  return poll.votes.some(vote => vote.option === optionIndex && getPollVoteValues(vote).some(value => currentVoterValues.includes(value)));
+}
+
+const communityPostVoteInProgress = new Set();
+
+function renderCommunityPoll(poll, postId) {
+  if (!poll || !poll.question) return '';
+
+  const now = Date.now();
+  const endTime = poll.endTime || 0;
+  const isFinished = now > endTime;
+  const userVoted = hasCurrentUserVotedForPoll(poll);
+  const totalVotes = Array.isArray(poll.votes) ? poll.votes.length : 0;
+
+  let html = `
+    <div class="post-poll" data-poll-id="${escapeHtml(poll.question)}">
+      <div class="poll-question">
+        <div class="poll-question-title">
+          <i class="fa-solid fa-chart-pie"></i>
+          <strong>${escapeHtml(poll.question)}</strong>
+        </div>
+        <span class="poll-status-pill">${isFinished ? 'Kapalı' : 'Aktif'}</span>
+      </div>
+      <div class="poll-options">
+  `;
+
+  if (poll.options && Array.isArray(poll.options)) {
+    poll.options.forEach((opt, idx) => {
+      const optionVotes = Array.isArray(poll.votes) ? poll.votes.filter(v => v.option === idx) : [];
+      const optVotes = optionVotes.length;
+      const percent = totalVotes > 0 ? Math.round((optVotes / totalVotes) * 100) : 0;
+      const userVotedThisOption = hasCurrentUserVotedForPollOption(poll, idx);
+      const voterAvatars = optionVotes.slice(0, 6).map(vote => {
+        const avatarValue = vote.avatarUrl || vote.photoURL || vote.avatar || '';
+        const avatarSrc = avatarValue ? getCommunityAvatarUrl(avatarValue) : getCommunityAvatarUrl(vote.displayName || vote.username || vote.voter || 'user');
+        const altText = escapeHtml(vote.displayName || vote.username || vote.voter || 'Oy veren');
+        return `<img src="${avatarSrc}" alt="${altText}" title="${altText}" style="width: 20px; height: 20px; border-radius: 50%; border: 1px solid var(--border); margin-left: -6px; background: var(--surface);">`;
+      }).join('');
+      const avatarsHtml = optVotes > 0 ? `<span class="poll-voter-avatars">${voterAvatars}${optVotes > 6 ? `<span class="poll-voter-more">+${optVotes - 6}</span>` : ''}</span>` : '';
+
+      html += `
+        <div class="poll-option-card${userVotedThisOption ? ' selected' : ''}">
+          <div class="poll-option-head">
+            <span class="poll-option-label">${escapeHtml(opt)}</span>
+            <div class="poll-option-meta">
+              <span class="poll-option-count">${optVotes} oy</span>
+              <span class="poll-option-percent">${percent}%</span>
+              ${avatarsHtml}
+            </div>
+          </div>
+          <div class="poll-progress-bar">
+            <div class="poll-progress-fill" style="width: ${percent}%;"></div>
+          </div>
+      `;
+
+      if (!isFinished && isPollUserAuthenticated() && !userVoted && !userVotedThisOption) {
+        html += `<button class="poll-vote-btn" onclick="voteCommunityPoll('${postId}', ${idx})"><i class="fa-solid fa-check-to-slot"></i> Oy Ver</button>`;
+      } else if (!isFinished && userVotedThisOption) {
+        html += `<div class="poll-option-actions"><button class="poll-vote-btn danger" onclick="removeCommunityPollVote('${postId}')"><i class="fa-solid fa-rotate-left"></i> Oyumu Geri Al</button></div>`;
+      }
+
+      html += `</div>`;
+    });
+  }
+
+  const timeRemaining = isFinished ? 'Bitti' : `${Math.ceil((endTime - now) / (1000 * 60))} dakika kaldı`;
+  html += `
+      </div>
+      <div class="poll-footer">${timeRemaining}</div>
+    </div>
+  `;
+
+  return html;
+}
+
+window.voteCommunityPoll = async function(postId, optionId) {
+  const currentUser = auth && auth.currentUser ? auth.currentUser : (window.user || null);
+  if (!currentUser || !currentUser.uid) {
+    alert('Oyla yapmak için giriş yapmalısınız.');
+    return;
+  }
+
+  if (communityPostVoteInProgress.has(postId)) {
+    return;
+  }
+  communityPostVoteInProgress.add(postId);
+
+  try {
+    const postRef = doc(communitiesCollection, currentCommunityId, 'gonderiler', postId);
+    const postSnap = await getDoc(postRef);
+    if (!postSnap.exists()) {
+      throw new Error('post-not-found');
+    }
+
+    const post = postSnap.data();
+    const poll = post.poll;
+    if (!poll) {
+      throw new Error('poll-not-found');
+    }
+
+    const currentVoterValues = getCurrentPollVoterValues();
+    const votes = Array.isArray(poll.votes) ? poll.votes : [];
+    const existingVote = votes.find(vote => getPollVoteValues(vote).some(value => currentVoterValues.includes(value)));
+    if (existingVote) {
+      throw new Error('already-voted');
+    }
+
+    const voterLabel = (window.user?.username || currentUser.displayName || currentUser.email || 'Guest').toString();
+    const newVote = {
+      voterUid: currentUser.uid,
+      voter: voterLabel,
+      username: window.user?.username || currentUser.displayName || currentUser.email?.split('@')[0] || 'user',
+      displayName: window.user?.displayName || currentUser.displayName || voterLabel,
+      avatarUrl: window.user?.avatarUrl || window.user?.photoURL || currentUser.photoURL || 'assets/img/strendsaydamv2.png',
+      option: optionId,
+      timestamp: Date.now()
+    };
+
+    await updateDoc(postRef, { 'poll.votes': [...votes, newVote] });
+  } catch (e) {
+    console.error('Topluluk anket oy hatası:', e);
+    if (e && e.message === 'already-voted') {
+      alert('Zaten oy verdiniz.');
+    } else if (e && e.message === 'post-not-found') {
+      alert('Gönderi bulunamadı.');
+    } else if (e && e.message === 'poll-not-found') {
+      alert('Bu gönderiye anket bulunamadı.');
+    } else if (e?.code === 'resource-exhausted') {
+      alert('Firestore kotası aşıldı, lütfen birkaç saniye sonra tekrar deneyin.');
+    } else {
+      alert('Oy verilemedi.');
+    }
+  } finally {
+    communityPostVoteInProgress.delete(postId);
+  }
+};
+
+window.removeCommunityPollVote = async function(postId) {
+  const currentUser = auth && auth.currentUser ? auth.currentUser : (window.user || null);
+  if (!currentUser || !currentUser.uid) {
+    alert('İşlem için giriş yapmalısınız.');
+    return;
+  }
+
+  if (communityPostVoteInProgress.has(postId)) {
+    return;
+  }
+  communityPostVoteInProgress.add(postId);
+
+  try {
+    const postRef = doc(communitiesCollection, currentCommunityId, 'gonderiler', postId);
+    const postSnap = await getDoc(postRef);
+    if (!postSnap.exists()) {
+      throw new Error('post-not-found');
+    }
+
+    const post = postSnap.data();
+    const poll = post.poll;
+    if (!poll) {
+      throw new Error('poll-not-found');
+    }
+
+    const currentVoterValues = getCurrentPollVoterValues();
+    const votes = Array.isArray(poll.votes) ? poll.votes : [];
+    const filtered = votes.filter(vote => !getPollVoteValues(vote).some(value => currentVoterValues.includes(value)));
+    await updateDoc(postRef, { 'poll.votes': filtered });
+  } catch (e) {
+    console.error('Topluluk oy silme hatası:', e);
+    if (e?.code === 'resource-exhausted') {
+      alert('Firestore kotası aşıldı, lütfen birkaç saniye sonra tekrar deneyin.');
+    } else {
+      alert('Oy geri alınamadı.');
+    }
+  } finally {
+    communityPostVoteInProgress.delete(postId);
+  }
+};
+
+function initCommunityComposerControls(communityId) {
+  const textarea = document.getElementById('communityPostInput');
+  const imageInput = document.getElementById('communityImageInput');
+  const imageBtn = document.getElementById('communityImageBtn');
+  const emojiBtn = document.getElementById('communityEmojiBtn');
+  const pollBtn = document.getElementById('communityPollBtn');
+  const pollForm = document.getElementById('communityPollForm');
+  const emojiPicker = document.getElementById('communityEmojiPicker');
+  const imagePreviewContainer = document.getElementById('communityImagePreviewContainer');
+  const imagePreview = document.getElementById('communityImagePreview');
+  const clearImageBtn = document.getElementById('communityClearImageBtn');
+  const pollApplyBtn = document.getElementById('communityPollApplyBtn');
+  const pollCancelBtn = document.getElementById('communityPollCancelBtn');
+
+  if (!textarea) return;
+
+  const refreshComposerPreview = () => {
+    if (imagePreviewContainer && imagePreview) {
+      if (communityComposerState.imageBase64) {
+        imagePreview.src = communityComposerState.imageBase64;
+        imagePreviewContainer.style.display = 'block';
+      } else {
+        imagePreviewContainer.style.display = 'none';
+      }
+    }
+
+    if (pollForm) {
+      const hasPoll = Boolean(communityComposerState.poll);
+      if (hasPoll) {
+        pollForm.style.display = 'none';
+      }
+    }
+  };
+
+  if (imageInput) {
+    imageInput.addEventListener('change', (event) => {
+      const file = event.target.files?.[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        setCommunityComposerImage(reader.result);
+        refreshComposerPreview();
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  if (imageBtn && imageInput) {
+    imageBtn.addEventListener('click', () => imageInput.click());
+  }
+
+  if (clearImageBtn) {
+    clearImageBtn.addEventListener('click', () => {
+      clearCommunityComposerImage();
+      if (imageInput) imageInput.value = '';
+      refreshComposerPreview();
+    });
+  }
+
+  if (emojiBtn && emojiPicker) {
+    initCommunityEmojiPicker();
+  }
+
+  if (pollBtn && pollForm) {
+    pollBtn.addEventListener('click', () => {
+      const isVisible = pollForm.style.display === 'block';
+      pollForm.style.display = isVisible ? 'none' : 'block';
+      emojiPicker && (emojiPicker.style.display = 'none');
+      if (!isVisible) {
+        const questionInput = document.getElementById('communityPollQuestion');
+        if (questionInput && !questionInput.value) questionInput.focus();
+      }
+    });
+  }
+
+  if (pollApplyBtn) {
+    pollApplyBtn.addEventListener('click', () => {
+      const poll = buildCommunityPollFromForm();
+      communityComposerState.poll = poll;
+      if (poll) {
+        const summaryEl = document.getElementById('communityPollSummary');
+        if (summaryEl) {
+          summaryEl.textContent = `Anket eklendi: ${poll.question}`;
+          summaryEl.style.display = 'block';
+        }
+        if (pollForm) pollForm.style.display = 'none';
+      }
+    });
+  }
+
+  if (pollCancelBtn) {
+    pollCancelBtn.addEventListener('click', () => {
+      communityComposerState.poll = null;
+      const summaryEl = document.getElementById('communityPollSummary');
+      if (summaryEl) summaryEl.style.display = 'none';
+      if (pollForm) pollForm.style.display = 'none';
+      const questionInput = document.getElementById('communityPollQuestion');
+      const option1Input = document.getElementById('communityPollOption1');
+      const option2Input = document.getElementById('communityPollOption2');
+      const option3Input = document.getElementById('communityPollOption3');
+      const option4Input = document.getElementById('communityPollOption4');
+      [questionInput, option1Input, option2Input, option3Input, option4Input].forEach((el) => { if (el) el.value = ''; });
+    });
+  }
+
+  refreshComposerPreview();
+}
+
+function initCommunityEmojiPicker() {
+  const emojiToggle = document.getElementById('communityEmojiBtn');
+  const emojiPickerPanel = document.getElementById('communityEmojiPicker');
+  const postInput = document.getElementById('communityPostInput');
+  const pollForm = document.getElementById('communityPollForm');
+  if (!emojiToggle || !emojiPickerPanel || !postInput) return;
+
+  const emojis = [
+    { symbol: '😊', keywords: ['gülen', 'smile', 'happy', 'mutlu'] },
+    { symbol: '😂', keywords: ['gülmek', 'laugh', 'lol', 'komik'] },
+    { symbol: '😢', keywords: ['ağlamak', 'cry', 'sad', 'üzgün'] },
+    { symbol: '❤️', keywords: ['aşk', 'love', 'heart', 'kalp'] },
+    { symbol: '👍', keywords: ['beğen', 'like', 'good', 'tamam'] },
+    { symbol: '🔥', keywords: ['alev', 'fire', 'hot', 'harika'] },
+    { symbol: '🚀', keywords: ['roket', 'rocket', 'hızlı', 'başarı'] },
+    { symbol: '🎉', keywords: ['kutlama', 'party', 'celebrate', 'tebrik'] },
+    { symbol: '🙏', keywords: ['dua', 'pray', 'thanks', 'teşekkür'] },
+    { symbol: '✨', keywords: ['parıltı', 'sparkle', 'shine', 'ışıltı'] },
+    { symbol: '😎', keywords: ['cool', 'sunglasses', 'havalı', 'karizma'] },
+    { symbol: '💯', keywords: ['tam', 'perfect', '100', 'mükemmel'] },
+    { symbol: '🙌', keywords: ['alkış', 'celebrate', 'tebrik', 'bağırma'] },
+    { symbol: '😇', keywords: ['melek', 'angel', 'masum', 'iyi'] },
+    { symbol: '🍕', keywords: ['pizza', 'yemek', 'food', 'lezzet'] },
+    { symbol: '🥳', keywords: ['parti', 'party', 'kutlama', 'birthday'] },
+    { symbol: '🥰', keywords: ['aşık', 'love', 'romantik', 'kalp'] },
+    { symbol: '😅', keywords: ['gülmek', 'sweat', 'komik', 'utanç'] },
+    { symbol: '🤩', keywords: ['hayran', 'starstruck', 'wow', 'şok'] },
+    { symbol: '🫶', keywords: ['kalp', 'hands', 'love', 'sevgili'] },
+    { symbol: '🥺', keywords: ['rica', 'please', 'cute', 'yakarmak'] },
+    { symbol: '🌟', keywords: ['yıldız', 'star', 'parlak', 'başarı'] },
+    { symbol: '🍔', keywords: ['burger', 'yemek', 'food', 'fast food'] },
+    { symbol: '🍦', keywords: ['dondurma', 'ice cream', 'tatlı', 'şeker'] },
+    { symbol: '🎶', keywords: ['müzik', 'music', 'şarkı', 'melodi'] },
+    { symbol: '⚡', keywords: ['yıldırım', 'bolt', 'energy', 'güç'] },
+    { symbol: '🧠', keywords: ['zihin', 'brain', 'akıl', 'beyin'] },
+    { symbol: '💡', keywords: ['fikir', 'idea', 'akıl', 'ışık'] },
+    { symbol: '🛠️', keywords: ['tool', 'araç', 'tamir', 'setup'] },
+    { symbol: '📸', keywords: ['fotoğraf', 'camera', 'kamera', 'foto'] }
+  ];
+
+  const renderPicker = () => {
+    emojiPickerPanel.innerHTML = `
+      <div class="emoji-picker-header">
+        <div class="emoji-picker-title">Emoji seç</div>
+        <button type="button" class="emoji-picker-close" aria-label="Kapat">×</button>
+      </div>
+      <input type="search" class="emoji-search" placeholder="Emoji ara..." autocomplete="off" />
+      <div class="emoji-picker-grid"></div>
+      <div class="emoji-picker-empty" style="display:none;">Eşleşen emoji bulunamadı.</div>
+    `;
+
+    const grid = emojiPickerPanel.querySelector('.emoji-picker-grid');
+    const search = emojiPickerPanel.querySelector('.emoji-search');
+    const closeBtn = emojiPickerPanel.querySelector('.emoji-picker-close');
+    const emptyMessage = emojiPickerPanel.querySelector('.emoji-picker-empty');
+
+    const renderEmojis = list => {
+      grid.innerHTML = '';
+      if (!list.length) {
+        emptyMessage.style.display = 'block';
+        return;
+      }
+      emptyMessage.style.display = 'none';
+      list.forEach(item => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'emoji-picker-item';
+        btn.textContent = item.symbol;
+        btn.title = item.keywords.join(', ');
+        grid.appendChild(btn);
+      });
+    };
+
+    const filterEmojis = () => {
+      const query = search.value.trim().toLowerCase();
+      if (!query) return emojis;
+      return emojis.filter(item => {
+        if (item.symbol.includes(query)) return true;
+        return item.keywords.some(keyword => keyword.toLowerCase().includes(query));
+      });
+    };
+
+    const closePanel = () => {
+      emojiPickerPanel.classList.remove('open');
+      emojiPickerPanel.style.display = 'none';
+      emojiPickerPanel.style.opacity = '0';
+      emojiPickerPanel.style.visibility = 'hidden';
+    };
+
+    const positionPicker = () => {
+      const rect = emojiToggle.getBoundingClientRect();
+      const pickerRect = emojiPickerPanel.getBoundingClientRect();
+      const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
+      let left = rect.left;
+      if (left + pickerRect.width + 12 > viewportWidth) {
+        left = Math.max(viewportWidth - pickerRect.width - 12, 12);
+      }
+      let top = rect.bottom + 10;
+      if (top + pickerRect.height + 12 > viewportHeight) {
+        top = rect.top - pickerRect.height - 10;
+        if (top < 12) top = 12;
+      }
+      emojiPickerPanel.style.left = `${left}px`;
+      emojiPickerPanel.style.top = `${top}px`;
+    };
+
+    const openPanel = () => {
+      if (emojiPickerPanel.parentNode !== document.body) {
+        document.body.appendChild(emojiPickerPanel);
+      }
+      emojiPickerPanel.style.position = 'fixed';
+      emojiPickerPanel.style.display = 'grid';
+      emojiPickerPanel.style.opacity = '1';
+      emojiPickerPanel.style.visibility = 'visible';
+      emojiPickerPanel.style.zIndex = '9999';
+      emojiPickerPanel.classList.add('open');
+      requestAnimationFrame(positionPicker);
+    };
+
+    emojiToggle.addEventListener('click', event => {
+      event.stopPropagation();
+      if (emojiPickerPanel.classList.contains('open')) {
+        closePanel();
+      } else {
+        if (pollForm) pollForm.style.display = 'none';
+        openPanel();
+      }
+    });
+
+    closeBtn.addEventListener('click', () => closePanel());
+    search.addEventListener('input', () => renderEmojis(filterEmojis()));
+
+    grid.addEventListener('click', event => {
+      const item = event.target.closest('.emoji-picker-item');
+      if (!item) return;
+      insertAtCaret(item.textContent || '');
+      closePanel();
+      postInput.focus();
+    });
+
+    document.addEventListener('click', event => {
+      const clickedEmojiToggle = event.target.closest('#communityEmojiBtn');
+      if (!emojiPickerPanel.contains(event.target) && !clickedEmojiToggle) {
+        closePanel();
+      }
+    });
+
+    window.addEventListener('resize', () => {
+      if (emojiPickerPanel.classList.contains('open')) {
+        positionPicker();
+      }
+    });
+
+    renderEmojis(emojis);
+  };
+
+  const insertAtCaret = text => {
+    const start = postInput.selectionStart ?? postInput.value.length;
+    const end = postInput.selectionEnd ?? start;
+    const value = postInput.value;
+    postInput.value = value.slice(0, start) + text + value.slice(end);
+    const pos = start + text.length;
+    postInput.setSelectionRange(pos, pos);
+    postInput.dispatchEvent(new Event('input', { bubbles: true }));
+  };
+
+  renderPicker();
+}
 
 // Auth değişikliklerini dinle
 onAuthStateChanged(auth, (user) => {
@@ -434,6 +978,8 @@ function renderCommunityPosts(container, posts) {
         </div>
 
         <div class="post-content-view" style="color:var(--text-main); line-height:1.7; white-space:pre-wrap; font-size:0.95rem; margin-bottom:10px;">${escapeHtml(post.content || '')}</div>
+        ${post.image ? `<div style="margin-bottom:10px;"><img src="${escapeHtml(post.image)}" alt="Topluluk fotoğrafı" style="max-width:100%; max-height:320px; border-radius:14px; object-fit:cover; border:1px solid var(--border);"></div>` : ''}
+        ${post.poll ? renderCommunityPoll(post.poll, post.id) : ''}
         <div class="post-edit-area" style="display:none; margin-top:8px;">
           <textarea class="post-edit-textarea" rows="3" style="width:100%; border:1px solid var(--border); border-radius:12px; padding:10px 12px; background:rgba(255,255,255,0.04); color:var(--text-main); resize:vertical; box-sizing:border-box;">${escapeHtml(post.content || '')}</textarea>
           <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:8px;">
@@ -667,8 +1213,9 @@ async function createCommunityPost(communityId) {
 
   const contentInput = document.getElementById('communityPostInput');
   const content = contentInput?.value.trim();
-  if (!content) {
-    alert('Gönderi içeriğini yazınız.');
+  const hasMedia = Boolean(communityComposerState.imageBase64 || communityComposerState.poll);
+  if (!content && !hasMedia) {
+    alert('Gönderi içeriğini yazınız veya bir fotoğraf/anket ekleyin.');
     return;
   }
 
@@ -677,6 +1224,8 @@ async function createCommunityPost(communityId) {
     const profile = getCommunityProfileData(currentUser);
     await addDoc(postsCollection, {
       content,
+      image: communityComposerState.imageBase64 || null,
+      poll: communityComposerState.poll || null,
       authorUid: currentUser.uid,
       authorName: profile.displayName,
       authorDisplayName: profile.displayName,
@@ -692,6 +1241,20 @@ async function createCommunityPost(communityId) {
     });
 
     if (contentInput) contentInput.value = '';
+    resetCommunityComposerState();
+    const imageInput = document.getElementById('communityImageInput');
+    const imagePreviewContainer = document.getElementById('communityImagePreviewContainer');
+    const imagePreview = document.getElementById('communityImagePreview');
+    const pollForm = document.getElementById('communityPollForm');
+    const pollSummary = document.getElementById('communityPollSummary');
+    if (imageInput) imageInput.value = '';
+    if (imagePreviewContainer) imagePreviewContainer.style.display = 'none';
+    if (imagePreview) imagePreview.src = '';
+    if (pollForm) pollForm.style.display = 'none';
+    if (pollSummary) {
+      pollSummary.style.display = 'none';
+      pollSummary.textContent = '';
+    }
   } catch (error) {
     console.error('Gönderi paylaşılırken hata:', error);
     alert('Gönderi paylaşılırken bir hata oluştu.');
@@ -901,6 +1464,43 @@ async function openCommunityDetail(communityId) {
                 <h3 style="margin:0; color:var(--text-main);">Gönderi paylaş</h3>
               </div>
               <textarea id="communityPostInput" rows="4" placeholder="Bu toplulukta neler paylaşmak istersin?" style="width:100%; border:1px solid var(--border); border-radius:14px; padding:12px 14px; background:rgba(255,255,255,0.04); color:var(--text-main); resize:vertical; box-sizing:border-box; min-height:96px;"></textarea>
+              <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:10px;">
+                <button type="button" id="communityImageBtn" style="padding:8px 12px; border:none; border-radius:999px; background:rgba(99,102,241,0.12); color:var(--primary); cursor:pointer; font-weight:700;">📸 Fotoğraf</button>
+                <button type="button" id="communityEmojiBtn" style="padding:8px 12px; border:none; border-radius:999px; background:rgba(99,102,241,0.12); color:var(--primary); cursor:pointer; font-weight:700;">😊 Emoji</button>
+                <button type="button" id="communityPollBtn" style="padding:8px 12px; border:none; border-radius:999px; background:rgba(99,102,241,0.12); color:var(--primary); cursor:pointer; font-weight:700;">📊 Anket</button>
+                <input type="file" id="communityImageInput" accept="image/*" style="display:none;">
+              </div>
+              <div id="communityEmojiPicker" class="emoji-picker"></div>
+              <div id="communityPollForm" style="display:none; margin-top:10px; padding:12px; border:1px solid rgba(99,102,241,0.16); border-radius:14px; background:rgba(255,255,255,0.04);">
+                <div style="font-size:0.9rem; font-weight:700; color:var(--text-main); margin-bottom:8px;">Anket oluştur</div>
+                <input id="communityPollQuestion" placeholder="Anket sorusu" style="width:100%; box-sizing:border-box; padding:8px 10px; border:1px solid var(--border); border-radius:10px; margin-bottom:8px; background:rgba(255,255,255,0.04); color:var(--text-main);">
+                <div style="display:grid; gap:8px; grid-template-columns:repeat(2, minmax(0, 1fr)); margin-bottom:8px;">
+                  <input id="communityPollOption1" placeholder="Seçenek 1" style="padding:8px 10px; border:1px solid var(--border); border-radius:10px; background:rgba(255,255,255,0.04); color:var(--text-main);">
+                  <input id="communityPollOption2" placeholder="Seçenek 2" style="padding:8px 10px; border:1px solid var(--border); border-radius:10px; background:rgba(255,255,255,0.04); color:var(--text-main);">
+                  <input id="communityPollOption3" placeholder="Seçenek 3 (opsiyonel)" style="padding:8px 10px; border:1px solid var(--border); border-radius:10px; background:rgba(255,255,255,0.04); color:var(--text-main);">
+                  <input id="communityPollOption4" placeholder="Seçenek 4 (opsiyonel)" style="padding:8px 10px; border:1px solid var(--border); border-radius:10px; background:rgba(255,255,255,0.04); color:var(--text-main);">
+                </div>
+                <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:8px;">
+                  <input id="communityPollDays" type="number" min="0" value="0" style="width:70px; padding:8px 10px; border:1px solid var(--border); border-radius:10px; background:rgba(255,255,255,0.04); color:var(--text-main);">
+                  <span style="font-size:0.8rem; color:var(--text-secondary);">gün</span>
+                  <input id="communityPollHours" type="number" min="0" value="1" style="width:70px; padding:8px 10px; border:1px solid var(--border); border-radius:10px; background:rgba(255,255,255,0.04); color:var(--text-main);">
+                  <span style="font-size:0.8rem; color:var(--text-secondary);">saat</span>
+                  <input id="communityPollMinutes" type="number" min="0" value="0" style="width:70px; padding:8px 10px; border:1px solid var(--border); border-radius:10px; background:rgba(255,255,255,0.04); color:var(--text-main);">
+                  <span style="font-size:0.8rem; color:var(--text-secondary);">dk</span>
+                </div>
+                <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                  <button type="button" id="communityPollApplyBtn" style="padding:8px 12px; border:none; border-radius:999px; background:linear-gradient(135deg, var(--primary), #818cf8); color:white; cursor:pointer; font-weight:700;">Anketi Ekle</button>
+                  <button type="button" id="communityPollCancelBtn" style="padding:8px 12px; border:none; border-radius:999px; background:rgba(255,255,255,0.08); color:var(--text-main); cursor:pointer;">İptal</button>
+                </div>
+              </div>
+              <div id="communityPollSummary" style="display:none; margin-top:8px; font-size:0.8rem; color:var(--primary); font-weight:700;"></div>
+              <div id="communityImagePreviewContainer" style="display:none; margin-top:10px; padding:10px; border:1px solid rgba(99,102,241,0.16); border-radius:14px; background:rgba(255,255,255,0.04);">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                  <span style="font-size:0.8rem; font-weight:700; color:var(--text-main);">Fotoğraf önizleme</span>
+                  <button type="button" id="communityClearImageBtn" style="border:none; background:none; color:var(--text-secondary); cursor:pointer;">Kaldır</button>
+                </div>
+                <img id="communityImagePreview" alt="Fotoğraf önizleme" style="max-width:100%; max-height:220px; border-radius:12px; object-fit:cover;">
+              </div>
               <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px; gap:10px; flex-wrap:wrap;">
                 <span style="font-size:0.85rem; color:var(--text-secondary);">Katılınca gönderi paylaşabilirsin.</span>
                 <button onclick="window.createCommunityPost('${communityId}')" style="padding:10px 16px; border:none; border-radius:999px; background:linear-gradient(135deg, var(--primary), #818cf8); color:white; cursor:pointer; font-weight:700; box-shadow:0 8px 22px rgba(99,102,241,0.20);">Gönder</button>
@@ -924,6 +1524,7 @@ async function openCommunityDetail(communityId) {
         </div>
     `;
 
+    initCommunityComposerControls(communityId);
     loadCommunityPosts(communityId);
   } catch (error) {
     console.error('Topluluk detayı yüklenirken hata:', error);

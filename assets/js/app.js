@@ -369,7 +369,13 @@ function hasCurrentUserVotedForPollOption(poll, optionIndex) {
     return poll.votes.some(vote => vote.option === optionIndex && getPollVoteValues(vote).some(value => currentVoterValues.includes(value)));
 }
 
+const postVoteInProgress = new Set();
+
 function refreshMainFeed() {
+    if (currentPostsUnsubscribe) {
+        // An active snapshot listener is already updating the feed.
+        return;
+    }
     if (typeof window.loadPostsFeed === 'function') {
         window.loadPostsFeed();
         return;
@@ -476,41 +482,44 @@ window.votePostPoll = async function(postId, optionId) {
         alert('Oyla yapmak için giriş yapmalısınız.');
         return;
     }
-    
+
+    if (postVoteInProgress.has(postId)) {
+        return;
+    }
+    postVoteInProgress.add(postId);
+
     try {
         const postRef = doc(db, 'posts', postId);
-        await runTransaction(db, async (transaction) => {
-            const postSnap = await transaction.get(postRef);
-            if (!postSnap.exists()) {
-                throw new Error('post-not-found');
-            }
-            
-            const post = postSnap.data();
-            const poll = post.poll;
-            if (!poll) {
-                throw new Error('poll-not-found');
-            }
-            
-            const currentVoterValues = getCurrentPollVoterValues();
-            const voterLabel = (window.user?.username || currentUser.displayName || currentUser.email || 'Guest').toString();
-            const votes = Array.isArray(poll.votes) ? poll.votes : [];
-            const existingVote = votes.find(vote => getPollVoteValues(vote).some(value => currentVoterValues.includes(value)));
-            if (existingVote) {
-                throw new Error('already-voted');
-            }
-            
-            votes.push({
-                voterUid: currentUser.uid,
-                voter: voterLabel,
-                username: window.user?.username || currentUser.displayName || currentUser.email?.split('@')[0] || 'user',
-                displayName: window.user?.displayName || currentUser.displayName || voterLabel,
-                avatarUrl: window.user?.avatarUrl || window.user?.photoURL || currentUser.photoURL || 'assets/img/strendsaydamv2.png',
-                option: optionId,
-                timestamp: Date.now()
-            });
-            transaction.update(postRef, { 'poll.votes': votes });
-        });
-        
+        const postSnap = await getDoc(postRef);
+        if (!postSnap.exists()) {
+            throw new Error('post-not-found');
+        }
+
+        const post = postSnap.data();
+        const poll = post.poll;
+        if (!poll) {
+            throw new Error('poll-not-found');
+        }
+
+        const currentVoterValues = getCurrentPollVoterValues();
+        const voterLabel = (window.user?.username || currentUser.displayName || currentUser.email || 'Guest').toString();
+        const votes = Array.isArray(poll.votes) ? poll.votes : [];
+        const existingVote = votes.find(vote => getPollVoteValues(vote).some(value => currentVoterValues.includes(value)));
+        if (existingVote) {
+            throw new Error('already-voted');
+        }
+
+        const newVote = {
+            voterUid: currentUser.uid,
+            voter: voterLabel,
+            username: window.user?.username || currentUser.displayName || currentUser.email?.split('@')[0] || 'user',
+            displayName: window.user?.displayName || currentUser.displayName || voterLabel,
+            avatarUrl: window.user?.avatarUrl || window.user?.photoURL || currentUser.photoURL || 'assets/img/strendsaydamv2.png',
+            option: optionId,
+            timestamp: Date.now()
+        };
+
+        await updateDoc(postRef, { 'poll.votes': [...votes, newVote] });
         refreshMainFeed();
     } catch (e) {
         console.error('Anket oy hatası:', e);
@@ -520,9 +529,13 @@ window.votePostPoll = async function(postId, optionId) {
             alert('Gönderi bulunamadı.');
         } else if (e && e.message === 'poll-not-found') {
             alert('Bu gönderiye anket bulunamadı.');
+        } else if (e?.code === 'resource-exhausted') {
+            alert('Firestore kotası aşıldı, lütfen birkaç saniye sonra tekrar deneyin.');
         } else {
             alert('Oy verilemedi.');
         }
+    } finally {
+        postVoteInProgress.delete(postId);
     }
 };
 
@@ -542,30 +555,39 @@ window.removePostPollVote = async function(postId) {
         alert('İşlem için giriş yapmalısınız.');
         return;
     }
+
+    if (postVoteInProgress.has(postId)) {
+        return;
+    }
+    postVoteInProgress.add(postId);
     
     try {
         const postRef = doc(db, 'posts', postId);
-        await runTransaction(db, async (transaction) => {
-            const postSnap = await transaction.get(postRef);
-            if (!postSnap.exists()) {
-                throw new Error('post-not-found');
-            }
-            
-            const post = postSnap.data();
-            const poll = post.poll;
-            if (!poll) {
-                throw new Error('poll-not-found');
-            }
-            
-            const currentVoterValues = getCurrentPollVoterValues();
-            const votes = Array.isArray(poll.votes) ? poll.votes : [];
-            const filtered = votes.filter(vote => !getPollVoteValues(vote).some(value => currentVoterValues.includes(value)));
-            transaction.update(postRef, { 'poll.votes': filtered });
-        });
+        const postSnap = await getDoc(postRef);
+        if (!postSnap.exists()) {
+            throw new Error('post-not-found');
+        }
+
+        const post = postSnap.data();
+        const poll = post.poll;
+        if (!poll) {
+            throw new Error('poll-not-found');
+        }
+
+        const currentVoterValues = getCurrentPollVoterValues();
+        const votes = Array.isArray(poll.votes) ? poll.votes : [];
+        const filtered = votes.filter(vote => !getPollVoteValues(vote).some(value => currentVoterValues.includes(value)));
+        await updateDoc(postRef, { 'poll.votes': filtered });
         refreshMainFeed();
     } catch (e) {
         console.error('Oy silme hatası:', e);
-        alert('Oy geri alınamadı.');
+        if (e?.code === 'resource-exhausted') {
+            alert('Firestore kotası aşıldı, lütfen birkaç saniye sonra tekrar deneyin.');
+        } else {
+            alert('Oy geri alınamadı.');
+        }
+    } finally {
+        postVoteInProgress.delete(postId);
     }
 };
 
