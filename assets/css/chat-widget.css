@@ -1,10 +1,10 @@
 /* Chat Widget Styles */
 .chat-widget-container {
     position: fixed;
-    bottom: 90px;
+    top: 84px;
     right: 24px;
-    width: 380px;
-    height: 520px;
+    width: min(380px, calc(100vw - 32px));
+    height: min(72vh, 520px);
     background: linear-gradient(180deg, rgba(248, 250, 252, 0.96), rgba(255, 255, 255, 0.95));
     border-radius: 28px;
     box-shadow: 0 24px 70px rgba(15, 23, 42, 0.18);
@@ -378,17 +378,18 @@ body.dark-mode #emoji-picker button:hover {
 @media (max-width: 768px) {
     .chat-widget-container,
     .chat-lists-panel {
-        width: 100%;
+        width: auto;
         max-width: 100%;
-        left: 0;
-        right: 0;
-        top: 56px;
-        bottom: 0;
+        left: 10px;
+        right: 10px;
+        top: 72px;
+        bottom: 12px;
         transform: none;
-        border-radius: 0;
+        border-radius: 24px;
         height: auto;
         margin: 0;
-        box-shadow: none;
+        box-shadow: 0 18px 50px rgba(15, 23, 42, 0.18);
+        overflow: hidden;
     }
     .chat-widget-header,
     .chat-lists-header {
@@ -407,9 +408,8 @@ body.dark-mode #emoji-picker button:hover {
         width: 28px;
         height: 28px;
     }
-    /* Mobilde yalnızca chat widget başlığındaki metni gizle */
-    .chat-widget-header .chat-btn-text,
-    .chat-lists-header .chat-btn-text {
+    /* Mobilde yalnızca popup widget başlığındaki metni gizle, liste başlığı metnini göster */
+    .chat-widget-header .chat-btn-text {
         display: none !important;
     }
 }
@@ -526,10 +526,10 @@ body.dark-mode #emoji-picker button:hover {
 /* Chat Lists Panel */
 .chat-lists-panel {
     position: fixed;
-    bottom: 90px;
+    top: 84px;
     right: 24px;
-    width: 380px;
-    height: 520px;
+    width: min(380px, calc(100vw - 32px));
+    height: min(72vh, 520px);
     background: linear-gradient(180deg, rgba(248, 250, 252, 0.96), rgba(255, 255, 255, 0.95));
     border-radius: 28px;
     box-shadow: 0 24px 70px rgba(15, 23, 42, 0.18);

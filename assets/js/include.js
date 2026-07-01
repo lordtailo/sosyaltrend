@@ -1,3 +1,21 @@
+function safelyInjectIncludedScript(sourceScript, targetContainer) {
+  if (!sourceScript || !sourceScript.src) return false;
+
+  try {
+    const scriptTag = document.createElement('script');
+    scriptTag.src = sourceScript.src;
+    if (sourceScript.type) scriptTag.type = sourceScript.type;
+    if (sourceScript.async) scriptTag.async = true;
+    if (sourceScript.defer) scriptTag.defer = true;
+    scriptTag.dataset.includeInjected = 'true';
+    targetContainer.appendChild(scriptTag);
+    return true;
+  } catch (err) {
+    console.warn('Included external script could not be injected safely:', err);
+    return false;
+  }
+}
+
 async function runIncludes() {
   const includes = Array.from(document.querySelectorAll('[data-include]'));
   await Promise.all(includes.map(async (el) => {
@@ -8,16 +26,14 @@ async function runIncludes() {
       const buffer = await res.arrayBuffer();
       let text = new TextDecoder('utf-8').decode(buffer);
       if (text.charCodeAt(0) === 0xfeff) text = text.slice(1);
-      el.innerHTML = text;
 
-      // Execute any scripts inside the included fragment
+      const safeHtml = text.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '');
+      el.innerHTML = safeHtml;
+
       const scripts = Array.from(el.querySelectorAll('script'));
+      const targetContainer = document.body || document.documentElement;
       scripts.forEach((s) => {
-        const ns = document.createElement('script');
-        if (s.src) ns.src = s.src;
-        else ns.textContent = s.textContent;
-        if (s.type) ns.type = s.type;
-        document.body.appendChild(ns);
+        safelyInjectIncludedScript(s, targetContainer);
         s.remove();
       });
     } catch (err) {

@@ -93,7 +93,6 @@
         .main-tab-btn i { margin-right: 4px; font-size: 1.1rem; }
         .main-tab-btn.active { background: linear-gradient(135deg, var(--primary), rgba(99,102,241,0.8)); color: white; border: 2px solid var(--primary); border-bottom: 3px solid var(--primary); }
         .main-tab-btn:hover { border-color: var(--primary); color: var(--primary); }
-        
         .main-section { display: none; animation: slideIn 0.3s ease-out; }
         .main-section.active { display: block !important; }
         
@@ -434,6 +433,39 @@
                 <i class="fa-solid fa-info-circle"></i>
                 <span style="color: var(--text-muted);">Admin yetkisi, ban ve silme işlemleri yapabilirsiniz</span>
             </div>
+
+            <div class="section-subtitle"><i class="fa-solid fa-users"></i> Kullanıcı Özeti</div>
+            <div style="display:grid; gap:16px; margin-bottom:20px;">
+                <div class="glass-card" style="padding:16px; border-radius:14px;">
+                    <h3 style="margin:0 0 12px; font-size:1rem;">Postlardan Derlenen Kullanıcılar</h3>
+                    <table class="data-table">
+                        <thead><tr><th>Kullanıcı</th><th>Kullanıcı Adı</th><th>Durum</th><th>İşlem</th></tr></thead>
+                        <tbody id="user-list-body"></tbody>
+                    </table>
+                </div>
+                <div class="glass-card" style="padding:16px; border-radius:14px;">
+                    <h3 id="registered-section-title" style="margin:0 0 12px; font-size:1rem;">Tüm Kayıtlı Kullanıcılar</h3>
+                    <table class="data-table">
+                        <thead><tr><th>Kullanıcı</th><th>Kullanıcı Adı</th><th>Email</th><th>Kayıt Tarihi</th><th>Durum</th></tr></thead>
+                        <tbody id="registered-users-body"></tbody>
+                    </table>
+                </div>
+                <div class="glass-card" style="padding:16px; border-radius:14px;">
+                    <h3 style="margin:0 0 12px; font-size:1rem;">Son 24 Saatte Aktif Kullanıcılar</h3>
+                    <table class="data-table">
+                        <thead><tr><th>Kullanıcı</th><th>Kullanıcı Adı</th><th>Son Aktivite</th><th>Durum</th></tr></thead>
+                        <tbody id="recent-logins-body"></tbody>
+                    </table>
+                </div>
+                <div class="glass-card" style="padding:16px; border-radius:14px;">
+                    <h3 style="margin:0 0 12px; font-size:1rem;">Son Giriş Zamanları</h3>
+                    <table class="data-table">
+                        <thead><tr><th>Kullanıcı</th><th>Kullanıcı Adı</th><th>Son Giriş</th><th>İşlem</th></tr></thead>
+                        <tbody id="last-login-times-body"></tbody>
+                    </table>
+                </div>
+            </div>
+
             <div class="admin-subtabs">
                 <button class="subtab-btn active" onclick="switchUserManagementSubtab('managed', this)"><i class="fa-solid fa-layer-group"></i> Tüm Kullanıcılar</button>
                 <button class="subtab-btn" onclick="switchUserManagementSubtab('banned', this)"><i class="fa-solid fa-ban"></i> Banlananlar</button>
@@ -495,6 +527,7 @@
             </div>
         </div>
     </div>
+
 </main>
 
 <script type="module">
@@ -541,6 +574,31 @@
             shortDomain = 'hm..';
         }
         return `${localPart}@${shortDomain}`;
+    }
+
+    function getAdminElement(id) {
+        const el = document.getElementById(id);
+        if (!el) {
+            if (window.__ADMIN_DEBUG__) {
+                console.warn(`[admin] DOM element not found: #${id}`);
+            }
+            return null;
+        }
+        return el;
+    }
+
+    function setTableMessage(containerId, message, colSpan = 4) {
+        const container = getAdminElement(containerId);
+        if (!container) return false;
+        container.innerHTML = `<tr><td colspan="${colSpan}" style="text-align:center; color: var(--danger);">${message}</td></tr>`;
+        return true;
+    }
+
+    function setTextContent(id, value) {
+        const element = getAdminElement(id);
+        if (!element) return false;
+        element.textContent = value;
+        return true;
     }
 
     let isAdminInitialized = false;
@@ -601,8 +659,8 @@
 
     async function loadRegisteredUsers(filter = 'all') {
         activeRegisteredFilter = filter;
-        const tbody = document.getElementById('registered-users-body');
-        const sectionTitle = document.getElementById('registered-section-title');
+        const tbody = getAdminElement('registered-users-body');
+        const sectionTitle = getAdminElement('registered-section-title');
         if (tbody) tbody.innerHTML = '';
         if (sectionTitle) {
             if (filter === 'week') {
@@ -661,7 +719,9 @@
             });
         } catch (e) {
             console.error('Registered users load error:', e);
-            if (tbody) tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color: var(--danger);">Veri yüklenirken hata oluştu</td></tr>';
+            if (tbody) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color: var(--danger);">Veri yüklenirken hata oluştu</td></tr>';
+            }
         }
     }
 
@@ -1640,26 +1700,23 @@
     // GÜNCELLENMİŞ İSTATİSTİK FONKSİYONU
     async function loadStats() {
         try {
-            // Posts koleksiyonunu çekiyoruz
             const posts = await getDocs(query(collection(db, "posts"), limit(1000)));
-            document.getElementById('stat-posts').innerText = posts.size;
+            setTextContent('stat-posts', posts.size);
 
-            // Aktif kullanıcıları hesapla
             const uniqueUsers = new Set();
             posts.forEach(doc => {
                 const data = doc.data();
-                if(data.username) uniqueUsers.add(data.username);
+                if (data.username) uniqueUsers.add(data.username);
             });
-            document.getElementById('stat-users').innerText = uniqueUsers.size;
+            setTextContent('stat-users', uniqueUsers.size);
 
-            // 24 saat içinde giriş yapan kullanıcıları hesapla
             const twentyFourHoursAgo = new Date();
             twentyFourHoursAgo.setHours(twentyFourHoursAgo.getHours() - 24);
             const recentUsersSnap = await getDocs(query(
                 collection(db, "users"),
                 where("lastActiveAt", ">", twentyFourHoursAgo)
             ));
-            document.getElementById('stat-recent-logins').innerText = recentUsersSnap.size;
+            setTextContent('stat-recent-logins', recentUsersSnap.size);
 
         } catch (e) { 
             console.error("Stats error:", e); 
@@ -1684,7 +1741,8 @@
                 }
             });
 
-            const tbody = document.getElementById('user-list-body');
+            const tbody = getAdminElement('user-list-body');
+            if (!tbody) return;
             tbody.innerHTML = "";
             Object.keys(users).forEach(username => {
                 const u = users[username];
@@ -1716,7 +1774,8 @@
                 limit(200)
             ));
             
-            const tbody = document.getElementById('recent-logins-body');
+            const tbody = getAdminElement('recent-logins-body');
+            if (!tbody) return;
             tbody.innerHTML = "";
             
             if (recentUsersSnap.empty) {
@@ -1753,7 +1812,7 @@
             });
         } catch (e) { 
             console.error("Recent logins error:", e);
-            document.getElementById('recent-logins-body').innerHTML = '<tr><td colspan="4" style="text-align: center; color: var(--danger);">Veri yüklenirken hata oluştu</td></tr>';
+            setTableMessage('recent-logins-body', 'Veri yüklenirken hata oluştu', 4);
         }
     }
 
@@ -1765,7 +1824,8 @@
                 limit(200)
             ));
 
-            const tbody = document.getElementById('last-login-times-body');
+            const tbody = getAdminElement('last-login-times-body');
+            if (!tbody) return;
             tbody.innerHTML = '';
 
             if (loginTimesSnap.empty) {
@@ -1793,7 +1853,7 @@
             });
         } catch (e) {
             console.error('Login times error:', e);
-            document.getElementById('last-login-times-body').innerHTML = '<tr><td colspan="4" style="text-align: center; color: var(--danger);">Veri yüklenirken hata oluştu</td></tr>';
+            setTableMessage('last-login-times-body', 'Veri yüklenirken hata oluştu', 4);
         }
     }
 
@@ -2069,6 +2129,7 @@
         if (sectionId === 'management') {
             loadManagedUsers();
         }
+
     };
 
     window.switchTab = (tabId, button) => {
@@ -2148,7 +2209,8 @@
     async function loadAllPosts() {
         const q = query(collection(db, "posts"), orderBy("timestamp", "desc"), limit(20));
         onSnapshot(q, (snap) => {
-            const container = document.getElementById('admin-feed-list');
+            const container = getAdminElement('admin-feed-list');
+            if (!container) return;
             container.innerHTML = "";
             snap.forEach(d => {
                 const p = d.data();

@@ -5735,8 +5735,13 @@ window.loadProfileSections = async (section = 'all', showAllPosts = false, showA
     const isVisitedProfile = Boolean(visitedUsername && (!user || visitedUsername !== user.username));
 
     if (isVisitedProfile && !targetUsername) {
-        console.warn('loadProfileSections: called on a visited profile without explicit targetUsername. Aborting to avoid showing the current user posts on someone else\'s profile.', { visitedUsername, user });
-        return;
+        if (visitedUsername) {
+            console.warn('loadProfileSections: visited profile detected without explicit targetUsername. Falling back to visitedUsername.', { visitedUsername, user });
+            targetUsername = visitedUsername;
+        } else {
+            console.warn('loadProfileSections: called on a visited profile without explicit targetUsername and no visitedUsername found. Aborting.', { visitedUsername, user });
+            return;
+        }
     }
 
     if (!user || !user.username) {
@@ -7391,7 +7396,6 @@ async function loadFriendsList(userRef, isOwnProfile = true) {
     // Debug: DOM ve auth durumunu logla
     console.debug('loadFriendsList called', { friendsTabExists: !!friendsTab, friendsWidgetExists: !!friendsWidget, friendsWidgetEmptyExists: !!friendsWidgetEmpty, friendsWidgetCountExists: !!friendsWidgetCount, authPresent: typeof auth !== 'undefined', currentUser: auth?.currentUser || null, userGlobal: window.user || null, isOwnProfile });
     if (!friendsTab) {
-        console.warn('loadFriendsList: #friends-list bulunamadı');
         return;
     }
     if (!auth || !auth.currentUser) {
