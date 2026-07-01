@@ -34,6 +34,11 @@ onAuthStateChanged(auth, (user) => {
 });
 
 // Toplulukları Firebase'den yükle
+function publishTopCommunitiesWidget(snapshot) {
+  const communities = snapshot.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }));
+  window.dispatchEvent(new CustomEvent('topCommunitiesUpdated', { detail: communities }));
+}
+
 function loadCommunities() {
   try {
     onSnapshot(communitiesCollection, (snapshot) => {
@@ -50,6 +55,7 @@ function loadCommunities() {
 
       document.getElementById('emptyState').style.display = 'none';
       console.log('Topluluk sayısı:', snapshot.size);
+      publishTopCommunitiesWidget(snapshot);
 
       snapshot.forEach((docSnap) => {
         try {
