@@ -65,10 +65,43 @@
         <i class="fa-solid fa-comments"></i>
         <span>Sohbet</span>
       </button>
-    <button type="button" class="mobile-nav-item" onclick="navigateTo('profil'); return false;">
-      <i class="fa-solid fa-user"></i>
-      <span>Profil</span>
-    </button>
+      <div class="profile-trigger mobile-profile-trigger mobile-nav-item" id="profileTrigger">
+        <div class="avatar-wrap offline" id="headerAvatarWrap">
+          <img id="headerAvatar" src="" alt="Kullanıcı avatar">
+          <span class="status-badge status-offline"></span>
+        </div>
+      </div>
+    </div>
+    <div class="dropdown-menu-wrapper">
+      <button type="button" class="dropdown-backdrop" onclick="document.getElementById('profileTrigger').click()"></button>
+      <div class="dropdown-menu" id="dropdownMenu">
+        <!-- User Header -->
+        <div class="dropdown-menu-header">
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <div class="avatar-wrap dropdown-avatar">
+              <img id="headerAvatar" src="" alt="Kullanıcı avatar">
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 3px; flex: 1; min-width: 0;">
+              <p id="menuDisplayName" class="dropdown-menu-name">...</p>
+              <p id="menuUsername" class="dropdown-menu-username">@...</p>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Menu Items -->
+        <div class="dropdown-menu-items">
+          <button class="menu-style-btn" onclick="navigateTo('profil'); return false;"><i class="fa-solid fa-user"></i> <span data-i18n="menuProfile">Profiliniz</span></button>
+          <button class="menu-style-btn" id="adminMenuBtn" onclick="navigateTo('admin'); return false;" style="display:none;">
+            <i class="fa-solid fa-user-shield"></i> <span>Yönetici Paneli</span>
+          </button>
+          <button class="menu-style-btn" onclick="navigateTo('settings'); return false;"><i class="fa-solid fa-gear"></i> <span>Ayarlar</span></button>
+        </div>
+        
+        <!-- Logout Button -->
+        <button class="menu-style-btn menu-logout-btn" onclick="logout()"><i class="fa-solid fa-right-from-bracket"></i> <span>Çıkış Yap</span></button>
+      </div>
+    </div>
+      </div>
   </div>
   <div id="mobileSearchWidget">
     <button type="button" class="compose-widget-backdrop" onclick="toggleMobileSearchWidget(false)"></button>

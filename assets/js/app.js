@@ -904,6 +904,97 @@ async function loadSuggestions() {
     }
 }
 
+/* ════════════════════════════════════════════════════════
+   DAVET MODAL
+════════════════════════════════════════════════════════ */
+window.openInviteModal = async function () {
+    document.getElementById('invite-modal-overlay')?.remove();
+
+    let username = 'kullanici';
+    if (auth.currentUser) {
+        try {
+            const snap = await getDoc(doc(db, 'users', auth.currentUser.uid));
+            if (snap.exists()) username = snap.data().username || snap.data().displayName || username;
+        } catch (_) { /* ignore */ }
+    }
+
+    const base = window.location.origin + window.location.pathname.replace(/\/[^/]*$/, '/');
+    const inviteLink = `${base}index.html?ref=${encodeURIComponent(username)}`;
+    const msg = `SosyaLTrend'e katılmak ister misin? Harika bir sosyal platform! ${inviteLink}`;
+
+    const shareOptions = [
+        { id: 'whatsapp',  icon: 'fa-brands fa-whatsapp',  label: 'WhatsApp',  color: '#25D366', url: `https://wa.me/?text=${encodeURIComponent(msg)}` },
+        { id: 'telegram',  icon: 'fa-brands fa-telegram',  label: 'Telegram',  color: '#229ED9', url: `https://t.me/share/url?url=${encodeURIComponent(inviteLink)}&text=${encodeURIComponent('SosyaLTrend\'e katılmak ister misin?')}` },
+        { id: 'twitter',   icon: 'fa-brands fa-x-twitter', label: 'Twitter/X', color: '#000',    url: `https://twitter.com/intent/tweet?text=${encodeURIComponent(msg)}` },
+        { id: 'facebook',  icon: 'fa-brands fa-facebook',  label: 'Facebook',  color: '#1877F2', url: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(inviteLink)}` },
+        { id: 'email',     icon: 'fa-solid fa-envelope',   label: 'E-posta',   color: '#6366f1', url: `mailto:?subject=${encodeURIComponent('SosyaLTrend\'e Davetlisin!')}&body=${encodeURIComponent(msg)}` },
+    ];
+
+    const overlay = document.createElement('div');
+    overlay.id = 'invite-modal-overlay';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:100010;display:flex;align-items:center;justify-content:center;padding:20px;';
+    overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
+
+    overlay.innerHTML = `
+        <div style="background:var(--card-bg);border-radius:20px;padding:26px;width:min(440px,100%);box-shadow:0 24px 70px rgba(15,23,42,.25);position:relative;">
+            <button onclick="document.getElementById('invite-modal-overlay').remove()" style="position:absolute;top:14px;right:14px;background:rgba(15,23,42,.06);border:none;border-radius:50%;width:34px;height:34px;font-size:1.1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text-main);">×</button>
+            <h3 style="margin:0 0 6px;font-size:1.1rem;color:var(--text-main);display:flex;align-items:center;gap:8px;">
+                <i class="fa-solid fa-user-plus" style="color:var(--primary);"></i> Arkadaşını Davet Et
+            </h3>
+            <p style="margin:0 0 16px;font-size:.9rem;color:var(--text-muted);">Davet linkini paylaşarak arkadaşlarını SosyaLTrend'e getir!</p>
+
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:18px;padding:12px 14px;border-radius:12px;background:rgba(15,23,42,.05);border:1px solid var(--border,rgba(148,163,184,.2));">
+                <code id="invite-link-display" style="flex:1;font-size:.8rem;color:var(--text-main);word-break:break-all;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(inviteLink)}</code>
+                <button id="invite-copy-btn" onclick="window._copyInviteLink('${inviteLink}')" style="flex-shrink:0;padding:7px 12px;border:none;border-radius:10px;background:var(--primary);color:#fff;font-size:.8rem;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:5px;white-space:nowrap;">
+                    <i class="fa-solid fa-copy"></i> Kopyala
+                </button>
+            </div>
+
+            <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;">
+                ${shareOptions.map(o => `
+                <a href="${o.url}" target="_blank" rel="noopener" onclick="window._recordInvite('${o.id}','${encodeURIComponent(inviteLink)}')"
+                   style="display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 6px;border-radius:14px;background:rgba(15,23,42,.05);text-decoration:none;color:var(--text-main);font-size:.75rem;font-weight:700;transition:background .18s;"
+                   onmouseover="this.style.background='rgba(15,23,42,.1)'" onmouseout="this.style.background='rgba(15,23,42,.05)'">
+                    <i class="${o.icon}" style="font-size:1.5rem;color:${o.color};"></i>
+                    ${escapeHtml(o.label)}
+                </a>`).join('')}
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(overlay);
+    window._currentInviteLink = inviteLink;
+    window._currentInviteUsername = username;
+};
+
+window._copyInviteLink = async function (link) {
+    try {
+        await navigator.clipboard.writeText(link || window._currentInviteLink || '');
+        const btn = document.getElementById('invite-copy-btn');
+        if (btn) { btn.innerHTML = '<i class="fa-solid fa-check"></i> Kopyalandı!'; btn.style.background = '#22c55e'; setTimeout(() => { btn.innerHTML = '<i class="fa-solid fa-copy"></i> Kopyala'; btn.style.background = 'var(--primary)'; }, 2000); }
+    } catch (_) {
+        alert('Link kopyalanamadı. Lütfen elle kopyalayın: ' + (link || ''));
+    }
+    window._recordInvite('copy', encodeURIComponent(link || window._currentInviteLink || ''));
+};
+
+window._recordInvite = async function (platform, encodedLink) {
+    if (!auth.currentUser) return;
+    try {
+        await addDoc(collection(db, 'davetler'), {
+            inviterUid:      auth.currentUser.uid,
+            inviterUsername: window._currentInviteUsername || '',
+            inviteLink:      decodeURIComponent(encodedLink || ''),
+            platform,
+            createdAt:       serverTimestamp(),
+            accepted:        false,
+            acceptedByUid:   null
+        });
+    } catch (e) {
+        console.warn('Davet kaydedilemedi:', e);
+    }
+};
+
 // Sayfa yüklendiğinde çalıştır (parçalar yüklendikten sonra)
 document.addEventListener('includesLoaded', () => {
     loadComponents();
@@ -4986,13 +5077,19 @@ if (typeof updatePostCount === 'function') updatePostCount();
   if(profileTrigger) {
     profileTrigger.onclick = (e) => { 
       e.stopPropagation(); 
+      const wrapper = document.querySelector('.dropdown-menu-wrapper');
       const menu = document.getElementById('dropdownMenu');
-      if(menu) menu.classList.toggle('active'); 
+      if(wrapper && menu) {
+        wrapper.classList.toggle('active');
+        menu.classList.toggle('active');
+      }
     };
   }
 
   window.onclick = () => {
+    const wrapper = document.querySelector('.dropdown-menu-wrapper');
     const menu = document.getElementById('dropdownMenu');
+    if(wrapper) wrapper.classList.remove('active');
     if(menu) menu.classList.remove('active');
   };
 /* ============================ */
@@ -7109,8 +7206,12 @@ function initHeaderInteractions() {
     if (profileTrigger) {
         profileTrigger.onclick = (e) => {
             e.stopPropagation();
+            const wrapper = document.querySelector('.dropdown-menu-wrapper');
             const menu = document.getElementById('dropdownMenu');
-            if (menu) menu.classList.toggle('active');
+            if (wrapper && menu) {
+                wrapper.classList.toggle('active');
+                menu.classList.toggle('active');
+            }
         };
     }
 
@@ -7374,12 +7475,14 @@ window.closeSideMenus = function() {
 // 4. Global Tıklama Dinleyicisi (Event Delegation)
 // Bu yöntem, elemanlar fetch ile sonradan gelse bile tıklamayı yakalar.
 document.addEventListener('click', (e) => {
+    const wrapper = document.querySelector('.dropdown-menu-wrapper');
     const dropdownMenu = document.getElementById('dropdownMenu');
     const profileTrigger = e.target.closest('#profileTrigger');
 
     // Profil tetikleyiciye tıklandıysa
     if (profileTrigger) {
-        if (dropdownMenu) {
+        if (wrapper && dropdownMenu) {
+            wrapper.classList.toggle('active');
             dropdownMenu.classList.toggle('active');
             e.stopPropagation(); // Tıklamanın dışarı sızmasını engelle
         }
@@ -10143,6 +10246,18 @@ window.loadChatFriends = async function() {
     const loadMoreToolbar = document.getElementById('chat-load-more-btn');
     if (loadMoreToolbar) loadMoreToolbar.style.display = 'none';
     if (!friendsList) return;
+    if (!auth.currentUser) {
+        const retryKey = '_loadFriendsRetry';
+        window[retryKey] = (window[retryKey] || 0) + 1;
+        if (window[retryKey] <= 3) {
+            setTimeout(() => window.loadChatFriends(), 600);
+            return;
+        }
+        window[retryKey] = 0;
+        friendsList.innerHTML = '<div class="chat-lists-empty"><i class="fa-solid fa-lock"></i><p>Lütfen giriş yapın</p></div>';
+        return;
+    }
+    window['_loadFriendsRetry'] = 0;
     
     try {
         removeGroupCreateActionButton(friendsList);
@@ -10221,6 +10336,19 @@ window.loadRecentChats = async function() {
     const loadMoreToolbar = document.getElementById('chat-load-more-btn');
     if (loadMoreToolbar) loadMoreToolbar.style.display = 'none';
     if (!friendsList) return;
+    if (!auth.currentUser) {
+        /* Auth henüz hazır olmayabilir; 600ms sonra tekrar dene (max 3 deneme) */
+        const retryKey = '_loadRecentRetry';
+        window[retryKey] = (window[retryKey] || 0) + 1;
+        if (window[retryKey] <= 3) {
+            setTimeout(() => window.loadRecentChats(), 600);
+            return;
+        }
+        window[retryKey] = 0;
+        friendsList.innerHTML = '<div class="chat-lists-empty"><i class="fa-solid fa-lock"></i><p>Lütfen giriş yapın</p></div>';
+        return;
+    }
+    window['_loadRecentRetry'] = 0;
 
     try {
         removeGroupCreateActionButton(friendsList);
@@ -12985,5 +13113,107 @@ if (backBtnElem) {
 // Expose blog edit/delete helpers to global scope so inline onclicks work (module scope doesn't expose them by default)
 window.startEditingBlogPost = startEditingBlogPost;
 window.deleteBlogPost = deleteBlogPost;
+
+/* ═══════════════════════════════════════════════════════
+   Sohbet Sayfası — Header & Widget Management
+═══════════════════════════════════════════════════════ */
+
+/**
+ * Sohbet sayfasında chat header'ı güncelle
+ * @param {Object|null} participant - { name, avatar, online } veya null (gizle)
+ */
+window.spUpdateHeader = function(participant) {
+  const header = document.getElementById('sp-chat-header');
+  if (!header) return;
+
+  if (!participant) {
+    // Header gizle
+    header.style.display = 'none';
+    return;
+  }
+
+  // Header göster ve güncelle
+  header.style.display = '';
+
+  // Avatar
+  const avatarImg = document.getElementById('sp-chat-avatar');
+  if (avatarImg) {
+    avatarImg.src = participant.avatar || 'assets/img/default-avatar.png';
+    avatarImg.onerror = function() { this.src = 'assets/img/default-avatar.png'; };
+  }
+
+  // Name
+  const nameEl = document.getElementById('sp-chat-name');
+  if (nameEl) nameEl.textContent = participant.name || 'Kullanıcı';
+
+  // Status
+  const statusEl = document.getElementById('sp-chat-status');
+  if (statusEl) {
+    statusEl.textContent = participant.online ? 'Çevrimiçi' : 'Çevrimdışı';
+  }
+
+  // Status Dot
+  const statusDot = document.getElementById('sp-chat-status-dot');
+  if (statusDot) {
+    statusDot.classList.toggle('offline', !participant.online);
+  }
+};
+
+/**
+ * Sohbet sayfasında: bir arkadaşla sohbet aç
+ * Orijinal openChatWithFriend fonksiyonunu yükseltelim
+ */
+if (typeof window.openChatWithFriend === 'function') {
+  const originalOpenChat = window.openChatWithFriend;
+  window.openChatWithFriend = function(friendUid, friendName, friendAvatar) {
+    // Orijinal fonksiyonu çalıştır
+    originalOpenChat(friendUid, friendName, friendAvatar);
+    
+    // Sohbet sayfasında ise header'ı güncelle
+    if (document.body.classList.contains('sohbet-pg')) {
+      const onlineStatus = document.querySelector(`[data-uid="${friendUid}"] .online-indicator`)?.classList.contains('active') || false;
+      window.spUpdateHeader({
+        name: friendName,
+        avatar: friendAvatar,
+        online: onlineStatus
+      });
+    }
+  };
+}
+
+/**
+ * Sohbet sayfasında: grup sohbeti aç
+ */
+if (typeof window.openGroupChat === 'function') {
+  const originalOpenGroup = window.openGroupChat;
+  window.openGroupChat = function(groupUid, groupName, groupAvatar, groupDescription) {
+    // Orijinal fonksiyonu çalıştır
+    originalOpenGroup(groupUid, groupName, groupAvatar, groupDescription);
+    
+    // Sohbet sayfasında ise header'ı güncelle
+    if (document.body.classList.contains('sohbet-pg')) {
+      window.spUpdateHeader({
+        name: groupName,
+        avatar: groupAvatar,
+        online: true
+      });
+    }
+  };
+}
+
+/**
+ * Sohbet sayfasında: sohbeti kapat
+ */
+if (typeof window.closeChatWidget === 'function') {
+  const originalCloseChat = window.closeChatWidget;
+  window.closeChatWidget = function() {
+    // Sohbet sayfasında ise header'ı gizle
+    if (document.body.classList.contains('sohbet-pg')) {
+      window.spUpdateHeader(null);
+    }
+    // Orijinal fonksiyonu çalıştır
+    originalCloseChat();
+  };
+}
 
 

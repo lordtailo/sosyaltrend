@@ -83,27 +83,12 @@
     </div>
     <div class="header-tools">
       <button id="themeToggleBtn" class="theme-btn" onclick="toggleDarkMode()" title="Tema Değiştir"><i class="fa-solid fa-moon"></i></button>
+      <button id="headerInviteBtn" class="theme-btn" type="button" onclick="window.openInviteModal && window.openInviteModal()" title="Arkadaşını Davet Et">
+        <i class="fa-solid fa-user-plus"></i>
+      </button>
       <button id="headerChatBtn" class="theme-btn" type="button" onclick="if (typeof openChatsList === 'function') { openChatsList(); } return false;" title="Sohbet">
         <i class="fa-solid fa-comments"></i>
       </button>
-      <div class="profile-trigger" id="profileTrigger">
-        <div class="avatar-wrap offline" id="headerAvatarWrap">
-          <img id="headerAvatar" src="" alt="Kullanıcı avatar">
-          <span class="status-badge status-offline"></span>
-        </div>
-      </div>
-      <div class="dropdown-menu" id="dropdownMenu">
-        <div style="padding: 10px; border-bottom: 1px solid var(--border); margin-bottom: 5px;">
-          <p id="menuDisplayName" style="font-weight: 800; font-size: 0.85rem;">...</p>
-          <p id="menuUsername" style="font-size: 0.75rem; color: var(--text-muted);">@...</p>
-        </div>
-        <button class="menu-style-btn" onclick="navigateTo('profil'); return false;"><i class="fa-solid fa-user"></i> <span data-i18n="menuProfile">Profiliniz</span></button>
-        <button class="menu-style-btn" id="adminMenuBtn" onclick="navigateTo('admin'); return false;" style="display:none; color: var(--primary);">
-          <i class="fa-solid fa-user-shield"></i> <span>Yönetici Paneli</span>
-        </button>
-        <button class="menu-style-btn" onclick="navigateTo('settings'); return false;"><i class="fa-solid fa-gear"></i> <span>Ayarlar</span></button>
-        <button class="menu-style-btn" onclick="logout()" style="color:#ef4444; border-top:1px solid var(--border); margin-top:5px;"><i class="fa-solid fa-right-from-bracket"></i> <span>Çıkış Yap</span></button>
-      </div>
     </div>
   </div>
   <div class="header-right">

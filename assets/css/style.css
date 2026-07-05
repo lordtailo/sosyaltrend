@@ -2218,12 +2218,14 @@ body.dark-mode .most-read-table tr:nth-child(even) {
     justify-content: center;
     width: 44px;
     height: 44px;
+    padding: 0;
     border-radius: 50%;
     border: none;
     background: rgba(99,102,241,0.16);
     cursor: pointer;
     overflow: hidden;
     transition: transform 0.25s ease, box-shadow 0.25s ease, background-color 0.25s ease;
+    position: relative;
 }
 .profile-trigger:hover {
     transform: scale(1.04);
@@ -2231,38 +2233,339 @@ body.dark-mode .most-read-table tr:nth-child(even) {
     box-shadow: 0 10px 18px rgba(99,102,241,0.16);
 }
 .profile-trigger .avatar-wrap {
-    width: 40px;
-    height: 40px;
+    width: 44px;
+    height: 44px;
     border-radius: 50%;
     padding: 0;
     border: 0 !important;
     overflow: hidden;
     background: transparent;
     box-shadow: none !important;
+    position: relative;
 }
 .profile-trigger .avatar-wrap img {
     width: 100%;
     height: 100%;
     object-fit: cover;
     display: block;
+    border-radius: 50%;
 }
 .profile-trigger .avatar-wrap .status-badge {
     display: none;
 }
 
-.dropdown-menu {
-    position: absolute; top: 55px; right: 0; width: 220px; background: var(--card-bg);
-    border-radius: var(--radius); border: 1px solid var(--border); box-shadow: var(--shadow);
-    display: none; flex-direction: column; padding: 8px; z-index: 1001;
+/* Mobile Profile Trigger */
+.mobile-profile-trigger {
+    width: 44px !important;
+    height: 44px !important;
+    min-width: 44px !important;
+    padding: 0 !important;
+    border: none !important;
+    border-radius: 50% !important;
+    overflow: hidden;
+    background: transparent !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 0 !important;
+    position: relative;
 }
-.dropdown-menu.active { display: flex; }
 
-.menu-style-btn { 
-    display: flex; align-items: center; gap: 12px; padding: 12px; text-decoration: none; 
-    color: var(--text-main); font-size: 0.9rem; font-weight: 600; border-radius: 10px; 
-    border:none; background:none; cursor:pointer; width:100%; box-sizing:border-box; white-space: normal; word-break: break-word; transition: 0.2s; 
+.mobile-profile-trigger:hover {
+    background: transparent !important;
+    box-shadow: none !important;
+    transform: none !important;
+    border-color: transparent !important;
 }
-.menu-style-btn:hover { background: var(--input-bg); color: var(--primary); }
+
+.mobile-profile-trigger .avatar-wrap {
+    width: 44px !important;
+    height: 44px !important;
+    border-radius: 50%;
+    padding: 0 !important;
+    border: 0 !important;
+    overflow: hidden;
+    background: transparent !important;
+    box-shadow: none !important;
+    position: absolute;
+    inset: 0;
+}
+
+.mobile-profile-trigger .avatar-wrap img {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+    display: block;
+}
+
+.mobile-profile-trigger .status-badge {
+    display: none !important;
+}
+
+.profile-trigger.mobile-nav-item {
+    background: transparent !important;
+    min-width: auto !important;
+}
+
+.profile-trigger.mobile-nav-item:hover {
+    background: transparent !important;
+    box-shadow: none !important;
+    border-color: transparent !important;
+}
+
+/* Mobile Dropdown Menu - Like Compose Widget */
+.dropdown-menu-wrapper {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 10060;
+    pointer-events: none;
+}
+
+.dropdown-menu-wrapper.active {
+    display: block;
+    pointer-events: auto;
+}
+
+.dropdown-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(10, 15, 25, 0.6);
+    border: none;
+    cursor: default;
+    pointer-events: auto;
+}
+
+.dropdown-menu {
+    position: fixed;
+    left: 50%;
+    bottom: 78px;
+    transform: translateX(-50%);
+    width: calc(100% - 32px);
+    max-width: 420px;
+    background: rgba(255,255,255,0.96);
+    border-radius: 20px;
+    border: 1px solid rgba(99,102,241,0.16);
+    box-shadow: 0 18px 42px rgba(0,0,0,0.18);
+    backdrop-filter: blur(18px);
+    padding: 0;
+    display: none;
+    flex-direction: column;
+    z-index: 10001;
+    overflow: hidden;
+}
+
+body.dark-mode .dropdown-menu {
+    background: rgba(30, 41, 59, 0.96);
+}
+
+.dropdown-menu.active {
+    display: flex;
+    animation: slideUpMenuFix .25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes slideUpMenuFix {
+    from {
+        opacity: 0;
+        transform: translateX(-50%) translateY(8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+    }
+}
+
+/* Dropdown Menu Header */
+.dropdown-menu-header {
+    padding: 16px 18px;
+    border-bottom: 1px solid rgba(99,102,241,0.14);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.dropdown-menu-header .avatar-wrap {
+    flex-shrink: 0;
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    padding: 0;
+    border: 0;
+    overflow: hidden;
+    background: transparent;
+    box-shadow: none;
+    display: block;
+}
+
+.dropdown-menu-header .avatar-wrap img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 12px;
+    display: block;
+}
+
+.dropdown-avatar {
+    border-radius: 12px !important;
+}
+
+.dropdown-avatar img {
+    border-radius: 12px !important;
+}
+
+.dropdown-menu-header .status-badge {
+    display: none !important;
+}
+
+.dropdown-menu-name {
+    font-weight: 800;
+    font-size: .95rem;
+    color: var(--text-main);
+    margin: 0;
+    line-height: 1.2;
+}
+
+.dropdown-menu-username {
+    font-size: .85rem;
+    color: var(--text-muted);
+    margin: 0;
+    line-height: 1.2;
+}
+
+/* Dropdown Menu Items Container */
+.dropdown-menu-items {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 12px 12px 6px 12px;
+}
+
+.menu-style-btn {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 13px 14px;
+    text-decoration: none;
+    color: var(--text-main);
+    font-size: .92rem;
+    font-weight: 600;
+    border-radius: 12px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    width: 100%;
+    box-sizing: border-box;
+    white-space: normal;
+    word-break: break-word;
+    transition: all .25s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+    text-align: left;
+}
+
+.menu-style-btn i {
+    font-size: 1.05rem;
+    min-width: 20px;
+    text-align: center;
+    color: inherit;
+}
+
+.menu-style-btn::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(99,102,241,.12), transparent);
+    opacity: 0;
+    transition: opacity .25s;
+}
+
+.menu-style-btn:hover {
+    background: rgba(99,102,241,.16);
+    color: var(--primary);
+    transform: translateX(4px);
+}
+
+.menu-style-btn:hover::before {
+    opacity: 1;
+}
+
+/* Logout Button Special Style */
+.menu-logout-btn {
+    color: #ef4444;
+    border-top: 1px solid rgba(99,102,241,0.14);
+    margin: 6px 12px 12px 12px;
+    padding: 13px 14px;
+}
+
+.menu-logout-btn:hover {
+    background: rgba(239, 68, 68, .16);
+    color: #dc2626;
+}
+
+.menu-logout-btn i {
+    color: inherit;
+}
+    inset: 0;
+    background: linear-gradient(135deg, rgba(99,102,241,.1), transparent);
+    opacity: 0;
+    transition: opacity .25s;
+}
+
+.menu-style-btn:hover {
+    background: rgba(99,102,241,.12);
+    color: var(--primary);
+    transform: translateX(4px);
+}
+
+.menu-style-btn:hover::before {
+    opacity: 1;
+}
+
+/* Dropdown Menu Header */
+.dropdown-menu-header {
+    padding: 14px 14px 12px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 8px;
+}
+
+.dropdown-menu-name {
+    font-weight: 800;
+    font-size: .9rem;
+    color: var(--text-main);
+    margin: 0 0 4px 0;
+}
+
+.dropdown-menu-username {
+    font-size: .8rem;
+    color: var(--text-muted);
+    margin: 0;
+}
+
+/* Dropdown Menu Items Container */
+.dropdown-menu-items {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: 8px;
+}
+
+/* Logout Button Special Style */
+.menu-logout-btn {
+    color: #ef4444;
+    border-top: 1px solid var(--border);
+    padding-top: 12px;
+    margin-top: 8px;
+}
+
+.menu-logout-btn:hover {
+    background: rgba(239, 68, 68, .12);
+    color: #dc2626;
+}
+
+.menu-logout-btn i {
+    color: inherit;
+}
 
 /* MOBİL UYUMLULUK */
 @media (max-width: 480px) {

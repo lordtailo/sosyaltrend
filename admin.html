@@ -629,6 +629,7 @@
                 <button class="tab-btn subtab-btn" onclick="switchUserManagementSubtab('banAppeals', this)"><i class="fa-solid fa-ban"></i> Ban & İtirazlar</button>
                 <button class="tab-btn subtab-btn" onclick="switchUserManagementSubtab('deleted', this)"><i class="fa-solid fa-trash"></i> Silinen</button>
                 <button class="tab-btn subtab-btn" onclick="switchUserManagementSubtab('reports', this)"><i class="fa-solid fa-flag"></i> Şikayetler</button>
+                <button class="tab-btn subtab-btn" onclick="switchUserManagementSubtab('invites', this)"><i class="fa-solid fa-paper-plane"></i> Davetler</button>
             </div>
 
             <div id="userManagement-subsection-managed" class="admin-subsection active">
@@ -673,6 +674,71 @@
             <div id="userManagement-subsection-reports" class="admin-subsection">
                 <div class="section-subtitle"><i class="fa-solid fa-flag"></i> Şikayet Listesi</div>
                 <div id="user-management-reports-list" style="display:grid; gap:12px;"></div>
+            </div>
+
+            <!-- DAVETLER SEKMESİ -->
+            <div id="userManagement-subsection-invites" class="admin-subsection">
+                <div class="action-toolbar">
+                    <i class="fa-solid fa-paper-plane"></i>
+                    <span style="color:var(--text-muted);">Kullanıcıların gönderdiği davet linkleri ve kabul durumları burada görüntülenir.</span>
+                </div>
+
+                <!-- İstatistik kartları -->
+                <div style="display:grid;gap:12px;margin-bottom:20px;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));">
+                    <div class="glass-card" style="padding:14px;border-radius:14px;text-align:center;">
+                        <div style="font-size:1.6rem;font-weight:800;color:var(--primary);" id="inv-stat-total">—</div>
+                        <div style="font-size:.82rem;color:var(--text-muted);margin-top:4px;"><i class="fa-solid fa-paper-plane"></i> Toplam Davet</div>
+                    </div>
+                    <div class="glass-card" style="padding:14px;border-radius:14px;text-align:center;">
+                        <div style="font-size:1.6rem;font-weight:800;color:#22c55e;" id="inv-stat-accepted">—</div>
+                        <div style="font-size:.82rem;color:var(--text-muted);margin-top:4px;"><i class="fa-solid fa-user-check"></i> Kabul Edilen</div>
+                    </div>
+                    <div class="glass-card" style="padding:14px;border-radius:14px;text-align:center;">
+                        <div style="font-size:1.6rem;font-weight:800;color:var(--warning);" id="inv-stat-pending">—</div>
+                        <div style="font-size:.82rem;color:var(--text-muted);margin-top:4px;"><i class="fa-solid fa-hourglass-half"></i> Bekleyen</div>
+                    </div>
+                    <div class="glass-card" style="padding:14px;border-radius:14px;text-align:center;">
+                        <div style="font-size:1.6rem;font-weight:800;color:var(--danger);" id="inv-stat-inviters">—</div>
+                        <div style="font-size:.82rem;color:var(--text-muted);margin-top:4px;"><i class="fa-solid fa-users"></i> Davet Eden Kişi</div>
+                    </div>
+                </div>
+
+                <!-- Arama ve filtre -->
+                <div class="search-filter-bar" style="margin-bottom:14px;">
+                    <input type="text" id="inviteSearch" class="search-input" placeholder="Kullanıcı adı veya platform ile ara…" oninput="filterAdminInvites(this.value)">
+                    <select id="invitePlatformFilter" onchange="filterAdminInvites(document.getElementById('inviteSearch').value)" style="padding:10px 14px;border:1px solid var(--border);border-radius:12px;background:var(--input-bg,#fff);color:var(--text-main);font-size:.88rem;cursor:pointer;">
+                        <option value="">Tüm Platformlar</option>
+                        <option value="whatsapp">WhatsApp</option>
+                        <option value="telegram">Telegram</option>
+                        <option value="twitter">Twitter/X</option>
+                        <option value="facebook">Facebook</option>
+                        <option value="email">E-posta</option>
+                        <option value="copy">Link Kopyalama</option>
+                    </select>
+                </div>
+
+                <!-- Tablo -->
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;flex-wrap:wrap;">
+                    <span style="font-size:.85rem;color:var(--text-muted);" id="inv-cleanup-info"></span>
+                    <button onclick="cleanupExpiredInvites()" style="display:inline-flex;align-items:center;gap:7px;padding:8px 14px;border:none;border-radius:12px;background:rgba(239,68,68,.1);color:#ef4444;font-size:.82rem;font-weight:700;cursor:pointer;">
+                        <i class="fa-solid fa-clock-rotate-left"></i> Süresi Dolmuşları Temizle (1 gün+)
+                    </button>
+                </div>
+                <table class="data-table" id="admin-invites-table">
+                    <thead>
+                        <tr>
+                            <th>Davet Eden</th>
+                            <th>Platform</th>
+                            <th>Davet Linki</th>
+                            <th>Tarih</th>
+                            <th>Durum</th>
+                            <th>İşlem</th>
+                        </tr>
+                    </thead>
+                    <tbody id="admin-invites-body">
+                        <tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:24px;"><i class="fa-solid fa-spinner fa-spin"></i> Yükleniyor…</td></tr>
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
@@ -2578,8 +2644,147 @@
         if (subtabId === 'tebrikthanks') {
             loadUserManagementTebrikThanks();
         }
+        if (subtabId === 'invites') {
+            loadAdminInvitations();
+        }
     };
 
+    /* ════════════════════════════════════════════════════
+       YÖNETİCİ — Davetler
+    ════════════════════════════════════════════════════ */
+    let _allAdminInvites = [];
+
+    async function loadAdminInvitations() {
+        const tbody = document.getElementById('admin-invites-body');
+        if (!tbody) return;
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:24px;"><i class="fa-solid fa-spinner fa-spin"></i> Yükleniyor…</td></tr>';
+
+        try {
+            /* Önce otomatik temizlik yap (1 günden eski, kabul edilmemiş) */
+            await autoCleanExpiredInvites();
+
+            const snap = await getDocs(query(collection(db, 'davetler'), orderBy('createdAt', 'desc'), limit(200)));
+            _allAdminInvites = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+            /* İstatistikler */
+            const total    = _allAdminInvites.length;
+            const accepted = _allAdminInvites.filter(i => i.accepted).length;
+            const pending  = total - accepted;
+            const inviters = new Set(_allAdminInvites.map(i => i.inviterUid).filter(Boolean)).size;
+
+            document.getElementById('inv-stat-total').textContent    = total;
+            document.getElementById('inv-stat-accepted').textContent = accepted;
+            document.getElementById('inv-stat-pending').textContent  = pending;
+            document.getElementById('inv-stat-inviters').textContent = inviters;
+
+            renderAdminInvites(_allAdminInvites);
+        } catch (err) {
+            console.error('Davetler yüklenemedi:', err);
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--danger);padding:24px;">Davetler yüklenemedi.</td></tr>';
+        }
+    }
+
+    function renderAdminInvites(invites) {
+        const tbody = document.getElementById('admin-invites-body');
+        if (!tbody) return;
+
+        const platformIcons = {
+            whatsapp: { icon: 'fa-brands fa-whatsapp', color: '#25D366', label: 'WhatsApp' },
+            telegram: { icon: 'fa-brands fa-telegram', color: '#229ED9', label: 'Telegram' },
+            twitter:  { icon: 'fa-brands fa-x-twitter', color: '#000',   label: 'Twitter/X' },
+            facebook: { icon: 'fa-brands fa-facebook', color: '#1877F2', label: 'Facebook' },
+            email:    { icon: 'fa-solid fa-envelope',  color: '#6366f1', label: 'E-posta' },
+            copy:     { icon: 'fa-solid fa-link',       color: '#94a3b8', label: 'Kopyalama' },
+        };
+
+        if (!invites.length) {
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:24px;">Henüz davet kaydı yok.</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = invites.map(inv => {
+            const ts = inv.createdAt?.toDate ? inv.createdAt.toDate() : (inv.createdAt ? new Date(inv.createdAt.seconds * 1000) : null);
+            const dateStr = ts ? ts.toLocaleString('tr-TR', { dateStyle: 'short', timeStyle: 'short' }) : '—';
+            const pl = platformIcons[inv.platform] || { icon: 'fa-solid fa-share-nodes', color: '#94a3b8', label: inv.platform || '?' };
+            const linkShort = (inv.inviteLink || '').replace(/^https?:\/\//, '').slice(0, 50) + ((inv.inviteLink || '').length > 50 ? '…' : '');
+            const statusBadge = inv.accepted
+                ? '<span style="padding:4px 10px;border-radius:999px;background:rgba(34,197,94,.15);color:#22c55e;font-size:.75rem;font-weight:700;">✓ Kabul Edildi</span>'
+                : '<span style="padding:4px 10px;border-radius:999px;background:rgba(251,191,36,.12);color:var(--warning);font-size:.75rem;font-weight:700;">⏳ Bekliyor</span>';
+            return `<tr id="inv-row-${inv.id}">
+                <td><strong style="color:var(--text-main);">@${escapeHtml(inv.inviterUsername || '?')}</strong></td>
+                <td><i class="${pl.icon}" style="color:${pl.color};margin-right:5px;"></i>${escapeHtml(pl.label)}</td>
+                <td style="font-size:.78rem;color:var(--text-muted);" title="${escapeHtml(inv.inviteLink || '')}">${escapeHtml(linkShort)}</td>
+                <td style="font-size:.82rem;">${escapeHtml(dateStr)}</td>
+                <td>${statusBadge}</td>
+                <td>
+                    <button onclick="deleteAdminInvite('${inv.id}')" title="Daveti sil"
+                        style="background:rgba(239,68,68,.1);color:#ef4444;border:none;border-radius:8px;padding:5px 10px;font-size:.78rem;font-weight:700;cursor:pointer;">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+                </td>
+            </tr>`;
+        }).join('');
+    }
+
+    /* Tek davet sil */
+    window.deleteAdminInvite = async function (inviteId) {
+        if (!confirm('Bu davet kaydı silinsin mi?')) return;
+        try {
+            await deleteDoc(doc(db, 'davetler', inviteId));
+            _allAdminInvites = _allAdminInvites.filter(i => i.id !== inviteId);
+            document.getElementById('inv-row-' + inviteId)?.remove();
+            /* İstatistikleri güncelle */
+            const total    = _allAdminInvites.length;
+            const accepted = _allAdminInvites.filter(i => i.accepted).length;
+            document.getElementById('inv-stat-total').textContent    = total;
+            document.getElementById('inv-stat-accepted').textContent = accepted;
+            document.getElementById('inv-stat-pending').textContent  = total - accepted;
+            document.getElementById('inv-stat-inviters').textContent = new Set(_allAdminInvites.map(i => i.inviterUid).filter(Boolean)).size;
+        } catch (err) {
+            console.error('Davet silinemedi:', err);
+            alert('Davet silinemedi.');
+        }
+    };
+
+    /* 1 günden eski kabul edilmemiş davetleri otomatik sil */
+    async function autoCleanExpiredInvites() {
+        try {
+            const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000); // 24 saat önce
+            const expiredSnap = await getDocs(query(
+                collection(db, 'davetler'),
+                where('accepted', '==', false),
+                where('createdAt', '<', cutoff),
+                limit(100)
+            ));
+            if (expiredSnap.empty) return;
+            const batch = writeBatch(db);
+            expiredSnap.docs.forEach(d => batch.delete(d.ref));
+            await batch.commit();
+            const info = document.getElementById('inv-cleanup-info');
+            if (info) info.textContent = `✓ ${expiredSnap.size} süresi dolmuş davet otomatik silindi.`;
+        } catch (err) {
+            console.warn('Otomatik davet temizliği başaramadı:', err);
+        }
+    }
+
+    /* Manuel toplu temizle butonu */
+    window.cleanupExpiredInvites = async function () {
+        const info = document.getElementById('inv-cleanup-info');
+        if (info) info.textContent = 'Temizleniyor…';
+        await autoCleanExpiredInvites();
+        await loadAdminInvitations();
+    };
+
+    window.filterAdminInvites = function (searchVal) {
+        const platform = document.getElementById('invitePlatformFilter')?.value || '';
+        const q = (searchVal || '').toLowerCase();
+        const filtered = _allAdminInvites.filter(inv => {
+            const matchSearch = !q || (inv.inviterUsername || '').toLowerCase().includes(q) || (inv.platform || '').toLowerCase().includes(q) || (inv.inviteLink || '').toLowerCase().includes(q);
+            const matchPlatform = !platform || inv.platform === platform;
+            return matchSearch && matchPlatform;
+        });
+        renderAdminInvites(filtered);
+    };
 
     function getPostModerationFindings(text = '') {
         const lower = String(text || '').toLowerCase();

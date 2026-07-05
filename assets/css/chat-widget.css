@@ -299,6 +299,7 @@
     gap: 12px;
     background: var(--bg);
     color: var(--text-main);
+    min-height: 0;
 }
 
 .chat-widget-add-friend-btn {
@@ -1164,3 +1165,50 @@ body.dark-mode .chat-friend-username {
     color: var(--text-muted);
     opacity: 1;
 }
+
+/* ����������������������������������������� */
+/* Sohbet Sayfas� Widget Responsive Styles */
+/* ����������������������������������������� */
+body.sohbet-pg .chat-widget-container {
+    position: relative !important;
+    inset: auto !important;
+    width: 100% !important;
+    height: 100% !important;
+    max-width: 100% !important;
+    border-radius: 16px !important;
+    z-index: 5 !important;
+    box-shadow: none !important;
+    border: none !important;
+    animation: none !important;
+    background: var(--card-bg, #f8fafc) !important;
+    display: flex !important;
+    flex-direction: column;
+    padding: 0 !important;
+    gap: 0 !important;
+    top: auto !important;
+    right: auto !important;
+}
+
+body.sohbet-pg .chat-widget-container.active {
+    display: flex !important;
+}
+
+body.sohbet-pg .chat-widget-header {
+    flex-shrink: 0;
+    min-height: 70px;
+}
+
+body.sohbet-pg .chat-widget-messages {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+body.sohbet-pg .chat-widget-input {
+    flex-shrink: 0;
+    min-height: 72px;
+}
+
+body.sohbet-pg #chat-back-btn i::before { content: "\f00d"; }
+body.sohbet-pg #chat-back-btn { border-radius: 50%; }
