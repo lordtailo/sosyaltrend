@@ -9895,6 +9895,33 @@ window.openShareMenu = function(postId) {
     } catch(e) {
         console.error('Share menu hata:', e);
     }
+
+    // Hide mobile footer nav at absolute page bottom; show it again when user scrolls up.
+    try {
+        const mobileBottomNav = document.getElementById('mobileBottomNav');
+        if (mobileBottomNav) {
+            const updateMobileBottomNavVisibility = () => {
+                if (window.innerWidth > 768) {
+                    mobileBottomNav.classList.remove('is-at-page-bottom');
+                    return;
+                }
+
+                const doc = document.documentElement;
+                const scrollTop = window.pageYOffset || doc.scrollTop || 0;
+                const viewportHeight = window.innerHeight || doc.clientHeight || 0;
+                const pageHeight = Math.max(doc.scrollHeight, document.body?.scrollHeight || 0);
+                const atPageBottom = (scrollTop + viewportHeight) >= (pageHeight - 2);
+
+                mobileBottomNav.classList.toggle('is-at-page-bottom', atPageBottom);
+            };
+
+            updateMobileBottomNavVisibility();
+            window.addEventListener('scroll', updateMobileBottomNavVisibility, { passive: true });
+            window.addEventListener('resize', updateMobileBottomNavVisibility);
+        }
+    } catch (e) {
+        console.warn('Mobile bottom nav scroll visibility init error', e);
+    }
 };
 
 function createShareModal() {
