@@ -1933,6 +1933,12 @@ header {
         display: none;
     }
 
+    /* Mobil header: sadece Arkadaslar ve Bildirim metinlerini gizle */
+    #friendsBtn > span:not(#friendsOnlineCount),
+    #notificationsBtn > span:not(#notificationBadge) {
+        display: none;
+    }
+
     /* Mobilde ana sayfa butonunu gizle, arama düğmesini koru */
     .header-nav-btn.home-nav-btn {
         display: none !important;
@@ -5479,7 +5485,7 @@ font-size: 0.9rem; font-weight: 800; color: var(--primary); margin: 20px 0 10px;
     #headerInviteBtn { display: none !important; }
 
     /* App container becomes single column and full width */
-    .app-container { grid-template-columns: 1fr; padding: 88px 12px 110px 12px; gap: 12px; }
+    .app-container { grid-template-columns: 1fr; padding: 80px 12px 110px 12px; gap: 12px; }
 
     /* Make cards full width and increase tap targets */
     .glass-card, .post { padding: 14px; border-radius: 12px; }
