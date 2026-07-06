@@ -336,11 +336,11 @@ function renderFriendsPreview(friends) {
     return;
   }
   if (widgetEmpty) widgetEmpty.style.display = 'none';
-  widget.innerHTML = friends.slice(0, 6).map((friend) => `
-    <div class="friend-preview-card" onclick="location.href='profil.html?id=${encodeURIComponent(friend.username)}'" style="cursor:pointer;">
-      <img src="${escapeHTML(resolveAvatarUrl(friend.avatarUrl || friend.avatar || friend.photoURL || friend.avatarSeed || DEFAULT_AVATAR_URL))}" onerror="this.onerror=null;this.src='assets/img/strendsaydamv2.png';" class="friend-preview-avatar" alt="${escapeHTML(friend.displayName || friend.username)}">
-      <div class="friend-preview-name">${escapeHTML(friend.displayName || friend.username)}</div>
-      <div class="friend-preview-username">@${escapeHTML(friend.username)}</div>
+    widget.innerHTML = friends.slice(0, 6).map((friend) => `
+      <div class="friend-preview-card" onclick="location.href='profil.html?id=${encodeURIComponent((String(friend.username || friend.userName || '').trim().replace(/^@+/, '') || 'kullanici'))}'" style="cursor:pointer;">
+        <img src="${escapeHTML(resolveAvatarUrl(friend.avatarUrl || friend.avatar || friend.photoURL || friend.avatarSeed || DEFAULT_AVATAR_URL))}" onerror="this.onerror=null;this.src='assets/img/strendsaydamv2.png';" class="friend-preview-avatar" alt="${escapeHTML(String(friend.displayName || '').trim() || String(friend.username || friend.userName || '').trim().replace(/^@+/, '') || 'Kullanıcı')}">
+        <div class="friend-preview-name">${escapeHTML(String(friend.displayName || '').trim() || String(friend.username || friend.userName || '').trim().replace(/^@+/, '') || 'Kullanıcı')}</div>
+        <div class="friend-preview-username">@${escapeHTML(String(friend.username || friend.userName || '').trim().replace(/^@+/, '') || 'kullanici')}</div>
     </div>
   `).join('');
 }
@@ -355,11 +355,11 @@ function renderFriendsList(friends) {
     return;
   }
   if (empty) empty.style.display = 'none';
-  list.innerHTML = friends.map((friend) => `
-    <div class="friend-card" style="padding:18px; text-align:center;">
-      <img src="${escapeHTML(resolveAvatarUrl(friend.avatarUrl || friend.avatar || friend.photoURL || friend.avatarSeed || DEFAULT_AVATAR_URL))}" onerror="this.onerror=null;this.src='assets/img/strendsaydamv2.png';" class="friend-preview-avatar" alt="${escapeHTML(friend.displayName || friend.username)}" style="margin-bottom:10px;">
-      <div style="font-weight:700;">${escapeHTML(friend.displayName || friend.username)}</div>
-      <div style="color:var(--text-muted); font-size:0.88rem;">@${escapeHTML(friend.username)}</div>
+    list.innerHTML = friends.map((friend) => `
+      <div class="friend-card" style="padding:18px; text-align:center;">
+      <img src="${escapeHTML(resolveAvatarUrl(friend.avatarUrl || friend.avatar || friend.photoURL || friend.avatarSeed || DEFAULT_AVATAR_URL))}" onerror="this.onerror=null;this.src='assets/img/strendsaydamv2.png';" class="friend-preview-avatar friend-card-avatar" alt="${escapeHTML(String(friend.displayName || '').trim() || String(friend.username || friend.userName || '').trim().replace(/^@+/, '') || 'Kullanıcı')}" style="margin-bottom:10px;">
+      <div class="friend-card-name" style="font-weight:700;">${escapeHTML(String(friend.displayName || '').trim() || String(friend.username || friend.userName || '').trim().replace(/^@+/, '') || 'Kullanıcı')}</div>
+      <div class="friend-card-username" style="color:var(--text-muted); font-size:0.88rem;">@${escapeHTML(String(friend.username || friend.userName || '').trim().replace(/^@+/, '') || 'kullanici')}</div>
     </div>
   `).join('');
 }

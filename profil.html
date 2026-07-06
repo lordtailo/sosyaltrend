@@ -242,8 +242,8 @@
     .friends-widget-preview .friend-preview-card img { transition: transform 0.25s ease; }
     .friends-widget-preview .friend-preview-card:hover img { transform: scale(1.04); }
     .friend-preview-avatar { width: 58px; height: 58px; border-radius: 50%; object-fit: cover; border: none; margin: 0 auto; flex-shrink: 0; }
-    .friend-preview-name { margin: 3px 0 0; font-size: 0.72rem; font-weight: 600; line-height: 1.2; word-break: break-word; max-width: 100%; }
-    .friend-preview-username { margin: 2px 0 0; color: var(--text-muted); font-size: 0.75rem; }
+    .friend-preview-name { margin: 3px 0 0; font-size: 0.72rem; font-weight: 600; line-height: 1.2; max-width: 100%; width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .friend-preview-username { margin: 2px 0 0; color: var(--text-muted); font-size: 0.75rem; max-width: 100%; width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .friend-preview-mutual { margin: 3px 0 0; color: var(--text-muted); font-size: 0.68rem; opacity: 0.85; }
     .friend-preview-more-card { background: linear-gradient(135deg, rgba(var(--primary-rgb,99,102,241),0.1), rgba(255,255,255,0.94)); border-radius: 16px; border: 1px solid rgba(var(--primary-rgb,99,102,241),0.18); color: var(--primary); cursor: pointer; }
     .friend-preview-more-card:hover { transform: translateY(-3px); box-shadow: 0 6px 16px rgba(0,0,0,0.08); background: linear-gradient(135deg, rgba(var(--primary-rgb,99,102,241),0.18), rgba(255,255,255,0.96)); }
@@ -266,21 +266,26 @@
     .profile-tab-btn { text-decoration: none; color: var(--text-muted); border: 1px solid transparent; border-radius: 999px; padding: 10px 16px; display: inline-flex; align-items: center; gap: 8px; transition: all 0.25s ease; background: rgba(255,255,255,0.92); }
 
     /* Geliştirilmiş arkadaş kartları */
-    #friends-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px,1fr)); gap: 14px; }
+    #friends-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px,1fr)); gap: 14px; }
     .friend-card { background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(248,250,255,0.95)); border-radius: 14px; padding: 14px; box-shadow: 0 6px 18px rgba(16,24,40,0.06); border: 1px solid rgba(0,0,0,0.04); display:flex; flex-direction:column; align-items:center; gap:8px; transition: transform 0.18s ease, box-shadow 0.18s ease; cursor: default; }
     .friend-card:hover { transform: translateY(-6px); box-shadow: 0 18px 36px rgba(16,24,40,0.12); }
     .friend-card-avatar { width:84px; height:84px; border-radius:50%; object-fit:cover; border:3px solid rgba(var(--primary-rgb,99,102,241),0.12); transition: transform 0.18s ease; cursor:pointer; }
     .friend-card-avatar:hover { transform: scale(1.06); }
-    .friend-card-name { font-weight:800; font-size:0.95rem; margin:4px 0 0; text-align:center; }
-    .friend-card-username { color:var(--text-muted); font-size:0.85rem; margin-top:2px; }
+    .friend-card-identity { width: 100%; min-width: 0; }
+    .friend-card-name { font-weight:800; font-size:0.95rem; margin:4px 0 0; text-align:center; width:100%; max-width:100%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; line-height:1.25; }
+    .friend-card-username { color:var(--text-muted); font-size:0.85rem; margin-top:2px; width:100%; max-width:100%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; line-height:1.2; }
     .friend-card-mutual { margin-top:6px; color:var(--text-muted); font-size:0.78rem; }
     .friend-card-actions { margin-top:8px; display:flex; gap:8px; }
     .friend-card-remove { background:#ef4444; color:#fff; border:none; padding:8px 10px; border-radius:10px; cursor:pointer; font-weight:700; font-size:0.82rem; }
     .friend-card-remove:hover { background:#dc2626; }
 
+    @media (max-width: 760px) {
+      #friends-list { grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); }
+    }
+
     /* Widget preview grid düzeni */
     #friends-widget-list { display:flex; gap:10px; flex-wrap:wrap; }
-    .friend-preview-card { padding:10px; border-radius:12px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; cursor:pointer; }
+    .friend-preview-card { padding:10px; border-radius:12px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; cursor:pointer; min-width:0; }
     .friend-card:hover { transform: translateY(-3px); box-shadow: 0 12px 24px rgba(0,0,0,0.08); }
     @media (max-width: 880px) {
       .friends-widget-grid, .friends-widget-preview { grid-template-columns: repeat(2, minmax(140px, 1fr)); }

@@ -1153,6 +1153,10 @@ header {
     border-color: rgba(99,102,241,0.25);
 }
 
+.mobile-header-action-btn {
+    display: none;
+}
+
 .header-msg-btn {
     position: relative;
 }
@@ -1916,6 +1920,19 @@ header {
         gap: 6px;
     }
 
+    .mobile-header-action-btn {
+        display: inline-flex;
+        width: 40px;
+        height: 40px;
+        min-width: 40px;
+        padding: 0;
+        justify-content: center;
+    }
+
+    .mobile-header-action-btn span {
+        display: none;
+    }
+
     /* Mobilde ana sayfa butonunu gizle, arama düğmesini koru */
     .header-nav-btn.home-nav-btn {
         display: none !important;
@@ -1923,6 +1940,17 @@ header {
 
     /* Mobilde üst header arama düğmesini gizle */
     #headerSearchWrapper {
+        display: none !important;
+    }
+
+    /* Mobilde tema/davet butonları bildirim yanında görünsün; üst sağdaki kopyalar gizlensin */
+    #themeToggleBtn,
+    #headerInviteBtn {
+        display: none !important;
+    }
+
+    /* Mobilde üst header profil avatarını gizle (alt mobil profil butonu kalır) */
+    .header-tools #profileTrigger {
         display: none !important;
     }
 }
@@ -3283,6 +3311,33 @@ details.menu-details[open] summary:after {
 .friends-widget {
     display: grid;
     gap: 16px;
+}
+
+.friend-card {
+    position: relative;
+    overflow: hidden;
+    border: 1px solid rgba(99, 102, 241, 0.18);
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.12), rgba(255, 255, 255, 0.9));
+    box-shadow: 0 10px 22px rgba(99, 102, 241, 0.1);
+    backdrop-filter: blur(6px);
+    transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
+}
+
+.friend-card:hover {
+    transform: translateY(-3px);
+    border-color: rgba(99, 102, 241, 0.32);
+    box-shadow: 0 16px 28px rgba(79, 70, 229, 0.18);
+}
+
+body.dark-mode .friend-card {
+    border-color: rgba(129, 140, 248, 0.32);
+    background: linear-gradient(135deg, rgba(79, 70, 229, 0.26), rgba(15, 23, 42, 0.72));
+    box-shadow: 0 12px 24px rgba(2, 6, 23, 0.36);
+}
+
+body.dark-mode .friend-card:hover {
+    border-color: rgba(129, 140, 248, 0.52);
+    box-shadow: 0 18px 30px rgba(2, 6, 23, 0.5);
 }
 
 .friend-status-group {

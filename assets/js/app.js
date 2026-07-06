@@ -8290,6 +8290,11 @@ async function loadFriendsList(userRef, isOwnProfile = true) {
 
             if (friendDoc && friendDoc.exists()) {
                 // friendData already set above
+                const rawUsername = String(friendData.username || friendData.userName || '').trim();
+                const normalizedUsername = rawUsername.replace(/^@+/, '') || String(friendDoc.id || 'kullanici').trim();
+                const displayName = String(friendData.displayName || '').trim() || normalizedUsername;
+                const safeDisplayName = escapeHtml(displayName);
+                const safeUsername = escapeHtml(normalizedUsername);
 
                 // mutual friends sayısını hesapla
                 let mutualCount = 0;
@@ -8303,10 +8308,9 @@ async function loadFriendsList(userRef, isOwnProfile = true) {
                     padding: 18px;
                     border-radius: 14px;
                     text-align: center;
-                    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
                     display: flex;
                     flex-direction: column;
-                    align-items: center;
+                    align-items: stretch;
                     justify-content: center;
                     gap: 10px;
                     min-height: 220px;
@@ -8319,11 +8323,13 @@ async function loadFriendsList(userRef, isOwnProfile = true) {
                     </p>`;
 
                 friendCard.innerHTML = `
-                    <div>
-                            <img src="${friendData.avatarUrl || 'assets/img/strendsaydamv2.png'}" 
+                    <div class="friend-card-identity" style="width:100%; min-width:0; text-align:center;">
+                            <img src="${escapeHtml(friendData.avatarUrl || 'assets/img/strendsaydamv2.png')}" 
+                                class="friend-card-avatar"
                                 style="width: 80px; height: 80px; border-radius: 50%; border: none; object-fit: cover; margin-bottom: 10px; cursor:pointer; transition: transform 0.25s ease;"
-                             onclick="window.location.href='profil.html?id=${encodeURIComponent(friendData.username)}'" onmouseover="this.style.transform='scale(1.08)'" onmouseout="this.style.transform='scale(1)'">
-                        <h4 style="margin: 8px 0 2px; font-size: 0.95rem; font-weight: 800; word-break: break-word;">${friendData.displayName || friendData.username}</h4>
+                             onclick="window.location.href='profil.html?id=${encodeURIComponent(normalizedUsername)}'" onmouseover="this.style.transform='scale(1.08)'" onmouseout="this.style.transform='scale(1)'">
+                        <h4 class="friend-card-name" style="margin: 8px 0 2px; font-size: 0.95rem; font-weight: 800;">${safeDisplayName}</h4>
+                        <p class="friend-card-username" style="margin: 0; font-size: 0.82rem; color: var(--text-muted);">@${safeUsername}</p>
                     </div>
                     ${mutualHtml}
                     ${isOwnProfile ? `<button onclick="removeFriend('${friendDoc.id}')" style="background: #ef4444; color: white; border: none; padding: 6px 12px; border-radius: 8px; cursor: pointer; font-size: 0.75rem; margin-top: 10px; transition: all 0.2s ease;" onmouseover="this.style.background='#dc2626'" onmouseout="this.style.background='#ef4444'">
@@ -8336,7 +8342,7 @@ async function loadFriendsList(userRef, isOwnProfile = true) {
                     if (mutualEl) mutualEl.addEventListener('click', () => showMutuals(friendDoc.id));
                 }
                 // store searchable text as data attribute (name+username)
-                friendCard.dataset.search = ((friendData.displayName || '') + ' ' + friendData.username).toLowerCase();
+                friendCard.dataset.search = (`${displayName} ${normalizedUsername}`).toLowerCase();
                 
                 friendsTab.appendChild(friendCard);
                 if (widgetItems.length < previewLimit && friendsWidget) {
