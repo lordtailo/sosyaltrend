@@ -239,6 +239,94 @@
             border-radius: 14px;
             background: rgba(255,255,255,0.5);
         }
+
+        #admin-feed-list {
+            display: grid;
+            gap: 12px;
+        }
+
+        .admin-moderation-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 10px;
+        }
+
+        .admin-moderation-folder-tabs {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+            padding: 6px;
+            border-radius: 999px;
+            border: 1px solid var(--border);
+            background: linear-gradient(135deg, rgba(99,102,241,0.08), rgba(255,255,255,0.7));
+        }
+
+        .admin-folder-tab {
+            border: 1px solid var(--border);
+            background: var(--input-bg);
+            color: var(--text-main);
+            border-radius: 999px;
+            padding: 7px 12px;
+            font-size: 0.82rem;
+            font-weight: 700;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s ease;
+            min-height: 34px;
+        }
+
+        .admin-folder-tab .tab-label {
+            line-height: 1;
+        }
+
+        .admin-folder-tab .tab-count {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 22px;
+            height: 20px;
+            padding: 0 6px;
+            border-radius: 999px;
+            background: rgba(99,102,241,0.12);
+            border: 1px solid rgba(99,102,241,0.18);
+            color: var(--primary);
+            font-size: 0.72rem;
+            font-weight: 800;
+        }
+
+        .admin-folder-tab:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+            transform: translateY(-1px);
+        }
+
+        .admin-folder-tab.active {
+            background: linear-gradient(135deg, var(--primary), rgba(99,102,241,0.8));
+            border-color: var(--primary);
+            color: #fff;
+            box-shadow: 0 6px 16px rgba(99,102,241,0.24);
+        }
+
+        .admin-folder-tab.active .tab-count {
+            background: rgba(255,255,255,0.22);
+            border-color: rgba(255,255,255,0.24);
+            color: #fff;
+        }
+
+        @media (max-width: 768px) {
+            .admin-moderation-folder-tabs {
+                width: 100%;
+                justify-content: flex-start;
+                border-radius: 14px;
+            }
+        }
         .page-section-card {
             padding: 16px;
             border-radius: 14px;
@@ -674,6 +762,12 @@
             <div id="userManagement-subsection-reports" class="admin-subsection">
                 <div class="section-subtitle"><i class="fa-solid fa-flag"></i> Şikayet Listesi</div>
                 <div id="user-management-reports-list" style="display:grid; gap:12px;"></div>
+                <div id="user-management-reports-load-more-wrap" style="display:none; margin-top:14px; text-align:center;">
+                    <button id="userManagementReportsLoadMoreBtn" class="action-btn" type="button" onclick="loadMoreUserReports()">
+                        <i class="fa-solid fa-angles-down"></i> Daha fazla yükle
+                    </button>
+                    <div id="user-management-reports-load-more-meta" style="margin-top:8px; font-size:0.82rem; color: var(--text-muted);"></div>
+                </div>
             </div>
 
             <!-- DAVETLER SEKMESİ -->
@@ -768,8 +862,38 @@
                 </div>
 
                 <div class="glass-card" style="padding: 18px; border-radius: 14px;">
-                    <div class="section-subtitle"><i class="fa-solid fa-list"></i> Tüm Paylaşımları Yönet</div>
+                    <div class="admin-moderation-head">
+                        <div class="section-subtitle" style="margin-bottom:0;"><i class="fa-solid fa-list"></i> Tüm Paylaşımları Yönet</div>
+                        <div class="admin-moderation-folder-tabs">
+                            <button type="button" class="admin-folder-tab active" data-filter="all" onclick="setAdminModerationFilter('all', this)" aria-pressed="true">
+                                <i class="fa-solid fa-folder-open"></i>
+                                <span class="tab-label">Tümü</span>
+                                <span id="admin-filter-count-all" class="tab-count">0</span>
+                            </button>
+                            <button type="button" class="admin-folder-tab" data-filter="post" onclick="setAdminModerationFilter('post', this)" aria-pressed="false">
+                                <i class="fa-solid fa-signs-post"></i>
+                                <span class="tab-label">Gönderiler</span>
+                                <span id="admin-filter-count-post" class="tab-count">0</span>
+                            </button>
+                            <button type="button" class="admin-folder-tab" data-filter="community" onclick="setAdminModerationFilter('community', this)" aria-pressed="false">
+                                <i class="fa-solid fa-users"></i>
+                                <span class="tab-label">Topluluk</span>
+                                <span id="admin-filter-count-community" class="tab-count">0</span>
+                            </button>
+                            <button type="button" class="admin-folder-tab" data-filter="blog" onclick="setAdminModerationFilter('blog', this)" aria-pressed="false">
+                                <i class="fa-solid fa-blog"></i>
+                                <span class="tab-label">Blog</span>
+                                <span id="admin-filter-count-blog" class="tab-count">0</span>
+                            </button>
+                        </div>
+                    </div>
                     <div id="admin-feed-list"></div>
+                    <div id="admin-feed-load-more-wrap" style="display:none; margin-top:14px; text-align:center;">
+                        <button id="adminFeedLoadMoreBtn" class="action-btn" type="button" onclick="loadMoreAdminPosts()">
+                            <i class="fa-solid fa-angles-down"></i> Daha fazla yükle
+                        </button>
+                        <div id="admin-feed-load-more-meta" style="margin-top:8px; font-size:0.82rem; color: var(--text-muted);"></div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1500,6 +1624,11 @@
     window.deleteUserFromLoginTimes = async (userDocId) => {
         if (!confirm('Bu kullanıcıyı veritabanından silmek istediğinizden emin misiniz?')) return;
         try {
+            const userDoc = await getDoc(doc(db, 'users', userDocId));
+            if (userDoc.exists()) {
+                const userData = userDoc.data();
+                await archiveDeletedUser(userDocId, userData, 'admin-login-times');
+            }
             await deleteDoc(doc(db, "users", userDocId));
             loadLoginTimes();
             alert('Kullanıcı veritabanından silindi.');
@@ -2271,8 +2400,24 @@
                 return;
             }
 
+            const isValidLoginIdentity = (data) => {
+                const rawUsername = String(data?.username || '').trim();
+                if (!rawUsername) return false;
+
+                const normalized = rawUsername.toLowerCase();
+                const blockedUsernames = new Set(['bilinmiyor', 'unknown', 'deleted_user', 'silinmis_kullanici', 'misafir']);
+                if (blockedUsernames.has(normalized)) return false;
+
+                // Kullanıcı adı çok kısa/anlamsız ise listeye alma
+                if (normalized.length < 2) return false;
+                return true;
+            };
+
+            let renderedCount = 0;
             loginTimesSnap.forEach(doc => {
                 const data = doc.data();
+                if (!isValidLoginIdentity(data)) return;
+
                 const username = data.username || (data.email ? data.email.split('@')[0] : 'Bilinmiyor');
                 const name = data.displayName || data.name || username;
                 const lastActivityTime = data.lastActiveAt ? data.lastActiveAt.toDate().toLocaleString('tr-TR') : 'Bilinmiyor';
@@ -2288,7 +2433,12 @@
                         <td>${lastActivityTime}</td>
                         <td><button class="action-btn btn-delete" ${isUserAdmin ? 'disabled' : ''} onclick="deleteUserFromLoginTimes('${doc.id}')">${isUserAdmin ? 'Silinemez' : 'Kullanıcı Sil'}</button></td>
                     </tr>`;
+                renderedCount += 1;
             });
+
+            if (renderedCount === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: var(--text-muted);">Geçerli kullanıcı adı olan giriş kaydı bulunamadı</td></tr>';
+            }
         } catch (e) {
             console.error('Login times error:', e);
             setTableMessage('last-login-times-body', 'Veri yüklenirken hata oluştu', 4);
@@ -2808,68 +2958,261 @@
     }
 
     // İçerik Denetimi
-    async function loadAllPosts() {
-        const q = query(collection(db, "posts"), orderBy("timestamp", "desc"), limit(50));
-        onSnapshot(q, (snap) => {
-            const container = getAdminElement('admin-feed-list');
-            if (!container) return;
-            container.innerHTML = "";
+    function getModerationDocRef(contentType, contentId, communityId = null) {
+        if (contentType === 'blog') {
+            return doc(db, 'blogs', contentId);
+        }
+        if (contentType === 'community') {
+            if (!communityId) return null;
+            return doc(db, 'topluluklar', communityId, 'gonderiler', contentId);
+        }
+        return doc(db, 'posts', contentId);
+    }
 
-            if (snap.empty) {
-                container.innerHTML = '<div class="moderation-empty">Henüz inceleme için gönderi bulunmuyor.</div>';
-                return;
+    function getModerationTimestamp(data = {}) {
+        const candidate = data.timestamp || data.createdAt || data.publishedAt || data.updatedAt || null;
+        if (candidate?.toDate) return candidate.toDate();
+        if (candidate && typeof candidate === 'object' && candidate.seconds !== undefined) {
+            return new Date(candidate.seconds * 1000 + Math.floor((candidate.nanoseconds || 0) / 1000000));
+        }
+        if (typeof candidate === 'number') return new Date(candidate);
+        return null;
+    }
+
+    function getModerationAuthorInfo(data = {}, contentType = 'post') {
+        const username = data.username || data.authorUsername || 'unknown';
+        const displayName = data.displayName || data.authorDisplayName || data.authorName || data.title || data.headline || 'Bilinmeyen kullanıcı';
+        const category = data.category || (contentType === 'blog' ? 'Blog' : contentType === 'community' ? 'Topluluk' : 'Genel');
+        return { username, displayName, category };
+    }
+
+    async function fetchCommunityPostsForModeration(limitPerCommunity = 10) {
+        const communitiesSnap = await getDocs(query(collection(db, 'topluluklar'), limit(40)));
+        if (communitiesSnap.empty) return [];
+
+        const communityDocs = communitiesSnap.docs;
+        const postsByCommunity = await Promise.all(communityDocs.map(async (communityDoc) => {
+            const communityId = communityDoc.id;
+            let postsSnap = null;
+            try {
+                postsSnap = await getDocs(query(collection(db, 'topluluklar', communityId, 'gonderiler'), orderBy('createdAt', 'desc'), limit(limitPerCommunity)));
+            } catch (_) {
+                postsSnap = await getDocs(query(collection(db, 'topluluklar', communityId, 'gonderiler'), limit(limitPerCommunity)));
             }
 
-            snap.forEach(d => {
-                const p = d.data();
-                const isHidden = p.hidden === true;
-                const contentText = p.content ? String(p.content) : "İçerik yok";
-                const preview = contentText.length > 220 ? `${contentText.substring(0, 220)}...` : contentText;
-                const timestamp = p.timestamp?.toDate ? p.timestamp.toDate() : null;
-                const formattedTime = timestamp ? timestamp.toLocaleString('tr-TR', { dateStyle: 'medium', timeStyle: 'short' }) : 'Tarih yok';
-                const image = p.imageUrl ? `<div style="margin-top: 10px;"><img src="${escapeHtml(p.imageUrl)}" alt="post" style="max-width: 100%; max-height: 220px; object-fit: cover; border-radius: 12px; border: 1px solid var(--border);"></div>` : '';
-                const editHistory = p.lastEdit && p.lastEdit.from && p.lastEdit.to ? `
-                    <div style="margin-top: 12px; padding: 12px; border-radius: 10px; background: rgba(255,255,255,0.05); border: 1px solid var(--border);">
-                        <div style="font-size: 0.82rem; font-weight: 700; margin-bottom: 8px; color: var(--text-muted);">Düzenleme geçmişi</div>
-                        <div style="font-size: 0.9rem; margin-bottom: 6px;"><strong>Önce:</strong> ${escapeHtml(String(p.lastEdit.from))}</div>
-                        <div style="font-size: 0.9rem;"><strong>Sonra:</strong> ${escapeHtml(String(p.lastEdit.to))}</div>
-                    </div>` : '';
-                const hiddenBadge = isHidden ? '<span style="display:inline-flex; align-items:center; gap:6px; padding:6px 10px; border-radius:999px; background: rgba(239,68,68,0.14); color:#ef4444; font-size:0.8rem; font-weight:700;"><i class="fa-solid fa-eye-slash"></i> Gizli</span>' : '';
-                const visibilityButton = isHidden
-                    ? `<button class="action-btn" onclick="unhidePostAdmin('${d.id}')"><i class="fa-solid fa-eye"></i> Gizliliği Aç</button>`
-                    : `<button class="action-btn" onclick="hidePostAdmin('${d.id}')"><i class="fa-solid fa-eye-slash"></i> Gizle</button>`;
+            if (!postsSnap || postsSnap.empty) return [];
+            return postsSnap.docs.map((postDoc) => ({
+                id: postDoc.id,
+                type: 'community',
+                communityId,
+                data: postDoc.data()
+            }));
+        }));
 
-                container.innerHTML += `
-                    <div class="moderation-card">
-                        <div class="moderation-card-header">
-                            <div class="moderation-user">
-                                <div style="width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, var(--primary), var(--warning)); display:flex; align-items:center; justify-content:center; color:white; font-weight:800;">
-                                    ${(p.username || 'U').charAt(0).toUpperCase()}
-                                </div>
-                                <div>
-                                    <div>${escapeHtml(p.displayName || p.username || 'Bilinmeyen kullanıcı')}</div>
-                                    <small>@${escapeHtml(p.username || 'unknown')}</small>
-                                </div>
-                            </div>
-                            <div class="moderation-meta">
-                                <span><i class="fa-solid fa-clock"></i> ${escapeHtml(formattedTime)}</span>
-                                <span><i class="fa-solid fa-hashtag"></i> ${escapeHtml(p.category || 'Genel')}</span>
-                                ${hiddenBadge}
-                            </div>
+        return postsByCommunity.flat();
+    }
+
+    function renderModerationCard(item) {
+        const d = item.data || {};
+        const isHidden = d.hidden === true;
+        const contentText = d.content ? String(d.content) : (d.title ? `${d.title}\n\n${d.description || ''}` : 'İçerik yok');
+        const preview = contentText.length > 220 ? `${contentText.substring(0, 220)}...` : contentText;
+        const timestamp = getModerationTimestamp(d);
+        const formattedTime = timestamp ? timestamp.toLocaleString('tr-TR', { dateStyle: 'medium', timeStyle: 'short' }) : 'Tarih yok';
+        const imageUrl = d.imageUrl || d.image || d.coverImage || '';
+        const image = imageUrl ? `<div style="margin-top: 10px;"><img src="${escapeHtml(imageUrl)}" alt="content" style="max-width: 100%; max-height: 220px; object-fit: cover; border-radius: 12px; border: 1px solid var(--border);"></div>` : '';
+        const editHistory = d.lastEdit && d.lastEdit.from && d.lastEdit.to ? `
+            <div style="margin-top: 12px; padding: 12px; border-radius: 10px; background: rgba(255,255,255,0.05); border: 1px solid var(--border);">
+                <div style="font-size: 0.82rem; font-weight: 700; margin-bottom: 8px; color: var(--text-muted);">Düzenleme geçmişi</div>
+                <div style="font-size: 0.9rem; margin-bottom: 6px;"><strong>Önce:</strong> ${escapeHtml(String(d.lastEdit.from))}</div>
+                <div style="font-size: 0.9rem;"><strong>Sonra:</strong> ${escapeHtml(String(d.lastEdit.to))}</div>
+            </div>` : '';
+        const hiddenBadge = isHidden ? '<span style="display:inline-flex; align-items:center; gap:6px; padding:6px 10px; border-radius:999px; background: rgba(239,68,68,0.14); color:#ef4444; font-size:0.8rem; font-weight:700;"><i class="fa-solid fa-eye-slash"></i> Gizli</span>' : '';
+        const typeBadge = item.type === 'blog'
+            ? '<span style="display:inline-flex; align-items:center; gap:6px; padding:6px 10px; border-radius:999px; background: rgba(59,130,246,0.14); color:#3b82f6; font-size:0.8rem; font-weight:700;"><i class="fa-solid fa-blog"></i> Blog</span>'
+            : item.type === 'community'
+                ? '<span style="display:inline-flex; align-items:center; gap:6px; padding:6px 10px; border-radius:999px; background: rgba(16,185,129,0.14); color:#10b981; font-size:0.8rem; font-weight:700;"><i class="fa-solid fa-users"></i> Topluluk</span>'
+                : '<span style="display:inline-flex; align-items:center; gap:6px; padding:6px 10px; border-radius:999px; background: rgba(99,102,241,0.14); color:var(--primary); font-size:0.8rem; font-weight:700;"><i class="fa-solid fa-signs-post"></i> Gönderi</span>';
+
+        const author = getModerationAuthorInfo(d, item.type);
+        const initials = (author.username || 'U').charAt(0).toUpperCase();
+        const visibilityButton = item.type === 'community'
+            ? ''
+            : (isHidden
+                ? `<button class="action-btn" onclick="unhidePostAdmin('${item.id}', '${item.type}', '${item.communityId || ''}')"><i class="fa-solid fa-eye"></i> Gizliliği Aç</button>`
+                : `<button class="action-btn" onclick="hidePostAdmin('${item.id}', '${item.type}', '${item.communityId || ''}')"><i class="fa-solid fa-eye-slash"></i> Gizle</button>`);
+
+        return `
+            <div class="moderation-card">
+                <div class="moderation-card-header">
+                    <div class="moderation-user">
+                        <div style="width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, var(--primary), var(--warning)); display:flex; align-items:center; justify-content:center; color:white; font-weight:800;">
+                            ${escapeHtml(initials)}
                         </div>
-                        <div class="moderation-content">${escapeHtml(preview)}</div>
-                        ${image}
-                        ${editHistory}
-                        <div class="moderation-actions">
-                            <button class="action-btn" onclick="reviewPostAdmin('${d.id}')"><i class="fa-solid fa-eye"></i> İncele</button>
-                            <button class="action-btn" onclick="editPostAdmin('${d.id}')"><i class="fa-solid fa-pen"></i> Düzenle</button>
-                            ${visibilityButton}
-                            <button class="action-btn btn-delete" onclick="banPostAuthorAdmin('${d.id}')"><i class="fa-solid fa-user-slash"></i> Banla</button>
-                            <button class="action-btn btn-delete" onclick="deletePostAdmin('${d.id}')"><i class="fa-solid fa-trash"></i> Sil</button>
+                        <div>
+                            <div>${escapeHtml(author.displayName)}</div>
+                            <small>@${escapeHtml(author.username)}</small>
                         </div>
-                    </div>`;
-            });
+                    </div>
+                    <div class="moderation-meta">
+                        <span><i class="fa-solid fa-clock"></i> ${escapeHtml(formattedTime)}</span>
+                        <span><i class="fa-solid fa-hashtag"></i> ${escapeHtml(author.category || 'Genel')}</span>
+                        ${typeBadge}
+                        ${hiddenBadge}
+                    </div>
+                </div>
+                <div class="moderation-content">${escapeHtml(preview)}</div>
+                ${image}
+                ${editHistory}
+                <div class="moderation-actions">
+                    <button class="action-btn" onclick="reviewPostAdmin('${item.id}', '${item.type}', '${item.communityId || ''}')"><i class="fa-solid fa-eye"></i> İncele</button>
+                    <button class="action-btn" onclick="editPostAdmin('${item.id}', '${item.type}', '${item.communityId || ''}')"><i class="fa-solid fa-pen"></i> Düzenle</button>
+                    ${visibilityButton}
+                    <button class="action-btn btn-delete" onclick="banPostAuthorAdmin('${item.id}', '${item.type}', '${item.communityId || ''}')"><i class="fa-solid fa-user-slash"></i> Banla</button>
+                    <button class="action-btn btn-delete" onclick="deletePostAdmin('${item.id}', '${item.type}', '${item.communityId || ''}')"><i class="fa-solid fa-trash"></i> Sil</button>
+                </div>
+            </div>`;
+    }
+
+    let adminModerationAllItems = [];
+    let adminModerationVisibleCount = 0;
+    let adminModerationActiveFilter = 'all';
+    const ADMIN_MODERATION_PAGE_SIZE = 5;
+
+    function getActiveModerationItems() {
+        if (adminModerationActiveFilter === 'all') return adminModerationAllItems;
+        return adminModerationAllItems.filter((item) => item.type === adminModerationActiveFilter);
+    }
+
+    function syncAdminModerationFilterButtons(activeFilter = 'all') {
+        document.querySelectorAll('.admin-folder-tab').forEach((btn) => {
+            const isActive = btn.getAttribute('data-filter') === activeFilter;
+            btn.classList.toggle('active', isActive);
+            btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
         });
+    }
+
+    function updateAdminModerationFilterCounts() {
+        const total = adminModerationAllItems.length;
+        const posts = adminModerationAllItems.filter((item) => item.type === 'post').length;
+        const communities = adminModerationAllItems.filter((item) => item.type === 'community').length;
+        const blogs = adminModerationAllItems.filter((item) => item.type === 'blog').length;
+
+        const allEl = getAdminElement('admin-filter-count-all');
+        const postEl = getAdminElement('admin-filter-count-post');
+        const communityEl = getAdminElement('admin-filter-count-community');
+        const blogEl = getAdminElement('admin-filter-count-blog');
+
+        if (allEl) allEl.textContent = String(total);
+        if (postEl) postEl.textContent = String(posts);
+        if (communityEl) communityEl.textContent = String(communities);
+        if (blogEl) blogEl.textContent = String(blogs);
+    }
+
+    window.setAdminModerationFilter = (filter = 'all', button = null) => {
+        adminModerationActiveFilter = filter;
+        adminModerationVisibleCount = ADMIN_MODERATION_PAGE_SIZE;
+        syncAdminModerationFilterButtons(filter);
+        if (button) {
+            button.blur();
+        }
+        renderAdminModerationPage(false);
+    };
+
+    function updateAdminFeedLoadMoreUI() {
+        const wrap = getAdminElement('admin-feed-load-more-wrap');
+        const meta = getAdminElement('admin-feed-load-more-meta');
+        const btn = getAdminElement('adminFeedLoadMoreBtn');
+        if (!wrap || !meta || !btn) return;
+
+        const activeItems = getActiveModerationItems();
+        const total = activeItems.length;
+        const shown = Math.min(adminModerationVisibleCount, total);
+        const hasMore = shown < total;
+        const filterName = adminModerationActiveFilter === 'post'
+            ? 'gönderi'
+            : adminModerationActiveFilter === 'blog'
+                ? 'blog'
+                : adminModerationActiveFilter === 'community'
+                    ? 'topluluk'
+                    : 'içerik';
+
+        wrap.style.display = total > 0 ? 'block' : 'none';
+        btn.style.display = hasMore ? 'inline-flex' : 'none';
+        meta.textContent = total > 0 ? `${shown} / ${total} ${filterName} gösteriliyor` : '';
+    }
+
+    function renderAdminModerationPage(reset = false) {
+        const container = getAdminElement('admin-feed-list');
+        if (!container) return;
+
+        if (reset) {
+            adminModerationVisibleCount = ADMIN_MODERATION_PAGE_SIZE;
+        }
+
+        const activeItems = getActiveModerationItems();
+
+        if (activeItems.length === 0) {
+            container.innerHTML = '<div class="moderation-empty">Henüz inceleme için gönderi, blog veya topluluk paylaşımı bulunmuyor.</div>';
+            updateAdminFeedLoadMoreUI();
+            return;
+        }
+
+        const visibleItems = activeItems.slice(0, adminModerationVisibleCount);
+        container.innerHTML = visibleItems.map(renderModerationCard).join('');
+        updateAdminFeedLoadMoreUI();
+    }
+
+    window.loadMoreAdminPosts = () => {
+        if (!getActiveModerationItems().length) return;
+        adminModerationVisibleCount += ADMIN_MODERATION_PAGE_SIZE;
+        renderAdminModerationPage(false);
+    };
+
+    async function loadAllPosts() {
+        const container = getAdminElement('admin-feed-list');
+        if (!container) return;
+        container.innerHTML = '<div class="moderation-empty">Paylaşımlar yükleniyor...</div>';
+        adminModerationAllItems = [];
+        adminModerationVisibleCount = 0;
+        adminModerationActiveFilter = 'all';
+        syncAdminModerationFilterButtons('all');
+        updateAdminModerationFilterCounts();
+        updateAdminFeedLoadMoreUI();
+
+        try {
+            const [postsSnap, blogsSnap, communityPosts] = await Promise.all([
+                getDocs(query(collection(db, 'posts'), orderBy('timestamp', 'desc'), limit(50))),
+                getDocs(query(collection(db, 'blogs'), orderBy('createdAt', 'desc'), limit(50))),
+                fetchCommunityPostsForModeration(8)
+            ]);
+
+            const allItems = [];
+            postsSnap.forEach((docSnap) => {
+                allItems.push({ id: docSnap.id, type: 'post', communityId: null, data: docSnap.data() });
+            });
+            blogsSnap.forEach((docSnap) => {
+                allItems.push({ id: docSnap.id, type: 'blog', communityId: null, data: docSnap.data() });
+            });
+            communityPosts.forEach((item) => allItems.push(item));
+
+            allItems.sort((a, b) => {
+                const aMs = getModerationTimestamp(a.data)?.getTime() || 0;
+                const bMs = getModerationTimestamp(b.data)?.getTime() || 0;
+                return bMs - aMs;
+            });
+
+            adminModerationAllItems = allItems.slice(0, 120);
+            updateAdminModerationFilterCounts();
+            renderAdminModerationPage(true);
+        } catch (error) {
+            console.error('loadAllPosts hatası:', error);
+            container.innerHTML = '<div class="moderation-empty">Paylaşımlar yüklenemedi. Lütfen tekrar deneyin.</div>';
+            adminModerationAllItems = [];
+            adminModerationVisibleCount = 0;
+            updateAdminModerationFilterCounts();
+            updateAdminFeedLoadMoreUI();
+        }
     }
 
     async function resolveReportTargetUserDocId(report) {
@@ -2946,15 +3289,62 @@
         }
     };
 
+    let adminReportCards = [];
+    let adminReportVisibleCount = 0;
+    const ADMIN_REPORTS_PAGE_SIZE = 2;
+
+    function updateReportsLoadMoreUI() {
+        const wrap = document.getElementById('user-management-reports-load-more-wrap');
+        const btn = document.getElementById('userManagementReportsLoadMoreBtn');
+        const meta = document.getElementById('user-management-reports-load-more-meta');
+        if (!wrap || !btn || !meta) return;
+
+        const total = adminReportCards.length;
+        const shown = Math.min(adminReportVisibleCount, total);
+        const hasMore = shown < total;
+
+        wrap.style.display = total > 0 ? 'block' : 'none';
+        btn.style.display = hasMore ? 'inline-flex' : 'none';
+        meta.textContent = total > 0 ? `${shown} / ${total} şikayet gösteriliyor` : '';
+    }
+
+    function renderReportCardsPage(reset = false) {
+        const list = document.getElementById('user-management-reports-list');
+        if (!list) return;
+
+        if (reset) {
+            adminReportVisibleCount = ADMIN_REPORTS_PAGE_SIZE;
+        }
+
+        if (adminReportCards.length === 0) {
+            list.innerHTML = '<div class="moderation-empty">Henüz şikayet bulunmuyor.</div>';
+            updateReportsLoadMoreUI();
+            return;
+        }
+
+        list.innerHTML = adminReportCards.slice(0, adminReportVisibleCount).join('');
+        updateReportsLoadMoreUI();
+    }
+
+    window.loadMoreUserReports = () => {
+        if (!adminReportCards.length) return;
+        adminReportVisibleCount += ADMIN_REPORTS_PAGE_SIZE;
+        renderReportCardsPage(false);
+    };
+
     async function loadUserReports() {
         try {
             const list = document.getElementById('user-management-reports-list');
             if (!list) return;
             list.innerHTML = '<div class="moderation-empty">Şikayetler yükleniyor...</div>';
+            adminReportCards = [];
+            adminReportVisibleCount = 0;
+            updateReportsLoadMoreUI();
 
             const reportsSnap = await getDocs(query(collection(db, 'reports'), orderBy('createdAt', 'desc')));
             if (reportsSnap.empty) {
-                list.innerHTML = '<div class="moderation-empty">Henüz şikayet bulunmuyor.</div>';
+                adminReportCards = [];
+                renderReportCardsPage(true);
                 return;
             }
 
@@ -2978,49 +3368,126 @@
                     : `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(targetUsername || 'target')}`;
                 const statusText = report.status === 'resolved' ? 'Çözüldü' : 'Bekliyor';
                 const statusColor = report.status === 'resolved' ? '#10b981' : '#f59e0b';
+                const reporterExists = !!reporterUserDoc?.exists();
+                const reporterIsBanned = reporterUser?.isBanned === true;
+                const getRoleLabel = (userDocData, exists, fallbackUsername = '', fallbackEmail = '') => {
+                    const adminEmail = String(ADMIN_EMAIL || '').trim().toLowerCase();
+                    const adminUsername = adminEmail.includes('@') ? adminEmail.split('@')[0] : adminEmail;
+                    const username = String(userDocData?.username || fallbackUsername || '').trim().toLowerCase();
+                    const email = String(userDocData?.email || fallbackEmail || '').trim().toLowerCase();
+
+                    if (userDocData?.isAdmin === true || username === adminUsername || email === adminEmail) return 'Admin';
+                    if (!exists) return 'Kayıt Yok';
+                    if (userDocData?.isModerator) return 'Moderatör';
+                    return 'Kullanıcı';
+                };
+                const reporterRole = getRoleLabel(reporterUser, reporterExists, reporterUsername, reporterUser?.email || report.reporterEmail || '');
+                const reporterLastSeen = formatAdminTimestamp(reporterUser?.lastActiveAt);
+                const reporterProfileHref = reporterUsername && reporterUsername !== 'unknown'
+                    ? `profil.html?id=${encodeURIComponent(reporterUsername)}`
+                    : '';
+                const targetExists = !!targetUserDoc?.exists();
+                const targetIsBanned = targetUser?.isBanned === true;
+                const targetRole = getRoleLabel(targetUser, targetExists, targetUsername, targetUser?.email || report.targetEmail || '');
+                const targetLastSeen = formatAdminTimestamp(targetUser?.lastActiveAt);
+                const targetProfileHref = targetUsername && targetUsername !== 'unknown'
+                    ? `profil.html?id=${encodeURIComponent(targetUsername)}`
+                    : '';
+                const reasonText = String(report.reason || '').trim();
+                const reasonPreview = reasonText || 'Belirtilmedi';
+                const reasonLen = reasonText.length;
                 const warningHistory = Array.isArray(targetUser?.warningHistory) ? targetUser.warningHistory.slice().reverse() : [];
+                const warningCount = warningHistory.length;
+                const lastWarningAt = warningCount > 0 ? formatAdminTimestamp(warningHistory[0]?.warnedAt || warningHistory[0]?.timestamp) : '—';
                 const warningSummary = warningHistory.length > 0
-                    ? warningHistory.slice(0, 3).map(entry => `
-                        <div style="padding:8px 10px; border-radius:10px; background:rgba(245,158,11,0.08); border:1px solid rgba(245,158,11,0.2);">
-                            <div style="font-weight:700; color:var(--warning); margin-bottom:4px;">${escapeHtml(entry.message || 'Yönetici uyarısı')}</div>
-                            <div style="font-size:0.8rem; color:var(--text-muted);">${escapeHtml(formatAdminTimestamp(entry.warnedAt || entry.timestamp))}</div>
+                    ? warningHistory.slice(0, 3).map((entry, index) => `
+                        <div style="padding:10px 12px; border-radius:10px; background:rgba(245,158,11,0.08); border:1px solid rgba(245,158,11,0.2); display:grid; gap:6px;">
+                            <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap;">
+                                <span style="font-weight:800; color:var(--warning);">Uyarı #${warningCount - index}</span>
+                                <span style="font-size:0.78rem; color:var(--text-muted);">${escapeHtml(formatAdminTimestamp(entry.warnedAt || entry.timestamp))}</span>
+                            </div>
+                            <div style="font-weight:700; color:var(--text-main); line-height:1.5;">${escapeHtml(entry.message || 'Yönetici uyarısı')}</div>
                         </div>`).join('')
-                    : '<div style="font-size:0.9rem; color:var(--text-muted);">Bu kullanıcı daha önce uyarılmadı.</div>';
+                    : '<div style="font-size:0.9rem; color:var(--text-muted); border:1px dashed rgba(148,163,184,0.3); border-radius:10px; padding:12px; text-align:center;">Bu kullanıcı daha önce uyarılmadı.</div>';
 
                 return `
                     <div class="glass-card" style="padding: 16px; border-left: 4px solid ${statusColor};">
                         <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap; margin-bottom:12px;">
-                            <div style="display:flex; align-items:center; gap:10px; min-width:0;">
-                                <img src="${reporterAvatar}" alt="${escapeHtml(reporterName)}" style="width:44px; height:44px; border-radius:50%; object-fit:cover; border:1px solid var(--border);">
-                                <div style="min-width:0;">
-                                    <div style="font-weight:800;">${escapeHtml(reporterName)}</div>
-                                    <div style="color:var(--text-muted); font-size:0.9rem;">@${escapeHtml(reporterUsername)}</div>
-                                </div>
-                            </div>
+                            <span style="font-size:0.82rem; font-weight:800; color:var(--text-muted); display:inline-flex; align-items:center; gap:6px;"><i class="fa-solid fa-scale-balanced"></i> Şikayet Kaydı</span>
                             <span style="padding:6px 10px; border-radius:999px; background: rgba(255,255,255,0.06); color:${statusColor}; font-size:0.8rem; font-weight:800;">${escapeHtml(statusText)}</span>
                         </div>
                         <div style="display:grid; gap:10px;">
-                            <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
-                                <span style="font-weight:700;">Şikayet Edilen:</span>
-                                <div style="display:flex; align-items:center; gap:8px;">
-                                    <img src="${targetAvatar}" alt="${escapeHtml(targetName)}" style="width:32px; height:32px; border-radius:50%; object-fit:cover; border:1px solid var(--border);">
-                                    <span style="color:var(--text-muted);">${escapeHtml(targetName)} @${escapeHtml(targetUsername)}</span>
+                            <div style="display:grid; gap:10px; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));">
+                                <div style="padding: 12px; border-radius: 12px; border: 1px solid var(--border); background: linear-gradient(135deg, rgba(59,130,246,0.10), rgba(255,255,255,0.04)); display:grid; gap:10px;">
+                                    <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;">
+                                        <span style="font-weight:800; display:inline-flex; align-items:center; gap:8px;"><i class="fa-solid fa-bullhorn" style="color:#3b82f6;"></i> Şikayet Eden</span>
+                                        <span style="font-size:0.78rem; font-weight:700; padding:4px 10px; border-radius:999px; background:${reporterExists ? 'rgba(16,185,129,0.14)' : 'rgba(245,158,11,0.14)'}; color:${reporterExists ? '#10b981' : '#f59e0b'};">${reporterExists ? 'Kayıt Bulundu' : 'Kayıt Eşleşmedi'}</span>
+                                    </div>
+                                    <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;">
+                                        <div style="display:flex; align-items:center; gap:10px; min-width:0;">
+                                            <img src="${reporterAvatar}" alt="${escapeHtml(reporterName)}" style="width:40px; height:40px; border-radius:50%; object-fit:cover; border:1px solid var(--border);">
+                                            <div style="min-width:0;">
+                                                <div style="font-weight:800; color:var(--text-main);">${escapeHtml(reporterName)}</div>
+                                                <div style="color:var(--text-muted); font-size:0.88rem;">@${escapeHtml(reporterUsername)}</div>
+                                            </div>
+                                        </div>
+                                        ${reporterProfileHref ? `<a href="${reporterProfileHref}" target="_blank" rel="noopener noreferrer" style="display:inline-flex; align-items:center; gap:6px; text-decoration:none; color:var(--primary); font-size:0.82rem; font-weight:700; padding:6px 10px; border-radius:999px; border:1px solid rgba(99,102,241,0.25); background:rgba(99,102,241,0.08);"><i class="fa-solid fa-up-right-from-square"></i> Profili Aç</a>` : ''}
+                                    </div>
+                                    <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; font-size:0.8rem;">
+                                        <span style="padding:5px 9px; border-radius:999px; background:rgba(99,102,241,0.12); color:var(--primary); font-weight:700;">Rol: ${escapeHtml(reporterRole)}</span>
+                                        <span style="padding:5px 9px; border-radius:999px; background:${reporterIsBanned ? 'rgba(239,68,68,0.14)' : 'rgba(16,185,129,0.14)'}; color:${reporterIsBanned ? '#ef4444' : '#10b981'}; font-weight:700;">${reporterIsBanned ? 'Durum: Banlı' : 'Durum: Aktif'}</span>
+                                        <span style="padding:5px 9px; border-radius:999px; background:rgba(255,255,255,0.08); color:var(--text-muted); font-weight:700;">Son Aktif: ${escapeHtml(reporterLastSeen)}</span>
+                                    </div>
+                                </div>
+
+                                <div style="padding: 12px; border-radius: 12px; border: 1px solid var(--border); background: linear-gradient(135deg, rgba(239,68,68,0.10), rgba(255,255,255,0.04)); display:grid; gap:10px;">
+                                    <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;">
+                                        <span style="font-weight:800; display:inline-flex; align-items:center; gap:8px;"><i class="fa-solid fa-user-large-slash" style="color:#ef4444;"></i> Şikayet Edilen</span>
+                                        <span style="font-size:0.78rem; font-weight:700; padding:4px 10px; border-radius:999px; background:${targetExists ? 'rgba(16,185,129,0.14)' : 'rgba(245,158,11,0.14)'}; color:${targetExists ? '#10b981' : '#f59e0b'};">${targetExists ? 'Kayıt Bulundu' : 'Kayıt Eşleşmedi'}</span>
+                                    </div>
+                                    <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;">
+                                        <div style="display:flex; align-items:center; gap:10px; min-width:0;">
+                                            <img src="${targetAvatar}" alt="${escapeHtml(targetName)}" style="width:40px; height:40px; border-radius:50%; object-fit:cover; border:1px solid var(--border);">
+                                            <div style="min-width:0;">
+                                                <div style="font-weight:800; color:var(--text-main);">${escapeHtml(targetName)}</div>
+                                                <div style="color:var(--text-muted); font-size:0.88rem;">@${escapeHtml(targetUsername)}</div>
+                                            </div>
+                                        </div>
+                                        ${targetProfileHref ? `<a href="${targetProfileHref}" target="_blank" rel="noopener noreferrer" style="display:inline-flex; align-items:center; gap:6px; text-decoration:none; color:var(--primary); font-size:0.82rem; font-weight:700; padding:6px 10px; border-radius:999px; border:1px solid rgba(99,102,241,0.25); background:rgba(99,102,241,0.08);"><i class="fa-solid fa-up-right-from-square"></i> Profili Aç</a>` : ''}
+                                    </div>
+                                    <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; font-size:0.8rem;">
+                                        <span style="padding:5px 9px; border-radius:999px; background:rgba(99,102,241,0.12); color:var(--primary); font-weight:700;">Rol: ${escapeHtml(targetRole)}</span>
+                                        <span style="padding:5px 9px; border-radius:999px; background:${targetIsBanned ? 'rgba(239,68,68,0.14)' : 'rgba(16,185,129,0.14)'}; color:${targetIsBanned ? '#ef4444' : '#10b981'}; font-weight:700;">${targetIsBanned ? 'Durum: Banlı' : 'Durum: Aktif'}</span>
+                                        <span style="padding:5px 9px; border-radius:999px; background:rgba(255,255,255,0.08); color:var(--text-muted); font-weight:700;">Son Aktif: ${escapeHtml(targetLastSeen)}</span>
+                                    </div>
                                 </div>
                             </div>
-                            <div style="padding: 12px; border-radius: 12px; background: rgba(255,255,255,0.05); border: 1px solid var(--border);">
-                                <div style="font-weight:700; margin-bottom:6px;">Şikayet Nedeni</div>
-                                <div style="white-space: pre-wrap; color: var(--text-main);">${escapeHtml(report.reason || 'Belirtilmedi')}</div>
+                            <div style="padding: 12px; border-radius: 12px; background: linear-gradient(135deg, rgba(99,102,241,0.09), rgba(255,255,255,0.03)); border: 1px solid rgba(99,102,241,0.2); display:grid; gap:10px;">
+                                <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap;">
+                                    <span style="font-weight:800; display:inline-flex; align-items:center; gap:8px;"><i class="fa-solid fa-file-circle-exclamation" style="color:#6366f1;"></i> Şikayet Nedeni</span>
+                                    <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                                        <span style="padding:4px 9px; border-radius:999px; background:rgba(99,102,241,0.12); color:var(--primary); font-size:0.78rem; font-weight:700;">Kategori: ${escapeHtml(report.category || 'Genel')}</span>
+                                        <span style="padding:4px 9px; border-radius:999px; background:rgba(255,255,255,0.08); color:var(--text-muted); font-size:0.78rem; font-weight:700;">${reasonLen} karakter</span>
+                                    </div>
+                                </div>
+                                <div style="white-space: pre-wrap; color: var(--text-main); line-height:1.65; background:rgba(255,255,255,0.04); border:1px solid var(--border); border-radius:10px; padding:10px 12px;">${escapeHtml(reasonPreview)}</div>
                             </div>
                             <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; font-size:0.85rem; color:var(--text-muted);">
                                 <span><i class="fa-solid fa-clock"></i> ${escapeHtml(timeText)}</span>
                                 <span><i class="fa-solid fa-flag"></i> ${escapeHtml(report.category || 'Genel')}</span>
                             </div>
-                            <div style="padding: 12px; border-radius: 12px; background: rgba(245,158,11,0.06); border: 1px solid rgba(245,158,11,0.22); margin-top: 8px;">
-                                <div style="font-weight:800; color:var(--warning); margin-bottom:8px; display:flex; align-items:center; gap:8px;"><i class="fa-solid fa-triangle-exclamation"></i> Uyarılan Kullanıcılar</div>
+                            <div style="padding: 12px; border-radius: 12px; background: linear-gradient(135deg, rgba(245,158,11,0.10), rgba(255,255,255,0.03)); border: 1px solid rgba(245,158,11,0.26); margin-top: 8px; display:grid; gap:10px;">
+                                <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap;">
+                                    <div style="font-weight:800; color:var(--warning); display:flex; align-items:center; gap:8px;"><i class="fa-solid fa-triangle-exclamation"></i> Uyarılan Kullanıcılar</div>
+                                    <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                                        <span style="padding:4px 9px; border-radius:999px; background:rgba(245,158,11,0.16); color:#b45309; font-size:0.78rem; font-weight:800;">Toplam: ${warningCount}</span>
+                                        <span style="padding:4px 9px; border-radius:999px; background:rgba(255,255,255,0.08); color:var(--text-muted); font-size:0.78rem; font-weight:700;">Son Uyarı: ${escapeHtml(lastWarningAt)}</span>
+                                    </div>
+                                </div>
                                 <div style="display:grid; gap:8px;">
                                     ${warningSummary}
                                 </div>
-                                ${warningHistory.length > 0 ? `<div style="margin-top:8px; font-size:0.8rem; color:var(--text-muted);">Toplam uyarı: ${warningHistory.length}</div>` : ''}
+                                ${warningHistory.length > 3 ? `<div style="font-size:0.8rem; color:var(--text-muted);">Ek olarak ${warningHistory.length - 3} uyarı daha mevcut.</div>` : ''}
                             </div>
                             <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top: 8px;">
                                 <button class="action-btn" onclick="window.warnReportTarget('${docSnap.id}')"><i class="fa-solid fa-triangle-exclamation"></i> Uyarı</button>
@@ -3032,11 +3499,15 @@
                     </div>`;
             }));
 
-            list.innerHTML = reportCards.join('');
+            adminReportCards = reportCards;
+            renderReportCardsPage(true);
         } catch (error) {
             console.error('loadUserReports hatası:', error);
             const list = document.getElementById('user-management-reports-list');
             if (list) list.innerHTML = '<div class="moderation-empty">Şikayetler yüklenemedi.</div>';
+            adminReportCards = [];
+            adminReportVisibleCount = 0;
+            updateReportsLoadMoreUI();
         }
     }
 
@@ -3077,16 +3548,21 @@
         }
     }
 
-    window.reviewPostAdmin = async (id) => {
+    window.reviewPostAdmin = async (id, contentType = 'post', communityId = '') => {
         try {
-            const snap = await getDoc(doc(db, 'posts', id));
+            const ref = getModerationDocRef(contentType, id, communityId || null);
+            if (!ref) {
+                alert('İçerik yolu bulunamadı.');
+                return;
+            }
+            const snap = await getDoc(ref);
             if (!snap.exists()) {
                 alert('Gönderi bulunamadı.');
                 return;
             }
 
             const post = snap.data() || {};
-            const content = String(post.content || '');
+            const content = String(post.content || post.description || post.title || '');
             const findings = getPostModerationFindings(content);
 
             if (findings.length > 0) {
@@ -3108,9 +3584,14 @@
         adminEditPostState = null;
     };
 
-    window.openAdminEditPostModal = async (id) => {
+    window.openAdminEditPostModal = async (id, contentType = 'post', communityId = '') => {
         try {
-            const snap = await getDoc(doc(db, 'posts', id));
+            const ref = getModerationDocRef(contentType, id, communityId || null);
+            if (!ref) {
+                alert('İçerik yolu bulunamadı.');
+                return;
+            }
+            const snap = await getDoc(ref);
             if (!snap.exists()) {
                 alert('Gönderi bulunamadı.');
                 return;
@@ -3125,7 +3606,7 @@
 
             oldContentEl.textContent = currentText || '(Boş içerik)';
             newContentEl.value = currentText;
-            adminEditPostState = { id, oldText: currentText };
+            adminEditPostState = { id, contentType, communityId: communityId || '', oldText: currentText };
             modal.style.display = 'flex';
             newContentEl.focus();
         } catch (error) {
@@ -3143,7 +3624,12 @@
         }
 
         try {
-            await updateDoc(doc(db, 'posts', adminEditPostState.id), {
+            const ref = getModerationDocRef(adminEditPostState.contentType || 'post', adminEditPostState.id, adminEditPostState.communityId || null);
+            if (!ref) {
+                alert('İçerik yolu bulunamadı.');
+                return;
+            }
+            await updateDoc(ref, {
                 content: newText.trim(),
                 isEdited: true,
                 lastEdit: {
@@ -3155,26 +3641,38 @@
             });
             alert(`Gönderi güncellendi.\n\nÖnce:\n${adminEditPostState.oldText}\n\nSonra:\n${newText.trim()}`);
             window.closeAdminEditPostModal();
+            loadAllPosts();
         } catch (error) {
             console.error('saveAdminEditPost hatası:', error);
             alert('Düzenleme sırasında bir hata oluştu.');
         }
     };
 
-    window.editPostAdmin = (id) => {
-        window.openAdminEditPostModal(id);
+    window.editPostAdmin = (id, contentType = 'post', communityId = '') => {
+        window.openAdminEditPostModal(id, contentType, communityId);
     };
 
-    window.hidePostAdmin = async (id) => {
+    window.hidePostAdmin = async (id, contentType = 'post', communityId = '') => {
         if (confirm('Bu gönderi gizlensin mi?')) {
-            await updateDoc(doc(db, 'posts', id), { hidden: true, moderatedAt: serverTimestamp() });
+            const ref = getModerationDocRef(contentType, id, communityId || null);
+            if (!ref) {
+                alert('İçerik yolu bulunamadı.');
+                return;
+            }
+            await updateDoc(ref, { hidden: true, moderatedAt: serverTimestamp() });
             alert('Gönderi gizlendi.');
+            loadAllPosts();
         }
     };
 
-    window.banPostAuthorAdmin = async (postId) => {
+    window.banPostAuthorAdmin = async (postId, contentType = 'post', communityId = '') => {
         try {
-            const postSnap = await getDoc(doc(db, 'posts', postId));
+            const ref = getModerationDocRef(contentType, postId, communityId || null);
+            if (!ref) {
+                alert('İçerik yolu bulunamadı.');
+                return;
+            }
+            const postSnap = await getDoc(ref);
             if (!postSnap.exists()) {
                 alert('Gönderi bulunamadı.');
                 return;
@@ -3191,8 +3689,9 @@
                 }
             }
 
-            if (post.username) {
-                const userQuery = await getDocs(query(collection(db, 'users'), where('username', '==', post.username), limit(1)));
+            const authorUsername = post.authorUsername || post.username || null;
+            if (authorUsername) {
+                const userQuery = await getDocs(query(collection(db, 'users'), where('username', '==', authorUsername), limit(1)));
                 if (!userQuery.empty) {
                     window.openBanModal(userQuery.docs[0].id);
                     return;
@@ -3206,17 +3705,29 @@
         }
     };
 
-    window.unhidePostAdmin = async (id) => {
+    window.unhidePostAdmin = async (id, contentType = 'post', communityId = '') => {
         if (confirm('Bu gönderinin gizliliği açılsın mı?')) {
-            await updateDoc(doc(db, 'posts', id), { hidden: false, moderatedAt: serverTimestamp() });
+            const ref = getModerationDocRef(contentType, id, communityId || null);
+            if (!ref) {
+                alert('İçerik yolu bulunamadı.');
+                return;
+            }
+            await updateDoc(ref, { hidden: false, moderatedAt: serverTimestamp() });
             alert('Gönderinin gizliliği açıldı.');
+            loadAllPosts();
         }
     };
 
-    window.deletePostAdmin = async (id) => {
+    window.deletePostAdmin = async (id, contentType = 'post', communityId = '') => {
         if(confirm("Silinsin mi?")) {
-            await deleteDoc(doc(db, "posts", id));
+            const ref = getModerationDocRef(contentType, id, communityId || null);
+            if (!ref) {
+                alert('İçerik yolu bulunamadı.');
+                return;
+            }
+            await deleteDoc(ref);
             alert("Silindi.");
+            loadAllPosts();
         }
     }
 

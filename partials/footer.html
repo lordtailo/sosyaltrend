@@ -65,12 +65,10 @@
         <i class="fa-solid fa-comments"></i>
         <span>Sohbet</span>
       </button>
-      <div class="profile-trigger mobile-profile-trigger mobile-nav-item" id="profileTrigger">
-        <div class="avatar-wrap offline" id="headerAvatarWrap">
-          <img id="headerAvatar" src="" alt="Kullanıcı avatar">
-          <span class="status-badge status-offline"></span>
-        </div>
-      </div>
+      <button type="button" class="mobile-nav-item" onclick="navigateTo('profil'); return false;" aria-label="Profil">
+        <i class="fa-solid fa-user"></i>
+        <span>Profil</span>
+      </button>
     </div>
     <div class="dropdown-menu-wrapper">
       <button type="button" class="dropdown-backdrop" onclick="document.getElementById('profileTrigger').click()"></button>

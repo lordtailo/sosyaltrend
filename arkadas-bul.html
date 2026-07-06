@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SosyaLTrend • Arkadaş Bul</title>
+  <meta name="description" content="SosyaLTrend'de yeni kişiler keşfet, profilini görüntüle ve arkadaşlık isteği gönder.">
+  <link rel="stylesheet" href="assets/css/all.min.css">
+  <link rel="stylesheet" href="assets/css/style.css">
+  <link rel="icon" type="image/x-icon" href="assets/img/strendsaydamv2.ico">
+  <style>
+    .friend-find-shell {
+      padding: 24px;
+      border-radius: 24px;
+      border: 1px solid rgba(99, 102, 241, 0.18);
+      background:
+        radial-gradient(1000px 260px at -12% -20%, rgba(99, 102, 241, 0.14), transparent 70%),
+        radial-gradient(800px 260px at 115% -10%, rgba(16, 185, 129, 0.11), transparent 72%),
+        var(--card-bg);
+      box-shadow: 0 18px 48px rgba(15, 23, 42, 0.08);
+    }
+
+    .friend-find-hero {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 18px;
+      flex-wrap: wrap;
+      margin-bottom: 18px;
+      padding: 18px 20px;
+      border-radius: 20px;
+      background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(16, 185, 129, 0.06));
+      border: 1px solid rgba(99, 102, 241, 0.14);
+    }
+
+    .friend-find-title {
+      margin: 0;
+      font-size: 1.52rem;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      letter-spacing: -0.02em;
+    }
+
+    .friend-find-subtitle {
+      margin: 10px 0 0;
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      max-width: 720px;
+      line-height: 1.6;
+    }
+
+    .friend-find-badge {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 4px;
+      min-width: 150px;
+      padding: 12px 15px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.78);
+      color: var(--text-main);
+      border: 1px solid rgba(99, 102, 241, 0.16);
+      box-shadow: 0 12px 24px rgba(15, 23, 42, 0.06);
+    }
+
+    .friend-find-badge i {
+      color: var(--primary);
+      font-size: 0.95rem;
+    }
+
+    .friend-find-badge span {
+      font-size: 1.2rem;
+      font-weight: 900;
+      color: var(--text-main);
+    }
+
+    .friend-find-toolbar {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+      align-items: stretch;
+      padding: 12px;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.64);
+      border: 1px solid rgba(99, 102, 241, 0.1);
+    }
+
+    .friend-find-advanced {
+      border: 1px solid rgba(99, 102, 241, 0.14);
+      border-radius: 18px;
+      padding: 14px;
+      background: linear-gradient(180deg, rgba(99, 102, 241, 0.05), rgba(255, 255, 255, 0.82));
+      margin-bottom: 12px;
+    }
+
+    .friend-find-advanced-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+    }
+
+    .friend-find-advanced-title {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 0.84rem;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--primary);
+    }
+
+    .friend-find-clear {
+      border: 1px solid rgba(99, 102, 241, 0.22);
+      border-radius: 999px;
+      padding: 8px 12px;
+      background: rgba(255, 255, 255, 0.92);
+      color: var(--primary);
+      font-weight: 700;
+      font-size: 0.76rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .friend-find-clear:hover {
+      background: rgba(99, 102, 241, 0.11);
+      border-color: rgba(99, 102, 241, 0.35);
+    }
+
+    .friend-find-advanced-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .friend-find-advanced-field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      min-width: 0;
+      padding: 10px;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.74);
+      border: 1px solid rgba(99, 102, 241, 0.08);
+    }
+
+    .friend-find-advanced-field label {
+      font-size: 0.76rem;
+      color: var(--text-muted);
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+
+    .friend-find-advanced-field select,
+    .friend-find-advanced-field input {
+      width: 100%;
+      min-width: 0;
+      height: 38px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--input-bg);
+      color: var(--text-main);
+      padding: 0 10px;
+      outline: none;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+      font-size: 0.83rem;
+    }
+
+    .friend-find-advanced-field select:focus,
+    .friend-find-advanced-field input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.14);
+    }
+
+    .friend-find-search {
+      flex: 1;
+      min-width: 220px;
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .friend-find-search i {
+      position: absolute;
+      left: 14px;
+      color: var(--text-muted);
+      pointer-events: none;
+      font-size: 0.92rem;
+    }
+
+    .friend-find-search input {
+      width: 100%;
+      height: 44px;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      background: var(--input-bg);
+      color: var(--text-main);
+      padding: 0 14px 0 38px;
+      outline: none;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+      font-size: 0.9rem;
+    }
+
+    .friend-find-search input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.14);
+    }
+
+    .friend-find-refresh {
+      border: none;
+      background: linear-gradient(135deg, #6366f1, #4f46e5);
+      color: #fff;
+      padding: 0 18px;
+      min-height: 44px;
+      border-radius: 14px;
+      font-weight: 800;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      box-shadow: 0 10px 20px rgba(79, 70, 229, 0.25);
+    }
+
+    .friend-find-status {
+      font-size: 0.92rem;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 14px;
+      border-radius: 14px;
+      background: rgba(99, 102, 241, 0.06);
+      border: 1px solid rgba(99, 102, 241, 0.12);
+    }
+
+    .friend-find-list {
+      display: grid;
+      gap: 12px;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      align-items: stretch;
+    }
+
+    .friend-find-results-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+      padding: 14px 16px;
+      border-radius: 18px;
+      border: 1px solid rgba(99, 102, 241, 0.14);
+      background: linear-gradient(180deg, rgba(99, 102, 241, 0.07), rgba(99, 102, 241, 0.03));
+    }
+
+    .friend-find-summary {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      min-width: 0;
+      font-size: 0.88rem;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    .friend-find-summary strong {
+      color: var(--text-main);
+      font-size: 1.05rem;
+      font-weight: 900;
+    }
+
+    .friend-find-summary-kicker {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 7px 11px;
+      border-radius: 999px;
+      background: rgba(99, 102, 241, 0.1);
+      color: var(--primary);
+      font-size: 0.76rem;
+      font-weight: 800;
+    }
+
+    .friend-find-filter-group {
+      display: inline-grid;
+      grid-template-columns: repeat(4, minmax(0, auto));
+      gap: 8px;
+      padding: 4px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.72);
+      border: 1px solid rgba(99, 102, 241, 0.08);
+    }
+
+    .friend-filter-btn {
+      border: 1px solid rgba(99, 102, 241, 0.1);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.82);
+      color: var(--text-muted);
+      font-size: 0.77rem;
+      font-weight: 800;
+      padding: 8px 12px;
+      cursor: pointer;
+      transition: transform 0.18s ease, background 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease, color 0.18s ease;
+    }
+
+    .friend-filter-btn:hover {
+      transform: translateY(-1px);
+      border-color: rgba(99, 102, 241, 0.18);
+      background: rgba(99, 102, 241, 0.08);
+      color: var(--text-main);
+    }
+
+    .friend-filter-btn.active {
+      border-color: rgba(99, 102, 241, 0.28);
+      color: #fff;
+      background: linear-gradient(135deg, #6366f1, #4f46e5);
+      box-shadow: 0 10px 20px rgba(79, 70, 229, 0.2);
+    }
+
+    .friend-card {
+      position: relative;
+      padding: 14px 15px;
+      border: 1px solid rgba(99, 102, 241, 0.16);
+      border-radius: 16px;
+      background:
+        radial-gradient(160px 70px at 100% 0%, rgba(99, 102, 241, 0.1), transparent 68%),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 255, 0.94));
+      box-shadow: 0 10px 22px rgba(15, 23, 42, 0.06);
+      transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
+      overflow: hidden;
+      isolation: isolate;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .friend-card::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      border: 1px solid rgba(255, 255, 255, 0.55);
+      pointer-events: none;
+      opacity: 0.8;
+    }
+
+    .friend-card:hover {
+      transform: translateY(-3px);
+      border-color: rgba(99, 102, 241, 0.24);
+      box-shadow: 0 16px 28px rgba(15, 23, 42, 0.09);
+    }
+
+    .friend-card-top {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      height: 100%;
+    }
+
+    .friend-card-main {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+      flex: 1 1 0;
+    }
+
+    .friend-card-identity {
+      min-width: 0;
+      flex: 1;
+    }
+
+    .friend-card-avatar {
+      width: 52px;
+      height: 52px;
+      border-radius: 16px;
+      object-fit: cover;
+      border: 2px solid rgba(255, 255, 255, 0.88);
+      box-shadow: 0 10px 20px rgba(79, 70, 229, 0.14);
+      background: rgba(99, 102, 241, 0.08);
+      flex-shrink: 0;
+      transition: transform 0.18s ease, box-shadow 0.18s ease;
+    }
+
+    .friend-card:hover .friend-card-avatar {
+      transform: scale(1.03);
+      box-shadow: 0 12px 24px rgba(79, 70, 229, 0.16);
+    }
+
+    .friend-card-name {
+      font-weight: 900;
+      font-size: 0.98rem;
+      color: var(--text-main);
+      white-space: normal;
+      overflow-wrap: anywhere;
+      line-height: 1.2;
+      max-width: 100%;
+    }
+
+    .friend-card-username {
+      font-size: 0.79rem;
+      color: var(--text-muted);
+      margin-top: 4px;
+      white-space: normal;
+      overflow-wrap: anywhere;
+    }
+
+    .friend-card-meta-line {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 7px;
+      font-size: 0.78rem;
+      color: var(--text-muted);
+    }
+
+    .friend-card-meta-line span {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      min-width: 0;
+      max-width: 100%;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    .friend-card-meta-line i {
+      color: var(--primary);
+      flex-shrink: 0;
+    }
+
+    .friend-card-actions {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      align-items: stretch;
+      gap: 10px;
+      flex: 0 0 260px;
+      max-width: 100%;
+      margin-top: 0;
+      padding-top: 0;
+      border-top: 0;
+    }
+
+    .friend-card-chip-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 9px;
+    }
+
+    .friend-card-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 9px;
+      border-radius: 999px;
+      background: rgba(99, 102, 241, 0.08);
+      color: var(--primary);
+      font-size: 0.72rem;
+      font-weight: 700;
+      border: 1px solid rgba(99, 102, 241, 0.1);
+    }
+
+    .friend-card-chip i {
+      color: inherit;
+    }
+
+    .friend-btn {
+      text-decoration: none;
+      padding: 9px 12px;
+      border-radius: 11px;
+      font-weight: 800;
+      font-size: 0.78rem;
+      border: 1px solid var(--border);
+      color: var(--text-main);
+      background: rgba(255, 255, 255, 0.82);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      cursor: pointer;
+      transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+      box-sizing: border-box;
+      white-space: normal;
+      text-align: center;
+      max-width: 100%;
+      width: 100%;
+      min-height: 36px;
+    }
+
+    .friend-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 10px 18px rgba(15, 23, 42, 0.08);
+    }
+
+    .friend-btn.secondary {
+      background: rgba(99, 102, 241, 0.08);
+      border-color: rgba(99, 102, 241, 0.16);
+      color: var(--primary);
+    }
+
+    .friend-btn.primary {
+      border: none;
+      color: #fff;
+      background: linear-gradient(135deg, #6366f1, #4f46e5);
+      box-shadow: 0 8px 18px rgba(79, 70, 229, 0.22);
+    }
+
+    .friend-btn.warning {
+      border: none;
+      background: rgba(245, 158, 11, 0.18);
+      color: #b45309;
+    }
+
+    .friend-btn.success {
+      border: none;
+      background: rgba(16, 185, 129, 0.18);
+      color: #047857;
+      cursor: default;
+    }
+
+    .friend-load-more-wrap {
+      display: none;
+      justify-content: center;
+      margin-top: 14px;
+    }
+
+    .friend-load-meta {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      text-align: center;
+      margin-top: 8px;
+    }
+
+    .friend-load-more-btn {
+      border: 1px solid rgba(99, 102, 241, 0.24);
+      border-radius: 12px;
+      padding: 10px 16px;
+      background: rgba(99, 102, 241, 0.1);
+      color: var(--primary);
+      font-weight: 800;
+      font-size: 0.84rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .friend-load-more-btn:hover {
+      background: rgba(99, 102, 241, 0.16);
+      border-color: rgba(99, 102, 241, 0.34);
+    }
+
+    .friend-empty {
+      padding: 16px;
+      text-align: center;
+      color: var(--text-muted);
+      border: 1px dashed var(--border);
+      border-radius: 14px;
+      background: rgba(148, 163, 184, 0.08);
+    }
+
+    @media (max-width: 980px) {
+      .friend-find-list {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .friend-find-shell {
+        padding: 16px;
+      }
+
+      .friend-find-hero {
+        padding: 16px;
+      }
+
+      .friend-find-badge {
+        width: 100%;
+      }
+
+      .friend-find-advanced-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .friend-find-title {
+        font-size: 1.2rem;
+      }
+
+      .friend-find-subtitle {
+        font-size: 0.86rem;
+      }
+
+      .friend-find-badge {
+        font-size: 0.76rem;
+      }
+
+      .friend-find-results-head {
+        padding: 10px;
+      }
+
+      .friend-find-filter-group {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        width: 100%;
+        border-radius: 16px;
+      }
+
+      .friend-card {
+        padding: 14px;
+      }
+
+      .friend-card-main {
+        flex-basis: 100%;
+        align-items: flex-start;
+      }
+
+      .friend-card-actions {
+        width: 100%;
+        grid-template-columns: 1fr;
+        margin-top: 10px;
+        padding-top: 10px;
+        border-top: 1px solid rgba(99, 102, 241, 0.08);
+      }
+    }
+
+    @media (max-width: 520px) {
+      .friend-find-advanced-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .friend-find-summary {
+        align-items: flex-start;
+      }
+
+      .friend-find-filter-group {
+        grid-template-columns: 1fr;
+      }
+
+      .friend-card-avatar {
+        width: 52px;
+        height: 52px;
+        border-radius: 16px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div data-include="partials/topbar.html"></div>
+  <div id="header-placeholder"></div>
+
+  <div class="app-container">
+    <div data-include="partials/left-aside.html"></div>
+
+    <main id="main-content">
+      <div id="page-friend-find" class="page-content active">
+        <div class="glass-card friend-find-shell">
+          <div class="friend-find-hero">
+            <div>
+              <h2 class="friend-find-title"><i class="fa-solid fa-user-group" style="color:var(--primary);"></i> Arkadaş Bul</h2>
+              <p class="friend-find-subtitle">Kullanıcı adı veya görünen ada göre arama yap, profilini ziyaret et ve arkadaşlık isteği gönder.</p>
+            </div>
+            <span id="friendFindCount" hidden>0 kişi</span>
+          </div>
+
+          <div class="friend-find-toolbar">
+            <div class="friend-find-search">
+              <i class="fa-solid fa-magnifying-glass"></i>
+              <input id="friendFindInput" type="search" placeholder="Kullanıcı adı, isim veya e-posta ile ara..." autocomplete="off" />
+            </div>
+            <button id="friendFindRefresh" type="button" class="friend-find-refresh">
+              <i class="fa-solid fa-rotate"></i> Yenile
+            </button>
+          </div>
+
+          <div class="friend-find-advanced">
+            <div class="friend-find-advanced-head">
+              <div class="friend-find-advanced-title">
+                <i class="fa-solid fa-sliders"></i>
+                Gelişmiş Filtreler
+              </div>
+              <button id="friendFilterClear" type="button" class="friend-find-clear">
+                <i class="fa-solid fa-eraser"></i> Filtreleri Temizle
+              </button>
+            </div>
+
+            <div class="friend-find-advanced-grid">
+              <div class="friend-find-advanced-field">
+                <label for="friendFilterLocation">Bulunduğu Şehir</label>
+                <select id="friendFilterLocation">
+                  <option value="">Tümü</option>
+                </select>
+              </div>
+              <div class="friend-find-advanced-field">
+                <label for="friendFilterHometown">Doğum Yeri</label>
+                <select id="friendFilterHometown">
+                  <option value="">Tümü</option>
+                </select>
+              </div>
+              <div class="friend-find-advanced-field">
+                <label for="friendFilterOccupation">Meslek</label>
+                <select id="friendFilterOccupation">
+                  <option value="">Tümü</option>
+                </select>
+              </div>
+              <div class="friend-find-advanced-field">
+                <label for="friendFilterInterests">İlgi Alanı</label>
+                <input id="friendFilterInterests" type="search" placeholder="örn. müzik, yazılım, spor" autocomplete="off" />
+              </div>
+            </div>
+          </div>
+
+          <div id="friendFindStatus" class="friend-find-status">
+            <i class="fa-solid fa-circle-notch fa-spin"></i> Kullanıcılar yükleniyor...
+          </div>
+
+          <div class="friend-find-results-head">
+            <div id="friendFindSummary" class="friend-find-summary">
+              <span class="friend-find-summary-kicker"><i class="fa-solid fa-compass"></i> Tüm Sonuçlar</span>
+              <strong>Sonuçlar hazırlanıyor</strong>
+            </div>
+            <div class="friend-find-filter-group">
+              <button type="button" class="friend-filter-btn active" data-filter="all">Tüm Sonuçlar</button>
+              <button type="button" class="friend-filter-btn" data-filter="none">Yeni Kişiler</button>
+              <button type="button" class="friend-filter-btn" data-filter="sent">Bekleyenler</button>
+              <button type="button" class="friend-filter-btn" data-filter="friend">Arkadaşlar</button>
+            </div>
+          </div>
+
+          <div id="friendFindList" class="friend-find-list"></div>
+          <div id="friendLoadMoreWrap" class="friend-load-more-wrap">
+            <button id="friendLoadMoreBtn" type="button" class="friend-load-more-btn">
+              <i class="fa-solid fa-chevron-down"></i> Daha fazla yükle
+            </button>
+          </div>
+          <div id="friendLoadMeta" class="friend-load-meta"></div>
+        </div>
+      </div>
+    </main>
+
+    <div data-include="partials/right-aside.html"></div>
+  </div>
+
+  <div id="footer-placeholder"></div>
+
+  <script src="assets/js/include.js"></script>
+  <script type="module" src="assets/js/friend-find.js"></script>
+</body>
+</html>

@@ -1320,7 +1320,7 @@ window.addAnnouncementsToFeed = async () => {
                     <img src="assets/img/strendsaydamv2.png" class="user-avatar" style="width:40px; height:40px; border-radius:50%; cursor:pointer;" onclick="location.href='profil.html?id=official_system'">
                     <div>
                         <div style="font-weight:700; display:flex; align-items:center; gap:5px; cursor:pointer;" onclick="location.href='profil.html?id=official_system'">
-                            <span style="font-size:0.75em;">👑</span> SosyaLTrend <i class="fa-solid fa-circle-check" style="color:var(--primary); font-size:0.7rem;"></i>
+                            SosyaLTrend <i class="fa-solid fa-circle-check" style="color:var(--primary); font-size:0.7rem;"></i>
                             <span class="post-time">• ${createdAt}</span>
                         </div>
                         <div style="font-size:0.75rem; color:var(--text-muted); cursor:pointer;" onclick="location.href='profil.html?id=official_system'">@official_system</div>
@@ -1479,7 +1479,7 @@ window.renderAnnouncementComments = (announcementId, comments) => {
                 <img src="${c.avatarUrl || 'assets/img/strendsaydamv2.png'}" style="width:32px; height:32px; border-radius:50%;">
                 <div style="flex:1;">
                     <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <div style="font-weight:700; font-size:0.85rem;">${c.isAdmin ? '<span style="font-size:0.75em;">👑</span>' : ''} ${c.displayName} <span style="color:var(--text-muted);">@${c.username}</span></div>
+                        <div style="font-weight:700; font-size:0.85rem;">${c.displayName} <span style="color:var(--text-muted);">@${c.username}</span></div>
                         <button class="comment-delete-btn" onclick="deleteAnnouncementComment('${announcementId}', ${idx})"><i class="fa-solid fa-trash"></i></button>
                     </div>
                     <p style="margin:4px 0; font-size:0.9rem; color:var(--text-main);">${c.text}</p>
@@ -1782,6 +1782,109 @@ function formatJoinDate(value) {
 
 const ADMIN_EMAIL = "officialfthuzun@gmail.com";
 
+const ADMIN_USERNAME = (ADMIN_EMAIL.split('@')[0] || '').toLowerCase();
+
+function parseProfileUsernameFromUrlLike(text = '') {
+    const match = String(text).match(/profil\.html\?id=([^'"\s&)]+)/i);
+    if (!match || !match[1]) return '';
+    try {
+        return decodeURIComponent(match[1]).trim().toLowerCase();
+    } catch (_) {
+        return String(match[1]).trim().toLowerCase();
+    }
+}
+
+function extractUsernameFromText(text = '') {
+    const match = String(text).match(/@([a-zA-Z0-9._-]{2,})/);
+    return match && match[1] ? match[1].toLowerCase() : '';
+}
+
+function inferAvatarUsername(imgEl) {
+    if (!imgEl) return '';
+
+    const directDataset = imgEl.dataset?.username || imgEl.closest('[data-username]')?.getAttribute('data-username') || '';
+    if (directDataset) return directDataset.trim().toLowerCase();
+
+    const profileAnchor = imgEl.closest('a[href*="profil.html?id="]');
+    if (profileAnchor) {
+        const fromHref = parseProfileUsernameFromUrlLike(profileAnchor.getAttribute('href') || '');
+        if (fromHref) return fromHref;
+    }
+
+    const onclickHolder = imgEl.closest('[onclick*="profil.html?id="]');
+    if (onclickHolder) {
+        const fromOnclick = parseProfileUsernameFromUrlLike(onclickHolder.getAttribute('onclick') || '');
+        if (fromOnclick) return fromOnclick;
+    }
+
+    const context = imgEl.closest('.post, .friends-dropdown-item, .chat-friend-item, .moderation-card, .user-row, .dropdown-menu-header, .profile-header, .profile-trigger') || imgEl.parentElement;
+    const text = context?.textContent || '';
+    const fromText = extractUsernameFromText(text);
+    if (fromText) return fromText;
+
+    return '';
+}
+
+function applyAdminCrownBadges(root = document) {
+    const isCurrentUserAdmin = localStorage.getItem('st_isAdmin') === '1';
+    const selector = [
+        '.avatar-wrap img',
+        '.chat-friend-avatar-wrap img',
+        '.sidebar-profile-avatar img',
+        '.friends-dropdown-avatar',
+        '.post img.user-avatar',
+        'img[id*="Avatar"]',
+        'img[class*="avatar"]'
+    ].join(',');
+
+    const imgs = Array.from((root || document).querySelectorAll(selector));
+    imgs.forEach((imgEl) => {
+        const inferredUsername = inferAvatarUsername(imgEl);
+        const isAdminAvatar = inferredUsername === ADMIN_USERNAME
+            || (isCurrentUserAdmin && (imgEl.id === 'headerAvatar' || !!imgEl.closest('#profileTrigger, .profile-trigger, .dropdown-menu-header')));
+
+        const badgeHost = imgEl.closest('.avatar-wrap, .chat-friend-avatar-wrap, .sidebar-profile-avatar') || imgEl.parentElement;
+        if (!badgeHost) return;
+
+        if (isAdminAvatar) {
+            badgeHost.classList.add('admin-crown-badge');
+        } else {
+            badgeHost.classList.remove('admin-crown-badge');
+        }
+    });
+}
+
+function initAdminCrownBadgeSystem() {
+    if (window.__adminCrownBadgeInitDone) return;
+    window.__adminCrownBadgeInitDone = true;
+
+    let rafId = 0;
+    const scheduleApply = () => {
+        if (rafId) return;
+        rafId = requestAnimationFrame(() => {
+            rafId = 0;
+            applyAdminCrownBadges(document);
+        });
+    };
+
+    scheduleApply();
+
+    const observer = new MutationObserver(() => {
+        scheduleApply();
+    });
+
+    observer.observe(document.documentElement || document.body, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+        attributeFilter: ['src', 'class', 'href', 'onclick', 'data-username']
+    });
+
+    window.applyAdminCrownBadges = applyAdminCrownBadges;
+}
+
+initAdminCrownBadgeSystem();
+
 // Avatar sistemini otomatik olarak strendsaydamv2'ye initialize et
 localStorage.setItem('st_avatar', 'strendsaydamv2');
 
@@ -1844,6 +1947,19 @@ onAuthStateChanged(auth, async (fbUser) => {
         window.location.href = 'login.html';
         return;
     } else {
+        // Yönetici tarafından silinmiş (arşivlenmiş) hesapların tekrar açılmasını engelle.
+        try {
+            const deletedUserSnap = await getDoc(doc(db, 'deletedUsers', fbUser.uid));
+            if (deletedUserSnap.exists()) {
+                await signOut(auth).catch(() => {});
+                alert('Hesabınız yönetici tarafından kapatılmıştır.');
+                window.location.href = 'login.html';
+                return;
+            }
+        } catch (deletedCheckError) {
+            console.error('Deleted user check failed:', deletedCheckError);
+        }
+
         // Kullanıcı bilgilerini güncelle
         user.uid = fbUser.uid;
         user.username = fbUser.email.split('@')[0];
@@ -1852,10 +1968,33 @@ onAuthStateChanged(auth, async (fbUser) => {
         
         // Avatar URL'i Firestore'dan çek
         let userData = null;
+
+        const hasBlockedIdentity = (profileData, authUser) => {
+            const usernameRaw = String(profileData?.username || '').trim().toLowerCase();
+            const displayNameRaw = String(profileData?.displayName || profileData?.name || '').trim().toLowerCase();
+            const emailRaw = String(profileData?.email || authUser?.email || '').trim().toLowerCase();
+            const emailLocal = emailRaw.includes('@') ? emailRaw.split('@')[0] : '';
+
+            const blockedValues = new Set(['bilinmiyor', 'unknown', 'deleted_user', 'silinmis_kullanici', 'misafir']);
+
+            if (!usernameRaw) return true;
+            if (blockedValues.has(usernameRaw)) return true;
+            if (displayNameRaw && blockedValues.has(displayNameRaw)) return true;
+            if (emailLocal && blockedValues.has(emailLocal)) return true;
+            return false;
+        };
+
         try {
             const userRef = doc(db, "users", fbUser.uid);
             const userDoc = await getDoc(userRef);
             userData = userDoc.exists() ? userDoc.data() : null;
+
+            if (userDoc.exists() && hasBlockedIdentity(userData, fbUser)) {
+                await signOut(auth).catch(() => {});
+                alert('Hesap bilgileriniz doğrulanamadığı için erişim engellendi. Lütfen yönetici ile iletişime geçin.');
+                window.location.href = 'login.html';
+                return;
+            }
             
             if (userDoc.exists()) {
                 const data = userData;
@@ -1954,6 +2093,7 @@ onAuthStateChanged(auth, async (fbUser) => {
         
         // UI Güncelleme (Profil resmi, isimler vb.)
         updateUIWithUser();
+        applyAdminCrownBadges(document);
         updateSidebarCongratsPercent();
         // also update sidebar statistics such as total users and last signup
         updateSidebarStats();
@@ -1991,12 +2131,14 @@ onAuthStateChanged(auth, async (fbUser) => {
                     user.avatarUrl = userData.avatarUrl;
                     localStorage.setItem('st_avatarUrl', userData.avatarUrl);
                     updateUIWithUser();
+                    applyAdminCrownBadges(document);
                 }
                 // Display name değişmişse güncelle
                 if (userData.displayName && userData.displayName !== user.displayName) {
                     user.displayName = userData.displayName;
                     localStorage.setItem('st_displayName', userData.displayName);
                     updateUIWithUser();
+                    applyAdminCrownBadges(document);
                 }
                 if (Array.isArray(userData.friends)) {
                     user.friendCount = userData.friends.length;
@@ -3228,7 +3370,7 @@ function getAvatarUrl(avatarUrlOrSeed, type = 'user') {
     
     // --- ELEMENT TANIMLAMALARI ---
     const welcomeEl = document.getElementById('welcomeMessage'); // Karşılama metni
-    const hAv = document.getElementById('headerAvatar');
+    const hAvElements = document.querySelectorAll('#headerAvatar');
     const mDn = document.getElementById('menuDisplayName');
     const mUn = document.getElementById('menuUsername');
 
@@ -3277,7 +3419,7 @@ function getAvatarUrl(avatarUrlOrSeed, type = 'user') {
     }
 
     // Header Güncelleme
-    if(hAv) hAv.src = avatarUrl;
+    hAvElements.forEach((imgEl) => { imgEl.src = avatarUrl; });
     if(mDn) mDn.innerText = user.displayName;
     if(mUn) mUn.innerText = `@${user.username}`;
 
@@ -3535,6 +3677,7 @@ function setNavActiveByPath() {
     const pageNav = {
         '': 'btn-feed',
         'index.html': 'btn-feed',
+        'arkadas-bul.html': 'btn-arkadas-bul',
         'profil.html': 'btn-profilim',
         'friends.html': 'btn-arkadaslarim',
         'gonderiler.html': 'btn-gonderiler',
@@ -4084,6 +4227,165 @@ const staticDatabase = {
     ]
 };
 
+function getSuggestionScore(value, queryStr = '') {
+    const normalizedValue = (value || '').toString().toLowerCase().trim();
+    const normalizedQuery = (queryStr || '').toString().toLowerCase().trim();
+    if (!normalizedValue) return 0;
+    if (!normalizedQuery) return 1;
+    if (normalizedValue === normalizedQuery) return 120;
+    if (normalizedValue.startsWith(normalizedQuery)) return 95;
+    if (normalizedValue.includes(normalizedQuery)) return 70;
+    return 20;
+}
+
+function selectTopFriendSuggestions(usersData, queryStr, limitCount = 4) {
+    return (usersData || [])
+        .map(item => {
+            const username = (item.username || item.uid || '').toString();
+            const displayName = (item.name || item.displayName || username || 'Kullanıcı').toString();
+            const score = Math.max(
+                getSuggestionScore(username, queryStr),
+                getSuggestionScore(displayName, queryStr)
+            );
+            return { ...item, username, displayName, score };
+        })
+        .filter(item => {
+            if (!item.username) return false;
+            const currentUsername = (window.user?.username || '').toLowerCase();
+            return item.username.toLowerCase() !== currentUsername;
+        })
+        .sort((a, b) => b.score - a.score)
+        .slice(0, limitCount);
+}
+
+function selectTopPageSuggestions(firebasePagesData, queryStr, limitCount = 4) {
+    const firebaseSuggestions = (firebasePagesData || []).map(item => {
+        const pageName = (item.name || item.title || item.pageName || 'Sayfa').toString();
+        const score = getSuggestionScore(pageName, queryStr) + ((item.subscribers || []).length > 0 ? 10 : 0);
+        return { ...item, _source: 'firebase', _pageName: pageName, _score: score };
+    });
+
+    const staticSuggestions = staticDatabase.pages.map(item => ({
+        ...item,
+        _source: 'static',
+        _pageName: item.name,
+        _score: getSuggestionScore(item.name, queryStr)
+    }));
+
+    return [...firebaseSuggestions, ...staticSuggestions]
+        .sort((a, b) => b._score - a._score)
+        .slice(0, limitCount);
+}
+
+function renderFriendSuggestionCards(suggestions, container) {
+    if (!container) return;
+    if (!suggestions || suggestions.length === 0) {
+        container.innerHTML = '';
+        return;
+    }
+
+    container.innerHTML = suggestions.map(userItem => {
+        const username = userItem.username || userItem.uid || 'kullanici';
+        const displayName = userItem.displayName || username;
+        const avatar = getAvatarUrl(userItem.avatarUrl || userItem.avatarSeed || userItem.avatar || 'default', 'user');
+        return `
+            <div class="search-user-card" style="margin-bottom:0;">
+                <div class="search-user-avatar">
+                    <img src="${avatar}" alt="${escapeHtml(displayName)} avatar">
+                </div>
+                <div class="search-user-info">
+                    <div class="search-user-name">${escapeHtml(displayName)}</div>
+                    <div class="search-user-handle">@${escapeHtml(username)}</div>
+                </div>
+                <div class="search-user-action">
+                    <button class="btn-subscribe" onclick="window.location.href='profil.html?u=${encodeURIComponent(username)}'">Profili Aç</button>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+function renderPageSuggestionCards(suggestions, container, t) {
+    if (!container) return;
+    if (!suggestions || suggestions.length === 0) {
+        container.innerHTML = '';
+        return;
+    }
+
+    container.innerHTML = suggestions.map(item => {
+        if (item._source === 'firebase') {
+            const pageName = item._pageName || 'Sayfa';
+            const followerCount = (item.subscribers || []).length;
+            const isSub = (item.subscribers || []).includes(user?.username);
+            const pageIconUrl = getAvatarUrl(item.avatarSeed || item.avatar || 'page', 'page');
+            return `
+                <div class="search-result-card" style="align-items:flex-start; padding:20px;">
+                    <div class="search-result-card-icon" style="border-radius:16px; overflow:hidden; width:60px; height:60px;">
+                        <img src="${pageIconUrl}" alt="${escapeHtml(pageName)} avatar" style="width:100%; height:100%; object-fit:cover;">
+                    </div>
+                    <div style="flex:1; min-width:0;">
+                        <div class="search-result-card-title">${escapeHtml(pageName)}</div>
+                        <div class="search-result-card-subtitle">Sayfa önerisi • ${followerCount} takipçi</div>
+                    </div>
+                    <div style="margin-top:auto;">
+                        <button class="btn-subscribe ${isSub ? 'subscribed' : ''}" onclick="toggleSubscription('${item.id}', ${isSub})">${isSub ? t.unsubBtn : t.subBtn}</button>
+                    </div>
+                </div>`;
+        }
+
+        return `
+            <a href="${item.link}" class="search-result-card">
+                <div class="search-result-card-icon"><i class="fa-solid ${item.icon}"></i></div>
+                <div>
+                    <div class="search-result-card-title">${escapeHtml(item.name)}</div>
+                    <div class="search-result-card-subtitle">Hızlı erişim • ${escapeHtml(item.link)}</div>
+                </div>
+            </a>`;
+    }).join('');
+}
+
+async function renderSearchSuggestionSections(queryStr = '', prefetchedUsers = null, prefetchedPages = null) {
+    const secFriendSuggestions = document.getElementById('section-friend-suggestions');
+    const secPageSuggestions = document.getElementById('section-page-suggestions');
+    const friendSuggestionsContainer = document.getElementById('search-suggested-friends');
+    const pageSuggestionsContainer = document.getElementById('search-suggested-pages');
+    const t = translations[currentLang] || { subBtn: 'Takip Et', unsubBtn: 'Takibi Bırak' };
+
+    if (!secFriendSuggestions || !secPageSuggestions || !friendSuggestionsContainer || !pageSuggestionsContainer) {
+        return;
+    }
+
+    let usersData = Array.isArray(prefetchedUsers) ? prefetchedUsers : [];
+    let pagesData = Array.isArray(prefetchedPages) ? prefetchedPages : [];
+
+    if (!usersData.length) {
+        try {
+            const usersSnap = await getDocs(collection(db, 'users'));
+            usersData = usersSnap.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() }));
+        } catch (e) {
+            console.warn('Arkadaş önerileri yüklenemedi:', e);
+        }
+    }
+
+    if (!pagesData.length) {
+        try {
+            const pagesSnap = await getDocs(collection(db, 'pages'));
+            pagesData = pagesSnap.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() }));
+        } catch (e) {
+            console.warn('Sayfa önerileri yüklenemedi:', e);
+        }
+    }
+
+    const friendSuggestions = selectTopFriendSuggestions(usersData, queryStr, 4);
+    const pageSuggestions = selectTopPageSuggestions(pagesData, queryStr, 4);
+
+    renderFriendSuggestionCards(friendSuggestions, friendSuggestionsContainer);
+    renderPageSuggestionCards(pageSuggestions, pageSuggestionsContainer, t);
+
+    secFriendSuggestions.style.display = friendSuggestions.length ? 'block' : 'none';
+    secPageSuggestions.style.display = pageSuggestions.length ? 'block' : 'none';
+}
+
 // 2. Sayfa Yüklendiğinde Parametre Kontrolü
 document.addEventListener('DOMContentLoaded', function() {
     const urlParams = new URLSearchParams(window.location.search);
@@ -4093,6 +4395,8 @@ document.addEventListener('DOMContentLoaded', function() {
         const globalSearchInput = document.getElementById('globalSearch') || document.getElementById('headerSearchInput');
         if(globalSearchInput) globalSearchInput.value = searchQuery;
         performGlobalSearch(searchQuery);
+    } else if (window.location.pathname.includes('search.html')) {
+        renderSearchSuggestionSections('');
     }
 
     const headerSearchInput = document.getElementById('headerSearchInput');
@@ -4112,12 +4416,12 @@ document.addEventListener('DOMContentLoaded', function() {
 window.performGlobalSearch = async (forcedQuery = null) => {
     const searchInput = document.getElementById('globalSearch') || document.getElementById('headerSearchInput');
     const queryStr = (forcedQuery || (searchInput?.value || '')).trim().toLowerCase();
-    
-    if (!queryStr) return;
 
     // Eğer arama sayfasında değilsek yönlendir
     if (!window.location.pathname.includes('search.html')) {
-        window.location.href = `search.html?q=${encodeURIComponent(queryStr)}`;
+        window.location.href = queryStr
+            ? `search.html?q=${encodeURIComponent(queryStr)}`
+            : 'search.html';
         return;
     }
 
@@ -4126,6 +4430,10 @@ window.performGlobalSearch = async (forcedQuery = null) => {
     const secUsers = document.getElementById('section-users');
     const pagesContainer = document.getElementById('search-results-pages');
     const secPages = document.getElementById('section-pages');
+    const friendSuggestionsContainer = document.getElementById('search-suggested-friends');
+    const secFriendSuggestions = document.getElementById('section-friend-suggestions');
+    const pageSuggestionsContainer = document.getElementById('search-suggested-pages');
+    const secPageSuggestions = document.getElementById('section-page-suggestions');
     const noResults = document.getElementById('search-no-results');
     const status = document.getElementById('searchStatus');
     const resultText = document.getElementById('result-text');
@@ -4134,9 +4442,21 @@ window.performGlobalSearch = async (forcedQuery = null) => {
     // Arayüz Sıfırlama
     if(usersContainer) usersContainer.innerHTML = "";
     if(pagesContainer) pagesContainer.innerHTML = "";
+    if(friendSuggestionsContainer) friendSuggestionsContainer.innerHTML = "";
+    if(pageSuggestionsContainer) pageSuggestionsContainer.innerHTML = "";
     if(secUsers) secUsers.style.display = "none";
     if(secPages) secPages.style.display = "none";
+    if(secFriendSuggestions) secFriendSuggestions.style.display = "none";
+    if(secPageSuggestions) secPageSuggestions.style.display = "none";
     if(noResults) noResults.style.display = "none";
+
+    if (!queryStr) {
+        if(resultText) resultText.innerText = "Arama Sayfası";
+        if(status) status.innerText = "";
+        await renderSearchSuggestionSections('');
+        return;
+    }
+
     if(resultText) resultText.innerText = `"${queryStr}" için sonuçlar`;
     if(status) status.innerText = `Aranıyor...`;
 
@@ -4162,8 +4482,9 @@ window.performGlobalSearch = async (forcedQuery = null) => {
 
         // --- B. FIREBASE SAYFA ARAMASI ---
         const pagesSnap = await getDocs(collection(db, "pages"));
-        pagesSnap.forEach(docSnap => {
-    const data = docSnap.data();
+        const pagesData = pagesSnap.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() }));
+        pagesData.forEach(data => {
+    const pageId = data.id;
     
     // Sadece tam eşleşme istiyorsan .includes yerine === kullanabilirsin
     // Veya belirli bir sayfayı hariç tutmak istiyorsan: if (data.name === "İstemediğim Sayfa") return;
@@ -4184,7 +4505,7 @@ window.performGlobalSearch = async (forcedQuery = null) => {
                         <div class="search-result-card-subtitle">Sayfa • ${(data.subscribers || []).length} takipçi</div>
                     </div>
                     <div style="margin-top:auto;">
-                        <button class="btn-subscribe ${isSub ? 'subscribed' : ''}" onclick="toggleSubscription('${docSnap.id}', ${isSub})">${isSub ? t.unsubBtn : t.subBtn}</button>
+                        <button class="btn-subscribe ${isSub ? 'subscribed' : ''}" onclick="toggleSubscription('${pageId}', ${isSub})">${isSub ? t.unsubBtn : t.subBtn}</button>
                     </div>
                 </div>`;
             }
@@ -4219,8 +4540,8 @@ window.performGlobalSearch = async (forcedQuery = null) => {
 
         // --- D. FIREBASE KULLANICI ARAMASI ---
         const usersSnap = await getDocs(collection(db, "users"));
-        usersSnap.forEach(docSnap => {
-            const userData = docSnap.data();
+        const usersData = usersSnap.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() }));
+        usersData.forEach(userData => {
             const username = userData.username || userData.uid || '';
             const name = userData.name || userData.displayName || '';
             const usernameMatch = username.toLowerCase().includes(queryStr);
@@ -4244,6 +4565,8 @@ window.performGlobalSearch = async (forcedQuery = null) => {
                 </div>`;
             }
         });
+
+        await renderSearchSuggestionSections(queryStr, usersData, pagesData);
 
         // Sonuç Durumu Güncelleme
         if (totalFound === 0) {
@@ -4825,7 +5148,7 @@ window.loadPostsFeed = (showAll = false) => {
               <img src="${avatarUrl}" class="${isPage ? 'page-avatar' : 'user-avatar'}" style="cursor:pointer;" onclick="${isMine ? "navigateTo('profil')" : `location.href='profil.html?id=${encodeURIComponent(p.username)}'`}">
               <div>
                   <div style="font-weight:700; display:flex; align-items:center; gap:5px; cursor:pointer;" onclick="${isMine ? "navigateTo('profil')" : `location.href='profil.html?id=${encodeURIComponent(p.username)}'`}">
-                      ${p.authorIsAdmin ? '<span style="font-size:0.75em; margin-right:2px;">👑</span>' : ''} ${authorDisplayName} ${isPage ? '<i class="fa-solid fa-circle-check" style="color:var(--primary); font-size:0.7rem;"></i>' : ''}
+                      ${authorDisplayName} ${isPage ? '<i class="fa-solid fa-circle-check" style="color:var(--primary); font-size:0.7rem;"></i>' : ''}
                       <span class="post-time">• ${formatPostTimestamp(p.timestamp)}</span>
                       ${p.isEdited ? `<span style="font-size: 0.6rem; color: var(--text-muted); font-weight: normal;">(düzenlendi)</span>` : ''}
                   </div>
@@ -4855,7 +5178,7 @@ window.loadPostsFeed = (showAll = false) => {
                                   <img src="${getAvatarUrl(c.avatarUrl || c.avatarSeed || 'assets/img/strendsaydamv2.png', 'user')}" class="comment-author-avatar" style="width:32px; height:32px; border-radius:50%; cursor:pointer;" onclick="${c.username === user.username ? "navigateTo('profil')" : `location.href='profil.html?id=${encodeURIComponent(c.username)}'`}">
                                   <div>
                                       <div>
-                                          <span class="comment-meta" style="cursor:pointer;" onclick="${c.username === user.username ? "navigateTo('profil')" : `location.href='profil.html?id=${encodeURIComponent(c.username)}'`}">${c.isAdmin ? '<span style="font-size:0.75em;">👑</span>' : ''} ${c.displayName}</span>
+                                          <span class="comment-meta" style="cursor:pointer;" onclick="${c.username === user.username ? "navigateTo('profil')" : `location.href='profil.html?id=${encodeURIComponent(c.username)}'`}">${c.displayName}</span>
                                           <span class="comment-time">• ${formatTime(c.time)}</span>
                                       </div>
                                   </div>
@@ -4881,7 +5204,7 @@ window.loadPostsFeed = (showAll = false) => {
                                       <img src="${getAvatarUrl(r.avatarUrl || r.avatarSeed || 'assets/img/strendsaydamv2.png', 'user')}" style="width: 22px; height: 22px; border-radius: 50%; cursor:pointer;" onclick="${r.username === user.username ? "navigateTo('profil')" : `location.href='profil.html?id=${encodeURIComponent(r.username)}'`}">
                                       <div style="flex:1;">
                                           <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
-                                              <b style="color:var(--primary); cursor:pointer;" onclick="${r.username === user.username ? "navigateTo('profil')" : `location.href='profil.html?id=${encodeURIComponent(r.username)}'`}">${r.isAdmin ? '<span style="font-size:0.75em;">👑</span>' : ''} ${r.displayName}</b>
+                                              <b style="color:var(--primary); cursor:pointer;" onclick="${r.username === user.username ? "navigateTo('profil')" : `location.href='profil.html?id=${encodeURIComponent(r.username)}'`}">${r.displayName}</b>
                                               <span class="comment-time">• ${formatTime(r.time)}</span>
                                           </div>
                                           <div style="margin-top:4px; font-size:0.9rem; color:var(--text-main);">${r.text}</div>
@@ -5077,20 +5400,12 @@ if (typeof updatePostCount === 'function') updatePostCount();
   if(profileTrigger) {
     profileTrigger.onclick = (e) => { 
       e.stopPropagation(); 
-      const wrapper = document.querySelector('.dropdown-menu-wrapper');
-      const menu = document.getElementById('dropdownMenu');
-      if(wrapper && menu) {
-        wrapper.classList.toggle('active');
-        menu.classList.toggle('active');
-      }
+            toggleProfileDropdown(profileTrigger);
     };
   }
 
   window.onclick = () => {
-    const wrapper = document.querySelector('.dropdown-menu-wrapper');
-    const menu = document.getElementById('dropdownMenu');
-    if(wrapper) wrapper.classList.remove('active');
-    if(menu) menu.classList.remove('active');
+        closeProfileDropdown();
   };
 /* ============================ */
 
@@ -7197,6 +7512,57 @@ async function loadComponent(elementId, filePath) {
 
 let headerInteractionsInitialized = false;
 
+function closeProfileDropdown() {
+    const wrapper = document.querySelector('.dropdown-menu-wrapper');
+    const menu = document.getElementById('dropdownMenu');
+    if (wrapper) wrapper.classList.remove('active');
+    if (menu) menu.classList.remove('active');
+}
+
+function positionProfileDropdown(triggerEl) {
+    const menu = document.getElementById('dropdownMenu');
+    if (!menu || !triggerEl) return;
+
+    const triggerRect = triggerEl.getBoundingClientRect();
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    const gap = 8;
+    const sidePadding = 12;
+
+    const menuWidth = Math.min(420, Math.max(280, viewportWidth - 32));
+    let left = triggerRect.right - menuWidth;
+    left = Math.max(sidePadding, Math.min(left, viewportWidth - menuWidth - sidePadding));
+
+    const maxHeight = Math.floor(viewportHeight * 0.66);
+    menu.style.maxHeight = `${maxHeight}px`;
+    menu.style.width = `${menuWidth}px`;
+
+    let top = triggerRect.bottom + gap;
+    const estimatedHeight = Math.min(maxHeight, menu.scrollHeight || maxHeight);
+    if (top + estimatedHeight > viewportHeight - sidePadding) {
+        top = Math.max(sidePadding, triggerRect.top - estimatedHeight - gap);
+    }
+
+    menu.style.left = `${left}px`;
+    menu.style.top = `${top}px`;
+}
+
+function toggleProfileDropdown(triggerEl) {
+    const wrapper = document.querySelector('.dropdown-menu-wrapper');
+    const menu = document.getElementById('dropdownMenu');
+    if (!wrapper || !menu) return;
+
+    const shouldOpen = !menu.classList.contains('active');
+    if (!shouldOpen) {
+        closeProfileDropdown();
+        return;
+    }
+
+    wrapper.classList.add('active');
+    menu.classList.add('active');
+    positionProfileDropdown(triggerEl || document.getElementById('profileTrigger'));
+}
+
 function initHeaderInteractions() {
     const hasHeaderSearch = document.getElementById('headerSearchButton') && document.getElementById('headerSearchInput') && document.getElementById('headerSearchWrapper');
     if (headerInteractionsInitialized && hasHeaderSearch) return;
@@ -7206,12 +7572,7 @@ function initHeaderInteractions() {
     if (profileTrigger) {
         profileTrigger.onclick = (e) => {
             e.stopPropagation();
-            const wrapper = document.querySelector('.dropdown-menu-wrapper');
-            const menu = document.getElementById('dropdownMenu');
-            if (wrapper && menu) {
-                wrapper.classList.toggle('active');
-                menu.classList.toggle('active');
-            }
+            toggleProfileDropdown(profileTrigger);
         };
     }
 
@@ -7247,7 +7608,7 @@ function initHeaderInteractions() {
     const runHeaderSearch = (queryValue = null) => {
         const searchQuery = (queryValue || headerSearchInput?.value || '').trim();
         if (!searchQuery) {
-            if (headerSearchInput) headerSearchInput.focus();
+            window.location.href = 'search.html';
             return;
         }
         if (window.location.pathname.includes('search.html')) {
@@ -7299,7 +7660,7 @@ function initHeaderInteractions() {
             const headerSearchInput = document.getElementById('headerSearchInput');
             if (headerSearchInput) {
                 const query = headerSearchInput.value.trim();
-                if (query) runHeaderSearch(query);
+                runHeaderSearch(query);
             }
         }
     });
@@ -7327,7 +7688,10 @@ window.toggleHeaderSearch = function(event) {
 
 window.performInlineHeaderSearch = async (forcedQuery = null) => {
     const searchQuery = (forcedQuery || document.getElementById('headerSearchInput')?.value || '').trim();
-    if (!searchQuery) return;
+    if (!searchQuery) {
+        window.location.href = 'search.html';
+        return;
+    }
     if (window.location.pathname.includes('search.html')) {
         performGlobalSearch(searchQuery);
         return;
@@ -7475,22 +7839,18 @@ window.closeSideMenus = function() {
 // 4. Global Tıklama Dinleyicisi (Event Delegation)
 // Bu yöntem, elemanlar fetch ile sonradan gelse bile tıklamayı yakalar.
 document.addEventListener('click', (e) => {
-    const wrapper = document.querySelector('.dropdown-menu-wrapper');
     const dropdownMenu = document.getElementById('dropdownMenu');
     const profileTrigger = e.target.closest('#profileTrigger');
 
     // Profil tetikleyiciye tıklandıysa
     if (profileTrigger) {
-        if (wrapper && dropdownMenu) {
-            wrapper.classList.toggle('active');
-            dropdownMenu.classList.toggle('active');
-            e.stopPropagation(); // Tıklamanın dışarı sızmasını engelle
-        }
+        toggleProfileDropdown(profileTrigger);
+        e.stopPropagation(); // Tıklamanın dışarı sızmasını engelle
     } 
     // Menü açıkken dışarıya tıklandıysa kapat
     else if (dropdownMenu && dropdownMenu.classList.contains('active')) {
         if (!dropdownMenu.contains(e.target)) {
-            dropdownMenu.classList.remove('active');
+            closeProfileDropdown();
         }
     }
     
@@ -7516,6 +7876,22 @@ document.addEventListener('click', (e) => {
         }
     }
 });
+
+window.addEventListener('resize', () => {
+    const menu = document.getElementById('dropdownMenu');
+    const trigger = document.getElementById('profileTrigger');
+    if (menu?.classList.contains('active') && trigger) {
+        positionProfileDropdown(trigger);
+    }
+});
+
+window.addEventListener('scroll', () => {
+    const menu = document.getElementById('dropdownMenu');
+    const trigger = document.getElementById('profileTrigger');
+    if (menu?.classList.contains('active') && trigger) {
+        positionProfileDropdown(trigger);
+    }
+}, true);
 
 // ====== ARKADAŞ SİSTEMİ ======
 // Arkadaş isteği gönder - DÜZELTİLDİ
