@@ -62,15 +62,15 @@ window.updateReplyTargetDisplay = function(postId) {
     const input = document.getElementById(`input-${postId}`);
     if (!infoBox || !input) return;
     const ctx = window.commentReplyContext[postId];
-    const defaultPlaceholder = input.dataset.defaultPlaceholder || 'Yorum yaz...';
+    const defaultPlaceholder = input.dataset.defaultPlaceholder || getLangText('commentPlaceholder', 'Yorum yaz...');
     if (ctx && ctx.commentTime) {
         const snippet = ctx.snippet ? ` — ${escapeHtml(ctx.snippet)}` : '';
         infoBox.style.display = 'flex';
         infoBox.innerHTML = `
-            <span><strong>${escapeHtml(ctx.author)}</strong> yanıtlanıyor${snippet}</span>
-            <button type="button" onclick="clearReply('${postId}')">İptal</button>
+            <span><strong>${escapeHtml(ctx.author)}</strong> ${getLangText('replyingToText', 'yanıtlanıyor')}${snippet}</span>
+            <button type="button" onclick="clearReply('${postId}')">${getLangText('cancelBtn', 'İptal')}</button>
         `;
-        input.placeholder = `${defaultPlaceholder} (Yanıt @${ctx.author})`;
+        input.placeholder = `${defaultPlaceholder} (${getLangText('replyToPrefix', 'Yanıt')} @${ctx.author})`;
     } else {
         infoBox.style.display = 'none';
         infoBox.innerHTML = '';
@@ -196,7 +196,7 @@ window.deleteMusic = deleteMusic;
 async function loadTopLikedPosts() {
     const container = document.getElementById('top-liked-posts-list');
     if (!container) return;
-    container.innerHTML = '<div style="font-size:0.9rem; color: var(--text-muted); text-align:center;">Yükleniyor...</div>';
+    container.innerHTML = `<div style="font-size:0.9rem; color: var(--text-muted); text-align:center;">${getLangText('loadingText', 'Yükleniyor...')}</div>`;
     try {
         const snap = await getDocs(collection(db, 'posts'));
         const posts = snap.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() }));
@@ -205,7 +205,7 @@ async function loadTopLikedPosts() {
             .slice(0, 1);
 
         if (!topPosts.length) {
-            container.innerHTML = '<div style="font-size:0.9rem; color: var(--text-muted); text-align:center;">Henüz paylaşım bulunamadı.</div>';
+            container.innerHTML = `<div style="font-size:0.9rem; color: var(--text-muted); text-align:center;">${getLangText('noPostsYet', 'Henüz paylaşım bulunamadı.')}</div>`;
             return;
         }
 
@@ -240,53 +240,53 @@ async function loadTopLikedPosts() {
                         </div>
                     </div>
                     <div style="padding:0 18px 18px;">
-                        <div style="margin-top:16px; font-size:0.98rem; color: var(--text-main); line-height:1.75;">${snippet || 'Görsel veya metin içerikli gönderi.'}</div>
+                        <div style="margin-top:16px; font-size:0.98rem; color: var(--text-main); line-height:1.75;">${snippet || getLangText('postSnippetFallback', 'Görsel veya metin içerikli gönderi.')}</div>
                         ${topComment ? `
                             <div style="margin-top:18px; padding:16px; border-radius: 20px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12);">
                                 <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
                                     <img src="${commentAvatar}" alt="${commentAuthor}" style="width:28px; height:28px; border-radius:50%; object-fit:cover; border:1px solid rgba(255,255,255,0.16);">
                                     <div>
-                                        <div style="font-size:0.86rem; font-weight:700; color: var(--text-main);">${commentAuthor}’ın yorumu</div>
-                                        <div style="font-size:0.78rem; color: var(--text-muted);">En beğenilen yorum</div>
+                                        <div style="font-size:0.86rem; font-weight:700; color: var(--text-main);">${commentAuthor} ${getLangText('topCommentBySuffix', 'yorum yaptı')}</div>
+                                        <div style="font-size:0.78rem; color: var(--text-muted);">${getLangText('topCommentLabel', 'En beğenilen yorum')}</div>
                                     </div>
                                 </div>
-                                <div style="font-size:0.9rem; color: var(--text-muted); line-height:1.6;">${commentText || 'Gönderiye bir yorum eklendi.'}</div>
+                                <div style="font-size:0.9rem; color: var(--text-muted); line-height:1.6;">${commentText || getLangText('commentFallback', 'Gönderiye bir yorum eklendi.')}</div>
                             </div>
                         ` : ''}
                         <div style="margin-top:18px; display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:12px;">
                             <span style="font-size:0.82rem; color: var(--text-muted);">${timestamp}</span>
-                            <button onclick="window.location.href='#post-${post.id}'" style="background: linear-gradient(135deg, #6366f1, #4f46e5); color: white; border:none; padding:12px 18px; border-radius:16px; cursor:pointer; font-weight:700; transition: transform 0.2s ease;">Gönderiyi Gör</button>
+                            <button onclick="window.location.href='#post-${post.id}'" style="background: linear-gradient(135deg, #6366f1, #4f46e5); color: white; border:none; padding:12px 18px; border-radius:16px; cursor:pointer; font-weight:700; transition: transform 0.2s ease;">${getLangText('viewPostBtn', 'Gönderiyi Gör')}</button>
                         </div>
                     </div>
                 </div>`;
         }).join('');
     } catch (e) {
         console.error('loadTopLikedPosts hata:', e);
-        container.innerHTML = '<div style="font-size:0.9rem; color: var(--danger); text-align:center;">Beğeni sıralaması yüklenemedi.</div>';
+        container.innerHTML = `<div style="font-size:0.9rem; color: var(--danger); text-align:center;">${getLangText('topLikesLoadError', 'Beğeni sıralaması yüklenemedi.')}</div>`;
     }
 }
 
 async function loadTopReadBlogs() {
     const container = document.getElementById('top-read-blogs');
     if (!container) return;
-    container.innerHTML = '<div style="font-size:0.9rem; color: var(--text-muted); text-align:center;">Yükleniyor...</div>';
+    container.innerHTML = `<div style="font-size:0.9rem; color: var(--text-muted); text-align:center;">${getLangText('loadingText', 'Yükleniyor...')}</div>`;
     try {
         const q = query(collection(db, 'blogs'), orderBy('views', 'desc'), limit(3));
         const snap = await getDocs(q);
         if (snap.empty) {
-            container.innerHTML = '<div style="font-size:0.9rem; color: var(--text-muted); text-align:center;">Henüz blog yazısı bulunamadı.</div>';
+            container.innerHTML = `<div style="font-size:0.9rem; color: var(--text-muted); text-align:center;">${getLangText('noBlogPostsYet', 'Henüz blog yazısı bulunamadı.')}</div>`;
             return;
         }
         const items = snap.docs.map((docSnap, idx) => {
             const post = docSnap.data();
-            const rawTitle = post.title || post.headline || 'Başlıksız yazı';
+            const rawTitle = post.title || post.headline || getLangText('untitledPost', 'Başlıksız yazı');
             const cappedRawTitle = rawTitle.charAt(0).toUpperCase() + rawTitle.slice(1);
             const title = escapeHtml(cappedRawTitle);
             const shortTitle = title.length > 56 ? `${title.substring(0, 53)}...` : title;
             const views = post.views || 0;
             const authorDisplay = post.authorDisplayName || post.author || post.displayName || post.name || '';
             const authorUsername = post.authorUsername || post.username || '';
-            const authorName = escapeHtml(authorDisplay || authorUsername || 'Yazar');
+            const authorName = escapeHtml(authorDisplay || authorUsername || getLangText('authorLabel', 'Yazar'));
             const authorIconHtml = `<i class="fa-solid fa-user" style="margin-right:6px; color:var(--primary);"></i>`;
             const authorLabelHtml = authorDisplay && authorUsername ? `${authorIconHtml}${authorName} · @${escapeHtml(authorUsername)}` : `${authorIconHtml}${authorName}`;
             const slug = post.slug || docSnap.id;
@@ -309,15 +309,15 @@ async function loadTopReadBlogs() {
                         </div>
                     </div>
                     <div style="display:flex; flex-direction:column; align-items:center; gap:6px;">
-                        <div style="font-size:0.78rem; color: var(--success); margin-bottom:6px; text-align:center; width:100%; font-weight:700;">${views} okuma</div>
-                        <span role="button" onclick="location.href='${url}'; event.stopPropagation();" style="background: var(--primary); color: #fff; padding:8px 12px; border-radius: 10px; font-weight:700; font-size:0.86rem; text-decoration:none; display:inline-flex; align-items:center; gap:8px; cursor:pointer;">Hemen Oku</span>
+                        <div style="font-size:0.78rem; color: var(--success); margin-bottom:6px; text-align:center; width:100%; font-weight:700;">${views} ${getLangText('readCountLabel', 'okuma')}</div>
+                        <span role="button" onclick="location.href='${url}'; event.stopPropagation();" style="background: var(--primary); color: #fff; padding:8px 12px; border-radius: 10px; font-weight:700; font-size:0.86rem; text-decoration:none; display:inline-flex; align-items:center; gap:8px; cursor:pointer;">${getLangText('readNowBtn', 'Hemen Oku')}</span>
                     </div>
                 </a>`;
         });
         container.innerHTML = items.join('');
     } catch (e) {
         console.error('loadTopReadBlogs hata:', e);
-        container.innerHTML = '<div style="font-size:0.9rem; color: var(--danger); text-align:center;">Blog sıralaması yüklenemedi.</div>';
+        container.innerHTML = `<div style="font-size:0.9rem; color: var(--danger); text-align:center;">${getLangText('blogRankingLoadError', 'Blog sıralaması yüklenemedi.')}</div>`;
     }
 }
 
@@ -420,7 +420,7 @@ function renderPostPoll(poll, postId) {
                     <i class="fa-solid fa-chart-pie"></i>
                     <strong>${escapeHtml(poll.question)}</strong>
                 </div>
-                <span class="poll-status-pill">${isFinished ? 'Kapalı' : 'Aktif'}</span>
+                <span class="poll-status-pill">${isFinished ? getLangText('pollClosed', 'Kapalı') : getLangText('pollActive', 'Aktif')}</span>
             </div>
             <div class="poll-options">
     `;
@@ -444,7 +444,7 @@ function renderPostPoll(poll, postId) {
                     <div class="poll-option-head">
                         <span class="poll-option-label">${escapeHtml(opt)}</span>
                         <div class="poll-option-meta">
-                            <span class="poll-option-count">${optVotes} oy</span>
+                            <span class="poll-option-count">${optVotes} ${getLangText('voteLabel', 'oy')}</span>
                             <span class="poll-option-percent">${percent}%</span>
                             ${avatarsHtml}
                         </div>
@@ -455,10 +455,10 @@ function renderPostPoll(poll, postId) {
             `;
             
             if (!isFinished && isPollUserAuthenticated() && !userVoted && !userVotedThisOption) {
-                html += `<button class="poll-vote-btn" onclick="votePostPoll('${postId}', ${idx})"><i class="fa-solid fa-check-to-slot"></i> Oy Ver</button>`;
+                html += `<button class="poll-vote-btn" onclick="votePostPoll('${postId}', ${idx})"><i class="fa-solid fa-check-to-slot"></i> ${getLangText('voteBtn', 'Oy Ver')}</button>`;
             } else if (!isFinished && userVotedThisOption) {
                 html += `<div class="poll-option-actions">
-                    <button class="poll-vote-btn danger" onclick="removePostPollVote('${postId}')"><i class="fa-solid fa-rotate-left"></i> Oyumu Geri Al</button>
+                    <button class="poll-vote-btn danger" onclick="removePostPollVote('${postId}')"><i class="fa-solid fa-rotate-left"></i> ${getLangText('retractVoteBtn', 'Oyumu Geri Al')}</button>
                 </div>`;
             }
             
@@ -466,7 +466,7 @@ function renderPostPoll(poll, postId) {
         });
     }
     
-    const timeRemaining = isFinished ? 'Bitti' : `${Math.ceil((endTime - now) / (1000 * 60))} dakika kaldı`;
+    const timeRemaining = isFinished ? getLangText('finishedLabel', 'Bitti') : `${Math.ceil((endTime - now) / (1000 * 60))} ${getLangText('minutesLeftLabel', 'dakika kaldı')}`;
     html += `
             </div>
             <div class="poll-footer">${timeRemaining}</div>
@@ -3204,7 +3204,7 @@ window.clearImagePreview = () => {
       postPlaceholder: "Ne hakkında paylaşımda bulunmak istersiniz?",
       shareBtn: "Paylaş",
       editProfileBtn: "Profili Düzenle",
-      footerTagline: "Topluluğunuzla her zaman bir adım önde olun.",
+    footerTagline: "Platformumuza katıldığınızda her zaman bir adım önde olursunuz.",
       footerMenu: "Hızlı Menü",
       footerCorp: "Kurumsal",
       footerAbout: "Hakkımızda",
@@ -3213,6 +3213,44 @@ window.clearImagePreview = () => {
       footerContact: "İletişim",
       footerHelp: "Yardım Merkezi",
       footerRights: "Tüm Hakları Saklıdır.",
+    footerNote: "Sosyal bağlantılarınızı güçlendirin, gündemi takip edin ve topluluğunuzu büyütün.",
+    footerDiscoverCommunity: "Topluluğu Keşfet",
+    footerFindFriends: "Arkadaş Bul",
+    headerFriends: "Arkadaşlar",
+    headerMyFriends: "Arkadaşlarım",
+    headerFriendsLoading: "Arkadaşlar yükleniyor...",
+    headerSeeAll: "Tümünü Gör",
+    headerNotification: "Bildirim",
+    headerInbox: "Bildirim Kutusu",
+    headerNoNotifications: "Yeni bildirim yok",
+    headerGoNotifications: "Bildirime Git",
+    headerThemeShort: "Tema Seç",
+    headerInviteShort: "Davet Et",
+    navCommunities: "Topluluklar",
+    profileCardTitle: "Profil Kartınız",
+    membershipInfo: "Üyelik Bilgileriniz",
+    emailLabel: "E-Posta",
+    roleLabel: "Rol",
+    roleUser: "Kullanıcı",
+    friendsLabel: "Arkadaşlar",
+    requestsLabel: "İstekler",
+    myProfileBtn: "Profilim",
+    adminPanel: "Yönetici Paneli",
+    blogMenuTitle: "Blog Menü",
+    allPosts: "Tüm Yazılar",
+    myArticles: "Yazılarım",
+    newArticle: "Yeni Yazı",
+    profileMenuTitle: "Profil Menü",
+    myPostsNav: "Gönderilerim",
+    myLikes: "Beğenilerim",
+    mySaves: "Kayıtlarım",
+    myFriends: "Arkadaşlarım",
+    incomingNotifications: "Gelen Bildirimler",
+    mobileNavHome: "Ana",
+    mobileNavSearch: "Ara",
+    mobileNavNew: "Yeni",
+    mobileNavChat: "Sohbet",
+    logoutBtn: "Çıkış Yap",
       subBtn: "Abone Ol",
       unsubBtn: "Bırak",
       promptNewName: "Yeni Görünen Ad:",
@@ -3238,7 +3276,85 @@ window.clearImagePreview = () => {
       helpText: "SosyalTrend kullanımı hakkında merak ettiğiniz her şey burada.",
       contactHeading: "İletişim",
       contactText: "Bizimle iletişime geçmek için officialfthuzun@gmail.com adresine mail atabilirsiniz.",
-      sendBtn: "Mesajı Gönder"
+            sendBtn: "Mesajı Gönder",
+            rightSearchTitle: "Arama",
+            rightSearchPlaceholder: "Aramak istediğin şeyi yaz.",
+            rightSearchBtn: "Ara",
+            newConnectionsKicker: "Yeni Bağlantılar",
+            newConnectionsTitle: "Arkadaş Bul",
+            newConnectionsSubtitle: "İlgi alanına göre yeni kişiler keşfet.",
+            featureSmartMatch: "Ortak ilgi alanlarına göre akıllı eşleşmeler",
+            featureCityCommunity: "Şehir ve topluluk odaklı öneriler",
+            friendFindPageBtn: "Arkadaş Bul Sayfası",
+            discoverCommunitiesBtn: "Toplulukları Keşfet",
+            calendarTitle: "Takvim",
+            upcomingEventsTitle: "Yaklaşan Etkinlikler",
+            noUpcomingEvents: "Yaklaşan etkinlik yok",
+            topCommunitiesTitle: "En popüler 3 topluluk sayfası",
+            friendSuggestionsTitle: "Arkadaş Önerileri",
+            loadingText: "Yükleniyor...",
+            friendFindBtn: "Arkadaş Bul",
+            inviteFriendBtn: "Arkadaşını Davet Et",
+            composerTitle: "Yeni paylaşım yapmaya hazır mısınız?",
+            composerSubtitle: "Hikayenizi, fotoğrafınızı veya fikirlerinizi hemen arkadaşlarınızla paylaşın ve onlarla eğlenceli vakit geçirin.",
+            photoBtn: "Fotoğraf",
+            emojiBtn: "Emoji",
+            pollBtn: "Anket",
+            postHelpText: "Yazınızı yazın, resim ekleyin ve ardından hızlıca paylaşın.",
+            pollQuestionLabel: "Anket sorusu",
+            pollQuestionPlaceholder: "Anket sorusunu yazın...",
+            pollOptionsLabel: "Seçenekler",
+            pollOption1Placeholder: "Seçenek 1",
+            pollOption2Placeholder: "Seçenek 2",
+            pollOption3Placeholder: "Seçenek 3 (isteğe bağlı)",
+            pollOption4Placeholder: "Seçenek 4 (isteğe bağlı)",
+            pollDaysLabel: "Gün",
+            pollHoursLabel: "Saat",
+            pollMinutesLabel: "Dakika",
+            cancelBtn: "İptal",
+            createPollBtn: "Anket Oluştur",
+            topLikedPostTitle: "En çok beğeni alan gönderi",
+            topReadBlogsTitle: "Top 3 en çok okunan blog yazısı",
+            editPostTitle: "Gönderiyi Düzenle",
+            editPlaceholder: "Burada düzenleyin...",
+                saveBtn: "Kaydet",
+                replyingToText: "yanıtlanıyor",
+                replyToPrefix: "Yanıt",
+                noPostsYet: "Henüz paylaşım bulunamadı.",
+                postSnippetFallback: "Görsel veya metin içerikli gönderi.",
+                topCommentBySuffix: "yorum yaptı",
+                topCommentLabel: "En beğenilen yorum",
+                commentFallback: "Gönderiye bir yorum eklendi.",
+                viewPostBtn: "Gönderiyi Gör",
+                topLikesLoadError: "Beğeni sıralaması yüklenemedi.",
+                noBlogPostsYet: "Henüz blog yazısı bulunamadı.",
+                untitledPost: "Başlıksız yazı",
+                authorLabel: "Yazar",
+                readCountLabel: "okuma",
+                readNowBtn: "Hemen Oku",
+                blogRankingLoadError: "Blog sıralaması yüklenemedi.",
+                pollClosed: "Kapalı",
+                pollActive: "Aktif",
+                voteLabel: "oy",
+                voteBtn: "Oy Ver",
+                retractVoteBtn: "Oyumu Geri Al",
+                finishedLabel: "Bitti",
+                minutesLeftLabel: "dakika kaldı",
+                readMoreBtn: "Daha fazlasını gör",
+                showLessBtn: "Daha az göster",
+                editedLabel: "düzenlendi",
+                editAction: "Düzenle",
+                deleteAction: "Sil",
+                replyBtn: "Yanıtla",
+                postsLoadError: "Gönderiler yüklenirken bir hata oluştu.",
+                loadMoreBtn: "Daha fazla yükle",
+                sharingText: "Paylaşılıyor...",
+                postedToast: "Gönderildi",
+                    postFailedAlert: "Gönderi paylaşılamadı.",
+                    translateToEnglishTitle: "İngilizceye çevir",
+                    showOriginalTitle: "Orijinali göster",
+                    translatingTitle: "Çevriliyor...",
+                    translationFailedAlert: "İçerik çevrilemedi."
     },
     en: {
       searchPlaceholder: "Search pages or people...",
@@ -3271,6 +3387,44 @@ window.clearImagePreview = () => {
       footerContact: "Contact",
       footerHelp: "Help Center",
       footerRights: "All Rights Reserved.",
+    footerNote: "Strengthen your social connections, follow trends, and grow your community.",
+    footerDiscoverCommunity: "Discover Community",
+    footerFindFriends: "Find Friends",
+    headerFriends: "Friends",
+    headerMyFriends: "My Friends",
+    headerFriendsLoading: "Friends are loading...",
+    headerSeeAll: "See All",
+    headerNotification: "Notification",
+    headerInbox: "Notification Inbox",
+    headerNoNotifications: "No new notifications",
+    headerGoNotifications: "Go to Notifications",
+    headerThemeShort: "Theme",
+    headerInviteShort: "Invite",
+    navCommunities: "Communities",
+    profileCardTitle: "Your Profile Card",
+    membershipInfo: "Membership Information",
+    emailLabel: "E-mail",
+    roleLabel: "Role",
+    roleUser: "User",
+    friendsLabel: "Friends",
+    requestsLabel: "Requests",
+    myProfileBtn: "My Profile",
+    adminPanel: "Admin Panel",
+    blogMenuTitle: "Blog Menu",
+    allPosts: "All Posts",
+    myArticles: "My Articles",
+    newArticle: "New Article",
+    profileMenuTitle: "Profile Menu",
+    myPostsNav: "My Posts",
+    myLikes: "My Likes",
+    mySaves: "My Saves",
+    myFriends: "My Friends",
+    incomingNotifications: "Incoming Notifications",
+    mobileNavHome: "Home",
+    mobileNavSearch: "Search",
+    mobileNavNew: "New",
+    mobileNavChat: "Chat",
+    logoutBtn: "Log Out",
       subBtn: "Subscribe",
       unsubBtn: "Leave",
       promptNewName: "New Display Name:",
@@ -3288,12 +3442,231 @@ window.clearImagePreview = () => {
       helpText: "Everything you wonder about using SosyalTrend is here.",
       contactHeading: "Contact",
       contactText: "To contact us, you can send an e-mail to officialfthuzun@gmail.com.",
-      sendBtn: "Send Message"
+            sendBtn: "Send Message",
+            rightSearchTitle: "Search",
+            rightSearchPlaceholder: "Type what you want to search.",
+            rightSearchBtn: "Search",
+            newConnectionsKicker: "New Connections",
+            newConnectionsTitle: "Find Friends",
+            newConnectionsSubtitle: "Discover new people based on your interests.",
+            featureSmartMatch: "Smart matches by shared interests",
+            featureCityCommunity: "City and community based suggestions",
+            friendFindPageBtn: "Friend Finder Page",
+            discoverCommunitiesBtn: "Discover Communities",
+            calendarTitle: "Calendar",
+            upcomingEventsTitle: "Upcoming Events",
+            noUpcomingEvents: "No upcoming events",
+            topCommunitiesTitle: "Top 3 most popular community pages",
+            friendSuggestionsTitle: "Friend Suggestions",
+            loadingText: "Loading...",
+            friendFindBtn: "Find Friends",
+            inviteFriendBtn: "Invite Your Friend",
+            composerTitle: "Ready to share something new?",
+            composerSubtitle: "Share your story, photo, or ideas with your friends right away and enjoy time together.",
+            photoBtn: "Photo",
+            emojiBtn: "Emoji",
+            pollBtn: "Poll",
+            postHelpText: "Write your post, add an image, and share quickly.",
+            pollQuestionLabel: "Poll question",
+            pollQuestionPlaceholder: "Type your poll question...",
+            pollOptionsLabel: "Options",
+            pollOption1Placeholder: "Option 1",
+            pollOption2Placeholder: "Option 2",
+            pollOption3Placeholder: "Option 3 (optional)",
+            pollOption4Placeholder: "Option 4 (optional)",
+            pollDaysLabel: "Days",
+            pollHoursLabel: "Hours",
+            pollMinutesLabel: "Minutes",
+            cancelBtn: "Cancel",
+            createPollBtn: "Create Poll",
+            topLikedPostTitle: "Most liked post",
+            topReadBlogsTitle: "Top 3 most read blog posts",
+            editPostTitle: "Edit Post",
+            editPlaceholder: "Edit here...",
+                        saveBtn: "Save",
+                        replyingToText: "is being replied to",
+                        replyToPrefix: "Reply",
+                        noPostsYet: "No posts yet.",
+                        postSnippetFallback: "Post with image or text content.",
+                        topCommentBySuffix: "commented",
+                        topCommentLabel: "Top comment",
+                        commentFallback: "A comment was added to this post.",
+                        viewPostBtn: "View Post",
+                        topLikesLoadError: "Could not load top liked post.",
+                        noBlogPostsYet: "No blog posts found yet.",
+                        untitledPost: "Untitled post",
+                        authorLabel: "Author",
+                        readCountLabel: "reads",
+                        readNowBtn: "Read Now",
+                        blogRankingLoadError: "Could not load blog ranking.",
+                        pollClosed: "Closed",
+                        pollActive: "Active",
+                        voteLabel: "votes",
+                        voteBtn: "Vote",
+                        retractVoteBtn: "Retract Vote",
+                        finishedLabel: "Finished",
+                        minutesLeftLabel: "minutes left",
+                        readMoreBtn: "Read more",
+                        showLessBtn: "Show less",
+                        editedLabel: "edited",
+                        editAction: "Edit",
+                        deleteAction: "Delete",
+                        replyBtn: "Reply",
+                        postsLoadError: "An error occurred while loading posts.",
+                        loadMoreBtn: "Load more",
+                        sharingText: "Posting...",
+                        postedToast: "Posted",
+                        postFailedAlert: "Post could not be shared.",
+                        translateToEnglishTitle: "Translate to English",
+                        showOriginalTitle: "Show original",
+                        translatingTitle: "Translating...",
+                        translationFailedAlert: "Content could not be translated."
     }
   };
 
   let currentLang = localStorage.getItem('st_lang') || 'tr';
   let isPrivate = localStorage.getItem('st_isPrivate') === 'true';
+
+    function getLangText(key, fallback = '') {
+        const dict = translations[currentLang] || {};
+        return Object.prototype.hasOwnProperty.call(dict, key) ? dict[key] : fallback;
+    }
+
+        const englishTranslationCache = new Map();
+
+        async function translatePlainTextToEnglish(text) {
+            const source = (text || '').trim();
+            if (!source) return '';
+            if (englishTranslationCache.has(source)) return englishTranslationCache.get(source);
+
+            const chunks = [];
+            const maxChunkLength = 3000;
+            for (let i = 0; i < source.length; i += maxChunkLength) {
+                chunks.push(source.slice(i, i + maxChunkLength));
+            }
+
+            let translatedText = '';
+            for (const chunk of chunks) {
+                const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=en&dt=t&q=${encodeURIComponent(chunk)}`;
+                const response = await fetch(url);
+                if (!response.ok) throw new Error('translate-http-error');
+                const payload = await response.json();
+                const translatedChunk = Array.isArray(payload?.[0])
+                    ? payload[0].map((part) => part?.[0] || '').join('')
+                    : '';
+                translatedText += translatedChunk;
+            }
+
+            englishTranslationCache.set(source, translatedText || source);
+            return translatedText || source;
+        }
+
+        async function translateWithMyMemory(text) {
+            const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=auto|en`;
+            const response = await fetch(url);
+            if (!response.ok) throw new Error('mymemory-http-error');
+            const payload = await response.json();
+            const result = payload?.responseData?.translatedText || '';
+            if (!result) throw new Error('mymemory-empty-result');
+            return result;
+        }
+
+        function resolveTranslateTarget(targetSelectorOrId) {
+            if (!targetSelectorOrId) return null;
+
+            if (typeof targetSelectorOrId === 'string' && targetSelectorOrId.startsWith('#')) {
+                const id = targetSelectorOrId.slice(1);
+                const byId = document.getElementById(id);
+                if (byId) return byId;
+                try {
+                    return document.querySelector(targetSelectorOrId);
+                } catch (_) {
+                    return null;
+                }
+            }
+
+            if (typeof targetSelectorOrId === 'string') {
+                const byId = document.getElementById(targetSelectorOrId);
+                if (byId) return byId;
+                try {
+                    return document.querySelector(targetSelectorOrId);
+                } catch (_) {
+                    return null;
+                }
+            }
+
+            return null;
+        }
+
+        function updateTranslateButtonBadge(button, isTranslated) {
+            if (!button) return;
+            const nextLabel = isTranslated ? 'TR' : 'EN';
+            button.innerHTML = `<span class="translate-lang-badge">${nextLabel}</span>`;
+        }
+
+        window.toggleTranslateContentToEnglish = async function(button, targetSelector) {
+            const target = resolveTranslateTarget(targetSelector);
+            if (!button || !target) return;
+
+            if (!button.querySelector('.translate-lang-badge')) {
+                updateTranslateButtonBadge(button, button.dataset.translated === '1');
+            }
+            const originalEncoded = target.dataset.originalEncoded || encodeURIComponent(target.textContent || '');
+            target.dataset.originalEncoded = originalEncoded;
+            const originalText = decodeURIComponent(originalEncoded);
+
+            if (button.dataset.translated === '1') {
+                target.textContent = originalText;
+                button.dataset.translated = '0';
+                button.title = getLangText('translateToEnglishTitle', 'İngilizceye çevir');
+                updateTranslateButtonBadge(button, false);
+                return;
+            }
+
+            const previousDisabled = button.disabled;
+            button.disabled = true;
+            button.title = getLangText('translatingTitle', 'Çevriliyor...');
+            try {
+                let translated = '';
+                try {
+                    translated = await translatePlainTextToEnglish(originalText);
+                } catch (primaryError) {
+                    console.warn('Primary translate endpoint failed, trying fallback:', primaryError);
+                    translated = await translateWithMyMemory(originalText);
+                }
+                target.textContent = translated;
+                button.dataset.translated = '1';
+                button.title = getLangText('showOriginalTitle', 'Orijinali göster');
+                updateTranslateButtonBadge(button, true);
+            } catch (err) {
+                console.error('Çeviri hatası:', err);
+                alert(getLangText('translationFailedAlert', 'İçerik çevrilemedi.'));
+                button.title = getLangText('translateToEnglishTitle', 'İngilizceye çevir');
+                updateTranslateButtonBadge(button, false);
+            } finally {
+                button.disabled = previousDisabled;
+            }
+        };
+
+        document.addEventListener('click', (event) => {
+            const btn = event.target.closest('[data-translate-target]');
+            if (!btn) return;
+            event.preventDefault();
+            event.stopPropagation();
+            const target = btn.getAttribute('data-translate-target');
+            window.toggleTranslateContentToEnglish(btn, target);
+        });
+
+    function refreshDynamicLocalizedContent() {
+        // Dynamic widgets and feed content are generated with JS templates,
+        // so they must be re-rendered after language switch.
+        if (document.getElementById('top-liked-posts-list')) loadTopLikedPosts();
+        if (document.getElementById('top-read-blogs')) loadTopReadBlogs();
+        if (document.getElementById('dynamic-suggestions-list')) loadSuggestions();
+        if (document.getElementById('feed-items') && typeof window.loadPostsFeed === 'function') {
+            window.loadPostsFeed(showAllFeedPosts);
+        }
+    }
 
   window.changeLanguage = (lang) => {
     // Language changed
@@ -3304,9 +3677,10 @@ window.clearImagePreview = () => {
 
   function applyTranslations() {
     const t = translations[currentLang];
+        document.documentElement.lang = currentLang === 'en' ? 'en' : 'tr';
     document.querySelectorAll('[data-i18n]').forEach(el => {
       const key = el.getAttribute('data-i18n');
-      if (t[key]) el.innerText = t[key];
+            if (t[key]) el.textContent = t[key];
     });
     document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
       const key = el.getAttribute('data-i18n-placeholder');
@@ -3325,8 +3699,25 @@ window.clearImagePreview = () => {
     if(enBtn) enBtn.className = currentLang === 'en' ? 'active' : 'inactive';
     // after translations we might need to re-sync dynamic UI text like privacy
     updateUIWithUser();
+        refreshDynamicLocalizedContent();
   }
+    window.applyTranslations = applyTranslations;
   applyTranslations();
+
+    document.addEventListener('includesLoaded', () => {
+        applyTranslations();
+    });
+
+    if (window.includesLoaded) {
+        applyTranslations();
+    }
+
+    window.addEventListener('storage', (event) => {
+        if (event.key === 'st_lang' && event.newValue && event.newValue !== currentLang) {
+            currentLang = event.newValue;
+            applyTranslations();
+        }
+    });
 
 function getAvatarUrl(avatarUrlOrSeed, type = 'user') {
     // If it's a string, try to interpret it correctly
@@ -5037,9 +5428,9 @@ window.togglePostContent = function(postId) {
 
     const isClamped = preview.classList.toggle('post-text-clamp');
     if (isClamped) {
-        button.innerHTML = `<i class="fa-solid fa-chevron-down"></i> Daha fazlasını gör`;
+        button.innerHTML = `<i class="fa-solid fa-chevron-down"></i> ${getLangText('readMoreBtn', 'Daha fazlasını gör')}`;
     } else {
-        button.innerHTML = `<i class="fa-solid fa-chevron-up"></i> Daha az göster`;
+        button.innerHTML = `<i class="fa-solid fa-chevron-up"></i> ${getLangText('showLessBtn', 'Daha az göster')}`;
     }
 };
 
@@ -5130,13 +5521,16 @@ window.loadPostsFeed = (showAll = false) => {
         const pollHtml = p.poll ? renderPostPoll(p.poll, d.id) : '';
         const postContentHtml = decoded ? `
         <div class="post-content-block" style="margin-bottom:12px;">
-            <p id="post-preview-${d.id}" class="post-text${decoded.length > 280 ? ' post-text-clamp' : ''}" style="white-space: pre-wrap; margin:0;">${contentWithLinks}</p>
-            ${decoded.length > 280 ? `<button id="toggle-${d.id}" class="read-more-btn" onclick="togglePostContent('${d.id}')" style="border:none; background:none; color: var(--primary); display:flex; align-items:center; gap:8px; font-weight:700; padding:0; margin-top:10px; cursor:pointer;"><i class="fa-solid fa-chevron-down"></i> Daha fazlasını gör</button>` : ''}
+            <p id="post-preview-${d.id}" data-original-encoded="${encodeURIComponent(decoded)}" class="post-text${decoded.length > 280 ? ' post-text-clamp' : ''}" style="white-space: pre-wrap; margin:0;">${contentWithLinks}</p>
+            ${decoded.length > 280 ? `<button id="toggle-${d.id}" class="read-more-btn" onclick="togglePostContent('${d.id}')" style="border:none; background:none; color: var(--primary); display:flex; align-items:center; gap:8px; font-weight:700; padding:0; margin-top:10px; cursor:pointer;"><i class="fa-solid fa-chevron-down"></i> ${getLangText('readMoreBtn', 'Daha fazlasını gör')}</button>` : ''}
         </div>` : '';
 
         const postHtmlBase = `
     <div class="glass-card post" style="${p.username === 'official_system' ? 'border: 2px solid var(--primary); background: rgba(99, 102, 241, 0.05);' : ''}; position: relative;">
-        <div style="position: absolute; top: 15px; right: 15px; display: flex; gap: 8px;">
+        <div style="position: absolute; top: 15px; right: 15px; display: flex; gap: 8px; z-index: 55; pointer-events: auto;">
+             <button type="button" class="translate-content-btn" data-translate-target="post-preview-${d.id}" onclick="event.preventDefault(); event.stopPropagation(); toggleTranslateContentToEnglish(this, 'post-preview-${d.id}'); return false;" title="${getLangText('translateToEnglishTitle', 'İngilizceye çevir')}" style="background:rgba(99,102,241,0.08); border:1px solid var(--border); color:var(--primary); cursor:pointer; width:32px; height:32px; border-radius:999px; display:inline-flex; align-items:center; justify-content:center; position:relative; z-index:40; pointer-events:auto;">
+                 <span class="translate-lang-badge">EN</span>
+             </button>
              ${(isMine || user.isAdmin) ? `
                   <button onclick="openEditModal('${d.id}', \`${p.content.replace(/`/g, '\\`').replace(/"/g, '&quot;').replace(/\n/g, '\\n')}\`, 'post')" style="background:none; border:none; color:var(--text-muted); cursor:pointer;">
                       <i class="fa-solid fa-pen"></i>
@@ -5152,7 +5546,7 @@ window.loadPostsFeed = (showAll = false) => {
                   <div style="font-weight:700; display:flex; align-items:center; gap:5px; cursor:pointer;" onclick="${isMine ? "navigateTo('profil')" : `location.href='profil.html?id=${encodeURIComponent(p.username)}'`}">
                       ${authorDisplayName} ${isPage ? '<i class="fa-solid fa-circle-check" style="color:var(--primary); font-size:0.7rem;"></i>' : ''}
                       <span class="post-time">• ${formatPostTimestamp(p.timestamp)}</span>
-                      ${p.isEdited ? `<span style="font-size: 0.6rem; color: var(--text-muted); font-weight: normal;">(düzenlendi)</span>` : ''}
+                      ${p.isEdited ? `<span style="font-size: 0.6rem; color: var(--text-muted); font-weight: normal;">(${getLangText('editedLabel', 'düzenlendi')})</span>` : ''}
                   </div>
                   <div style="font-size:0.75rem; color:var(--text-muted); cursor:pointer;" onclick="${isMine ? "navigateTo('profil')" : `location.href='profil.html?id=${encodeURIComponent(p.username)}'`}">@${authorUsername}</div>
               </div>
@@ -5187,19 +5581,19 @@ window.loadPostsFeed = (showAll = false) => {
                               </div>
                               <div class="comment-actions">
                                 ${(c.username === user.username) ? `
-                                    <button onclick="openEditModal('${d.id}', \`${c.text.replace(/`/g, '\\`').replace(/"/g, '&quot;').replace(/\n/g, '\\n')}\`, 'comment', ${c.time})" title="Düzenle">
+                                    <button onclick="openEditModal('${d.id}', \`${c.text.replace(/`/g, '\\`').replace(/"/g, '&quot;').replace(/\n/g, '\\n')}\`, 'comment', ${c.time})" title="${getLangText('editAction', 'Düzenle')}">
                                         <i class="fa-solid fa-pen"></i>
                                     </button>
                                 ` : ''}
                                 ${(c.username === user.username || user.isAdmin) ? `
-                                    <button class="comment-del-btn" onclick="deleteComment('${d.id}', ${c.time}, '${c.text.replace(/'/g, "\\'")}')" title="Sil">
+                                    <button class="comment-del-btn" onclick="deleteComment('${d.id}', ${c.time}, '${c.text.replace(/'/g, "\\'")}')" title="${getLangText('deleteAction', 'Sil')}">
                                         <i class="fa-solid fa-trash-can"></i>
                                     </button>
                                 ` : ''}
                               </div>
                           </div>
                           <div class="comment-body">${c.text}</div>
-                          ${c.isEdited ? `<small style="font-size: 0.65rem; color: var(--text-muted);">(düzenlendi)</small>` : ''}
+                          ${c.isEdited ? `<small style="font-size: 0.65rem; color: var(--text-muted);">(${getLangText('editedLabel', 'düzenlendi')})</small>` : ''}
                           <div>
                               ${(c.replies || []).map(r => `
                                   <div class="comment-reply">
@@ -5210,16 +5604,16 @@ window.loadPostsFeed = (showAll = false) => {
                                               <span class="comment-time">• ${formatTime(r.time)}</span>
                                           </div>
                                           <div style="margin-top:4px; font-size:0.9rem; color:var(--text-main);">${r.text}</div>
-                                          ${r.isEdited ? `<small style="font-size: 0.65rem; color: var(--text-muted);">(düzenlendi)</small>` : ''}
+                                          ${r.isEdited ? `<small style="font-size: 0.65rem; color: var(--text-muted);">(${getLangText('editedLabel', 'düzenlendi')})</small>` : ''}
                                       </div>
                                       <div class="comment-actions">
                                           ${(r.username === user.username) ? `
-                                              <button onclick="openEditModal('${d.id}', \`${r.text.replace(/`/g, '\\`').replace(/"/g, '&quot;').replace(/\n/g, '\\n')}\`, 'reply', ${c.time}, ${r.time})" title="Düzenle">
+                                              <button onclick="openEditModal('${d.id}', \`${r.text.replace(/`/g, '\\`').replace(/"/g, '&quot;').replace(/\n/g, '\\n')}\`, 'reply', ${c.time}, ${r.time})" title="${getLangText('editAction', 'Düzenle')}">
                                                   <i class="fa-solid fa-pen"></i>
                                               </button>
                                           ` : ''}
                                           ${(r.username === user.username || user.isAdmin) ? `
-                                              <button class="comment-del-btn" onclick="deleteReply('${d.id}', ${c.time}, ${r.time})" title="Sil">
+                                              <button class="comment-del-btn" onclick="deleteReply('${d.id}', ${c.time}, ${r.time})" title="${getLangText('deleteAction', 'Sil')}">
                                                   <i class="fa-solid fa-xmark"></i>
                                               </button>
                                           ` : ''}
@@ -5227,7 +5621,7 @@ window.loadPostsFeed = (showAll = false) => {
                                   </div>
                               `).join('')}
                           </div>
-                          <button class="reply-btn" data-post-id="${d.id}" data-comment-time="${c.time}" data-comment-author="${escapeHtml(c.displayName)}" data-comment-snippet="${encodeURIComponent(c.text ? c.text.slice(0, 80) : '')}" onclick="prepareReply(this)">Yanıtla</button>
+                          <button class="reply-btn" data-post-id="${d.id}" data-comment-time="${c.time}" data-comment-author="${escapeHtml(c.displayName)}" data-comment-snippet="${encodeURIComponent(c.text ? c.text.slice(0, 80) : '')}" onclick="prepareReply(this)">${getLangText('replyBtn', 'Yanıtla')}</button>
                       </div>`).join('')}
               </div>
               <div style="display:flex; flex-direction:column; gap:8px; margin-top:10px;">
@@ -5260,7 +5654,7 @@ window.loadPostsFeed = (showAll = false) => {
       if (snap.size > 0 && feedHtml.trim() === '') {
           // no HTML generated despite documents present; show fallback message
           if (feed) {
-              feed.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-muted);">Gönderiler yüklenirken bir hata oluştu.</div>';
+              feed.innerHTML = `<div style="padding:20px;text-align:center;color:var(--text-muted);">${getLangText('postsLoadError', 'Gönderiler yüklenirken bir hata oluştu.')}</div>`;
           }
       } else {
           if(feed) {
@@ -5294,7 +5688,7 @@ window.loadPostsFeed = (showAll = false) => {
             font-size: 0.95rem;
             transition: all 0.3s ease;
           " onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
-            <i class="fa-solid fa-chevron-down"></i> Daha fazla yükle
+                        <i class="fa-solid fa-chevron-down"></i> ${getLangText('loadMoreBtn', 'Daha fazla yükle')}
           </button>
         `;
         feed.appendChild(morePostsBtn);
@@ -5343,7 +5737,7 @@ if (typeof updatePostCount === 'function') updatePostCount();
         if (!val && !selectedImageBase64) return;
 
         try {
-            disableButton(btn, 'Paylaşılıyor...');
+            disableButton(btn, getLangText('sharingText', 'Paylaşılıyor...'));
             await addDoc(collection(db, "posts"), {
                     authorUid: auth.currentUser?.uid || null,
                     name: user.displayName,
@@ -5363,7 +5757,7 @@ if (typeof updatePostCount === 'function') updatePostCount();
             window.clearImagePreview();
             // küçük onay bildirimi
             const t = document.createElement('div');
-            t.innerText = 'Gönderildi';
+            t.innerText = getLangText('postedToast', 'Gönderildi');
             t.style.position = 'fixed'; t.style.right = '20px'; t.style.bottom = '20px'; t.style.background = 'rgba(0,0,0,0.8)'; t.style.color = '#fff'; t.style.padding = '8px 12px'; t.style.borderRadius = '8px'; t.style.zIndex = 99999;
             document.body.appendChild(t);
             setTimeout(() => t.remove(), 1800);
@@ -5372,9 +5766,9 @@ if (typeof updatePostCount === 'function') updatePostCount();
             setTimeout(() => { if (typeof loadPostsFeed === 'function') loadPostsFeed(); }, 800);
         } catch (e) {
             console.error("Paylaşım hatası:", e);
-            alert("Gönderi paylaşılamadı.");
+            alert(getLangText('postFailedAlert', 'Gönderi paylaşılamadı.'));
         } finally {
-            enableButton(btn, 'Paylaş');
+            enableButton(btn, getLangText('shareBtn', 'Paylaş'));
         }
     };
 }
@@ -12678,6 +13072,7 @@ async function loadBlogPosts(options = {}) {
         filteredByCategory.forEach(doc => {
             const data = doc.data();
             const excerpt = (data.content || '').substring(0, 200).replace(/\n/g, ' ');
+            const excerptDisplay = `${excerpt}${excerpt.length >= 200 ? '...' : ''}`;
             const authorLabel = data.authorUid === (auth?.currentUser?.uid) ? ' (Siz)' : '';
 
             const authorName = data.authorUsername || data.author || 'Anonim';
@@ -12714,12 +13109,15 @@ async function loadBlogPosts(options = {}) {
                         <a href="blog.html?id=${doc.id}" style="text-decoration:none;color:inherit;">${escapeHtml((data.title || '').charAt(0).toUpperCase() + (data.title || '').slice(1))}</a>${authorLabel}
                         ${data.status === 'draft' ? '<span style="background: rgba(245, 158, 11, 0.15); color: #92400e; padding: 2px 10px; border-radius: 999px; font-size: 0.75rem;">Taslak</span>' : ''}
                     </h3>
-                    <p style="color:var(--text-muted); font-size:0.95rem; line-height:1.6; margin-top:10px;">${escapeHtml(excerpt)}${excerpt.length>=200?'...':''}</p>
+                    <p id="blog-excerpt-${doc.id}" data-original-encoded="${encodeURIComponent(excerptDisplay)}" style="color:var(--text-muted); font-size:0.95rem; line-height:1.6; margin-top:10px;">${escapeHtml(excerptDisplay)}</p>
                     <div class="post-action-row" style="margin-top:14px; gap:10px; align-items:center;">
                         <a href="blog.html?id=${doc.id}" class="mini-link-btn post-action-btn">
                             <i class="fa-solid fa-arrow-right" style="font-size:0.85rem;"></i>
                             <span>Devamını Oku</span>
                         </a>
+                        <button class="mini-link-btn post-action-btn translate-content-btn" data-translate-target="blog-excerpt-${doc.id}" type="button" title="${getLangText('translateToEnglishTitle', 'İngilizceye çevir')}" onclick="event.preventDefault(); event.stopPropagation(); toggleTranslateContentToEnglish(this, 'blog-excerpt-${doc.id}'); return false;">
+                            <span class="translate-lang-badge">EN</span>
+                        </button>
                         ${!isAuthor ? `
                             <button class="mini-link-btn post-action-btn" type="button" title="Normal gönderiye tebrik gönder" onclick="window.sendBlogTebrikToAuthor('${data.authorUid || ''}', '${(data.authorUsername || data.author || '').replace(/'/g, "\\'")}', '${doc.id}')">
                                 <i class="fa-solid fa-gift" style="font-size:0.85rem;"></i>
@@ -12796,7 +13194,10 @@ async function loadBlogPostById(id) {
         const categoryEl = document.getElementById('blogPostCategory');
         if (titleEl) titleEl.textContent = data.title || '';
         if (categoryEl) categoryEl.textContent = `Kategori: ${data.category || 'Genel'}`;
-        if (contentEl) contentEl.textContent = data.content || '';
+        if (contentEl) {
+            contentEl.textContent = data.content || '';
+            contentEl.dataset.originalEncoded = encodeURIComponent(data.content || '');
+        }
 
         // show edit + delete icons for author (only one of each)
         if (actionsEl) {
@@ -12815,6 +13216,18 @@ async function loadBlogPostById(id) {
             }
 
             if (isAuthor && alreadyRenderedFor !== id) {
+                const translateBtn = document.createElement('button');
+                translateBtn.className = 'blog-action-btn';
+                translateBtn.type = 'button';
+                translateBtn.title = getLangText('translateToEnglishTitle', 'İngilizceye çevir');
+                translateBtn.innerHTML = '<span class="translate-lang-badge">EN</span>';
+                translateBtn.setAttribute('data-translate-target', 'blogPostContent');
+                translateBtn.onclick = (event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    toggleTranslateContentToEnglish(translateBtn, 'blogPostContent');
+                };
+
                 const editBtn = document.createElement('button');
                 editBtn.className = 'blog-action-btn';
                 editBtn.title = 'Düzenle';
@@ -12830,6 +13243,7 @@ async function loadBlogPostById(id) {
                     await deleteBlogPost(id);
                 };
 
+                actionsEl.appendChild(translateBtn);
                 actionsEl.appendChild(editBtn);
 
                 // If this is a draft, allow publishing directly from the post view
@@ -12849,11 +13263,24 @@ async function loadBlogPostById(id) {
             }
 
             if (!isAuthor && actionsEl) {
+                const translateBtn = document.createElement('button');
+                translateBtn.className = 'blog-action-btn';
+                translateBtn.type = 'button';
+                translateBtn.title = getLangText('translateToEnglishTitle', 'İngilizceye çevir');
+                translateBtn.innerHTML = '<span class="translate-lang-badge">EN</span>';
+                translateBtn.setAttribute('data-translate-target', 'blogPostContent');
+                translateBtn.onclick = (event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    toggleTranslateContentToEnglish(translateBtn, 'blogPostContent');
+                };
+
                 const blogTebrikBtn = document.createElement('button');
                 blogTebrikBtn.className = 'blog-action-btn';
                 blogTebrikBtn.title = 'Gönderi yazısına tebrik gönder';
                 blogTebrikBtn.innerHTML = '<i class="fa-solid fa-gift"></i>';
                 blogTebrikBtn.onclick = () => window.sendBlogTebrikToAuthor(data.authorUid, data.authorUsername || data.author || '', id);
+                actionsEl.appendChild(translateBtn);
                 actionsEl.appendChild(blogTebrikBtn);
             }
         }

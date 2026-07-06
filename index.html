@@ -41,8 +41,8 @@
                         <img id="composerAvatar" src="assets/img/strendsaydamv2.png" alt="Profil">
                     </div>
                     <div>
-                        <div class="post-composer-title">Yeni paylaşım yapmaya hazır mısınız?</div>
-                        <div class="post-composer-subtitle">Hikayenizi, fotoğrafınızı veya fikirlerinizi hemen arkadaşlarınızla paylaşın ve onlarla eğlenceli vakit geçirin.</div>
+                        <div class="post-composer-title" data-i18n="composerTitle">Yeni paylaşım yapmaya hazır mısınız?</div>
+                        <div class="post-composer-subtitle" data-i18n="composerSubtitle">Hikayenizi, fotoğrafınızı veya fikirlerinizi hemen arkadaşlarınızla paylaşın ve onlarla eğlenceli vakit geçirin.</div>
                     </div>
                 </div>
             </div>
@@ -55,44 +55,44 @@
                     <input type="file" id="imageInput" accept="image/*" style="display: none;">
                     <button class="post-action-btn icon-btn" type="button" onclick="document.getElementById('imageInput').click()">
                         <i class="fa-regular fa-image"></i>
-                        Fotoğraf
+                        <span data-i18n="photoBtn">Fotoğraf</span>
                     </button>
                     <div class="emoji-wrapper">
                         <button class="post-action-btn icon-btn emoji-toggle-btn" id="emojiToggle" type="button">
                             <i class="fa-regular fa-face-smile"></i>
-                            Emoji
+                            <span data-i18n="emojiBtn">Emoji</span>
                         </button>
                         <div id="emojiPickerPanel" class="emoji-picker"></div>
                     </div> 
                     <button class="post-action-btn icon-btn poll-toggle-btn" id="pollToggle" type="button">
                         <i class="fa-solid fa-square-poll-vertical"></i>
-                        Anket
+                        <span data-i18n="pollBtn">Anket</span>
                     </button>
                 </div>
-                <button id="shareBtn" class="post-action-btn primary" type="button">Paylaş</button>
+                <button id="shareBtn" class="post-action-btn primary" type="button" data-i18n="shareBtn">Paylaş</button>
             </div>
-            <div id="post-help" class="post-help-text">Yazınızı yazın, resim ekleyin ve ardından hızlıca paylaşın.</div>
+            <div id="post-help" class="post-help-text" data-i18n="postHelpText">Yazınızı yazın, resim ekleyin ve ardından hızlıca paylaşın.</div>
             <div id="pollForm" class="poll-form" style="display: none;">
                 <div class="poll-form-grid">
-                    <label for="pollQuestionComposer">Anket sorusu</label>
-                    <input id="pollQuestionComposer" type="text" placeholder="Anket sorusunu yazın...">
-                    <label>Seçenekler</label>
-                    <input id="pollOption1Composer" type="text" placeholder="Seçenek 1">
-                    <input id="pollOption2Composer" type="text" placeholder="Seçenek 2">
-                    <input id="pollOption3Composer" type="text" placeholder="Seçenek 3 (isteğe bağlı)">
-                    <input id="pollOption4Composer" type="text" placeholder="Seçenek 4 (isteğe bağlı)">
+                    <label for="pollQuestionComposer" data-i18n="pollQuestionLabel">Anket sorusu</label>
+                    <input id="pollQuestionComposer" type="text" placeholder="Anket sorusunu yazın..." data-i18n-placeholder="pollQuestionPlaceholder">
+                    <label data-i18n="pollOptionsLabel">Seçenekler</label>
+                    <input id="pollOption1Composer" type="text" placeholder="Seçenek 1" data-i18n-placeholder="pollOption1Placeholder">
+                    <input id="pollOption2Composer" type="text" placeholder="Seçenek 2" data-i18n-placeholder="pollOption2Placeholder">
+                    <input id="pollOption3Composer" type="text" placeholder="Seçenek 3 (isteğe bağlı)" data-i18n-placeholder="pollOption3Placeholder">
+                    <input id="pollOption4Composer" type="text" placeholder="Seçenek 4 (isteğe bağlı)" data-i18n-placeholder="pollOption4Placeholder">
                     <div class="poll-form-row">
-                        <label for="pollDaysComposer">Gün</label>
+                        <label for="pollDaysComposer" data-i18n="pollDaysLabel">Gün</label>
                         <input id="pollDaysComposer" type="number" min="0" max="30" value="0">
-                        <label for="pollHoursComposer">Saat</label>
+                        <label for="pollHoursComposer" data-i18n="pollHoursLabel">Saat</label>
                         <input id="pollHoursComposer" type="number" min="0" max="23" value="0">
-                        <label for="pollMinutesComposer">Dakika</label>
+                        <label for="pollMinutesComposer" data-i18n="pollMinutesLabel">Dakika</label>
                         <input id="pollMinutesComposer" type="number" min="1" max="59" value="30">
                     </div>
                 </div>
                 <div class="poll-form-actions">
-                    <button id="cancelPollBtn" class="post-action-btn icon-btn" type="button">İptal</button>
-                    <button id="createPollFromComposerBtn" class="post-action-btn primary" type="button">Anket Oluştur</button>
+                    <button id="cancelPollBtn" class="post-action-btn icon-btn" type="button" data-i18n="cancelBtn">İptal</button>
+                    <button id="createPollFromComposerBtn" class="post-action-btn primary" type="button" data-i18n="createPollBtn">Anket Oluştur</button>
                 </div>
                 <div id="pollFormMessage" class="poll-form-message"></div>
             </div>
@@ -105,15 +105,15 @@
         </div>
         <div style="display:flex; gap:16px; flex-wrap:wrap; margin-top:16px;">
             <div id="top-liked-posts" class="glass-card" style="flex:1 1 320px; min-width:280px; padding:16px;">
-                <div class="sidebar-title" style="margin-bottom: 12px;"><i class="fa-solid fa-heart"></i> En çok beğeni alan gönderi</div>
+                <div class="sidebar-title" style="margin-bottom: 12px;"><i class="fa-solid fa-heart"></i> <span data-i18n="topLikedPostTitle">En çok beğeni alan gönderi</span></div>
                 <div id="top-liked-posts-list" style="display:flex; flex-direction:column; gap:12px;">
-                    <div style="font-size:0.9rem; color: var(--text-muted); text-align:center;">Yükleniyor...</div>
+                    <div data-i18n="loadingText" style="font-size:0.9rem; color: var(--text-muted); text-align:center;">Yükleniyor...</div>
                 </div>
             </div>
             <div id="top-read-blogs-widget" class="glass-card" style="flex:1 1 320px; min-width:280px; padding:16px;">
-                <div class="sidebar-title" style="margin-bottom: 12px;"><i class="fa-solid fa-book-open"></i> Top 3 en çok okunan blog yazısı</div>
+                <div class="sidebar-title" style="margin-bottom: 12px;"><i class="fa-solid fa-book-open"></i> <span data-i18n="topReadBlogsTitle">Top 3 en çok okunan blog yazısı</span></div>
                 <div id="top-read-blogs" style="display:flex; flex-direction:column; gap:12px; padding: 0; min-height: 60px;">
-                    <div style="font-size:0.9rem; color: var(--text-muted); text-align:center;">Yükleniyor...</div>
+                    <div data-i18n="loadingText" style="font-size:0.9rem; color: var(--text-muted); text-align:center;">Yükleniyor...</div>
                 </div>
             </div>
         </div>
@@ -127,13 +127,13 @@
   <div id="editModal" class="modal-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; align-items: center; justify-content: center;">
     <div class="glass-card" style="width: 90%; max-width: 500px; padding: 20px;">
         <div style="display: flex; justify-content: space-between; margin-bottom: 15px;">
-            <h3 style="margin: 0;">Gönderiyi Düzenle</h3>
+            <h3 style="margin: 0;" data-i18n="editPostTitle">Gönderiyi Düzenle</h3>
             <button onclick="closeEditModal()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-main);">&times;</button>
         </div>
-        <div id="editPostInput" contenteditable="true" style="width: 100%; min-height: 120px; border: 1px solid var(--border); border-radius: 8px; padding: 10px; background: transparent; color: var(--text-main); outline: none; resize: vertical;" data-placeholder="Burada düzenleyin..."></div>
+        <div id="editPostInput" contenteditable="true" style="width: 100%; min-height: 120px; border: 1px solid var(--border); border-radius: 8px; padding: 10px; background: transparent; color: var(--text-main); outline: none; resize: vertical;" data-placeholder="Burada düzenleyin..." data-i18n-placeholder="editPlaceholder"></div>
         <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 15px;">
-            <button onclick="closeEditModal()" style="padding: 8px 20px; border-radius: 20px; border: 1px solid var(--border); background: transparent; cursor: pointer;">İptal</button>
-            <button id="saveEditBtn" style="padding: 8px 20px; border-radius: 20px; border: none; background: var(--primary); color: white; font-weight: bold; cursor: pointer;">Kaydet</button>
+            <button onclick="closeEditModal()" style="padding: 8px 20px; border-radius: 20px; border: 1px solid var(--border); background: transparent; cursor: pointer;" data-i18n="cancelBtn">İptal</button>
+            <button id="saveEditBtn" style="padding: 8px 20px; border-radius: 20px; border: none; background: var(--primary); color: white; font-weight: bold; cursor: pointer;" data-i18n="saveBtn">Kaydet</button>
         </div>
       </div>
   </div>

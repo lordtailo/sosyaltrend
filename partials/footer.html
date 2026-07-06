@@ -1,105 +1,88 @@
-<footer>
-  <div class="footer-container">
-    <div class="footer-brand">
-      <img src="assets/img/strendsaydamv2.png" alt="SosyalTrend Logo" class="footer-logo-img">
-      <div class="footer-brand-copy">
-        <div class="logo footer-brand-title">SosyaLTrend</div>
-        <p class="footer-tagline" data-i18n="footerTagline">
-          Topluluğunuzla her zaman bir adım önde olun.
-        </p>
+﻿<footer>
+  <div class="footer-shell">
+    <div class="footer-hero">
+      <div class="footer-hero-main">
+        <div class="footer-brand">
+          <img src="assets/img/strendsaydamv2.png" alt="SosyalTrend Logo" class="footer-logo-img">
+          <div class="footer-brand-copy">
+            <div class="logo footer-brand-title">SosyaLTrend</div>
+            <p class="footer-tagline" data-i18n="footerTagline">Platformumuza katıldığınızda her zaman bir adım önde olursunuz.</p>
+            <p class="footer-note" data-i18n="footerNote">Sosyal bağlantılarınızı güçlendirin, gündemi takip edin ve topluluğunuzu büyütün.</p>
+          </div>
+        </div>
+      </div>
+      <div class="footer-hero-actions">
+        <a href="javascript:void(0)" onclick="navigateTo('topluluk'); return false;" class="footer-cta footer-cta-primary">
+          <i class="fa-solid fa-compass"></i>
+          <span data-i18n="footerDiscoverCommunity">Topluluğu Keşfet</span>
+        </a>
+        <a href="javascript:void(0)" onclick="navigateTo('arkadas-bul'); return false;" class="footer-cta footer-cta-secondary">
+          <i class="fa-solid fa-user-plus"></i>
+          <span data-i18n="footerFindFriends">Arkadaş Bul</span>
+        </a>
       </div>
     </div>
 
-    <div class="footer-section">
-      <h4 data-i18n="footerMenu">Hızlı Menü</h4>
-      <ul class="footer-links">
-        <li><a href="javascript:void(0)" onclick="navigateTo('feed'); return false;" data-i18n="navFeed">Anasayfa</a></li>
-        <li><a href="javascript:void(0)" onclick="navigateTo('blog'); return false;">Blog</a></li>
-        <li><a href="javascript:void(0)" onclick="navigateTo('profil'); return false;" data-i18n="navProfil">Profiliniz</a></li>
-        </ul>
-    </div>
-
-    <div class="footer-section">
-      <h4 data-i18n="footerCorp">Kurumsal</h4>
-      <ul class="footer-links">
-        <li><a href="hakkimizda.html" data-i18n="footerAbout">Hakkımızda</a></li>
-        <li><a href="kariyer.html" data-i18n="footerCareer">Kariyer</a></li>
-      </ul>
-    </div>
-
-    <div class="footer-section">
-      <h4 data-i18n="footerSupport">Destek</h4>
-      <ul class="footer-links">
-        <li><a href="contact.html" onclick="navigateTo('contact')" data-i18n="footerContact">İletişim</a></li>
-        <li><a href="yardim.html" data-i18n="footerHelp">Yardım Merkezi</a></li>
-      </ul>
-    </div>
-  </div>
-
-  <div class="footer-bottom">
-    <div class="footer-copy">&copy; 2026 <strong>SosyaLTrend</strong>. <span data-i18n="footerRights">Tüm Hakları Saklıdır.</span></div>
-    <div class="footer-bottom-right">
-      <div class="lang-switcher">
-        <span id="lang-tr" onclick="changeLanguage('tr')">Türkçe</span>
-        <span id="lang-en" onclick="changeLanguage('en')">English</span>
+    <div class="footer-bottom">
+      <div class="footer-copy">&copy; 2026 <strong>SosyaLTrend</strong>. <span data-i18n="footerRights">Tüm Hakları Saklıdır.</span></div>
+      <div class="footer-bottom-right">
+        <div class="lang-switcher">
+          <span id="lang-tr" onclick="changeLanguage('tr')">Türkçe</span>
+          <span id="lang-en" onclick="changeLanguage('en')">English</span>
+        </div>
       </div>
-      <div class="footer-divider"></div>
-      <i class="fa-solid fa-earth-americas footer-earth-icon" aria-hidden="true"></i>
     </div>
   </div>
 
   <div id="mobileBottomNav" class="mobile-bottom-nav" aria-label="Mobil alt navigasyon">
     <button type="button" class="mobile-nav-item" onclick="navigateTo('feed'); return false;">
       <i class="fa-solid fa-house"></i>
-      <span>Ana</span>
+      <span data-i18n="mobileNavHome">Ana</span>
     </button>
     <button type="button" class="mobile-nav-item" onclick="toggleMobileSearchWidget(true); return false;" aria-label="Arama">
       <i class="fa-solid fa-magnifying-glass"></i>
-      <span>Ara</span>
+      <span data-i18n="mobileNavSearch">Ara</span>
     </button>
     <button type="button" class="mobile-nav-item mobile-nav-action-btn" onclick="toggleMobileNavWidget(true, 'chooser'); return false;" aria-label="Yeni içerik">
       <span class="mobile-nav-action-circle"><i class="fa-solid fa-plus"></i></span>
-      <span>Yeni</span>
+      <span data-i18n="mobileNavNew">Yeni</span>
     </button>
-      <button type="button" id="mobileChatBtn" class="mobile-nav-item" onclick="openChatsList(); return false;" aria-label="Sohbet">
-        <i class="fa-solid fa-comments"></i>
-        <span>Sohbet</span>
-      </button>
-      <button type="button" id="mobileProfileTrigger" class="mobile-nav-item" aria-label="Profil menüsü">
-        <img id="mobileProfileAvatar" src="assets/img/strendsaydamv2.png" alt="Kullanıcı avatar" style="width:22px; height:22px; border-radius:50%; object-fit:cover;">
-      </button>
-    </div>
-    <div class="dropdown-menu-wrapper">
-      <button type="button" class="dropdown-backdrop" onclick="closeProfileDropdown()"></button>
-      <div class="dropdown-menu" id="dropdownMenu">
-        <!-- User Header -->
-        <div class="dropdown-menu-header">
-          <div style="display: flex; align-items: center; gap: 12px;">
-            <div class="avatar-wrap dropdown-avatar">
-              <img id="headerAvatar" src="" alt="Kullanıcı avatar">
-            </div>
-            <div style="display: flex; flex-direction: column; gap: 3px; flex: 1; min-width: 0;">
-              <p id="menuDisplayName" class="dropdown-menu-name">...</p>
-              <p id="menuUsername" class="dropdown-menu-username">@...</p>
-            </div>
+    <button type="button" id="mobileChatBtn" class="mobile-nav-item" onclick="openChatsList(); return false;" aria-label="Sohbet">
+      <i class="fa-solid fa-comments"></i>
+      <span data-i18n="mobileNavChat">Sohbet</span>
+    </button>
+    <button type="button" id="mobileProfileTrigger" class="mobile-nav-item" aria-label="Profil menüsü">
+      <img id="mobileProfileAvatar" src="assets/img/strendsaydamv2.png" alt="Kullanıcı avatar" style="width:22px; height:22px; border-radius:50%; object-fit:cover;">
+    </button>
+  </div>
+
+  <div class="dropdown-menu-wrapper">
+    <button type="button" class="dropdown-backdrop" onclick="closeProfileDropdown()"></button>
+    <div class="dropdown-menu" id="dropdownMenu">
+      <div class="dropdown-menu-header">
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <div class="avatar-wrap dropdown-avatar">
+            <img id="headerAvatar" src="" alt="Kullanıcı avatar">
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 3px; flex: 1; min-width: 0;">
+            <p id="menuDisplayName" class="dropdown-menu-name">...</p>
+            <p id="menuUsername" class="dropdown-menu-username">@...</p>
           </div>
         </div>
-        
-        <!-- Menu Items -->
-        <div class="dropdown-menu-items">
-          <button class="menu-style-btn" onclick="navigateTo('profil'); return false;"><i class="fa-solid fa-user"></i> <span data-i18n="menuProfile">Profiliniz</span></button>
-          <button class="menu-style-btn" id="adminMenuBtn" onclick="navigateTo('admin'); return false;" style="display:none;">
-            <i class="fa-solid fa-user-shield"></i> <span>Yönetici Paneli</span>
-          </button>
-          <button class="menu-style-btn" onclick="navigateTo('settings'); return false;"><i class="fa-solid fa-gear"></i> <span>Ayarlar</span></button>
-        </div>
-        
-        <!-- Logout Button -->
-        <button class="menu-style-btn menu-logout-btn" onclick="logout()"><i class="fa-solid fa-right-from-bracket"></i> <span>Çıkış Yap</span></button>
       </div>
+
+      <div class="dropdown-menu-items">
+        <button class="menu-style-btn" onclick="navigateTo('profil'); return false;"><i class="fa-solid fa-user"></i> <span data-i18n="menuProfile">Profiliniz</span></button>
+        <button class="menu-style-btn" id="adminMenuBtn" onclick="navigateTo('admin'); return false;" style="display:none;">
+          <i class="fa-solid fa-user-shield"></i> <span data-i18n="adminPanel">Yönetici Paneli</span>
+        </button>
+        <button class="menu-style-btn" onclick="navigateTo('settings'); return false;"><i class="fa-solid fa-gear"></i> <span data-i18n="menuSettings">Ayarlar</span></button>
+      </div>
+
+      <button class="menu-style-btn menu-logout-btn" onclick="logout()"><i class="fa-solid fa-right-from-bracket"></i> <span data-i18n="logoutBtn">Çıkış Yap</span></button>
     </div>
-      </div>
   </div>
+
   <div id="mobileSearchWidget">
     <button type="button" class="compose-widget-backdrop" onclick="toggleMobileSearchWidget(false)"></button>
     <div class="compose-widget-panel" role="dialog" aria-modal="true" aria-label="Mobil arama">
@@ -119,6 +102,7 @@
       </div>
     </div>
   </div>
+
   <div id="mobileComposeWidget">
     <button type="button" class="compose-widget-backdrop" onclick="toggleMobileNavWidget(false)"></button>
     <div class="compose-widget-panel" role="dialog" aria-modal="true" aria-label="Yeni içerik oluştur">

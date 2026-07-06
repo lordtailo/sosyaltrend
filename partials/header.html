@@ -22,55 +22,55 @@
       <div class="friends-dropdown-wrapper">
         <button id="friendsBtn" type="button" class="header-nav-btn" onclick="toggleFriendsDropdown(); return false;" title="Arkadaşlar" aria-expanded="false">
           <i class="fa-solid fa-user-friends"></i>
-          <span>Arkadaşlar</span>
+          <span data-i18n="headerFriends">Arkadaşlar</span>
           <span id="friendsOnlineCount" class="header-friends-online-count">(0)</span>
         </button>
         <div id="friendsDropdown" class="friends-dropdown" style="display:none;">
           <div class="friends-dropdown-title">
-            <span><i class="fa-solid fa-user-friends"></i> Arkadaşlarım <small id="friendsCountBadge" class="friends-count-badge">0</small></span>
+            <span><i class="fa-solid fa-user-friends"></i> <span data-i18n="headerMyFriends">Arkadaşlarım</span> <small id="friendsCountBadge" class="friends-count-badge">0</small></span>
             <button type="button" class="friends-dropdown-close" onclick="toggleFriendsDropdown()" aria-label="Kapat">×</button>
           </div>
           <div class="friends-dropdown-search">
             <input id="friendsSearchInput" type="search" placeholder="Arkadaş ara..." aria-label="Arkadaş ara" oninput="filterHeaderFriends()" />
           </div>
           <div id="headerFriendsList" class="friends-dropdown-list">
-            <div class="friends-dropdown-empty">Arkadaşlar yükleniyor...</div>
+            <div class="friends-dropdown-empty" data-i18n="headerFriendsLoading">Arkadaşlar yükleniyor...</div>
           </div>
           <div class="friends-dropdown-footer">
-            <a href="profil.html#friends"><i class="fa-solid fa-arrow-right"></i> Tümünü Gör</a>
+            <a href="profil.html#friends"><i class="fa-solid fa-arrow-right"></i> <span data-i18n="headerSeeAll">Tümünü Gör</span></a>
           </div>
         </div>
       </div>
       <div class="notification-wrapper">
         <button id="notificationsBtn" type="button" class="header-nav-btn" onclick="toggleNotifications(); return false;" title="Bildirimler">
           <i class="fa-solid fa-bell"></i>
-          <span>Bildirim</span>
+          <span data-i18n="headerNotification">Bildirim</span>
           <span id="notificationBadge" class="nav-dot-badge" style="display:none;"></span>
         </button>
         <div id="notificationsDropdown" class="notifications-dropdown" style="display:none;">
           <div class="friends-dropdown-title">
-            <span><i class="fa-solid fa-bell"></i> Bildirim Kutusu</span>
+            <span><i class="fa-solid fa-bell"></i> <span data-i18n="headerInbox">Bildirim Kutusu</span></span>
             <button type="button" class="friends-dropdown-close" onclick="toggleNotifications()" aria-label="Kapat">×</button>
           </div>
           <div class="friends-dropdown-list">
             <div id="friendRequestsList"></div>
             <div id="noNotificationsMsg" class="friends-dropdown-empty" style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:30px 20px;">
               <i class="fa-solid fa-inbox" style="font-size:2rem; margin-bottom:12px; opacity:0.5;"></i>
-              <p style="margin:0; font-weight:500;">Yeni bildirim yok</p>
+              <p style="margin:0; font-weight:500;" data-i18n="headerNoNotifications">Yeni bildirim yok</p>
             </div>
           </div>
           <div class="friends-dropdown-footer">
-            <a href="profil.html#my-notifs-tab"><i class="fa-solid fa-arrow-right"></i> Bildirime Git</a>
+            <a href="profil.html#my-notifs-tab"><i class="fa-solid fa-arrow-right"></i> <span data-i18n="headerGoNotifications">Bildirime Git</span></a>
           </div>
         </div>
       </div>
       <button id="mobileHeaderThemeBtn" type="button" class="header-nav-btn mobile-header-action-btn" onclick="toggleDarkMode(); return false;" title="Tema Sec">
         <i class="fa-solid fa-circle-half-stroke"></i>
-        <span>Tema Sec</span>
+        <span data-i18n="headerThemeShort">Tema Seç</span>
       </button>
       <button id="mobileHeaderInviteBtn" type="button" class="header-nav-btn mobile-header-action-btn" onclick="window.openInviteModal && window.openInviteModal(); return false;" title="Arkadas Davet Et">
         <i class="fa-solid fa-user-plus"></i>
-        <span>Davet Et</span>
+        <span data-i18n="headerInviteShort">Davet Et</span>
       </button>
     </div>
     <div class="header-search" id="headerSearchWrapper">
@@ -81,7 +81,7 @@
         <i class="fa-solid fa-magnifying-glass"></i>
         <input id="headerSearchInput" type="search" placeholder="Ara..." aria-label="Site içinde ara" />
         <button id="headerSearchSubmit" class="header-search-submit" type="button" title="Arama yap">
-          Ara
+          <span data-i18n="searchBtn">Ara</span>
         </button>
       </div>
     </div>

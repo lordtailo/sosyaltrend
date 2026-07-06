@@ -22,6 +22,75 @@ let currentCommunityId = null;
 let currentCommunityData = null;
 let currentPostsUnsubscribe = null;
 let communityComposerState = { imageBase64: null, poll: null };
+const communityEnglishTranslationCache = new Map();
+
+async function communityTranslateToEnglish(text) {
+  const source = (text || '').trim();
+  if (!source) return '';
+  if (communityEnglishTranslationCache.has(source)) return communityEnglishTranslationCache.get(source);
+
+  const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=en&dt=t&q=${encodeURIComponent(source)}`;
+  const response = await fetch(url);
+  if (!response.ok) throw new Error('community-translate-http-error');
+  const payload = await response.json();
+  const translated = Array.isArray(payload?.[0])
+    ? payload[0].map((part) => part?.[0] || '').join('')
+    : source;
+
+  communityEnglishTranslationCache.set(source, translated || source);
+  return translated || source;
+}
+
+window.communityToggleTranslatePostEnglish = async function(button, targetSelector) {
+  if (typeof window.toggleTranslateContentToEnglish === 'function') {
+    await window.toggleTranslateContentToEnglish(button, targetSelector);
+    return;
+  }
+
+  let target = null;
+  if (typeof targetSelector === 'string' && targetSelector.startsWith('#')) {
+    target = document.getElementById(targetSelector.slice(1));
+  } else if (typeof targetSelector === 'string') {
+    target = document.getElementById(targetSelector);
+  }
+
+  if (!target && typeof targetSelector === 'string') {
+    try {
+      target = document.querySelector(targetSelector);
+    } catch (_) {
+      target = null;
+    }
+  }
+
+  if (!button || !target) return;
+
+  const originalEncoded = target.dataset.originalEncoded || encodeURIComponent(target.textContent || '');
+  target.dataset.originalEncoded = originalEncoded;
+  const originalText = decodeURIComponent(originalEncoded);
+
+  if (button.dataset.translated === '1') {
+    target.textContent = originalText;
+    button.dataset.translated = '0';
+    button.title = 'İngilizceye çevir';
+    return;
+  }
+
+  const oldDisabled = button.disabled;
+  button.disabled = true;
+  button.title = 'Çevriliyor...';
+  try {
+    const translated = await communityTranslateToEnglish(originalText);
+    target.textContent = translated;
+    button.dataset.translated = '1';
+    button.title = 'Orijinali göster';
+  } catch (error) {
+    console.error('Topluluk gönderisi çeviri hatası:', error);
+    alert('İçerik çevrilemedi.');
+    button.title = 'İngilizceye çevir';
+  } finally {
+    button.disabled = oldDisabled;
+  }
+};
 
 function resetCommunityComposerState() {
   communityComposerState = { imageBase64: null, poll: null };
@@ -989,6 +1058,9 @@ function renderCommunityPosts(container, posts) {
     return `
       <article class="post" style="padding:20px; border-radius:18px; position:relative; margin-bottom:16px; background:linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03)); border:1px solid var(--border); box-shadow:0 10px 28px rgba(15, 23, 42, 0.06);">
         <div style="position:absolute; top:14px; right:14px; display:flex; align-items:center; gap:8px; z-index:10;">
+          <button type="button" class="community-action-btn translate-content-btn" data-post-id="${post.id}" data-translate-target="community-post-content-${post.id}" title="İngilizceye çevir" aria-label="İngilizceye çevir" onclick="event.preventDefault(); event.stopPropagation(); communityToggleTranslatePostEnglish(this, 'community-post-content-${post.id}'); return false;">
+            <span class="translate-lang-badge">EN</span>
+          </button>
           ${canManagePost ? `
             <button class="community-action-btn community-action-btn--edit" data-post-id="${post.id}" title="Düzenle" aria-label="Düzenle">
               <i class="fa-solid fa-pen"></i>
@@ -1010,7 +1082,7 @@ function renderCommunityPosts(container, posts) {
           </div>
         </div>
 
-        <div class="post-content-view" style="color:var(--text-main); line-height:1.7; white-space:pre-wrap; font-size:0.95rem; margin-bottom:10px;">${escapeHtml(post.content || '')}</div>
+        <div id="community-post-content-${post.id}" data-original-encoded="${encodeURIComponent(post.content || '')}" class="post-content-view" style="color:var(--text-main); line-height:1.7; white-space:pre-wrap; font-size:0.95rem; margin-bottom:10px;">${escapeHtml(post.content || '')}</div>
         ${post.image ? `<div style="margin-bottom:10px;"><img src="${escapeHtml(post.image)}" alt="Topluluk fotoğrafı" style="max-width:100%; max-height:320px; border-radius:14px; object-fit:cover; border:1px solid var(--border);"></div>` : ''}
         ${post.poll ? renderCommunityPoll(post.poll, post.id) : ''}
         <div class="post-edit-area" style="display:none; margin-top:8px;">

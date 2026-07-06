@@ -1,21 +1,21 @@
 <aside>
     
     <div class="glass-card sidebar-container">
-        <div class="sidebar-title" data-i18n="menuTitle"><i class="fas fa-bars"></i> Sosyal Menü</div>
+        <div class="sidebar-title"><i class="fas fa-bars"></i> <span data-i18n="menuTitle">Sosyal Menü</span></div>
 
         <a href="index.html" data-href="index.html" class="menu-style-btn nav-item" id="btn-feed">
             <i class="fa-solid fa-house"></i> <span data-i18n="navFeed">Anasayfa</span>
         </a>
         <a href="topluluk.html" data-href="topluluk.html" class="menu-style-btn nav-item" id="btn-topluluklar">
-            <i class="fa-solid fa-users"></i> Topluluklar
+            <i class="fa-solid fa-users"></i> <span data-i18n="navCommunities">Topluluklar</span>
         </a>
         <a href="contact.html" data-href="contact.html" class="menu-style-btn nav-item" id="btn-contact">
-            <i class="fa-solid fa-envelope"></i> İletişim
+            <i class="fa-solid fa-envelope"></i> <span data-i18n="footerContact">İletişim</span>
         </a>
     </div>
 
     <div class="glass-card sidebar-container" style="margin-bottom: 12px;">
-            <div class="sidebar-title"><i class="fa-solid fa-id-card"></i> Profil Kartınız</div>
+            <div class="sidebar-title"><i class="fa-solid fa-id-card"></i> <span data-i18n="profileCardTitle">Profil Kartınız</span></div>
             <div class="glass-card sidebar-profile-card">
                 <div class="sidebar-profile-avatar">
                     <img id="sidebarAvatar" src="assets/img/strendsaydamv2.png" alt="Kenar çubuğu avatarı" onclick="navigateTo('profil')">
@@ -24,35 +24,35 @@
                     <div id="sidebarDisplayName" class="sidebar-profile-name">Misafir</div>
                     <div id="sidebarUsername" class="sidebar-profile-username">@kullanici</div>
                     <hr class="sidebar-profile-divider">
-                    <div class="sidebar-profile-subtitle"><i class="fa-solid fa-id-card"></i> Üyelik Bilgileriniz</div>
+                    <div class="sidebar-profile-subtitle"><i class="fa-solid fa-id-card"></i> <span data-i18n="membershipInfo">Üyelik Bilgileriniz</span></div>
                     <div class="sidebar-profile-meta">
                         <div class="sidebar-profile-row">
-                            <span class="sidebar-profile-label"><i class="fa-solid fa-envelope"></i> E-Posta</span>
+                            <span class="sidebar-profile-label"><i class="fa-solid fa-envelope"></i> <span data-i18n="emailLabel">E-Posta</span></span>
                             <span id="sidebarSignupInfo" class="sidebar-profile-value">—</span>
                         </div>
                         <div class="sidebar-profile-row">
-                            <span class="sidebar-profile-label"><i class="fa-solid fa-user-tag"></i> Rol</span>
-                            <span id="sidebarRole" class="sidebar-profile-value">Kullanıcı</span>
+                            <span class="sidebar-profile-label"><i class="fa-solid fa-user-tag"></i> <span data-i18n="roleLabel">Rol</span></span>
+                            <span id="sidebarRole" class="sidebar-profile-value" data-i18n="roleUser">Kullanıcı</span>
                         </div>
                         <div class="sidebar-profile-row">
-                            <span class="sidebar-profile-label"><i class="fa-solid fa-users"></i>Arkadaşlar</span>
+                            <span class="sidebar-profile-label"><i class="fa-solid fa-users"></i><span data-i18n="friendsLabel">Arkadaşlar</span></span>
                             <span id="sidebarFriendCount" class="sidebar-profile-value">0</span>
                         </div>
                         <div class="sidebar-profile-row">
-                            <span class="sidebar-profile-label"><i class="fa-solid fa-user-clock"></i>İstekler</span>
+                            <span class="sidebar-profile-label"><i class="fa-solid fa-user-clock"></i><span data-i18n="requestsLabel">İstekler</span></span>
                             <span id="sidebarPendingRequests" class="sidebar-profile-value">0</span>
                         </div>
                     </div>
                     <div class="sidebar-profile-actions">
                         <button class="menu-style-btn sidebar-profile-button sidebar-settings-button" onclick="navigateTo('profil'); return false;">
-                     Profilim</button>
+                     <span data-i18n="myProfileBtn">Profilim</span></button>
                         <button class="menu-style-btn sidebar-profile-button sidebar-settings-button" onclick="navigateTo('settings'); return false;">
-                     Ayarlar
+                     <span data-i18n="menuSettings">Ayarlar</span>
                         </button>
                         </div>
                         <div class="new-connections-actions" style="margin-top:8px;">
                             <a id="sidebarAdminBtn" href="admin.html" data-href="admin.html" class="new-connections-btn secondary nav-item" onclick="navigateTo('admin'); return false;" style="display:none; width:100%;">
-                                <i class="fa-solid fa-user-shield"></i> Yönetici Paneli
+                                <i class="fa-solid fa-user-shield"></i> <span data-i18n="adminPanel">Yönetici Paneli</span>
                             </a>
                         </div>
                 </div>
@@ -60,35 +60,35 @@
         </div>
     <!-- blog card separate from social menu -->
     <div class="glass-card sidebar-container">
-        <div class="sidebar-title" data-i18n="menuTitle"><i class="fa-solid fa-blog"></i> Blog Menü</div>
+        <div class="sidebar-title"><i class="fa-solid fa-blog"></i> <span data-i18n="blogMenuTitle">Blog Menü</span></div>
 
         <a href="blog.html" data-href="blog.html" class="menu-style-btn nav-item" id="btn-tum-yazilar">
-            <i class="fa-solid fa-list"></i>Tüm Yazılar</a>
+            <i class="fa-solid fa-list"></i><span data-i18n="allPosts">Tüm Yazılar</span></a>
 
         <a href="blog.html?mine=1" data-href="blog.html?mine=1" class="menu-style-btn nav-item" id="btn-yazilarim">
-            <i class="fa-solid fa-user"></i> Yazılarım</a>
+            <i class="fa-solid fa-user"></i> <span data-i18n="myArticles">Yazılarım</span></a>
 
         <a href="blog.html?create=1" data-href="blog.html?create=1" class="menu-style-btn nav-item" id="btn-yeni-yazi">
-            <i class="fa-solid fa-plus"></i> Yeni Yazı</a>
+            <i class="fa-solid fa-plus"></i> <span data-i18n="newArticle">Yeni Yazı</span></a>
     </div>
 
     <div class="glass-card sidebar-container">
-        <div class="sidebar-title"><i class="fa-solid fa-user"></i> Profil Menü</div>
+        <div class="sidebar-title"><i class="fa-solid fa-user"></i> <span data-i18n="profileMenuTitle">Profil Menü</span></div>
 
         <a href="profil.html#posts" data-href="profil.html#posts" class="menu-style-btn nav-item" id="btn-gonderiler">
-            <i class="fa-solid fa-feather"></i> Gönderilerim
+            <i class="fa-solid fa-feather"></i> <span data-i18n="myPostsNav">Gönderilerim</span>
         </a>
         <a href="profil.html#likes" data-href="profil.html#likes" class="menu-style-btn nav-item" id="btn-begeniler">
-            <i class="fa-solid fa-heart"></i> Beğenilerim
+            <i class="fa-solid fa-heart"></i> <span data-i18n="myLikes">Beğenilerim</span>
         </a>
         <a href="profil.html#saves" data-href="profil.html#saves" class="menu-style-btn nav-item" id="btn-kayitlar">
-            <i class="fa-solid fa-bookmark"></i> Kayıtlarım
+            <i class="fa-solid fa-bookmark"></i> <span data-i18n="mySaves">Kayıtlarım</span>
         </a>
         <a href="profil.html#friends" data-href="profil.html#friends" class="menu-style-btn nav-item" id="btn-arkadaslarim">
-            <i class="fa-solid fa-users"></i> Arkadaşlarım
+            <i class="fa-solid fa-users"></i> <span data-i18n="myFriends">Arkadaşlarım</span>
         </a>
         <a href="profil.html#notifs" data-href="profil.html#notifs" class="menu-style-btn nav-item" id="btn-bildirimler">
-            <i class="fa-solid fa-bell"></i> Gelen Bildirimler
+            <i class="fa-solid fa-bell"></i> <span data-i18n="incomingNotifications">Gelen Bildirimler</span>
         </a>
     </div>
   </aside>
