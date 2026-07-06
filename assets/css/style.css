@@ -4406,14 +4406,14 @@ body.dark-mode .glass-card.post-composer {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-width: 22px;
-    height: 18px;
-    padding: 0 5px;
+    min-width: 26px;
+    height: 20px;
+    padding: 0 6px;
     border-radius: 999px;
     background: transparent;
     border: none;
     color: var(--primary);
-    font-size: 0.65rem;
+    font-size: 0.75rem;
     line-height: 1;
     font-weight: 800;
     letter-spacing: 0.4px;

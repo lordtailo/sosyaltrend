@@ -745,7 +745,15 @@ async function createPollPostFromComposer() {
             pollCreatedAt: createdAtValue
         };
         
-        await addDoc(collection(db, 'posts'), newPost);
+        const createdPostRef = await addDoc(collection(db, 'posts'), newPost);
+        await queueContentModerationIfNeeded({
+            contentType: 'post',
+            contentId: createdPostRef.id,
+            contentText: [newPost.content, newPost.poll?.question, ...(newPost.poll?.options || [])].filter(Boolean).join('\n'),
+            authorUid: newPost.uid,
+            authorUsername: newPost.username,
+            authorDisplayName: newPost.displayName || newPost.name
+        });
         
         if (postInput) postInput.innerText = '';
         clearPollForm();
@@ -5738,7 +5746,7 @@ if (typeof updatePostCount === 'function') updatePostCount();
 
         try {
             disableButton(btn, getLangText('sharingText', 'Paylaşılıyor...'));
-            await addDoc(collection(db, "posts"), {
+                const createdPostRef = await addDoc(collection(db, "posts"), {
                     authorUid: auth.currentUser?.uid || null,
                     name: user.displayName,
                     username: user.username,
@@ -5750,6 +5758,14 @@ if (typeof updatePostCount === 'function') updatePostCount();
                     likes: [],
                     savedBy: [],
                     comments: []
+            });
+            await queueContentModerationIfNeeded({
+                contentType: 'post',
+                contentId: createdPostRef.id,
+                contentText: val,
+                authorUid: auth.currentUser?.uid || null,
+                authorUsername: user.username,
+                authorDisplayName: user.displayName || user.name
             });
 
             document.getElementById('postInput').innerText = "";
@@ -7274,7 +7290,7 @@ window.publishMobilePost = async function() {
     statusEl.textContent = 'Gönderiliyor...';
     statusEl.style.color = 'var(--text-muted)';
     try {
-        await addDoc(collection(db, 'posts'), {
+        const createdPostRef = await addDoc(collection(db, 'posts'), {
             authorUid: auth.currentUser.uid,
             name: user.displayName,
             username: user.username,
@@ -7285,6 +7301,14 @@ window.publishMobilePost = async function() {
             likes: [],
             savedBy: [],
             comments: []
+        });
+        await queueContentModerationIfNeeded({
+            contentType: 'post',
+            contentId: createdPostRef.id,
+            contentText: normalizePostText(text),
+            authorUid: auth.currentUser.uid,
+            authorUsername: user.username,
+            authorDisplayName: user.displayName || user.name
         });
         postInput.value = '';
         statusEl.textContent = 'Gönderildi.';
@@ -7323,7 +7347,7 @@ window.publishMobileBlogPost = async function() {
     statusEl.textContent = 'Yayınlanıyor...';
     statusEl.style.color = 'var(--text-muted)';
     try {
-        await addDoc(collection(db, 'blogs'), {
+        const createdBlogRef = await addDoc(collection(db, 'blogs'), {
             title,
             content,
             category,
@@ -7336,6 +7360,14 @@ window.publishMobileBlogPost = async function() {
             updatedAt: serverTimestamp(),
             views: 0,
             tebrikCount: 0
+        });
+        await queueContentModerationIfNeeded({
+            contentType: 'blog',
+            contentId: createdBlogRef.id,
+            contentText: `${title}\n${content}`,
+            authorUid: auth.currentUser.uid,
+            authorUsername: (auth.currentUser.email || '').split('@')[0],
+            authorDisplayName: user.displayName || user.name || (auth.currentUser.email || '').split('@')[0]
         });
         titleEl.value = '';
         contentEl.value = '';
@@ -8510,6 +8542,123 @@ async function sendNotification(recipientUid, type, fromName, extra = {}) {
     }
 }
 
+async function getAdminRecipientIds() {
+    const adminIds = new Set();
+
+    try {
+        const adminFlagSnap = await getDocs(query(collection(db, 'users'), where('isAdmin', '==', true), limit(50)));
+        adminFlagSnap.forEach((docSnap) => adminIds.add(docSnap.id));
+    } catch (error) {
+        console.warn('admin isAdmin sorgusu başarısız:', error);
+    }
+
+    try {
+        const adminEmailSnap = await getDocs(query(collection(db, 'users'), where('email', '==', ADMIN_EMAIL), limit(10)));
+        adminEmailSnap.forEach((docSnap) => adminIds.add(docSnap.id));
+    } catch (error) {
+        console.warn('admin email sorgusu başarısız:', error);
+    }
+
+    return [...adminIds];
+}
+
+window.openModerationAlertTarget = function (notification) {
+    try {
+        const findingText = Array.isArray(notification?.moderationFindings) && notification.moderationFindings.length
+            ? String(notification.moderationFindings[0])
+            : '';
+        const target = {
+            contentId: notification?.moderationContentId || notification?.postId || notification?.contentId || '',
+            contentType: notification?.moderationType || notification?.contentType || 'post',
+            warningText: findingText
+        };
+        localStorage.setItem('st_moderationTarget', JSON.stringify(target));
+        window.location.href = 'admin.html?tab=moderation#main-section-moderation';
+    } catch (error) {
+        console.warn('openModerationAlertTarget hatası:', error);
+        window.location.href = 'admin.html?tab=moderation#main-section-moderation';
+    }
+};
+
+function getAutomaticModerationFindings(text = '') {
+    const lower = String(text || '').toLowerCase();
+    if (!lower.trim()) return [];
+
+    const rules = [
+        { label: 'Küfür', terms: ['siktir', 'amk', 'aq', 'orospu', 'pezevenk', 'fuck', 'shit', 'bitch', 'ibne', 'göt'] },
+        { label: 'Hakaret', terms: ['aptal', 'salak', 'gerizekalı', 'şerefsiz', 'zırva', 'alçak', 'argo'] },
+        { label: 'Cinsel içerik (+18)', terms: ['seks', 'porn', 'mastürbasyon', 'erotik', '18+', 'xvideos', 'xnxx', 'pornhub', 'siki', 'amcık'] },
+        { label: 'Irk / cins / cinsiyet ayrımı', terms: ['ırk', 'ırkçı', 'cinsiyet', 'cins ayrımı', 'ırk ayrımı', 'cinsiyet ayrımı'] }
+    ];
+
+    const findings = [];
+    rules.forEach((rule) => {
+        const match = rule.terms.find((term) => lower.includes(term));
+        if (match) {
+            findings.push({ category: rule.label, matchedTerm: match });
+        }
+    });
+
+    return findings;
+}
+
+async function queueContentModerationIfNeeded(payload = {}) {
+    try {
+        const contentText = String(payload.contentText || '').trim();
+        const findings = getAutomaticModerationFindings(contentText);
+        if (!findings.length) return;
+
+        const categories = [...new Set(findings.map((item) => item.category))];
+        const matchedTerms = [...new Set(findings.map((item) => item.matchedTerm).filter(Boolean))];
+        const nowMs = Date.now();
+
+        const moderationRecord = {
+            status: 'pending',
+            source: 'auto',
+            type: payload.contentType || 'post',
+            contentId: payload.contentId || null,
+            communityId: payload.communityId || null,
+            authorUid: payload.authorUid || auth.currentUser?.uid || null,
+            authorUsername: payload.authorUsername || window.user?.username || auth.currentUser?.email?.split('@')[0] || 'unknown',
+            authorDisplayName: payload.authorDisplayName || window.user?.displayName || auth.currentUser?.displayName || 'Bilinmeyen kullanıcı',
+            findings: findings.map((item) => `${item.category} ("${item.matchedTerm}")`),
+            categories,
+            matchedTerms,
+            excerpt: contentText.substring(0, 280),
+            timestamp: serverTimestamp(),
+            createdAtMs: nowMs
+        };
+
+        await addDoc(collection(db, 'moderationAlerts'), moderationRecord);
+
+        const adminIds = await getAdminRecipientIds();
+        const authorName = moderationRecord.authorDisplayName;
+        const authorUsername = moderationRecord.authorUsername;
+        const typeLabel = payload.contentType === 'blog'
+            ? 'blog yazısı'
+            : payload.contentType === 'community'
+                ? 'topluluk gönderisi'
+                : 'gönderi';
+        const adminMessage = `${authorName} (@${authorUsername}) tarafından paylaşılan ${typeLabel} otomatik uyarıya düştü.`;
+
+        const notifyPromises = [];
+        adminIds.forEach((adminId) => {
+            notifyPromises.push(sendNotification(adminId, 'moderation_alert', 'Sistem / İçerik Denetimi', {
+                title: 'Otomatik içerik uyarısı',
+                message: adminMessage,
+                moderationType: payload.contentType || 'post',
+                moderationContentId: payload.contentId || null,
+                moderationCommunityId: payload.communityId || null,
+                moderationFindings: moderationRecord.findings,
+                reportText: `${adminMessage} Bulgular: ${moderationRecord.findings.join(', ')}`
+            }));
+        });
+        await Promise.allSettled(notifyPromises);
+    } catch (error) {
+        console.error('queueContentModerationIfNeeded hatası:', error);
+    }
+}
+
 // helper: uygula arama filtresi (input veya liste güncelleme çağırır)
 function applyFriendSearch() {
     const searchInput = document.getElementById('friendSearch');
@@ -9000,6 +9149,7 @@ function getNotificationDisplayText(n) {
     const message = String(n.message || n.body || n.text || '').trim();
     if (title) return title;
     if (message) return message;
+    if (n.type === 'moderation_alert') return 'Otomatik içerik uyarısı';
     if (n.type === 'report_result') return 'Şikayet sonuçlandı';
     if (n.type === 'account_banned') return 'Hesabınız banlandı';
     if (n.type === 'warning') return 'Uyarı aldınız';
@@ -9142,7 +9292,7 @@ async function loadNotifications(userData) {
             text = `${n.fromName || 'Bir kullanıcı'} sizi "${n.communityName || 'topluluk'}" topluluğuna davet etti`;
             detail = 'Katılmak için daveti kabul edebilir veya reddedebilirsiniz.';
             icon = 'fa-user-group';
-        } else if (n.type === 'report_result' || n.type === 'account_banned' || n.type === 'warning' || n.type === 'account_deleted') {
+        } else if (n.type === 'moderation_alert' || n.type === 'report_result' || n.type === 'account_banned' || n.type === 'warning' || n.type === 'account_deleted') {
             text = getNotificationDisplayText(n);
             detail = n.message && n.title ? n.message : getNotificationDetailText(n);
             icon = 'fa-shield-halved';
@@ -9160,6 +9310,12 @@ async function loadNotifications(userData) {
             </div>
         ` : '';
 
+        const moderationActions = n.type === 'moderation_alert' ? `
+            <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:8px;">
+                <button class="notif-go-warning-btn" style="background:linear-gradient(135deg,#f59e0b,#d97706); color:#fff; border:none; padding:6px 10px; border-radius:8px; font-size:0.75rem; font-weight:700; cursor:pointer;">Uyarıya Git</button>
+            </div>
+        ` : '';
+
         nDiv.innerHTML = `
             <i class="fa-solid ${icon}" style="font-size:1.1rem; width:34px; text-align:center; color:var(--primary);"></i>
             <div style="flex:1; min-width:0;">
@@ -9167,6 +9323,7 @@ async function loadNotifications(userData) {
                 <p style="margin:3px 0 0 0; font-size:0.75rem; color:var(--text-muted);">${text}</p>
                 ${detail ? `<p style="margin:4px 0 0 0; font-size:0.7rem; color:var(--text-muted); font-style:italic;">${detail}</p>` : ''}
                 ${inviteActions}
+                ${moderationActions}
                 <p style="margin:4px 0 0 0; font-size:0.7rem; color:var(--text-muted);">${timeStr}</p>
             </div>
             <div style="display:flex; flex-direction:column; gap:6px; align-items:flex-end;">
@@ -9221,6 +9378,7 @@ async function loadNotifications(userData) {
         const goBtn = nDiv.querySelector('.notif-go-btn');
         const acceptInviteBtn = nDiv.querySelector('.notif-community-accept-btn');
         const rejectInviteBtn = nDiv.querySelector('.notif-community-reject-btn');
+        const goWarningBtn = nDiv.querySelector('.notif-go-warning-btn');
 
         if (readBtn) {
             readBtn.onclick = async (e) => {
@@ -9277,6 +9435,13 @@ async function loadNotifications(userData) {
                 if (typeof window.rejectCommunityInvite === 'function') {
                     await window.rejectCommunityInvite(n.communityId);
                 }
+            };
+        }
+
+        if (goWarningBtn) {
+            goWarningBtn.onclick = async (e) => {
+                e.stopPropagation();
+                window.openModerationAlertTarget(n);
             };
         }
     }
@@ -9393,12 +9558,13 @@ async function loadProfileNotifications() {
             const nDiv = document.createElement('div');
             nDiv.style.cssText = `padding:15px; border-radius:12px; background:var(--input-bg); border:1px solid var(--border); display:grid; grid-template-columns:auto 1fr auto; gap:12px; align-items:start; cursor:pointer; transition:all 0.2s ease; ${n.read ? 'opacity:0.65;' : 'background:var(--card-bg); border:1px solid var(--primary);'}`;
 
-            const icon = (n.type && n.type.includes('like')) ? 'fa-heart' : (n.type && n.type.includes('comment') ? 'fa-comment' : (n.type && n.type.includes('friend') ? 'fa-user-check' : 'fa-info-circle'));
+            const icon = (n.type === 'moderation_alert') ? 'fa-shield-halved' : ((n.type && n.type.includes('like')) ? 'fa-heart' : (n.type && n.type.includes('comment') ? 'fa-comment' : (n.type && n.type.includes('friend') ? 'fa-user-check' : 'fa-info-circle')));
             const iconColors = {
                 'fa-heart': '#ef4444',
                 'fa-comment': '#3b82f6',
                 'fa-user-check': '#10b981',
-                'fa-info-circle': '#8b5cf6'
+                'fa-info-circle': '#8b5cf6',
+                'fa-shield-halved': '#f59e0b'
             };
             const iconColor = iconColors[icon] || 'var(--primary)';
 
@@ -9423,6 +9589,9 @@ async function loadProfileNotifications() {
             } else if (n.type === 'friend_rejected') {
                 mainText = `${n.fromName} arkadaşlık isteğinizi reddetti`;
                 detailText = '';
+            } else if (n.type === 'moderation_alert') {
+                mainText = n.title || 'Otomatik içerik uyarısı';
+                detailText = n.reportText || n.message || 'İçerik denetimi için yöneticilere iletildi.';
             } else {
                 mainText = n.fromName || 'Sistem';
                 detailText = n.message || 'Yeni bildirim';
@@ -9446,6 +9615,7 @@ async function loadProfileNotifications() {
                 <div style="display:flex; flex-direction:column; gap:6px; align-items:flex-end;">
                     ${!n.read ? `<button style="background:var(--primary); color:#fff; border:none; padding:6px 12px; border-radius:8px; font-size:0.75rem; font-weight:700; cursor:pointer;">Okundu</button>` : `<div style="font-size:0.75rem; color:var(--text-muted); font-weight:600;">✓ Okundu</div>`}
                     <button style="background:#ef4444; color:#fff; border:none; padding:6px 12px; border-radius:8px; font-size:0.75rem; font-weight:700; cursor:pointer;">Sil</button>
+                    ${n.type === 'moderation_alert' ? `<button class="notif-go-warning-btn" style="background:linear-gradient(135deg,#f59e0b,#d97706); color:#fff; border:none; padding:6px 12px; border-radius:8px; font-size:0.75rem; font-weight:700; cursor:pointer;">Uyarıya Git</button>` : ''}
                     ${n.postId ? `<button style="background:transparent; border:1px solid var(--border); color:var(--text-main); padding:6px 10px; border-radius:8px; font-size:0.75rem; font-weight:700; cursor:pointer;">Gönderiye Git</button>` : ''}
                 </div>
             `;
@@ -9457,6 +9627,7 @@ async function loadProfileNotifications() {
 
             // Sil butonu seçicisi - tüm butonları kontrol et ve "Sil" yazanı bul
             const buttons = nDiv.querySelectorAll('button');
+            const editButton = nDiv.querySelector('.notif-go-warning-btn');
             for (const btn of buttons) {
                 if (btn.textContent.trim() === 'Sil') {
                     btn.onclick = async (e) => {
@@ -9480,6 +9651,13 @@ async function loadProfileNotifications() {
                         }
                     };
                 }
+            }
+
+            if (editButton) {
+                editButton.onclick = async (e) => {
+                    e.stopPropagation();
+                    window.openModerationAlertTarget(n);
+                };
             }
 
             nDiv.onclick = async (e) => {
@@ -9699,9 +9877,7 @@ window.reportUserFromProfile = async function() {
         const reportsRef = collection(db, 'reports');
         await addDoc(reportsRef, reportDoc);
 
-        const adminQuery = query(collection(db, 'users'), where('isAdmin', '==', true));
-        const adminSnap = await getDocs(adminQuery);
-        const adminIds = adminSnap.docs.map(docSnap => docSnap.id).filter(Boolean);
+        const adminIds = await getAdminRecipientIds();
 
         const reportText = `Yeni şikayet: ${reportDoc.reporterName} (@${reportDoc.reporterUsername || 'unknown'}) ${targetUsername ? 'kullanıcısını' : 'kullanıcıyı'} şikayet etti. Neden: ${reason.trim()}`;
         for (const adminId of adminIds) {
@@ -13737,6 +13913,14 @@ async function publishBlogPost({ draft = false } = {}) {
                 authorEmail: auth.currentUser.email,
                 authorAvatar: user.avatarUrl || 'assets/img/strendsaydamv2.png',
                 createdAt: serverTimestamp()
+            });
+            await queueContentModerationIfNeeded({
+                contentType: 'blog',
+                contentId: newDoc.id,
+                contentText: `${title}\n${content}`,
+                authorUid: auth.currentUser.uid,
+                authorUsername: (auth.currentUser.email || '').split('@')[0],
+                authorDisplayName: user.displayName || user.name || (auth.currentUser.email || '').split('@')[0]
             });
 
             status.textContent = draft ? '✅ Taslak kaydedildi.' : '✅ Yazınız yayına alındı.';

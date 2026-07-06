@@ -24,6 +24,89 @@ let currentPostsUnsubscribe = null;
 let communityComposerState = { imageBase64: null, poll: null };
 const communityEnglishTranslationCache = new Map();
 
+function getCommunityModerationFindings(text = '') {
+  const lower = String(text || '').toLowerCase();
+  if (!lower.trim()) return [];
+
+  const rules = [
+    { label: 'Küfür', terms: ['siktir', 'amk', 'aq', 'orospu', 'pezevenk', 'fuck', 'shit', 'bitch', 'ibne', 'göt'] },
+    { label: 'Hakaret', terms: ['aptal', 'salak', 'gerizekalı', 'şerefsiz', 'zırva', 'alçak', 'argo'] },
+    { label: 'Cinsel içerik (+18)', terms: ['seks', 'porn', 'mastürbasyon', 'erotik', '18+', 'xvideos', 'xnxx', 'pornhub', 'siki', 'amcık'] },
+    { label: 'Irk / cins / cinsiyet ayrımı', terms: ['ırk', 'ırkçı', 'cinsiyet', 'cins ayrımı', 'ırk ayrımı', 'cinsiyet ayrımı'] }
+  ];
+
+  const findings = [];
+  rules.forEach((rule) => {
+    const match = rule.terms.find((term) => lower.includes(term));
+    if (match) {
+      findings.push({ category: rule.label, matchedTerm: match });
+    }
+  });
+  return findings;
+}
+
+async function queueCommunityModerationAlertIfNeeded(payload = {}) {
+  try {
+    const contentText = String(payload.contentText || '').trim();
+    const findings = getCommunityModerationFindings(contentText);
+    if (!findings.length) return;
+
+    const authorUsername = payload.authorUsername || currentUser?.email?.split('@')[0] || 'unknown';
+    const authorDisplayName = payload.authorDisplayName || currentUser?.displayName || authorUsername;
+    const findingsText = findings.map((item) => `${item.category} ("${item.matchedTerm}")`);
+
+    await addDoc(collection(db, 'moderationAlerts'), {
+      status: 'pending',
+      source: 'auto',
+      type: 'community',
+      contentId: payload.contentId || null,
+      communityId: payload.communityId || null,
+      authorUid: payload.authorUid || currentUser?.uid || null,
+      authorUsername,
+      authorDisplayName,
+      findings: findingsText,
+      categories: [...new Set(findings.map((item) => item.category))],
+      matchedTerms: [...new Set(findings.map((item) => item.matchedTerm).filter(Boolean))],
+      excerpt: contentText.substring(0, 280),
+      timestamp: serverTimestamp(),
+      createdAtMs: Date.now()
+    });
+
+    const adminsSnap = await getDocs(query(collection(db, 'users'), where('isAdmin', '==', true)));
+    const notification = {
+      notificationId: `${Date.now()}_${Math.random().toString(36).slice(2)}`,
+      type: 'moderation_alert',
+      fromName: 'Sistem / İçerik Denetimi',
+      fromUid: currentUser?.uid || null,
+      timestamp: Date.now(),
+      read: false,
+      title: 'Otomatik içerik uyarısı',
+      message: `${authorDisplayName} (@${authorUsername}) tarafından paylaşılan topluluk gönderisi otomatik uyarıya düştü.`,
+      moderationType: 'community',
+      moderationContentId: payload.contentId || null,
+      moderationCommunityId: payload.communityId || null,
+      moderationFindings: findingsText,
+      reportText: findingsText.join(', ')
+    };
+
+    const tasks = [];
+    adminsSnap.forEach((adminDoc) => {
+      tasks.push(
+        updateDoc(doc(db, 'users', adminDoc.id), {
+          notifications: arrayUnion(notification)
+        }).catch(async (err) => {
+          if (err && err.code === 'not-found') {
+            await setDoc(doc(db, 'users', adminDoc.id), { notifications: [notification] }, { merge: true });
+          }
+        })
+      );
+    });
+    await Promise.allSettled(tasks);
+  } catch (error) {
+    console.error('queueCommunityModerationAlertIfNeeded hata:', error);
+  }
+}
+
 async function communityTranslateToEnglish(text) {
   const source = (text || '').trim();
   if (!source) return '';
@@ -1327,7 +1410,7 @@ async function createCommunityPost(communityId) {
   try {
     const postsCollection = collection(db, 'topluluklar', communityId, 'gonderiler');
     const profile = getCommunityProfileData(currentUser);
-    await addDoc(postsCollection, {
+    const createdPostRef = await addDoc(postsCollection, {
       content,
       image: communityComposerState.imageBase64 || null,
       poll: communityComposerState.poll || null,
@@ -1340,10 +1423,31 @@ async function createCommunityPost(communityId) {
       createdAt: serverTimestamp()
     });
 
+    await queueCommunityModerationAlertIfNeeded({
+      contentId: createdPostRef.id,
+      communityId,
+      contentText: [content, communityComposerState.poll?.question, ...(communityComposerState.poll?.options || [])].filter(Boolean).join('\n'),
+      authorUid: currentUser.uid,
+      authorUsername: profile.username,
+      authorDisplayName: profile.displayName
+    });
+
     await updateDoc(doc(communitiesCollection, communityId), {
       postCount: increment(1),
       updatedAt: serverTimestamp()
     });
+
+    const communityFindings = getCommunityModerationFindings([content, communityComposerState.poll?.question, ...(communityComposerState.poll?.options || [])].filter(Boolean).join('\n'));
+    if (communityFindings.length) {
+      try {
+        await updateDoc(doc(postsCollection, createdPostRef.id), {
+          autoModerationFindings: communityFindings.map((item) => `${item.category} ("${item.matchedTerm}")`),
+          moderationStatus: 'pending'
+        });
+      } catch (error) {
+        console.error('community moderation flag update hatası:', error);
+      }
+    }
 
     if (contentInput) contentInput.value = '';
     resetCommunityComposerState();

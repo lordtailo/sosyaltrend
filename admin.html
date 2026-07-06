@@ -762,25 +762,15 @@
   <div data-include="partials/left-aside.html"></div>
 
  <main id="main-content">
-  <div class="admin-header">
-    <h1></h1>
-  </div>
-
-  <div class="stat-grid">
-        <div class="glass-card stat-card">
-          <i class="fa-solid fa-signs-post"></i>
-          <h3 id="stat-posts">0</h3>
-          <p>Toplam Gönderi</p>
+    <div class="admin-header page-hero">
+        <div>
+            <h1 style="margin-bottom:10px;">Yönetim Merkezi</h1>
+            <p>İçerik, kullanıcılar ve sistem üzerinde hızlı kontrol. Önemli sayılar tek satırda, daha az kalabalık bir başlıkta gösterilir.</p>
         </div>
-        <div class="glass-card stat-card">
-          <i class="fa-solid fa-users-gear"></i>
-          <h3 id="stat-users">0</h3>
-          <p>Aktif Kullanıcılar</p>
-        </div>
-        <div class="glass-card stat-card">
-          <i class="fa-solid fa-clock"></i>
-          <h3 id="stat-recent-logins">0</h3>
-          <p>24 Saat İçinde Giriş</p>
+        <div class="page-hero-pills">
+            <span class="page-hero-pill"><i class="fa-solid fa-signs-post"></i> <strong id="stat-posts">0</strong> Gönderi</span>
+            <span class="page-hero-pill"><i class="fa-solid fa-users-gear"></i> <strong id="stat-users">0</strong> Kullanıcı</span>
+            <span class="page-hero-pill"><i class="fa-solid fa-clock"></i> <strong id="stat-recent-logins">0</strong> Son 24 Saat</span>
         </div>
     </div>
 
@@ -1022,8 +1012,8 @@
                 </div>
 
                 <div class="glass-card" style="padding: 18px; border-radius: 14px;">
+                    <div class="section-subtitle" style="margin-bottom:14px;"><i class="fa-solid fa-list"></i> Tüm Paylaşımları Yönet</div>
                     <div class="admin-moderation-head">
-                        <div class="section-subtitle" style="margin-bottom:0;"><i class="fa-solid fa-list"></i> Tüm Paylaşımları Yönet</div>
                         <div class="admin-moderation-folder-tabs">
                             <button type="button" class="admin-folder-tab active" data-filter="all" onclick="setAdminModerationFilter('all', this)" aria-pressed="true">
                                 <i class="fa-solid fa-folder-open"></i>
@@ -2872,6 +2862,10 @@
         if (sectionId === 'system') {
             loadAnnouncements();
         }
+
+        if (sectionId === 'moderation') {
+            loadAllPosts();
+        }
         
         // Yönetim tab'ına geçişte kullanıcıları yükle
         if (sectionId === 'management') {
@@ -3139,11 +3133,99 @@
         return null;
     }
 
-    function getModerationAuthorInfo(data = {}, contentType = 'post') {
-        const username = data.username || data.authorUsername || 'unknown';
-        const displayName = data.displayName || data.authorDisplayName || data.authorName || data.title || data.headline || 'Bilinmeyen kullanıcı';
+    const moderationAuthorCache = new Map();
+
+    async function getModerationAuthorInfo(data = {}, contentType = 'post') {
         const category = data.category || (contentType === 'blog' ? 'Blog' : contentType === 'community' ? 'Topluluk' : 'Genel');
-        return { username, displayName, category };
+        const fallbackUsername = data.username || data.authorUsername || data.authorName || 'unknown';
+        const fallbackDisplayName = data.displayName || data.authorDisplayName || data.authorName || data.title || data.headline || fallbackUsername || 'Bilinmeyen kullanıcı';
+        const authorUid = data.authorUid || data.uid || data.userId || data.ownerUid || null;
+
+        if (!authorUid) {
+            return { username: fallbackUsername, displayName: fallbackDisplayName, category };
+        }
+
+        if (moderationAuthorCache.has(authorUid)) {
+            const cached = moderationAuthorCache.get(authorUid) || {};
+            return {
+                username: cached.username || fallbackUsername,
+                displayName: cached.displayName || fallbackDisplayName,
+                category
+            };
+        }
+
+        try {
+            const userSnap = await getDoc(doc(db, 'users', authorUid));
+            const userData = userSnap.exists() ? userSnap.data() : {};
+            const resolved = {
+                username: userData.username || fallbackUsername,
+                displayName: userData.displayName || userData.name || userData.username || fallbackDisplayName
+            };
+            moderationAuthorCache.set(authorUid, resolved);
+            return { ...resolved, category };
+        } catch (error) {
+            console.warn('getModerationAuthorInfo kullanıcı çözümleme hatası:', error);
+            return { username: fallbackUsername, displayName: fallbackDisplayName, category };
+        }
+    }
+
+    function getModerationCardId(item) {
+        return `moderation-card-${item.type || 'post'}-${item.id}`;
+    }
+
+    function clearModerationTarget() {
+        try {
+            localStorage.removeItem('st_moderationTarget');
+        } catch (_) {
+            // ignore
+        }
+    }
+
+    function focusModerationTargetCard() {
+        try {
+            const raw = localStorage.getItem('st_moderationTarget');
+            if (!raw) return;
+            const target = JSON.parse(raw);
+            const targetId = String(target?.contentId || '').trim();
+            const targetWarningText = String(target?.warningText || '').trim();
+            if (!targetId) return;
+
+            const selector = [
+                `[data-content-id="${targetId}"]`,
+                `#${CSS.escape(`moderation-card-post-${targetId}`)}`,
+                `#${CSS.escape(`moderation-card-blog-${targetId}`)}`,
+                `#${CSS.escape(`moderation-card-community-${targetId}`)}`
+            ].join(',');
+
+            const card = document.querySelector(selector);
+            if (!card) return;
+
+            card.style.outline = '3px solid rgba(245, 158, 11, 0.95)';
+            card.style.boxShadow = '0 0 0 6px rgba(245, 158, 11, 0.18), 0 16px 40px rgba(245, 158, 11, 0.22)';
+            card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+            const warningTarget = targetWarningText
+                ? card.querySelector(`[data-warning-text="${CSS.escape(targetWarningText)}"]`)
+                : card.querySelector('[data-warning-text]');
+            if (warningTarget) {
+                warningTarget.style.outline = '2px solid rgba(245, 158, 11, 1)';
+                warningTarget.style.boxShadow = '0 0 0 4px rgba(245, 158, 11, 0.18)';
+                warningTarget.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+
+            setTimeout(() => {
+                card.style.outline = '';
+                card.style.boxShadow = '';
+                if (warningTarget) {
+                    warningTarget.style.outline = '';
+                    warningTarget.style.boxShadow = '';
+                }
+            }, 3500);
+
+            clearModerationTarget();
+        } catch (error) {
+            console.warn('focusModerationTargetCard hatası:', error);
+        }
     }
 
     async function fetchCommunityPostsForModeration(limitPerCommunity = 10) {
@@ -3172,10 +3254,13 @@
         return postsByCommunity.flat();
     }
 
-    function renderModerationCard(item) {
+    async function renderModerationCard(item) {
         const d = item.data || {};
         const isHidden = d.hidden === true;
         const contentText = d.content ? String(d.content) : (d.title ? `${d.title}\n\n${d.description || ''}` : 'İçerik yok');
+        const autoFindings = Array.isArray(d.autoModerationFindings) && d.autoModerationFindings.length
+            ? d.autoModerationFindings
+            : getPostModerationFindings(contentText);
         const preview = contentText.length > 220 ? `${contentText.substring(0, 220)}...` : contentText;
         const timestamp = getModerationTimestamp(d);
         const formattedTime = timestamp ? timestamp.toLocaleString('tr-TR', { dateStyle: 'medium', timeStyle: 'short' }) : 'Tarih yok';
@@ -3188,13 +3273,14 @@
                 <div style="font-size: 0.9rem;"><strong>Sonra:</strong> ${escapeHtml(String(d.lastEdit.to))}</div>
             </div>` : '';
         const hiddenBadge = isHidden ? '<span style="display:inline-flex; align-items:center; gap:6px; padding:6px 10px; border-radius:999px; background: rgba(239,68,68,0.14); color:#ef4444; font-size:0.8rem; font-weight:700;"><i class="fa-solid fa-eye-slash"></i> Gizli</span>' : '';
+        const warningBadge = autoFindings.length ? `<span style="display:inline-flex; align-items:center; gap:6px; padding:6px 10px; border-radius:999px; background: rgba(245,158,11,0.16); color:#b45309; font-size:0.8rem; font-weight:700;"><i class="fa-solid fa-triangle-exclamation"></i> Uyarı: ${autoFindings.length}</span>` : '';
         const typeBadge = item.type === 'blog'
             ? '<span style="display:inline-flex; align-items:center; gap:6px; padding:6px 10px; border-radius:999px; background: rgba(59,130,246,0.14); color:#3b82f6; font-size:0.8rem; font-weight:700;"><i class="fa-solid fa-blog"></i> Blog</span>'
             : item.type === 'community'
                 ? '<span style="display:inline-flex; align-items:center; gap:6px; padding:6px 10px; border-radius:999px; background: rgba(16,185,129,0.14); color:#10b981; font-size:0.8rem; font-weight:700;"><i class="fa-solid fa-users"></i> Topluluk</span>'
                 : '<span style="display:inline-flex; align-items:center; gap:6px; padding:6px 10px; border-radius:999px; background: rgba(99,102,241,0.14); color:var(--primary); font-size:0.8rem; font-weight:700;"><i class="fa-solid fa-signs-post"></i> Gönderi</span>';
 
-        const author = getModerationAuthorInfo(d, item.type);
+        const author = await getModerationAuthorInfo(d, item.type);
         const initials = (author.username || 'U').charAt(0).toUpperCase();
         const visibilityButton = item.type === 'community'
             ? ''
@@ -3203,7 +3289,7 @@
                 : `<button class="action-btn" onclick="hidePostAdmin('${item.id}', '${item.type}', '${item.communityId || ''}')"><i class="fa-solid fa-eye-slash"></i> Gizle</button>`);
 
         return `
-            <div class="moderation-card">
+            <div class="moderation-card" id="${escapeHtml(getModerationCardId(item))}" data-content-id="${escapeHtml(item.id)}" data-content-type="${escapeHtml(item.type || 'post')}">
                 <div class="moderation-card-header">
                     <div class="moderation-user">
                         <div style="width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, var(--primary), var(--warning)); display:flex; align-items:center; justify-content:center; color:white; font-weight:800;">
@@ -3219,9 +3305,11 @@
                         <span><i class="fa-solid fa-hashtag"></i> ${escapeHtml(author.category || 'Genel')}</span>
                         ${typeBadge}
                         ${hiddenBadge}
+                        ${warningBadge}
                     </div>
                 </div>
                 <div class="moderation-content">${escapeHtml(preview)}</div>
+                ${autoFindings.length ? `<div style="margin-top:10px; display:flex; gap:6px; flex-wrap:wrap;">${autoFindings.map((f) => `<span data-warning-text="${escapeHtml(String(f))}" style="padding:4px 9px; border-radius:999px; font-size:0.75rem; font-weight:700; background:rgba(245,158,11,0.12); color:#b45309; border:1px solid rgba(245,158,11,0.25);">${escapeHtml(String(f))}</span>`).join('')}</div>` : ''}
                 ${image}
                 ${editHistory}
                 <div class="moderation-actions">
@@ -3302,7 +3390,7 @@
         meta.textContent = total > 0 ? `${shown} / ${total} ${filterName} gösteriliyor` : '';
     }
 
-    function renderAdminModerationPage(reset = false) {
+    async function renderAdminModerationPage(reset = false) {
         const container = getAdminElement('admin-feed-list');
         if (!container) return;
 
@@ -3319,14 +3407,16 @@
         }
 
         const visibleItems = activeItems.slice(0, adminModerationVisibleCount);
-        container.innerHTML = visibleItems.map(renderModerationCard).join('');
+        const cards = await Promise.all(visibleItems.map((item) => renderModerationCard(item)));
+        container.innerHTML = cards.join('');
         updateAdminFeedLoadMoreUI();
+        focusModerationTargetCard();
     }
 
     window.loadMoreAdminPosts = () => {
         if (!getActiveModerationItems().length) return;
         adminModerationVisibleCount += ADMIN_MODERATION_PAGE_SIZE;
-        renderAdminModerationPage(false);
+        void renderAdminModerationPage(false);
     };
 
     async function loadAllPosts() {
@@ -3348,13 +3438,33 @@
             ]);
 
             const allItems = [];
-            postsSnap.forEach((docSnap) => {
-                allItems.push({ id: docSnap.id, type: 'post', communityId: null, data: docSnap.data() });
-            });
-            blogsSnap.forEach((docSnap) => {
-                allItems.push({ id: docSnap.id, type: 'blog', communityId: null, data: docSnap.data() });
-            });
-            communityPosts.forEach((item) => allItems.push(item));
+
+            const postItems = await Promise.all(postsSnap.docs.map(async (docSnap) => {
+                const data = docSnap.data() || {};
+                const autoFindings = getPostModerationFindings(String(data.content || data.title || ''));
+                if (autoFindings.length && !Array.isArray(data.autoModerationFindings)) {
+                    data.autoModerationFindings = autoFindings;
+                }
+                const author = await getModerationAuthorInfo(data, 'post');
+                return { id: docSnap.id, type: 'post', communityId: null, data: { ...data, ...author } };
+            }));
+
+            const blogItems = await Promise.all(blogsSnap.docs.map(async (docSnap) => {
+                const data = docSnap.data() || {};
+                const autoFindings = getPostModerationFindings(String(data.content || data.title || ''));
+                if (autoFindings.length && !Array.isArray(data.autoModerationFindings)) {
+                    data.autoModerationFindings = autoFindings;
+                }
+                const author = await getModerationAuthorInfo(data, 'blog');
+                return { id: docSnap.id, type: 'blog', communityId: null, data: { ...data, ...author } };
+            }));
+
+            const communityItems = await Promise.all(communityPosts.map(async (item) => {
+                const author = await getModerationAuthorInfo(item.data || {}, 'community');
+                return { ...item, data: { ...(item.data || {}), ...author } };
+            }));
+
+            allItems.push(...postItems, ...blogItems, ...communityItems);
 
             allItems.sort((a, b) => {
                 const aMs = getModerationTimestamp(a.data)?.getTime() || 0;
@@ -3364,7 +3474,7 @@
 
             adminModerationAllItems = allItems.slice(0, 120);
             updateAdminModerationFilterCounts();
-            renderAdminModerationPage(true);
+            await renderAdminModerationPage(true);
         } catch (error) {
             console.error('loadAllPosts hatası:', error);
             container.innerHTML = '<div class="moderation-empty">Paylaşımlar yüklenemedi. Lütfen tekrar deneyin.</div>';
@@ -3895,6 +4005,22 @@
         const params = new URLSearchParams(window.location.search);
         const tab = params.get('tab');
         if (!tab) return;
+        const mainTabMap = {
+            system: "[onclick*='switchMainSection(\'system\'']",
+            management: "[onclick*='switchMainSection(\'management\'']",
+            'user-moderation': "[onclick*='switchMainSection(\'user-moderation\'']",
+            moderation: "[onclick*='switchMainSection(\'moderation\'']"
+        };
+
+        if (mainTabMap[tab]) {
+            const button = document.querySelector(mainTabMap[tab]);
+            if (button) {
+                switchMainSection(tab, button);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+            return;
+        }
+
         const button = document.getElementById(`${tab}TabBtn`);
         if (button) {
             switchTab(tab, button);
