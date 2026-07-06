@@ -624,6 +624,25 @@ function loadCommunities() {
   }
 }
 
+function applyCommunityJoinButtonState(button, isJoined, accentColor, isPending = false) {
+  if (!button) return;
+
+  const fallbackAccent = accentColor || 'var(--primary)';
+  const joinedBackground = 'linear-gradient(135deg, #10b981, #059669)';
+  const idleBackground = `linear-gradient(135deg, ${fallbackAccent}, ${fallbackAccent})`;
+
+  button.dataset.joined = String(Boolean(isJoined));
+  button.setAttribute('aria-pressed', isJoined ? 'true' : 'false');
+  button.disabled = Boolean(isPending);
+  button.style.opacity = isPending ? '0.75' : '1';
+  button.style.cursor = isPending ? 'wait' : 'pointer';
+  button.style.background = isJoined ? joinedBackground : idleBackground;
+  button.style.boxShadow = isJoined
+    ? '0 6px 16px rgba(16, 185, 129, 0.22)'
+    : '0 6px 16px rgba(99, 102, 241, 0.20)';
+  button.textContent = isPending ? '⏳ İşleniyor...' : (isJoined ? '✓ Katıldı' : '➕ Katıl');
+}
+
 // Topluluk kartı oluştur
 function createCommunityCard(docSnap) {
   const data = docSnap.data();
@@ -712,8 +731,17 @@ function createCommunityCard(docSnap) {
   const joinBtn = card.querySelector('.community-join-btn');
   joinBtn.addEventListener('click', async (e) => {
     e.stopPropagation();
-    await toggleCommunityMembership(communityId, isJoined);
+    const currentlyJoined = joinBtn.dataset.joined === 'true';
+    applyCommunityJoinButtonState(joinBtn, currentlyJoined, categoryStyle.color, true);
+    const result = await toggleCommunityMembership(communityId, currentlyJoined);
+    if (!result?.ok) {
+      applyCommunityJoinButtonState(joinBtn, currentlyJoined, categoryStyle.color, false);
+      return;
+    }
+    applyCommunityJoinButtonState(joinBtn, result.joined, categoryStyle.color, false);
   });
+
+  applyCommunityJoinButtonState(joinBtn, isJoined, categoryStyle.color, false);
 
   // Sil butonu (yalnızca topluluğun sahibi görebilir)
   const deleteBtn = card.querySelector('.community-delete-btn');
@@ -771,8 +799,13 @@ function getCommunityInvitedUids(data = {}) {
   return invitedUsers.map((entry) => typeof entry === 'object' ? entry.uid : entry).filter(Boolean);
 }
 
+function isCurrentUserAdmin() {
+  return Boolean(window.user?.isAdmin) || localStorage.getItem('st_isAdmin') === '1';
+}
+
 function isCommunityVisibleToUser(data = {}, user = null) {
   if (!data?.isPrivate) return true;
+  if (isCurrentUserAdmin()) return true;
   if (!user?.uid) return false;
   const memberUids = getCommunityMemberUids(data);
   const invitedUids = getCommunityInvitedUids(data);
@@ -1265,7 +1298,7 @@ async function createCommunityPost(communityId) {
 async function toggleCommunityMembership(communityId, isJoined) {
   if (!currentUser) {
     alert('Lütfen önce giriş yapınız.');
-    return;
+    return { ok: false, joined: isJoined };
   }
 
   try {
@@ -1282,19 +1315,22 @@ async function toggleCommunityMembership(communityId, isJoined) {
         members: arrayRemove(memberData)
       });
       console.log('Topluluğundan ayrıldı:', communityId);
+      return { ok: true, joined: false };
     } else {
       if (communityData.isPrivate && communityData.ownerUid !== currentUser.uid && !getCommunityInvitedUids(communityData).includes(currentUser.uid)) {
         alert('Bu özel topluluğa katılmak için davet almanız gerekir.');
-        return;
+        return { ok: false, joined: isJoined };
       }
       await updateDoc(communityRef, {
         members: arrayUnion(memberData)
       });
       console.log('Topluluğa katıldı:', communityId);
+      return { ok: true, joined: true };
     }
   } catch (error) {
     console.error('Üyelik güncellenirken hata:', error);
     alert('İşlem başarısız. Lütfen tekrar deneyin.');
+    return { ok: false, joined: isJoined };
   }
 }
 
@@ -1409,7 +1445,7 @@ async function openCommunityDetail(communityId) {
         <div style="display:flex; gap:8px; flex-wrap:wrap;">
           ${isOwner ? `<button onclick="window.openEditCommunityModalFromDetail('${communityId}')" style="padding:8px 14px; border:none; border-radius:999px; background:linear-gradient(135deg, var(--primary), #818cf8); color:white; cursor:pointer; font-weight:700; box-shadow:0 6px 16px rgba(99,102,241,0.20);">✏️ Düzenle</button>` : ''}
           ${isOwner ? `<button onclick="window.deleteCommunity('${communityId}')" style="padding:8px 14px; border:none; border-radius:999px; background:linear-gradient(135deg, #ef4444, #dc2626); color:white; cursor:pointer; font-weight:700; box-shadow:0 6px 16px rgba(239,68,68,0.22);">🗑 Sil</button>` : ''}
-          <button onclick="window.toggleCommunityMembership('${communityId}', ${isJoined})" style="padding:8px 14px; border:none; border-radius:999px; background:${isJoined ? 'linear-gradient(135deg, #10b981, #059669)' : `linear-gradient(135deg, ${categoryStyle.color}, ${categoryStyle.color})`}; color:white; cursor:pointer; font-weight:700; box-shadow:0 6px 16px ${isJoined ? 'rgba(16,185,129,0.22)' : 'rgba(99,102,241,0.20)'};">${isJoined ? '✓ Katıldı' : '➕ Katıl'}</button>
+          <button class="community-detail-join-btn" data-community-id="${communityId}" data-joined="${isJoined}" data-accent-color="${categoryStyle.color}" style="padding:8px 14px; border:none; border-radius:999px; background:${isJoined ? 'linear-gradient(135deg, #10b981, #059669)' : `linear-gradient(135deg, ${categoryStyle.color}, ${categoryStyle.color})`}; color:white; cursor:pointer; font-weight:700; box-shadow:0 6px 16px ${isJoined ? 'rgba(16,185,129,0.22)' : 'rgba(99,102,241,0.20)'};">${isJoined ? '✓ Katıldı' : '➕ Katıl'}</button>
         </div>
       </div>
 
@@ -1523,6 +1559,22 @@ async function openCommunityDetail(communityId) {
           </div>
         </div>
     `;
+
+    const detailJoinBtn = detailView.querySelector('.community-detail-join-btn');
+    if (detailJoinBtn) {
+      applyCommunityJoinButtonState(detailJoinBtn, isJoined, categoryStyle.color, false);
+      detailJoinBtn.addEventListener('click', async () => {
+        const currentlyJoined = detailJoinBtn.dataset.joined === 'true';
+        const accent = detailJoinBtn.dataset.accentColor || categoryStyle.color;
+        applyCommunityJoinButtonState(detailJoinBtn, currentlyJoined, accent, true);
+        const result = await toggleCommunityMembership(communityId, currentlyJoined);
+        if (!result?.ok) {
+          applyCommunityJoinButtonState(detailJoinBtn, currentlyJoined, accent, false);
+          return;
+        }
+        applyCommunityJoinButtonState(detailJoinBtn, result.joined, accent, false);
+      });
+    }
 
     initCommunityComposerControls(communityId);
     loadCommunityPosts(communityId);
@@ -1965,12 +2017,11 @@ function openEditCommunityModal(communityId, data) {
 function closeEditCommunityModal() {
   const modal = document.getElementById('editCommunityModal');
   if (modal) modal.style.display = 'none';
-  currentCommunityId = null;
-  currentCommunityData = null;
 }
 
 async function saveEditedCommunity() {
   if (!currentCommunityId || !currentUser) return;
+  const editingCommunityId = currentCommunityId;
   const name = document.getElementById('editCommunityName').value.trim();
   const category = document.getElementById('editCommunityCategory').value;
   const description = document.getElementById('editCommunityDescription').value.trim();
@@ -1981,16 +2032,22 @@ async function saveEditedCommunity() {
   }
 
   try {
-    await updateDoc(doc(communitiesCollection, currentCommunityId), {
+    await updateDoc(doc(communitiesCollection, editingCommunityId), {
       name,
       category,
       description,
       updatedAt: serverTimestamp()
     });
-    closeEditCommunityModal();
-    if (currentCommunityId) {
-      await openCommunityDetail(currentCommunityId);
+    if (currentCommunityData) {
+      currentCommunityData = {
+        ...currentCommunityData,
+        name,
+        category,
+        description
+      };
     }
+    closeEditCommunityModal();
+    await openCommunityDetail(editingCommunityId);
   } catch (error) {
     console.error('Topluluk düzenlenirken hata:', error);
     alert('Topluluk düzenlenemedi. Lütfen tekrar deneyin.');
@@ -2060,8 +2117,27 @@ window.closeCommunityModal = function() {
 window.showListView = showListView;
 window.openCommunityDetail = openCommunityDetail;
 window.openEditCommunityModal = openEditCommunityModal;
-window.openEditCommunityModalFromDetail = function(communityId) {
-  openEditCommunityModal(communityId, currentCommunityData);
+window.openEditCommunityModalFromDetail = async function(communityId) {
+  let data = currentCommunityData;
+
+  if (!data || currentCommunityId !== communityId) {
+    try {
+      const communitySnap = await getDoc(doc(communitiesCollection, communityId));
+      if (!communitySnap.exists()) {
+        alert('Topluluk verisi bulunamadı.');
+        return;
+      }
+      data = { id: communitySnap.id, ...communitySnap.data() };
+      currentCommunityId = communityId;
+      currentCommunityData = data;
+    } catch (error) {
+      console.error('Topluluk verisi alınamadı:', error);
+      alert('Topluluk bilgileri alınamadı. Lütfen tekrar deneyin.');
+      return;
+    }
+  }
+
+  openEditCommunityModal(communityId, data);
 };
 window.closeEditCommunityModal = closeEditCommunityModal;
 window.saveEditedCommunity = saveEditedCommunity;

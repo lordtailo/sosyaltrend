@@ -3371,6 +3371,7 @@ function getAvatarUrl(avatarUrlOrSeed, type = 'user') {
     // --- ELEMENT TANIMLAMALARI ---
     const welcomeEl = document.getElementById('welcomeMessage'); // Karşılama metni
     const hAvElements = document.querySelectorAll('#headerAvatar');
+    const mobileProfileAvatar = document.getElementById('mobileProfileAvatar');
     const mDn = document.getElementById('menuDisplayName');
     const mUn = document.getElementById('menuUsername');
 
@@ -3420,6 +3421,7 @@ function getAvatarUrl(avatarUrlOrSeed, type = 'user') {
 
     // Header Güncelleme
     hAvElements.forEach((imgEl) => { imgEl.src = avatarUrl; });
+    if (mobileProfileAvatar) mobileProfileAvatar.src = avatarUrl;
     if(mDn) mDn.innerText = user.displayName;
     if(mUn) mUn.innerText = `@${user.username}`;
 
@@ -5396,13 +5398,13 @@ if (typeof updatePostCount === 'function') updatePostCount();
     }
   }, 1000);
 
-  const profileTrigger = document.getElementById('profileTrigger');
-  if(profileTrigger) {
-    profileTrigger.onclick = (e) => { 
-      e.stopPropagation(); 
-            toggleProfileDropdown(profileTrigger);
-    };
-  }
+    const profileTriggers = document.querySelectorAll('#profileTrigger, #mobileProfileTrigger');
+    profileTriggers.forEach((triggerEl) => {
+        triggerEl.onclick = (e) => {
+            e.stopPropagation();
+            toggleProfileDropdown(triggerEl);
+        };
+    });
 
   window.onclick = () => {
         closeProfileDropdown();
@@ -7568,13 +7570,13 @@ function initHeaderInteractions() {
     if (headerInteractionsInitialized && hasHeaderSearch) return;
     headerInteractionsInitialized = true;
 
-    const profileTrigger = document.getElementById('profileTrigger');
-    if (profileTrigger) {
-        profileTrigger.onclick = (e) => {
+    const profileTriggers = document.querySelectorAll('#profileTrigger, #mobileProfileTrigger');
+    profileTriggers.forEach((triggerEl) => {
+        triggerEl.onclick = (e) => {
             e.stopPropagation();
-            toggleProfileDropdown(profileTrigger);
+            toggleProfileDropdown(triggerEl);
         };
-    }
+    });
 
     const themeBtn = document.getElementById('themeToggleBtn');
     if (themeBtn) {
@@ -7840,7 +7842,7 @@ window.closeSideMenus = function() {
 // Bu yöntem, elemanlar fetch ile sonradan gelse bile tıklamayı yakalar.
 document.addEventListener('click', (e) => {
     const dropdownMenu = document.getElementById('dropdownMenu');
-    const profileTrigger = e.target.closest('#profileTrigger');
+    const profileTrigger = e.target.closest('#profileTrigger, #mobileProfileTrigger');
 
     // Profil tetikleyiciye tıklandıysa
     if (profileTrigger) {
@@ -7879,7 +7881,7 @@ document.addEventListener('click', (e) => {
 
 window.addEventListener('resize', () => {
     const menu = document.getElementById('dropdownMenu');
-    const trigger = document.getElementById('profileTrigger');
+    const trigger = document.getElementById('profileTrigger') || document.getElementById('mobileProfileTrigger');
     if (menu?.classList.contains('active') && trigger) {
         positionProfileDropdown(trigger);
     }
@@ -7887,7 +7889,7 @@ window.addEventListener('resize', () => {
 
 window.addEventListener('scroll', () => {
     const menu = document.getElementById('dropdownMenu');
-    const trigger = document.getElementById('profileTrigger');
+    const trigger = document.getElementById('profileTrigger') || document.getElementById('mobileProfileTrigger');
     if (menu?.classList.contains('active') && trigger) {
         positionProfileDropdown(trigger);
     }
@@ -8298,7 +8300,6 @@ async function loadFriendsList(userRef, isOwnProfile = true) {
                 const friendCard = document.createElement('div');
                 friendCard.className = 'friend-card';
                 friendCard.style.cssText = `
-                    background: linear-gradient(135deg, rgba(255,255,255,0.96), rgba(var(--primary-rgb,99,102,241),0.04));
                     padding: 18px;
                     border-radius: 14px;
                     text-align: center;
@@ -8309,6 +8310,7 @@ async function loadFriendsList(userRef, isOwnProfile = true) {
                     justify-content: center;
                     gap: 10px;
                     min-height: 220px;
+                    color: var(--text-main);
                 `;
                 
                 const mutualHtml = `<p class="friend-card-mutual" data-uid="${friendDoc.id}" 

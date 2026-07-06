@@ -349,6 +349,166 @@
             font-size: 0.9rem;
             line-height: 1.5;
         }
+
+        /* ADMIN DARK MODE DUZELTMELERI */
+        body.dark-mode .admin-main {
+            background: linear-gradient(135deg, rgba(15,23,42,0.65) 0%, rgba(2,6,23,0.85) 100%);
+        }
+        body.dark-mode .admin-sidebar {
+            background: linear-gradient(180deg, rgba(15,23,42,0.95) 0%, rgba(30,41,59,0.92) 100%);
+            border-right-color: rgba(148,163,184,0.25);
+            box-shadow: 2px 0 12px rgba(2,6,23,0.35);
+        }
+        body.dark-mode .admin-block,
+        body.dark-mode .page-hero,
+        body.dark-mode .moderation-card,
+        body.dark-mode .page-section-card,
+        body.dark-mode .admin-moderation-folder-tabs {
+            background: linear-gradient(135deg, rgba(30,41,59,0.9) 0%, rgba(15,23,42,0.92) 100%);
+            border-color: rgba(148,163,184,0.24);
+            box-shadow: 0 12px 28px rgba(2,6,23,0.35);
+        }
+        body.dark-mode .page-hero-pill,
+        body.dark-mode .admin-folder-tab {
+            background: rgba(15,23,42,0.72);
+            border-color: rgba(148,163,184,0.22);
+            color: var(--text-main);
+        }
+        body.dark-mode .moderation-meta span,
+        body.dark-mode .admin-folder-tab .tab-count {
+            background: rgba(99,102,241,0.2);
+            border-color: rgba(99,102,241,0.32);
+            color: #c7d2fe;
+        }
+        body.dark-mode .moderation-empty {
+            background: rgba(15,23,42,0.62);
+            border-color: rgba(148,163,184,0.24);
+        }
+        body.dark-mode .quick-action-btn::before,
+        body.dark-mode .tab-btn::before,
+        body.dark-mode .action-btn::before {
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.12), transparent);
+        }
+        body.dark-mode .admin-block [style*="rgba(255,255,255"],
+        body.dark-mode .admin-block [style*="background: #fff"],
+        body.dark-mode .admin-block [style*="background:white"] {
+            background: rgba(15,23,42,0.68) !important;
+            border-color: rgba(148,163,184,0.24) !important;
+            color: var(--text-main) !important;
+        }
+        body.dark-mode .admin-block [style*="linear-gradient(135deg"],
+        body.dark-mode #admin-feed-list [style*="linear-gradient(135deg"] {
+            background: linear-gradient(135deg, rgba(30,41,59,0.82), rgba(15,23,42,0.9)) !important;
+            border-color: rgba(148,163,184,0.24) !important;
+        }
+        body.dark-mode .admin-block [style*="box-shadow: inset 0 1px 0 rgba(255,255,255"],
+        body.dark-mode .admin-block [style*="box-shadow: 0 4px 12px rgba(99,102,241,0.3)"] {
+            box-shadow: none !important;
+        }
+
+        /* Admin sayfasi sol ve sag menu koyu mod duzeltmeleri */
+        body.dark-mode .app-container aside .glass-card,
+        body.dark-mode .app-container .right-panel .glass-card,
+        body.dark-mode .app-container .right-panel .sidebar-container,
+        body.dark-mode .app-container aside .sidebar-container,
+        body.dark-mode .app-container [data-include="partials/left-aside.html"] .glass-card,
+        body.dark-mode .app-container [data-include="partials/right-aside.html"] .glass-card {
+            background: rgba(15,23,42,0.9) !important;
+            border-color: rgba(148,163,184,0.24) !important;
+            box-shadow: 0 10px 24px rgba(2,6,23,0.35) !important;
+        }
+
+        body.dark-mode .app-container aside .menu-style-btn,
+        body.dark-mode .app-container .right-panel .menu-style-btn,
+        body.dark-mode .app-container .right-panel .new-connections-btn,
+        body.dark-mode .app-container [data-include="partials/left-aside.html"] .menu-style-btn,
+        body.dark-mode .app-container [data-include="partials/right-aside.html"] .new-connections-btn {
+            background: rgba(30,41,59,0.72) !important;
+            border-color: rgba(148,163,184,0.24) !important;
+            color: var(--text-main) !important;
+        }
+
+        body.dark-mode .app-container aside .menu-style-btn:hover,
+        body.dark-mode .app-container .right-panel .menu-style-btn:hover,
+        body.dark-mode .app-container .right-panel .new-connections-btn:hover,
+        body.dark-mode .app-container [data-include="partials/left-aside.html"] .menu-style-btn:hover,
+        body.dark-mode .app-container [data-include="partials/right-aside.html"] .new-connections-btn:hover {
+            background: rgba(51,65,85,0.78) !important;
+            border-color: rgba(99,102,241,0.36) !important;
+        }
+
+        body.dark-mode .app-container .right-panel [style*="rgba(255,255,255"],
+        body.dark-mode .app-container aside [style*="rgba(255,255,255"],
+        body.dark-mode .app-container .right-panel [style*="rgba(255, 255, 255"],
+        body.dark-mode .app-container aside [style*="rgba(255, 255, 255"] {
+            background: rgba(15,23,42,0.7) !important;
+            border-color: rgba(148,163,184,0.24) !important;
+            color: var(--text-main) !important;
+        }
+
+        body.dark-mode .app-container aside .sidebar-title,
+        body.dark-mode .app-container .right-panel .sidebar-title,
+        body.dark-mode .app-container .right-panel .new-connections-title,
+        body.dark-mode .app-container .right-panel .new-connections-subtitle,
+        body.dark-mode .app-container .right-panel .new-connections-feature,
+        body.dark-mode .app-container [data-include="partials/left-aside.html"] .sidebar-title,
+        body.dark-mode .app-container [data-include="partials/right-aside.html"] .sidebar-title {
+            color: var(--text-main) !important;
+        }
+
+        /* Kullanici Denetim + Icerik Denetimi koyu mod duzeltmeleri */
+        body.dark-mode #main-section-user-moderation .glass-card,
+        body.dark-mode #main-section-moderation .glass-card,
+        body.dark-mode #main-section-user-moderation .page-section-card,
+        body.dark-mode #main-section-moderation .page-section-card,
+        body.dark-mode #main-section-user-moderation .moderation-card,
+        body.dark-mode #main-section-moderation .moderation-card {
+            background: linear-gradient(135deg, rgba(30,41,59,0.9), rgba(15,23,42,0.92)) !important;
+            border-color: rgba(148,163,184,0.24) !important;
+            color: var(--text-main) !important;
+            box-shadow: 0 12px 28px rgba(2,6,23,0.35) !important;
+        }
+
+        body.dark-mode #main-section-user-moderation [style*="background: rgba(255,255,255"],
+        body.dark-mode #main-section-user-moderation [style*="background: rgba(255, 255, 255"],
+        body.dark-mode #main-section-user-moderation [style*="background: #fff"],
+        body.dark-mode #main-section-user-moderation [style*="background:white"],
+        body.dark-mode #main-section-moderation [style*="background: rgba(255,255,255"],
+        body.dark-mode #main-section-moderation [style*="background: rgba(255, 255, 255"],
+        body.dark-mode #main-section-moderation [style*="background: #fff"],
+        body.dark-mode #main-section-moderation [style*="background:white"] {
+            background: rgba(15,23,42,0.72) !important;
+            border-color: rgba(148,163,184,0.24) !important;
+            color: var(--text-main) !important;
+        }
+
+        body.dark-mode #main-section-user-moderation [style*="linear-gradient(135deg, rgba(255,255,255"],
+        body.dark-mode #main-section-user-moderation [style*="linear-gradient(135deg, rgba(255, 255, 255"],
+        body.dark-mode #main-section-moderation [style*="linear-gradient(135deg, rgba(255,255,255"],
+        body.dark-mode #main-section-moderation [style*="linear-gradient(135deg, rgba(255, 255, 255"],
+        body.dark-mode #admin-feed-list [style*="linear-gradient(135deg, rgba(255,255,255"],
+        body.dark-mode #admin-feed-list [style*="linear-gradient(135deg, rgba(255, 255, 255"] {
+            background: linear-gradient(135deg, rgba(30,41,59,0.84), rgba(15,23,42,0.92)) !important;
+            border-color: rgba(148,163,184,0.24) !important;
+        }
+
+        body.dark-mode #main-section-user-moderation .section-subtitle,
+        body.dark-mode #main-section-moderation .section-subtitle,
+        body.dark-mode #main-section-user-moderation h3,
+        body.dark-mode #main-section-moderation h3,
+        body.dark-mode #main-section-user-moderation p,
+        body.dark-mode #main-section-moderation p,
+        body.dark-mode #main-section-user-moderation span,
+        body.dark-mode #main-section-moderation span {
+            color: var(--text-main);
+        }
+
+        body.dark-mode #main-section-user-moderation .moderation-empty,
+        body.dark-mode #main-section-moderation .moderation-empty {
+            background: rgba(15,23,42,0.66) !important;
+            border-color: rgba(148,163,184,0.24) !important;
+            color: var(--text-muted) !important;
+        }
         
         /* APPEALS LIST */
         #user-management-ban-appeals-list { display: grid; gap: 12px; }

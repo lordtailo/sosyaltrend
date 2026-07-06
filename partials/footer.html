@@ -65,13 +65,13 @@
         <i class="fa-solid fa-comments"></i>
         <span>Sohbet</span>
       </button>
-      <button type="button" class="mobile-nav-item" onclick="navigateTo('profil'); return false;" aria-label="Profil">
-        <i class="fa-solid fa-user"></i>
+      <button type="button" id="mobileProfileTrigger" class="mobile-nav-item" aria-label="Profil menüsü">
+        <img id="mobileProfileAvatar" src="assets/img/strendsaydamv2.png" alt="Kullanıcı avatar" style="width:22px; height:22px; border-radius:50%; object-fit:cover;">
         <span>Profil</span>
       </button>
     </div>
     <div class="dropdown-menu-wrapper">
-      <button type="button" class="dropdown-backdrop" onclick="document.getElementById('profileTrigger').click()"></button>
+      <button type="button" class="dropdown-backdrop" onclick="closeProfileDropdown()"></button>
       <div class="dropdown-menu" id="dropdownMenu">
         <!-- User Header -->
         <div class="dropdown-menu-header">

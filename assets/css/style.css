@@ -60,6 +60,30 @@ body {
 
 /* Floating theme button - hidden by default, shown on mobile */
 .floating-theme-btn { display: none; }
+.community-join-btn,
+.community-detail-join-btn {
+    position: relative;
+    transition: transform 0.18s ease, filter 0.18s ease, box-shadow 0.18s ease;
+}
+.community-join-btn:hover,
+.community-detail-join-btn:hover {
+    transform: translateY(-1px);
+    filter: brightness(1.05);
+}
+.community-join-btn:active,
+.community-detail-join-btn:active {
+    transform: translateY(1px) scale(0.98);
+    filter: brightness(0.96);
+}
+.community-join-btn[data-joined="true"],
+.community-detail-join-btn[data-joined="true"] {
+    outline: 2px solid rgba(16, 185, 129, 0.35);
+    outline-offset: 1px;
+}
+.community-join-btn[disabled],
+.community-detail-join-btn[disabled] {
+    pointer-events: none;
+}
 
 
 /* Prevent horizontal overflow on mobile */
@@ -74,6 +98,22 @@ body.dark-mode {
   --border:#334155;
   --shadow:0 4px 6px -1px rgba(0,0,0,.5);
   --input-bg:#0f172a;
+}
+
+/* Koyu modda dinamik olarak eklenen acik kartlar icin guvenli fallback */
+body.dark-mode #main-content [style*="rgba(255,255,255"],
+body.dark-mode .right-panel [style*="rgba(255,255,255"],
+body.dark-mode #main-content [style*="background: #fff"],
+body.dark-mode #main-content [style*="background:white"] {
+        color: var(--text-main) !important;
+        border-color: rgba(148,163,184,0.24) !important;
+}
+
+body.dark-mode #main-content [style*="linear-gradient(180deg, rgba(255,255,255"],
+body.dark-mode #main-content [style*="linear-gradient(135deg, rgba(255,255,255"],
+body.dark-mode .right-panel [style*="linear-gradient(180deg, rgba(255,255,255"],
+body.dark-mode .right-panel [style*="linear-gradient(135deg, rgba(255,255,255"] {
+        background: linear-gradient(180deg, rgba(30,41,59,0.9), rgba(15,23,42,0.92)) !important;
 }
 /* Karanlık Mod Ayarı */
 @media (prefers-color-scheme: dark) {
