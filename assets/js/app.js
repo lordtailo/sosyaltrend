@@ -1597,7 +1597,7 @@ window.addAnnouncementsToFeed = async () => {
                     <button class="tool-btn icon-count" onclick="likeAnnouncement('${announcementId}', ${isLiked}, this)" style="gap:5px; color:${isLiked ? '#ef4444' : ''}"><i class="${isLiked ? 'fa-solid' : 'fa-regular'} fa-heart"></i><span>(${likeCount})</span></button>
                     <button class="tool-btn icon-count" onclick="toggleAnnouncementComments('${announcementId}')" style="gap:5px;"><i class="fa-regular fa-comment"></i><span>(${commentCount})</span></button>
                     <button class="tool-btn icon-count" onclick="bookmarkAnnouncement('${announcementId}', ${isSaved})" style="gap:5px; color:${isSaved ? '#f59e0b' : ''}"><i class="${isSaved ? 'fa-solid' : 'fa-regular'} fa-bookmark"></i><span>(${data.savedBy ? data.savedBy.length : 0})</span></button>
-                    <button class="tool-btn" onclick="window.openShareMenu('${announcementId}')" style="gap:5px; margin-left:auto;"><i class="fa-solid fa-share"></i><span>Paylaş</span></button>
+                    <button class="tool-btn" onclick="window.openShareMenu('${announcementId}')" style="gap:5px; margin-left:auto;"><i class="fa-solid fa-share"></i><span></span></button>
                 </div>
                 
                 <div id="comments-ann-${announcementId}" class="comment-area" style="display:none;">
