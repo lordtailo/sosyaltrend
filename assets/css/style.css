@@ -997,12 +997,16 @@ body.dark-mode .theme-btn i{
     line-height: 1.2;
 }
 
-/* Normalize avatar sizes: cap any avatar-like images so none appear oversized */
+/* Normalize avatar rendering: keep avatars square and prevent stretched faces */
 img[class*="avatar"], .avatar-wrap img, .friends-dropdown-avatar, .chat-friend-avatar, .chat-friend-avatar-wrap img, .sidebar-profile-avatar img, .post img.user-avatar, .recent-item-avatar img, .profile-trigger .avatar-wrap img {
-    max-width: 72px;
-    max-height: 72px;
-    width: auto;
-    height: auto;
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    min-height: 40px;
+    aspect-ratio: 1 / 1;
+    object-fit: cover;
+    object-position: center;
+    display: block;
 }
 
 /* Small avatar contexts (chat lists, dropdown items, posts) */
@@ -2932,24 +2936,28 @@ body.dark-mode .new-connections-btn.secondary:hover {
 }
 
 .suggestion-card {
-    display: grid;
-    gap: 10px;
-    padding: 10px;
-    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 6px 7px;
+    border-radius: 10px;
     border: 1px solid rgba(99, 102, 241, 0.18);
     background: linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(255, 255, 255, 0.92));
 }
 
 .suggestion-main {
     display: flex;
-    align-items: flex-start;
-    gap: 10px;
+    align-items: center;
+    gap: 8px;
     cursor: pointer;
+    min-width: 0;
+    flex: 1;
 }
 
 .suggestion-avatar {
-    width: 44px;
-    height: 44px;
+    width: 34px;
+    height: 34px;
     border-radius: 50%;
     object-fit: cover;
     border: 2px solid rgba(99, 102, 241, 0.4);
@@ -2962,7 +2970,7 @@ body.dark-mode .new-connections-btn.secondary:hover {
 }
 
 .suggestion-name {
-    font-size: 0.85rem;
+    font-size: 0.78rem;
     font-weight: 800;
     color: var(--text-main);
     white-space: nowrap;
@@ -2971,27 +2979,27 @@ body.dark-mode .new-connections-btn.secondary:hover {
 }
 
 .suggestion-username {
-    font-size: 0.74rem;
+    font-size: 0.66rem;
     color: var(--text-muted);
-    margin-top: 2px;
+    margin-top: 0;
 }
 
 .suggestion-meta-row {
     display: flex;
     flex-wrap: wrap;
-    gap: 6px;
-    margin-top: 8px;
+    gap: 4px;
+    margin-top: 3px;
 }
 
 .suggestion-meta {
     display: inline-flex;
     align-items: center;
     gap: 5px;
-    padding: 4px 8px;
+    padding: 2px 6px;
     border-radius: 999px;
     background: rgba(255, 255, 255, 0.74);
     border: 1px solid rgba(148, 163, 184, 0.25);
-    font-size: 0.68rem;
+    font-size: 0.6rem;
     color: var(--text-muted);
     max-width: 100%;
 }
@@ -3003,17 +3011,19 @@ body.dark-mode .new-connections-btn.secondary:hover {
 }
 
 .suggestion-add-btn {
-    width: 100%;
+    width: auto;
+    min-width: 80px;
     border: none;
-    border-radius: 11px;
-    padding: 8px 10px;
+    border-radius: 9px;
+    padding: 6px 8px;
     background: linear-gradient(135deg, #6366f1, #4f46e5);
     color: #fff;
-    font-size: 0.74rem;
+    font-size: 0.64rem;
     font-weight: 800;
     cursor: pointer;
+    white-space: nowrap;
     transition: transform 0.18s ease, box-shadow 0.18s ease, opacity 0.18s ease;
-    box-shadow: 0 8px 16px rgba(79, 70, 229, 0.26);
+    box-shadow: 0 5px 10px rgba(79, 70, 229, 0.2);
 }
 
 .suggestion-add-btn:hover {
@@ -4568,6 +4578,7 @@ color: var(--primary); font-weight: 600; cursor: pointer; text-decoration: none;
     width: auto;
     min-width: 42px;
     min-height: 36px;
+    height: 36px;
     padding: 0 12px;
     border-radius: 999px;
     transition: 0.2s;
@@ -4577,12 +4588,40 @@ color: var(--primary); font-weight: 600; cursor: pointer; text-decoration: none;
     cursor: pointer;
     white-space: nowrap;
     line-height: 1;
+    font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    font-weight: 500;
+    letter-spacing: 0.01em;
 }
 .tool-btn i {
     flex: 0 0 auto;
+    font-size: 0.92rem;
+    line-height: 1;
 }
 .tool-btn span {
+    display: inline-flex;
+    align-items: center;
+    line-height: 1;
+}
+.tool-btn.icon-only {
+    width: 36px;
+    min-width: 36px;
+    padding: 0;
+    border-radius: 999px;
+}
+.tool-btn.icon-only span {
+    display: none;
+}
+.tool-btn.icon-count {
+    min-width: 62px;
+    padding: 0 10px;
+    justify-content: center;
+}
+.tool-btn.icon-count span {
     display: inline-block;
+    font-size: 0.78rem;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
 }
 .tool-btn:hover { background: var(--premium-gradient); color: white; transform: translateY(-1px); }
 

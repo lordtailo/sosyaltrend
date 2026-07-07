@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SosyaLTrend • Sohbet</title>
+  <meta name="description" content="SosyaLTrend sohbet sayfası.">
+  <link rel="stylesheet" href="assets/css/all.min.css">
+  <link rel="stylesheet" href="assets/css/style.css?v=20260707d">
+  <link rel="stylesheet" href="assets/css/chat-widget.css?v=20260240">
+  <link rel="icon" type="image/x-icon" href="assets/img/strendsaydamv2.ico">
+  <meta name="theme-color" content="#6366f1">
+</head>
+<body class="sohbet-pg">
+  <div data-include="partials/topbar.html"></div>
+  <div id="header-placeholder"></div>
+
+  <div class="app-container">
+    <div data-include="partials/left-aside.html"></div>
+
+    <main id="main-content">
+      <div id="page-chat" class="page-content active">
+        <div class="glass-card" style="margin-top:20px; padding:24px; border:1px solid rgba(99,102,241,0.16);">
+          <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:14px; flex-wrap:wrap;">
+            <div>
+              <h1 style="margin:0 0 8px; color:var(--text-main); font-size:1.9rem; display:flex; align-items:center; gap:10px;">
+                <i class="fa-solid fa-comments" style="color:var(--primary);"></i>
+                Sohbet
+              </h1>
+              <p style="margin:0; color:var(--text-secondary);">Arkadaşlarınla son sohbetleri, yeni mesajları ve grup konuşmalarını tek sayfada yönet.</p>
+            </div>
+            <button type="button" onclick="navigateTo('feed'); return false;" style="padding:10px 16px; border:none; border-radius:14px; background:rgba(99,102,241,0.12); color:var(--primary); font-weight:800; cursor:pointer; display:inline-flex; align-items:center; gap:8px;">
+              <i class="fa-solid fa-house"></i>
+              Ana sayfaya dön
+            </button>
+          </div>
+        </div>
+
+        <div id="chat-page-shell" class="chat-page-shell"></div>
+      </div>
+    </main>
+
+    <div data-include="partials/right-aside.html"></div>
+  </div>
+
+  <div id="footer-placeholder"></div>
+
+  <script src="assets/js/include.js"></script>
+  <script type="module" src="assets/js/app.js?v=20260707d"></script>
+</body>
+</html>

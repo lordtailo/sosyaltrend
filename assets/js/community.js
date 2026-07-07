@@ -1299,8 +1299,8 @@ function renderCommunityPosts(container, posts) {
         </div>
 
         <div style="display:flex; gap:10px; margin-bottom:12px; flex-wrap:wrap;">
-          <button class="post-like-btn tool-btn" data-post-id="${post.id}" type="button" style="width:auto; padding:0 12px; border-radius:999px; gap:6px; color:${isLiked ? '#ef4444' : ''};"><i class="${isLiked ? 'fa-solid' : 'fa-regular'} fa-heart"></i><span>${likes.length} Beğeni</span></button>
-          <button class="post-comment-btn tool-btn" data-post-id="${post.id}" type="button" style="width:auto; padding:0 12px; border-radius:999px; gap:6px;"><i class="fa-regular fa-comment"></i><span>${commentsCount > 0 ? `${commentsCount} Yorum` : 'Yorum'}</span></button>
+          <button class="post-like-btn tool-btn icon-count" data-post-id="${post.id}" type="button" style="width:auto; padding:0 12px; border-radius:999px; gap:6px; color:${isLiked ? '#ef4444' : ''};"><i class="${isLiked ? 'fa-solid' : 'fa-regular'} fa-heart"></i><span>(${likes.length})</span></button>
+          <button class="post-comment-btn tool-btn icon-count" data-post-id="${post.id}" type="button" style="width:auto; padding:0 12px; border-radius:999px; gap:6px;"><i class="fa-regular fa-comment"></i><span>(${commentsCount})</span></button>
           ${!canManagePost ? `<button class="post-report-btn tool-btn" data-post-id="${post.id}" type="button" style="width:auto; padding:0 12px; border-radius:999px; gap:6px; margin-left:auto; color:#f59e0b;"><i class="fa-regular fa-flag"></i><span>Bildir</span></button>` : ''}
           <button class="post-share-btn tool-btn" data-post-id="${post.id}" type="button" style="width:auto; padding:0 12px; border-radius:999px; gap:6px; ${canManagePost ? 'margin-left:auto;' : ''}"><i class="fa-solid fa-share"></i><span>Paylaş</span></button>
         </div>
@@ -1517,6 +1517,42 @@ function loadCommunityPosts(communityId) {
     postsList.innerHTML = '<div style="padding:16px; color:var(--text-secondary);">Gönderiler yüklenemedi.</div>';
   });
 }
+
+window.openLatestCommunityPosts = function() {
+  const postsList = document.getElementById('communityPostsList');
+  const sharesPanel = document.getElementById('community-my-shares-panel');
+
+  if (sharesPanel) {
+    sharesPanel.style.display = 'none';
+    sharesPanel.innerHTML = '';
+  }
+  if (postsList) {
+    postsList.style.display = 'flex';
+  }
+
+  if (currentCommunityId) {
+    loadCommunityPosts(currentCommunityId);
+  }
+  if (postsList) {
+    postsList.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+};
+
+window.openMyShares = function() {
+  if (typeof window.renderMySharesInline === 'function') {
+    const postsList = document.getElementById('communityPostsList');
+    if (postsList) postsList.style.display = 'none';
+    return window.renderMySharesInline();
+  }
+  const panel = document.getElementById('community-my-shares-panel');
+  if (panel) {
+    const postsList = document.getElementById('communityPostsList');
+    if (postsList) postsList.style.display = 'none';
+    panel.style.display = 'block';
+    panel.innerHTML = '<div style="padding:8px 2px; color:var(--text-secondary);">Paylaşımlar yüklenemedi.</div>';
+    panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+};
 
 async function createCommunityPost(communityId) {
   if (!communityId) return;
@@ -1856,15 +1892,16 @@ async function openCommunityDetail(communityId) {
 
             <div style="padding:20px 0; border:none; background:transparent;">
               <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; gap:12px; flex-wrap:wrap;">
-                <button type="button" style="display:inline-flex; align-items:center; gap:6px; border:1px solid rgba(99,102,241,0.16); background:linear-gradient(135deg, rgba(99,102,241,0.12), rgba(255,255,255,0.06)); color:var(--text-main); padding:8px 12px; border-radius:999px; font-size:0.8rem; font-weight:700; cursor:default; box-shadow:0 6px 16px rgba(15, 23, 42, 0.06);">
+                <button type="button" onclick="window.openLatestCommunityPosts && window.openLatestCommunityPosts()" style="display:inline-flex; align-items:center; gap:6px; border:1px solid rgba(99,102,241,0.16); background:linear-gradient(135deg, rgba(99,102,241,0.12), rgba(255,255,255,0.06)); color:var(--text-main); padding:8px 12px; border-radius:999px; font-size:0.8rem; font-weight:700; cursor:pointer; box-shadow:0 6px 16px rgba(15, 23, 42, 0.06);">
                   <i class="fa-solid fa-comments"></i>
                   <span>En son gönderilenler</span>
                 </button>
-                <button type="button" style="display:inline-flex; align-items:center; gap:6px; border:1px solid rgba(99,102,241,0.16); background:linear-gradient(135deg, rgba(99,102,241,0.12), rgba(255,255,255,0.06)); color:var(--text-main); padding:8px 12px; border-radius:999px; font-size:0.8rem; font-weight:700; cursor:default; box-shadow:0 6px 16px rgba(15, 23, 42, 0.06);">
+                <button type="button" onclick="window.openMyShares && window.openMyShares()" style="display:inline-flex; align-items:center; gap:6px; border:1px solid rgba(99,102,241,0.16); background:linear-gradient(135deg, rgba(99,102,241,0.12), rgba(255,255,255,0.06)); color:var(--text-main); padding:8px 12px; border-radius:999px; font-size:0.8rem; font-weight:700; cursor:pointer; box-shadow:0 6px 16px rgba(15, 23, 42, 0.06);">
                   <i class="fa-solid fa-clock-rotate-left"></i>
-                  <span>En son paylaşımlar</span>
+                  <span>En son Paylaştıklarım</span>
                 </button>
               </div>
+              <div id="community-my-shares-panel" style="display:none; margin:0 0 14px; padding:14px; border:1px solid rgba(99,102,241,0.14); border-radius:18px; background:linear-gradient(180deg, rgba(255,255,255,0.92), rgba(248,250,252,0.94)); box-shadow:0 10px 28px rgba(15,23,42,0.06);"></div>
               <div id="communityPostsList" style="display:flex; flex-direction:column; gap:8px;"></div>
             </div>
           </div>

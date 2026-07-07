@@ -1166,6 +1166,43 @@ body.dark-mode .chat-friend-username {
     opacity: 1;
 }
 
+body.sohbet-pg .chat-page-shell {
+    margin-top: 18px;
+    display: grid;
+    grid-template-columns: minmax(320px, 380px) minmax(0, 1fr);
+    gap: 18px;
+    align-items: stretch;
+    min-height: calc(100vh - 260px);
+}
+
+body.sohbet-pg .chat-lists-panel,
+body.sohbet-pg .chat-widget-container {
+    position: relative !important;
+    top: auto !important;
+    right: auto !important;
+    left: auto !important;
+    bottom: auto !important;
+    width: 100% !important;
+    max-width: none !important;
+    height: 100% !important;
+    margin: 0 !important;
+    display: flex !important;
+    border-radius: 24px !important;
+    box-shadow: 0 20px 46px rgba(15, 23, 42, 0.12);
+}
+
+body.sohbet-pg .chat-lists-panel {
+    z-index: 2 !important;
+}
+
+body.sohbet-pg .chat-widget-container {
+    z-index: 1 !important;
+}
+
+body.sohbet-pg .chat-lists-panel .close-btn {
+    display: none !important;
+}
+
 /* ����������������������������������������� */
 /* Sohbet Sayfas� Widget Responsive Styles */
 /* ����������������������������������������� */
@@ -1212,3 +1249,10 @@ body.sohbet-pg .chat-widget-input {
 
 body.sohbet-pg #chat-back-btn i::before { content: "\f00d"; }
 body.sohbet-pg #chat-back-btn { border-radius: 50%; }
+
+@media (max-width: 1100px) {
+    body.sohbet-pg .chat-page-shell {
+        grid-template-columns: 1fr;
+        min-height: auto;
+    }
+}

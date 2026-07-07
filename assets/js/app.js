@@ -893,7 +893,7 @@ async function loadSuggestions() {
         // Hafif rastgelelik + tekrar yüklemede aynı görünüm için kullanıcı adına göre ikinci sıralama
         filteredUsers.sort(() => Math.random() - 0.5);
         const selectedUsers = filteredUsers
-            .slice(0, 5)
+            .slice(0, 2)
             .sort((a, b) => String(a.displayName || a.username || '').localeCompare(String(b.displayName || b.username || ''), 'tr'));
 
         const normalizeInterest = (value) => String(value || '').trim().toLocaleLowerCase('tr-TR');
@@ -908,10 +908,12 @@ async function loadSuggestions() {
             const userAvatar = user.avatarUrl || user.avatar || fallbackAvatar;
             const safeDisplayName = escapeHtml(user.displayName || 'İsimsiz');
             const safeUsername = escapeHtml(user.username || 'user');
-            const safeLocation = escapeHtml(user.location || 'Konum belirtilmedi');
+            const safeLocation = escapeHtml(user.location || 'Şehir belirtilmedi');
             const userInterests = splitInterests(user.interests || '');
             const commonInterestsCount = userInterests.filter((interest) => currentInterestSet.has(normalizeInterest(interest))).length;
-            const primaryInterest = userInterests[0] ? escapeHtml(userInterests[0]) : '';
+            const compactMetaText = commonInterestsCount > 0
+                ? `${commonInterestsCount} ortak ilgi`
+                : safeLocation;
 
             const isFriend = friends.includes(user.id);
             const isSent = sentRequests.some(r => r.toUid === user.id);
@@ -948,9 +950,7 @@ async function loadSuggestions() {
                             <div class="suggestion-name">${safeDisplayName}</div>
                             <div class="suggestion-username">@${safeUsername}</div>
                             <div class="suggestion-meta-row">
-                                <span class="suggestion-meta"><i class="fa-solid fa-location-dot"></i> ${safeLocation}</span>
-                                ${commonInterestsCount > 0 ? `<span class="suggestion-meta suggestion-meta-highlight"><i class="fa-solid fa-fire"></i> ${commonInterestsCount} ortak ilgi</span>` : ''}
-                                ${primaryInterest ? `<span class="suggestion-meta"><i class="fa-solid fa-hashtag"></i> ${primaryInterest}</span>` : ''}
+                                <span class="suggestion-meta ${commonInterestsCount > 0 ? 'suggestion-meta-highlight' : ''}"><i class="fa-solid ${commonInterestsCount > 0 ? 'fa-fire' : 'fa-location-dot'}"></i> ${compactMetaText}</span>
                             </div>
                         </div>
                     </div>
@@ -1080,6 +1080,150 @@ window.openPostRulesModal = function () {
 window.closePostRulesModal = function () {
     document.getElementById('postRulesModal')?.remove();
 };
+
+window.openLatestHomePosts = function() {
+    const feed = document.getElementById('feed-items');
+    const sharesPanel = document.getElementById('my-shares-panel');
+
+    if (sharesPanel) {
+        sharesPanel.style.display = 'none';
+        sharesPanel.innerHTML = '';
+    }
+    if (feed) {
+        feed.style.display = 'block';
+    }
+
+    currentFeedFilterMode = 'all';
+
+    if (typeof window.loadPostsFeed === 'function') {
+        window.loadPostsFeed(true);
+    }
+    if (feed) {
+        feed.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+};
+
+function getMySharesUsername() {
+        const profileUser = window.user || {};
+        const currentUser = auth && auth.currentUser ? auth.currentUser : null;
+        return profileUser.username || currentUser?.displayName || currentUser?.email?.split('@')[0] || '';
+}
+
+function buildInlineShareCard(postId, postData) {
+        const avatarUrl = getAvatarUrl(postData.avatarUrl || postData.avatarSeed || 'assets/img/strendsaydamv2.png', 'user');
+        const authorName = postData.displayName || postData.name || postData.username || 'Anonim';
+        const authorUsername = postData.username || '';
+        const decodedContent = decodeEntities ? decodeEntities(postData.content || '') : (postData.content || '');
+        const content = decodedContent.length > 240 ? `${decodedContent.slice(0, 240).trim()}...` : decodedContent;
+        const imageHtml = postData.image ? `
+            <div style="margin-top:10px; border-radius:14px; overflow:hidden; border:1px solid var(--border); background:#000; max-height:240px;">
+                <img src="${postData.image}" alt="Gönderi görseli" style="width:100%; height:100%; object-fit:cover; display:block;">
+            </div>` : '';
+
+        return `
+            <div class="glass-card post" id="my-share-${postId}" style="position:relative; padding:16px; border-radius:18px; border:1px solid rgba(99,102,241,0.12); background:rgba(255,255,255,0.9); box-shadow:0 8px 20px rgba(15,23,42,0.05);">
+                <div style="display:flex; gap:10px; margin-bottom:10px; align-items:flex-start;">
+                    <img src="${avatarUrl}" class="user-avatar" style="width:44px; height:44px; cursor:pointer;" onclick="location.href='profil.html?id=${encodeURIComponent(authorUsername)}'">
+                    <div style="min-width:0; flex:1;">
+                        <div style="font-weight:800; display:flex; align-items:center; gap:6px; flex-wrap:wrap; cursor:pointer;" onclick="location.href='profil.html?id=${encodeURIComponent(authorUsername)}'">
+                            <span>${authorName}</span>
+                            <span class="post-time">• ${formatPostTimestamp(postData.timestamp)}</span>
+                        </div>
+                        <div style="font-size:0.78rem; color:var(--text-muted); cursor:pointer;" onclick="location.href='profil.html?id=${encodeURIComponent(authorUsername)}'">@${authorUsername}</div>
+                    </div>
+                </div>
+                <div style="white-space:pre-wrap; color:var(--text-main); line-height:1.55; font-size:0.94rem;">${content}</div>
+                ${imageHtml}
+            </div>`;
+}
+
+window.renderMySharesInline = async function() {
+        const uname = getMySharesUsername();
+        const panel = document.getElementById('my-shares-panel') || document.getElementById('community-my-shares-panel');
+        if (!panel) return false;
+
+    const feed = document.getElementById('feed-items');
+    if (feed) feed.style.display = 'none';
+    panel.style.display = 'block';
+
+        if (!uname) {
+                panel.innerHTML = '<div style="padding:8px 2px; color:var(--text-secondary);">Paylaşımlarını göstermek için önce giriş yapmalısın.</div>';
+                panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                return true;
+        }
+
+        panel.innerHTML = '<div style="padding:8px 2px; color:var(--text-secondary);">Paylaşımların yükleniyor...</div>';
+
+        try {
+                const snap = await getDocs(query(collection(db, 'posts'), orderBy('timestamp', 'desc'), limit(40)));
+                const shares = [];
+
+                snap.forEach((docSnap) => {
+                        const post = docSnap.data();
+                        const isMine = post.username === uname || post.adminUser === uname;
+                        if (isMine) {
+                                shares.push(buildInlineShareCard(docSnap.id, post));
+                        }
+                });
+
+                if (!shares.length) {
+                        panel.innerHTML = `
+                            <div style="padding:8px 2px; color:var(--text-secondary);">
+                                Henüz paylaşımın yok.
+                            </div>`;
+                } else {
+                        panel.innerHTML = `
+                            <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:12px; flex-wrap:wrap;">
+                                <div style="font-size:0.95rem; font-weight:800; color:var(--text-main);">Benim Paylaşımlarım</div>
+                                <div style="font-size:0.8rem; color:var(--text-secondary);">${shares.length} gönderi</div>
+                            </div>
+                            <div style="display:flex; flex-direction:column; gap:10px;">${shares.join('')}</div>`;
+                }
+
+                panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                return true;
+        } catch (error) {
+                console.error('Paylaşımlar yüklenemedi:', error);
+                panel.innerHTML = '<div style="padding:8px 2px; color:var(--danger);">Paylaşımlar yüklenemedi.</div>';
+                panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                return false;
+        }
+};
+
+window.openMyShares = function() {
+        const feed = document.getElementById('feed-items');
+        const sharesPanel = document.getElementById('my-shares-panel');
+
+        if (sharesPanel) {
+            sharesPanel.style.display = 'none';
+            sharesPanel.innerHTML = '';
+        }
+        if (feed) {
+            feed.style.display = 'block';
+        }
+
+        currentFeedFilterMode = 'mine';
+        return window.loadPostsFeed(true);
+};
+
+document.addEventListener('DOMContentLoaded', () => {
+    const postRulesTrigger = document.getElementById('postRulesTrigger');
+    if (!postRulesTrigger) return;
+
+    const openRules = (event) => {
+        if (event) event.preventDefault();
+        if (typeof window.openPostRulesModal === 'function') {
+            window.openPostRulesModal();
+        }
+    };
+
+    postRulesTrigger.addEventListener('click', openRules);
+    postRulesTrigger.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+            openRules(event);
+        }
+    });
+});
 
 window._copyInviteLink = async function (link) {
     try {
@@ -1450,9 +1594,9 @@ window.addAnnouncementsToFeed = async () => {
                 </div>
 
                 <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
-                    <button class="tool-btn" onclick="likeAnnouncement('${announcementId}', ${isLiked}, this)" style="gap:5px; color:${isLiked ? '#ef4444' : ''}"><i class="${isLiked ? 'fa-solid' : 'fa-regular'} fa-heart"></i><span>Beğen (${likeCount})</span></button>
-                    <button class="tool-btn" onclick="toggleAnnouncementComments('${announcementId}')" style="gap:5px;"><i class="fa-regular fa-comment"></i><span>Yorum Yap (${commentCount})</span></button>
-                    <button class="tool-btn" onclick="bookmarkAnnouncement('${announcementId}', ${isSaved})" style="gap:5px; color:${isSaved ? '#f59e0b' : ''}"><i class="${isSaved ? 'fa-solid' : 'fa-regular'} fa-bookmark"></i><span>Kaydet</span></button>
+                    <button class="tool-btn icon-count" onclick="likeAnnouncement('${announcementId}', ${isLiked}, this)" style="gap:5px; color:${isLiked ? '#ef4444' : ''}"><i class="${isLiked ? 'fa-solid' : 'fa-regular'} fa-heart"></i><span>(${likeCount})</span></button>
+                    <button class="tool-btn icon-count" onclick="toggleAnnouncementComments('${announcementId}')" style="gap:5px;"><i class="fa-regular fa-comment"></i><span>(${commentCount})</span></button>
+                    <button class="tool-btn icon-count" onclick="bookmarkAnnouncement('${announcementId}', ${isSaved})" style="gap:5px; color:${isSaved ? '#f59e0b' : ''}"><i class="${isSaved ? 'fa-solid' : 'fa-regular'} fa-bookmark"></i><span>(${data.savedBy ? data.savedBy.length : 0})</span></button>
                     <button class="tool-btn" onclick="window.openShareMenu('${announcementId}')" style="gap:5px; margin-left:auto;"><i class="fa-solid fa-share"></i><span>Paylaş</span></button>
                 </div>
                 
@@ -1802,9 +1946,9 @@ window.listenForAnnouncementChanges = () => {
                         </div>
 
                         <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
-                            <button class="tool-btn" onclick="likeAnnouncement('${announcementId}', ${isLiked}, this)" style="gap:5px; color:${isLiked ? '#ef4444' : ''}"><i class="${isLiked ? 'fa-solid' : 'fa-regular'} fa-heart"></i><span>Beğen (${likeCount})</span></button>
-                            <button class="tool-btn" onclick="toggleAnnouncementComments('${announcementId}')" style="gap:5px;"><i class="fa-regular fa-comment"></i><span>Yorum Yap (${commentCount})</span></button>
-                            <button class="tool-btn" onclick="bookmarkAnnouncement('${announcementId}', ${isSaved})" style="gap:5px; color:${isSaved ? '#f59e0b' : ''}"><i class="${isSaved ? 'fa-solid' : 'fa-regular'} fa-bookmark"></i><span>Kaydet</span></button>
+                            <button class="tool-btn icon-count" onclick="likeAnnouncement('${announcementId}', ${isLiked}, this)" style="gap:5px; color:${isLiked ? '#ef4444' : ''}"><i class="${isLiked ? 'fa-solid' : 'fa-regular'} fa-heart"></i><span>(${likeCount})</span></button>
+                            <button class="tool-btn icon-count" onclick="toggleAnnouncementComments('${announcementId}')" style="gap:5px;"><i class="fa-regular fa-comment"></i><span>(${commentCount})</span></button>
+                            <button class="tool-btn icon-count" onclick="bookmarkAnnouncement('${announcementId}', ${isSaved})" style="gap:5px; color:${isSaved ? '#f59e0b' : ''}"><i class="${isSaved ? 'fa-solid' : 'fa-regular'} fa-bookmark"></i><span>(${data.savedBy ? data.savedBy.length : 0})</span></button>
                             <button class="tool-btn" onclick="window.openShareMenu('${announcementId}')" style="gap:5px; margin-left:auto;"><i class="fa-solid fa-share"></i><span>Paylaş</span></button>
                         </div>
                         
@@ -5551,6 +5695,7 @@ window.togglePostContent = function(postId) {
 /* GÖNDERİ AYARLARI */
 let showAllFeedPosts = false;
 let currentPostsUnsubscribe = null;
+let currentFeedFilterMode = 'all';
 
 window.loadPostsFeed = (showAll = false) => {
   if (showAll) showAllFeedPosts = true;
@@ -5577,8 +5722,15 @@ window.loadPostsFeed = (showAll = false) => {
       const sortedDocs = [...snap.docs].sort((a, b) => {
           return getPostSortTimestamp(b.data()) - getPostSortTimestamp(a.data());
       });
-      const docsToRender = showAllFeedPosts ? sortedDocs : sortedDocs.slice(0, 6);
-      const feedHasMore = !showAllFeedPosts && sortedDocs.length > 6;
+      const mineUsername = getMySharesUsername();
+      const filteredDocs = currentFeedFilterMode === 'mine'
+          ? sortedDocs.filter((docSnap) => {
+              const postData = docSnap.data() || {};
+              return postData.username === mineUsername || postData.adminUser === mineUsername;
+          })
+          : sortedDocs;
+      const docsToRender = showAllFeedPosts ? filteredDocs : filteredDocs.slice(0, 6);
+      const feedHasMore = !showAllFeedPosts && filteredDocs.length > 6;
       docsToRender.forEach(d => {
           try {
               console.log('rendering post', d.id);
@@ -5671,9 +5823,9 @@ window.loadPostsFeed = (showAll = false) => {
         </div>
 
         <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
-              <button class="tool-btn" onclick="likePost('${d.id}', ${isLiked}, this)" style="gap:5px; color:${isLiked ? '#ef4444' : ''}"><i class="${isLiked ? 'fa-solid' : 'fa-regular'} fa-heart"></i><span>Beğen (${p.likes?.length || 0})</span></button>
-              <button class="tool-btn" onclick="toggleCommentSection('${d.id}')" style="gap:5px;"><i class="fa-regular fa-comment"></i><span>Yorum Yap (${p.comments?.length || 0})</span></button>
-              <button class="tool-btn" onclick="toggleBookmark('${d.id}', ${isSaved})" style="gap:5px; color:${isSaved ? '#f59e0b' : ''}"><i class="${isSaved ? 'fa-solid' : 'fa-regular'} fa-bookmark"></i><span>Kaydet</span></button>
+              <button class="tool-btn icon-count" onclick="likePost('${d.id}', ${isLiked}, this)" style="gap:5px; color:${isLiked ? '#ef4444' : ''}"><i class="${isLiked ? 'fa-solid' : 'fa-regular'} fa-heart"></i><span>(${p.likes?.length || 0})</span></button>
+              <button class="tool-btn icon-count" onclick="toggleCommentSection('${d.id}')" style="gap:5px;"><i class="fa-regular fa-comment"></i><span>(${p.comments?.length || 0})</span></button>
+              <button class="tool-btn icon-count" onclick="toggleBookmark('${d.id}', ${isSaved})" style="gap:5px; color:${isSaved ? '#f59e0b' : ''}"><i class="${isSaved ? 'fa-solid' : 'fa-regular'} fa-bookmark"></i><span>(${p.savedBy?.length || 0})</span></button>
               <button class="tool-btn" onclick="window.reportPost('${d.id}', '${authorUsername.replace(/'/g, "\\'")}')" title="Gönderiyi bildir" style="gap:5px; margin-left:auto; color:#f59e0b;"><i class="fa-regular fa-flag"></i><span>Bildir</span></button>
               <button class="tool-btn" onclick="window.openShareMenu('${d.id}')" style="gap:5px;"><i class="fa-solid fa-share"></i><span>Paylaş</span></button>
         </div>
@@ -6873,10 +7025,10 @@ async function loadVisitorProfile() {
                             ${postImageHtml}
                             
                             <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
-                                <button class="tool-btn" onclick="likePost('${post.id}', ${isLiked}, this)" style="gap:5px; color:${isLiked ? '#ef4444' : ''}">
-                                    <i class="${isLiked ? 'fa-solid' : 'fa-regular'} fa-heart"></i><span>Beğen (${post.likes?.length || 0})</span>
+                                <button class="tool-btn icon-count" onclick="likePost('${post.id}', ${isLiked}, this)" style="gap:5px; color:${isLiked ? '#ef4444' : ''}">
+                                    <i class="${isLiked ? 'fa-solid' : 'fa-regular'} fa-heart"></i><span>(${post.likes?.length || 0})</span>
                                 </button>
-                                <button class="tool-btn" style="gap:5px;"><i class="fa-regular fa-comment"></i><span>Yorum Yap (${post.comments?.length || 0})</span></button>
+                                <button class="tool-btn icon-count" style="gap:5px;"><i class="fa-regular fa-comment"></i><span>(${post.comments?.length || 0})</span></button>
                                 <button class="tool-btn" onclick="window.reportPost('${post.id}', '${(post.username || '').replace(/'/g, "\\'")}')" title="Gönderiyi bildir" style="gap:5px; margin-left:auto; color:#f59e0b;"><i class="fa-regular fa-flag"></i><span>Bildir</span></button>
                                 <button class="tool-btn" onclick="window.openShareMenu('${post.id}')" style="gap:5px;"><i class="fa-solid fa-share"></i><span>Paylaş</span></button>
                             </div>
@@ -7084,9 +7236,9 @@ window.loadProfileSections = async (section = 'all', showAllPosts = false, showA
                     </div>
                     ` : ''}
                     <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
-                        <button class="tool-btn" onclick="likePost('${d.id}', ${isLiked}, this)" style="gap:5px; color:${isLiked?'#ef4444':''}"><i class="${isLiked?'fa-solid':'fa-regular'} fa-heart"></i><span>Beğen (${p.likes?.length||0})</span></button>
-                        <button class="tool-btn" style="gap:5px;"><i class="fa-regular fa-comment"></i><span>Yorum Yap (${p.comments?.length||0})</span></button>
-                        <button class="tool-btn" onclick="toggleBookmark('${d.id}', ${isSaved})" style="gap:5px; color:${isSaved ? '#f59e0b' : ''}"><i class="${isSaved ? 'fa-solid' : 'fa-regular'} fa-bookmark"></i><span>Kaydet</span></button>
+                        <button class="tool-btn icon-count" onclick="likePost('${d.id}', ${isLiked}, this)" style="gap:5px; color:${isLiked?'#ef4444':''}"><i class="${isLiked?'fa-solid':'fa-regular'} fa-heart"></i><span>(${p.likes?.length||0})</span></button>
+                        <button class="tool-btn icon-count" style="gap:5px;"><i class="fa-regular fa-comment"></i><span>(${p.comments?.length||0})</span></button>
+                        <button class="tool-btn icon-count" onclick="toggleBookmark('${d.id}', ${isSaved})" style="gap:5px; color:${isSaved ? '#f59e0b' : ''}"><i class="${isSaved ? 'fa-solid' : 'fa-regular'} fa-bookmark"></i><span>(${p.savedBy?.length||0})</span></button>
                         <button class="tool-btn" onclick="window.reportPost('${d.id}', '${(p.username || '').replace(/'/g, "\\'")}')" title="Gönderiyi bildir" style="gap:5px; margin-left:auto; color:#f59e0b;"><i class="fa-regular fa-flag"></i><span>Bildir</span></button>
                         <button class="tool-btn" onclick="window.openShareMenu('${d.id}')" style="gap:5px;"><i class="fa-solid fa-share"></i><span>Paylaş</span></button>
                     </div>
@@ -11411,19 +11563,28 @@ window.openChatsList = async function() {
         alert('Lütfen giriş yapın');
         return;
     }
+
+    const isChatPage = window.location.pathname.toLowerCase().endsWith('/sohbet.html');
+    if (!isChatPage) {
+        navigateTo('sohbet');
+        return;
+    }
     
     if (!document.getElementById('chat-lists-panel')) {
         initChatListsPanel();
     }
-    
-    const panel = document.getElementById('chat-lists-panel');
-    if (panel.classList.contains('active')) {
-        panel.classList.remove('active');
-        document.body.classList.remove('chat-open');
-        return;
+    if (!document.getElementById('chat-widget-container')) {
+        initChatWidget();
+    }
+
+    if (typeof window.initChatPage === 'function') {
+        window.initChatPage();
     }
     
+    const panel = document.getElementById('chat-lists-panel');
     panel.classList.add('active');
+    const widget = document.getElementById('chat-widget-container');
+    if (widget) widget.classList.add('active');
     document.body.classList.add('chat-open');
     loadRecentChats();
 }
@@ -11436,6 +11597,34 @@ window.closeChatsList = function() {
     }
     document.body.classList.remove('chat-open');
 }
+
+window.initChatPage = function() {
+    const shell = document.getElementById('chat-page-shell');
+    if (!shell) return;
+
+    if (!document.getElementById('chat-lists-panel')) {
+        initChatListsPanel();
+    }
+    if (!document.getElementById('chat-widget-container')) {
+        initChatWidget();
+    }
+
+    const panel = document.getElementById('chat-lists-panel');
+    const widget = document.getElementById('chat-widget-container');
+
+    if (panel && panel.parentElement !== shell) {
+        shell.appendChild(panel);
+    }
+    if (widget && widget.parentElement !== shell) {
+        shell.appendChild(widget);
+    }
+
+    document.body.classList.add('chat-open');
+    if (panel) panel.classList.add('active');
+    if (widget) widget.classList.add('active');
+
+    loadRecentChats();
+};
 
 window.openUnreadChatsPanel = async function() {
     if (!auth.currentUser) {
@@ -14251,6 +14440,14 @@ document.addEventListener('DOMContentLoaded', () => {
     initChatWidget();
     initChatListsPanel();
     loadStoredChatNotifications();
+
+    if (window.location.pathname.toLowerCase().endsWith('/sohbet.html')) {
+        setTimeout(() => {
+            if (typeof window.initChatPage === 'function') {
+                window.initChatPage();
+            }
+        }, 0);
+    }
 
     // blog page init
     if (document.getElementById('page-blog')) {

@@ -13,39 +13,6 @@
         </div>
     </div>
 
-    <div class="glass-card sidebar-container new-connections-card" style="margin-bottom:12px;">
-        <div class="new-connections-head">
-            <div>
-                <div class="new-connections-kicker" data-i18n="newConnectionsKicker">Yeni Bağlantılar</div>
-                <div class="new-connections-title" data-i18n="newConnectionsTitle">Arkadaş Bul</div>
-                <div class="new-connections-subtitle" data-i18n="newConnectionsSubtitle">İlgi alanına göre yeni kişiler keşfet.</div>
-            </div>
-            <div class="new-connections-icon" aria-hidden="true">
-                <i class="fa-solid fa-user-group"></i>
-            </div>
-        </div>
-
-        <div class="new-connections-features">
-            <div class="new-connections-feature">
-                <i class="fa-solid fa-wand-magic-sparkles"></i>
-                <span data-i18n="featureSmartMatch">Ortak ilgi alanlarına göre akıllı eşleşmeler</span>
-            </div>
-            <div class="new-connections-feature">
-                <i class="fa-solid fa-location-dot"></i>
-                <span data-i18n="featureCityCommunity">Şehir ve topluluk odaklı öneriler</span>
-            </div>
-        </div>
-
-        <div class="new-connections-actions">
-            <a href="arkadas-bul.html" class="new-connections-btn primary nav-item">
-                <i class="fa-solid fa-user-plus"></i> <span data-i18n="friendFindPageBtn">Arkadaş Bul Sayfası</span>
-            </a>
-            <a href="topluluk.html" class="new-connections-btn secondary nav-item">
-                <i class="fa-solid fa-users"></i> <span data-i18n="discoverCommunitiesBtn">Toplulukları Keşfet</span>
-            </a>
-        </div>
-    </div>
-
     <div class="glass-card sidebar-container" style="margin-bottom:12px;">
         <div class="sidebar-title"><i class="fa-solid fa-calendar-days"></i> <span data-i18n="calendarTitle">Takvim</span></div>
         <div style="padding: 0 8px;">
@@ -70,30 +37,8 @@
 
     <div class="glass-card sidebar-container" style="margin-top: 20px;">
         <div class="sidebar-title"><i class="fa-solid fa-user-group"></i> <span data-i18n="friendSuggestionsTitle">Arkadaş Önerileri</span></div>
-        <div id="dynamic-suggestions-list" style="display: flex; flex-direction: column; gap: 12px; padding: 5px;">
+        <div id="dynamic-suggestions-list" style="display: flex; flex-direction: column; gap: 8px; padding: 4px; max-height: 230px; overflow-y: auto;">
             <div data-i18n="loadingText" style="font-size: 0.8rem; color: var(--text-muted); text-align: center;">Yükleniyor...</div>
-        </div>
-        <div style="margin-top:10px; padding-top:10px; border-top:1px solid var(--border, rgba(148,163,184,.15)); padding:10px 5px 0;">
-            <div style="display:flex; gap:8px; align-items:stretch;">
-            <a href="arkadas-bul.html" style="
-                flex:1 1 0; display:flex; align-items:center; justify-content:center; gap:8px;
-                text-decoration:none;
-                padding:9px 10px; border:none; border-radius:12px;
-                background:linear-gradient(135deg,#6366f1,#4f46e5);
-                color:#fff; font-size:.78rem; font-weight:700; cursor:pointer;">
-                <i class="fa-solid fa-user-group"></i> <span data-i18n="friendFindBtn">Arkadaş Bul</span>
-            </a>
-            <button onclick="window.openInviteModal && window.openInviteModal()" style="
-                flex:1 1 0; display:flex; align-items:center; justify-content:center; gap:8px;
-                padding:9px 10px; border:none; border-radius:12px;
-                background:linear-gradient(135deg,rgba(99,102,241,.12),rgba(139,92,246,.12));
-                color:var(--primary); font-size:.78rem; font-weight:700; cursor:pointer;
-                transition:background .18s;"
-                onmouseover="this.style.background='rgba(99,102,241,.2)'"
-                onmouseout="this.style.background='linear-gradient(135deg,rgba(99,102,241,.12),rgba(139,92,246,.12))'">
-                <i class="fa-solid fa-user-plus"></i> <span data-i18n="inviteFriendBtn">Arkadaşını Davet Et</span>
-            </button>
-            </div>
         </div>
     </div>
 
