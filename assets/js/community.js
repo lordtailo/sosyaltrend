@@ -1862,7 +1862,7 @@ async function openCommunityDetail(communityId) {
                 </button>
                 <button type="button" style="display:inline-flex; align-items:center; gap:6px; border:1px solid rgba(99,102,241,0.16); background:linear-gradient(135deg, rgba(99,102,241,0.12), rgba(255,255,255,0.06)); color:var(--text-main); padding:8px 12px; border-radius:999px; font-size:0.8rem; font-weight:700; cursor:default; box-shadow:0 6px 16px rgba(15, 23, 42, 0.06);">
                   <i class="fa-solid fa-clock-rotate-left"></i>
-                  <span>En son paylaşımlar üsttedir..</span>
+                  <span>En son paylaşımlar</span>
                 </button>
               </div>
               <div id="communityPostsList" style="display:flex; flex-direction:column; gap:8px;"></div>

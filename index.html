@@ -71,11 +71,15 @@
                 </div>
                 <button id="shareBtn" class="post-action-btn primary" type="button" data-i18n="shareBtn">Paylaş</button>
             </div>
-            <div id="post-help" style="margin-top:14px; display:flex; justify-content:flex-start;">
-                <button type="button" onclick="window.openPostRulesModal && window.openPostRulesModal()" style="display:inline-flex; align-items:center; gap:8px; border:1px solid rgba(99,102,241,0.18); background:linear-gradient(135deg, rgba(99,102,241,0.12), rgba(255,255,255,0.06)); color:var(--text-main); padding:10px 14px; border-radius:999px; font-size:0.82rem; font-weight:800; cursor:pointer; box-shadow:0 8px 18px rgba(15,23,42,0.08);">
+            <div id="post-help" style="margin-top:14px; display:flex; align-items:center; gap:12px; width:100%; flex-wrap:wrap;">
+                <span onclick="window.openPostRulesModal && window.openPostRulesModal()" style="display:inline-flex; align-items:center; gap:6px; color:var(--text-main); font-size:0.74rem; font-style:normal; font-weight:400; cursor:pointer; text-decoration:none;">
                     <i class="fa-solid fa-circle-info" style="color:var(--primary);"></i>
-                    <span>Gönderi kuralları (gönderi yapmadan önce muhakka okuyun.)</span>
-                </button>
+                    Paylaşım yapmadan önce kısa kuralları gözden geçirin.
+                </span>
+                <span style="margin-left:auto; display:inline-flex; align-items:center; gap:6px; color:var(--text-muted); font-size:0.72rem; font-style:normal; font-weight:400; text-align:right;">
+                    <i class="fa-solid fa-check-circle" style="color:var(--primary);"></i>
+                    Kuralları okuduğunuz için teşekkür ederiz.
+                </span>
             </div>
             <div id="pollForm" class="poll-form" style="display: none;">
                 <div class="poll-form-grid">
@@ -115,7 +119,7 @@
             </button>
             <button type="button" style="display:inline-flex; align-items:center; gap:6px; border:1px solid rgba(99,102,241,0.16); background:linear-gradient(135deg, rgba(99,102,241,0.12), rgba(255,255,255,0.06)); color:var(--text-main); padding:8px 12px; border-radius:999px; font-size:0.8rem; font-weight:700; cursor:default; box-shadow:0 6px 16px rgba(15, 23, 42, 0.06);">
                 <i class="fa-solid fa-clock-rotate-left"></i>
-                <span>En son paylaşımlar üsttedir..</span>
+                <span>En son paylaşımlar</span>
             </button>
         </div>
         <div id="feed-items"></div>

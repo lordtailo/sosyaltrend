@@ -100,8 +100,6 @@ function updatePostCount() {
         input.innerText = text.substring(0, 1000);
         text = input.innerText;
         if (helpText) helpText.textContent = '1000 karakter sınırını aştınız. Lütfen kısaltın.';
-    } else if (helpText) {
-        helpText.textContent = 'Açıklama ekleyebilir, fotoğraf seçebilir veya emoji ile daha canlı bir gönderi oluşturabilirsiniz.';
     }
     const len = text.length;
     counter.textContent = `${len}/1000`;
@@ -1057,7 +1055,7 @@ window.openPostRulesModal = function () {
                         <i class="fa-solid fa-circle-info" style="color:var(--primary);"></i>
                         Gönderi yapma kuralları
                     </h3>
-                    <p style="margin:0; color:var(--text-muted); font-size:0.92rem;">Paylaşım yapmadan önce kısa kuralları gözden geçir.</p>
+                    <p style="margin:0; color:var(--text-muted); font-size:0.92rem;">Paylaşım yapmadan önce kısa kuralları gözden geçirin.</p>
                 </div>
                 <button type="button" onclick="window.closePostRulesModal && window.closePostRulesModal()" style="background:none; border:none; font-size:1.5rem; cursor:pointer; color:var(--text-main); line-height:1;">&times;</button>
             </div>
