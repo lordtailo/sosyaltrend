@@ -1,4 +1,4 @@
-import './app.js?v=20260603';
+import './app.js?v=20260707d';
 
 // Home page entrypoint — shared app.js contains the common application logic.
 

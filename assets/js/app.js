@@ -194,95 +194,108 @@ window.deleteVideo = deleteVideo;
 window.deleteMusic = deleteMusic;
 
 async function loadTopLikedPosts() {
-    const container = document.getElementById('top-liked-posts-list');
-    if (!container) return;
-    container.innerHTML = `<div style="font-size:0.9rem; color: var(--text-muted); text-align:center;">${getLangText('loadingText', 'Yükleniyor...')}</div>`;
+    const mainContainer = document.getElementById('top-liked-posts-list');
+    if (!mainContainer) return;
+
+    mainContainer.innerHTML = `<div style="font-size:0.9rem; color: var(--text-muted); text-align:center;">${getLangText('loadingText', 'Yükleniyor...')}</div>`;
+
     try {
         const snap = await getDocs(collection(db, 'posts'));
-        const posts = snap.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() }));
-        const topPosts = posts
-            .sort((a, b) => ((b.likes?.length || 0) - (a.likes?.length || 0)))
-            .slice(0, 1);
+        const posts = snap.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }));
+        const topPost = posts.sort((a, b) => ((b.likes?.length || 0) - (a.likes?.length || 0)))[0];
 
-        if (!topPosts.length) {
-            container.innerHTML = `<div style="font-size:0.9rem; color: var(--text-muted); text-align:center;">${getLangText('noPostsYet', 'Henüz paylaşım bulunamadı.')}</div>`;
+        if (!topPost) {
+            mainContainer.innerHTML = `<div style="font-size:0.9rem; color: var(--text-muted); text-align:center;">${getLangText('noPostsYet', 'Henüz paylaşım bulunamadı.')}</div>`;
             return;
         }
 
-        container.innerHTML = topPosts.map((post, idx) => {
-            const authorAvatar = getAvatarUrl(post.avatarUrl || post.avatarSeed || 'assets/img/strendsaydamv2.png', 'user');
-            const authorName = escapeHtml(post.displayName || post.name || post.username || 'Anonim');
-            const authorHandle = post.username ? `@${escapeHtml(post.username)}` : '';
-            const content = escapeHtml(normalizePostText((post.content || post.description || '').toString()));
-            // Uzunluğu artırıldı: sadece en çok beğeni alan (ilk) gönderi için daha uzun önizleme göster
-            const snippet = content.length > 250 ? `${content.substring(0, 250)}...` : content;
-            const likeCount = post.likes?.length || 0;
-            const commentsCount = Array.isArray(post.comments) ? post.comments.length : 0;
-            const timestamp = formatPostTimestamp(post.createdAt || post.timestamp);
-            const topComment = Array.isArray(post.comments) && post.comments.length ? post.comments[0] : null;
-            const commentAuthor = topComment ? escapeHtml(topComment.displayName || topComment.username || 'Anonim') : '';
-            const commentText = topComment ? escapeHtml((topComment.text || '').toString().trim()) : '';
-            const commentAvatar = topComment ? getAvatarUrl(topComment.avatarUrl || topComment.avatarSeed || 'assets/img/strendsaydamv2.png', 'user') : '';
+        const authorAvatar = getAvatarUrl(topPost.avatarUrl || topPost.avatarSeed || 'assets/img/strendsaydamv2.png', 'user');
+        const authorName = escapeHtml(topPost.displayName || topPost.name || topPost.username || 'Anonim');
+        const authorHandle = topPost.username ? `@${escapeHtml(topPost.username)}` : '';
+        const content = escapeHtml(normalizePostText((topPost.content || topPost.description || '').toString()));
+        const snippet = content.length > 250 ? `${content.substring(0, 250)}...` : content;
+        const likeCount = topPost.likes?.length || 0;
+        const commentsCount = Array.isArray(topPost.comments) ? topPost.comments.length : 0;
+        const timestamp = formatPostTimestamp(topPost.createdAt || topPost.timestamp);
+        const topComment = Array.isArray(topPost.comments) && topPost.comments.length ? topPost.comments[0] : null;
+        const commentAuthor = topComment ? escapeHtml(topComment.displayName || topComment.username || 'Anonim') : '';
+        const commentText = topComment ? escapeHtml((topComment.text || '').toString().trim()) : '';
+        const commentAvatar = topComment ? getAvatarUrl(topComment.avatarUrl || topComment.avatarSeed || 'assets/img/strendsaydamv2.png', 'user') : '';
 
-            return `
-                <div style="border:1px solid rgba(255,255,255,0.12); border-radius: 24px; background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03)); box-shadow: 0 18px 36px rgba(0,0,0,0.08); overflow:hidden;">
-                    <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; padding:18px 18px 0;">
-                        <div style="display:flex; align-items:center; gap:12px; min-width:0;">
-                            <img src="${authorAvatar}" alt="${authorName}" style="width:40px; height:40px; border-radius:50%; object-fit:cover; border:1px solid rgba(255,255,255,0.18);">
-                            <div style="min-width:0;">
-                                <div style="font-size:0.98rem; font-weight:800; color: var(--text-main); line-height:1.2;">${authorName}</div>
-                                ${authorHandle ? `<div style="font-size:0.82rem; color: var(--text-muted); margin-top:4px;">${authorHandle}</div>` : ''}
-                            </div>
-                        </div>
-                        <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; justify-content:flex-end;">
-                            <span style="display:inline-flex; align-items:center; gap:6px; padding:8px 12px; background: rgba(239,68,68,0.14); color:#ef4444; border-radius:999px; font-size:0.82rem; font-weight:700;">❤️ ${likeCount}</span>
-                            <span style="display:inline-flex; align-items:center; gap:6px; padding:8px 12px; background: rgba(59,130,246,0.14); color:#3b82f6; border-radius:999px; font-size:0.82rem; font-weight:700;">💬 ${commentsCount}</span>
+        mainContainer.innerHTML = `
+            <div style="border:1px solid rgba(255,255,255,0.12); border-radius: 24px; background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03)); box-shadow: 0 18px 36px rgba(0,0,0,0.08); overflow:hidden;">
+                <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; padding:18px 18px 0;">
+                    <div style="display:flex; align-items:center; gap:12px; min-width:0;">
+                        <img src="${authorAvatar}" alt="${authorName}" style="width:40px; height:40px; border-radius:50%; object-fit:cover; border:1px solid rgba(255,255,255,0.18);">
+                        <div style="min-width:0;">
+                            <div style="font-size:0.98rem; font-weight:800; color: var(--text-main); line-height:1.2;">${authorName}</div>
+                            ${authorHandle ? `<div style="font-size:0.82rem; color: var(--text-muted); margin-top:4px;">${authorHandle}</div>` : ''}
                         </div>
                     </div>
-                    <div style="padding:0 18px 18px;">
-                        <div style="margin-top:16px; font-size:0.98rem; color: var(--text-main); line-height:1.75;">${snippet || getLangText('postSnippetFallback', 'Görsel veya metin içerikli gönderi.')}</div>
-                        ${topComment ? `
-                            <div style="margin-top:18px; padding:16px; border-radius: 20px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12);">
-                                <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
-                                    <img src="${commentAvatar}" alt="${commentAuthor}" style="width:28px; height:28px; border-radius:50%; object-fit:cover; border:1px solid rgba(255,255,255,0.16);">
-                                    <div>
-                                        <div style="font-size:0.86rem; font-weight:700; color: var(--text-main);">${commentAuthor} ${getLangText('topCommentBySuffix', 'yorum yaptı')}</div>
-                                        <div style="font-size:0.78rem; color: var(--text-muted);">${getLangText('topCommentLabel', 'En beğenilen yorum')}</div>
-                                    </div>
+                    <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; justify-content:flex-end;">
+                        <span style="display:inline-flex; align-items:center; gap:6px; padding:8px 12px; background: rgba(239,68,68,0.14); color:#ef4444; border-radius:999px; font-size:0.82rem; font-weight:700;">❤ ${likeCount}</span>
+                        <span style="display:inline-flex; align-items:center; gap:6px; padding:8px 12px; background: rgba(59,130,246,0.14); color:#3b82f6; border-radius:999px; font-size:0.82rem; font-weight:700;">💬 ${commentsCount}</span>
+                    </div>
+                </div>
+                <div style="padding:0 18px 18px;">
+                    <div style="margin-top:16px; font-size:0.98rem; color: var(--text-main); line-height:1.75;">${snippet || getLangText('postSnippetFallback', 'Görsel veya metin içerikli gönderi.')}</div>
+                    ${topComment ? `
+                        <div style="margin-top:18px; padding:16px; border-radius: 20px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12);">
+                            <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
+                                <img src="${commentAvatar}" alt="${commentAuthor}" style="width:28px; height:28px; border-radius:50%; object-fit:cover; border:1px solid rgba(255,255,255,0.16);">
+                                <div>
+                                    <div style="font-size:0.86rem; font-weight:700; color: var(--text-main);">${commentAuthor} ${getLangText('topCommentBySuffix', 'yorum yaptı')}</div>
+                                    <div style="font-size:0.78rem; color: var(--text-muted);">${getLangText('topCommentLabel', 'En beğenilen yorum')}</div>
                                 </div>
-                                <div style="font-size:0.9rem; color: var(--text-muted); line-height:1.6;">${commentText || getLangText('commentFallback', 'Gönderiye bir yorum eklendi.')}</div>
                             </div>
-                        ` : ''}
-                        <div style="margin-top:18px; display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:12px;">
-                            <span style="font-size:0.82rem; color: var(--text-muted);">${timestamp}</span>
-                            <button onclick="window.location.href='#post-${post.id}'" style="background: linear-gradient(135deg, #6366f1, #4f46e5); color: white; border:none; padding:12px 18px; border-radius:16px; cursor:pointer; font-weight:700; transition: transform 0.2s ease;">${getLangText('viewPostBtn', 'Gönderiyi Gör')}</button>
+                            <div style="font-size:0.9rem; color: var(--text-muted); line-height:1.6;">${commentText || getLangText('commentFallback', 'Gönderiye bir yorum eklendi.')}</div>
                         </div>
+                    ` : ''}
+                    <div style="margin-top:18px; display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:12px;">
+                        <span style="font-size:0.82rem; color: var(--text-muted);">${timestamp}</span>
+                        <button onclick="window.location.href='#post-${topPost.id}'" style="background: linear-gradient(135deg, #6366f1, #4f46e5); color: white; border:none; padding:12px 18px; border-radius:16px; cursor:pointer; font-weight:700; transition: transform 0.2s ease;">${getLangText('viewPostBtn', 'Gönderiyi Gör')}</button>
                     </div>
-                </div>`;
-        }).join('');
+                </div>
+            </div>`;
     } catch (e) {
         console.error('loadTopLikedPosts hata:', e);
-        container.innerHTML = `<div style="font-size:0.9rem; color: var(--danger); text-align:center;">${getLangText('topLikesLoadError', 'Beğeni sıralaması yüklenemedi.')}</div>`;
+        mainContainer.innerHTML = `<div style="font-size:0.9rem; color: var(--danger); text-align:center;">${getLangText('topLikesLoadError', 'Beğeni sıralaması yüklenemedi.')}</div>`;
     }
 }
 
 async function loadTopReadBlogs() {
-    const container = document.getElementById('top-read-blogs');
-    if (!container) return;
-    container.innerHTML = `<div style="font-size:0.9rem; color: var(--text-muted); text-align:center;">${getLangText('loadingText', 'Yükleniyor...')}</div>`;
+    const mainContainer = document.getElementById('top-read-blogs');
+    const sidebarContainer = document.getElementById('sidebar-top-read-blogs');
+    const containers = [mainContainer, sidebarContainer].filter(Boolean);
+    if (!containers.length) return;
+
+    containers.forEach((container) => {
+        const isSidebar = container.id === 'sidebar-top-read-blogs';
+        container.innerHTML = isSidebar
+            ? `<div style="font-size:0.76rem; color: var(--text-muted); text-align:center; padding:4px;">${getLangText('loadingText', 'Yükleniyor...')}</div>`
+            : `<div style="font-size:0.9rem; color: var(--text-muted); text-align:center;">${getLangText('loadingText', 'Yükleniyor...')}</div>`;
+    });
+
     try {
         const q = query(collection(db, 'blogs'), orderBy('views', 'desc'), limit(3));
         const snap = await getDocs(q);
         if (snap.empty) {
-            container.innerHTML = `<div style="font-size:0.9rem; color: var(--text-muted); text-align:center;">${getLangText('noBlogPostsYet', 'Henüz blog yazısı bulunamadı.')}</div>`;
+            containers.forEach((container) => {
+                const isSidebar = container.id === 'sidebar-top-read-blogs';
+                container.innerHTML = isSidebar
+                    ? `<div style="font-size:0.76rem; color: var(--text-muted); text-align:center; padding:4px;">${getLangText('noBlogPostsYet', 'Henüz blog yazısı bulunamadı.')}</div>`
+                    : `<div style="font-size:0.9rem; color: var(--text-muted); text-align:center;">${getLangText('noBlogPostsYet', 'Henüz blog yazısı bulunamadı.')}</div>`;
+            });
             return;
         }
-        const items = snap.docs.map((docSnap, idx) => {
+
+        const itemsData = snap.docs.map((docSnap, idx) => {
             const post = docSnap.data();
             const rawTitle = post.title || post.headline || getLangText('untitledPost', 'Başlıksız yazı');
             const cappedRawTitle = rawTitle.charAt(0).toUpperCase() + rawTitle.slice(1);
             const title = escapeHtml(cappedRawTitle);
             const shortTitle = title.length > 56 ? `${title.substring(0, 53)}...` : title;
+            const shortSidebarTitle = title.length > 40 ? `${title.substring(0, 37)}...` : title;
             const views = post.views || 0;
             const authorDisplay = post.authorDisplayName || post.author || post.displayName || post.name || '';
             const authorUsername = post.authorUsername || post.username || '';
@@ -292,32 +305,56 @@ async function loadTopReadBlogs() {
             const slug = post.slug || docSnap.id;
             const url = `blog.html?id=${encodeURIComponent(slug)}`;
             const postDate = formatPostTimestamp(post.createdAt || post.timestamp || post.publishedAt);
+            return { idx, shortTitle, shortSidebarTitle, views, authorLabelHtml, url, postDate };
+        });
+
+        containers.forEach((container) => {
+            const isSidebar = container.id === 'sidebar-top-read-blogs';
+            const items = itemsData.map((item) => {
+                if (isSidebar) {
+                    return `
+                        <a href="${item.url}" class="menu-style-btn nav-item" style="padding:8px 10px; border-radius:10px; display:flex; align-items:center; justify-content:space-between; gap:8px;">
+                            <span style="display:flex; align-items:center; gap:8px; min-width:0;">
+                                <span style="width:22px; height:22px; border-radius:7px; background:rgba(99,102,241,0.14); color:var(--primary); display:inline-flex; align-items:center; justify-content:center; font-size:0.72rem; font-weight:800;">${item.idx + 1}</span>
+                                <span style="font-size:0.76rem; font-weight:700; color:var(--text-main); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${item.shortSidebarTitle}</span>
+                            </span>
+                            <span style="font-size:0.7rem; color:var(--success); font-weight:700; white-space:nowrap;">${item.views}</span>
+                        </a>`;
+                }
+
             return `
-                <a href="${url}" style="display:flex; justify-content:space-between; align-items:center; gap:14px; text-decoration:none; color: inherit; padding:18px 18px; border-radius:22px; background: rgba(255,255,255,0.05); border:1px solid rgba(99,102,241,0.16); box-shadow: 0 20px 45px rgba(0,0,0,0.05); transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;">
+                <a href="${item.url}" style="display:flex; justify-content:space-between; align-items:center; gap:14px; text-decoration:none; color: inherit; padding:18px 18px; border-radius:22px; background: rgba(255,255,255,0.05); border:1px solid rgba(99,102,241,0.16); box-shadow: 0 20px 45px rgba(0,0,0,0.05); transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;">
                     <div style="display:flex; gap:14px; align-items:center; min-width:0; flex:1;">
-                        <div style="width:38px; min-width:38px; height:38px; border-radius:14px; background: rgba(99,102,241,0.18); color: var(--primary); display:flex; align-items:center; justify-content:center; font-weight:800; font-size:0.95rem;">${idx + 1}</div>
+                        <div style="width:38px; min-width:38px; height:38px; border-radius:14px; background: rgba(99,102,241,0.18); color: var(--primary); display:flex; align-items:center; justify-content:center; font-weight:800; font-size:0.95rem;">${item.idx + 1}</div>
                         <div style="min-width:0;">
                             <div style="font-size:0.98rem; font-weight:700; line-height:1.35; color: var(--text-main); display:flex; align-items:center; gap:8px;">
                                 <i class="fa-solid fa-newspaper" style="color:var(--primary); transform: translateY(1px);"></i>
-                                <span>${shortTitle}</span>
+                                <span>${item.shortTitle}</span>
                             </div>
                             <div style="font-size:0.78rem; color: var(--text-muted); margin-top:6px; display:flex; align-items:center; gap:6px;">
                                 <i class="fa-solid fa-calendar-days" style="color:var(--primary);"></i>
-                                <span>${postDate}</span>
+                                <span>${item.postDate}</span>
                             </div>
-                                <div style="font-size:0.78rem; color: var(--text-muted); margin-top:6px;">${authorLabelHtml}</div>
+                                <div style="font-size:0.78rem; color: var(--text-muted); margin-top:6px;">${item.authorLabelHtml}</div>
                         </div>
                     </div>
                     <div style="display:flex; flex-direction:column; align-items:center; gap:6px;">
-                        <div style="font-size:0.78rem; color: var(--success); margin-bottom:6px; text-align:center; width:100%; font-weight:700;">${views} ${getLangText('readCountLabel', 'okuma')}</div>
-                        <span role="button" onclick="location.href='${url}'; event.stopPropagation();" style="background: var(--primary); color: #fff; padding:8px 12px; border-radius: 10px; font-weight:700; font-size:0.86rem; text-decoration:none; display:inline-flex; align-items:center; gap:8px; cursor:pointer;">${getLangText('readNowBtn', 'Hemen Oku')}</span>
+                        <div style="font-size:0.78rem; color: var(--success); margin-bottom:6px; text-align:center; width:100%; font-weight:700;">${item.views} ${getLangText('readCountLabel', 'okuma')}</div>
+                        <span role="button" onclick="location.href='${item.url}'; event.stopPropagation();" style="background: var(--primary); color: #fff; padding:8px 12px; border-radius: 10px; font-weight:700; font-size:0.86rem; text-decoration:none; display:inline-flex; align-items:center; gap:8px; cursor:pointer;">${getLangText('readNowBtn', 'Hemen Oku')}</span>
                     </div>
                 </a>`;
+            });
+
+            container.innerHTML = items.join('');
         });
-        container.innerHTML = items.join('');
     } catch (e) {
         console.error('loadTopReadBlogs hata:', e);
-        container.innerHTML = `<div style="font-size:0.9rem; color: var(--danger); text-align:center;">${getLangText('blogRankingLoadError', 'Blog sıralaması yüklenemedi.')}</div>`;
+        containers.forEach((container) => {
+            const isSidebar = container.id === 'sidebar-top-read-blogs';
+            container.innerHTML = isSidebar
+                ? `<div style="font-size:0.76rem; color: var(--danger); text-align:center; padding:4px;">${getLangText('blogRankingLoadError', 'Blog sıralaması yüklenemedi.')}</div>`
+                : `<div style="font-size:0.9rem; color: var(--danger); text-align:center;">${getLangText('blogRankingLoadError', 'Blog sıralaması yüklenemedi.')}</div>`;
+        });
     }
 }
 
@@ -776,58 +813,30 @@ window.loadPollWidget = function() { };
 
 // Expose sendNotification for manual testing from console
 window.sendNotification = sendNotification;
+let suggestionsRenderRunId = 0;
+
 async function loadSuggestions() {
     const suggestionsContainer = document.getElementById('dynamic-suggestions-list');
     if (!suggestionsContainer) return;
 
+    const runId = ++suggestionsRenderRunId;
+
     try {
-        // Mevcut kullanıcının ID'sini al
         const currentUid = auth.currentUser ? auth.currentUser.uid : null;
 
-        // Daha fazla kullanıcı çekip içinden eleme yapacağız (Daha iyi bir havuz için 20 kişi çektik)
+        // Daha iyi öneri havuzu için daha fazla kullanıcı çek
         const q = query(collection(db, "users"), limit(20));
         const querySnapshot = await getDocs(q);
         
-        let usersArray = [];
+        const usersArray = [];
         querySnapshot.forEach((doc) => {
-            // tüm kullanıcıları diziye ekle (kendimiz de dahil)
             usersArray.push({ id: doc.id, ...doc.data() });
         });
 
-        // Diziyi rastgele karıştır (Her yenilemede farklı kişiler gelsin)
-        usersArray.sort(() => Math.random() - 0.5);
-
-        // Geçersiz placeholder kullanıcıları çıkar
-        const filteredUsers = usersArray.filter(u => {
-            const displayName = String(u.displayName || '').trim();
-            const username = String(u.username || '').trim();
-            return displayName && username && username.toLowerCase() !== 'user' && displayName.toLowerCase() !== 'isimsiz';
-        });
-
-        if (filteredUsers.length === 0) {
-            suggestionsContainer.innerHTML = '<div style="font-size:0.7rem; color:var(--text-muted);">Önerilecek kullanıcı bulunamadı.</div>';
-            return;
-        }
-
-        // Sadece ilk 5 kişiyi seç
-        const selectedUsers = filteredUsers.slice(0, 5);
-        // Eğer giriş yapan kullanıcı seçilmediyse en son elemana kendisini koy
-        if (auth.currentUser) {
-            const currentUid = auth.currentUser.uid;
-            if (!selectedUsers.some(u => u.id === currentUid)) {
-                const selfIdx = filteredUsers.findIndex(u => u.id === currentUid);
-                if (selfIdx !== -1) {
-                    selectedUsers[selectedUsers.length - 1] = filteredUsers[selfIdx];
-                }
-            }
-        }
+        // Bu çağrıdan daha yeni bir çağrı başladıysa eski sonucu çizme.
+        if (runId !== suggestionsRenderRunId) return;
 
         suggestionsContainer.innerHTML = ''; // Temizle
-
-        if (selectedUsers.length === 0) {
-            suggestionsContainer.innerHTML = '<div style="font-size:0.7rem; color:var(--text-muted);">Önerilecek kullanıcı bulunamadı.</div>';
-            return;
-        }
 
         // Eğer giriş yapan varsa, arkadaş/durum bilgilerini çek
         let currentUserData = {};
@@ -840,58 +849,114 @@ async function loadSuggestions() {
             }
         }
 
+        if (runId !== suggestionsRenderRunId) return;
+
         const friends = currentUserData.friends || [];
         const sentRequests = currentUserData.sentRequests || [];
         const incomingRequests = currentUserData.friendRequests || [];
+        const currentUsername = String(currentUserData.username || '').trim().toLowerCase();
+        const currentEmail = String(currentUserData.email || auth.currentUser?.email || '').trim().toLowerCase();
+
+        // Aynı kişiyi (farklı kayıtlarla gelse bile) tek öneriye indir
+        const dedupedUsers = [];
+        const seenKeys = new Set();
+        for (const user of usersArray) {
+            const usernameKey = String(user.username || '').trim().toLowerCase();
+            const uidKey = String(user.uid || user.id || '').trim().toLowerCase();
+            const emailKey = String(user.email || '').trim().toLowerCase();
+            const dedupeKey = usernameKey || uidKey || emailKey;
+            if (!dedupeKey) continue;
+            if (seenKeys.has(dedupeKey)) continue;
+            seenKeys.add(dedupeKey);
+            dedupedUsers.push(user);
+        }
+
+        // Geçersiz placeholder hesapları, kendimizi ve mevcut arkadaşları öneriden çıkar
+        const filteredUsers = dedupedUsers.filter(u => {
+            const displayName = String(u.displayName || '').trim();
+            const username = String(u.username || '').trim();
+            const email = String(u.email || '').trim().toLowerCase();
+            const userUid = String(u.uid || u.id || '').trim();
+            if (!displayName || !username) return false;
+            if (username.toLowerCase() === 'user' || displayName.toLowerCase() === 'isimsiz') return false;
+            // Kendimizi asla önermeyelim: doc id, uid, username ve email bazlı kontrol
+            if (currentUid && (u.id === currentUid || userUid === currentUid)) return false;
+            if (currentUsername && username.toLowerCase() === currentUsername) return false;
+            if (currentEmail && email && email === currentEmail) return false;
+            if (friends.includes(u.id)) return false;
+            return true;
+        });
+
+        if (filteredUsers.length === 0) {
+            suggestionsContainer.innerHTML = '<div class="suggestions-empty">Şimdilik yeni öneri yok.</div>';
+            return;
+        }
+
+        // Hafif rastgelelik + tekrar yüklemede aynı görünüm için kullanıcı adına göre ikinci sıralama
+        filteredUsers.sort(() => Math.random() - 0.5);
+        const selectedUsers = filteredUsers
+            .slice(0, 5)
+            .sort((a, b) => String(a.displayName || a.username || '').localeCompare(String(b.displayName || b.username || ''), 'tr'));
+
+        const normalizeInterest = (value) => String(value || '').trim().toLocaleLowerCase('tr-TR');
+        const splitInterests = (value) => String(value || '')
+            .split(',')
+            .map((item) => item.trim())
+            .filter(Boolean);
+        const currentInterestSet = new Set(splitInterests(currentUserData.interests).map(normalizeInterest));
 
         selectedUsers.forEach((user) => {
-                    const fallbackAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(user.displayName || 'User')}&background=random&color=fff`;
-                    const userAvatar = user.avatarUrl || user.avatar || fallbackAvatar;
+            const fallbackAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(user.displayName || 'User')}&background=random&color=fff`;
+            const userAvatar = user.avatarUrl || user.avatar || fallbackAvatar;
+            const safeDisplayName = escapeHtml(user.displayName || 'İsimsiz');
+            const safeUsername = escapeHtml(user.username || 'user');
+            const safeLocation = escapeHtml(user.location || 'Konum belirtilmedi');
+            const userInterests = splitInterests(user.interests || '');
+            const commonInterestsCount = userInterests.filter((interest) => currentInterestSet.has(normalizeInterest(interest))).length;
+            const primaryInterest = userInterests[0] ? escapeHtml(userInterests[0]) : '';
 
             const isFriend = friends.includes(user.id);
             const isSent = sentRequests.some(r => r.toUid === user.id);
             const isIncoming = incomingRequests.some(r => r.fromUid === user.id);
-            const isSelf = auth.currentUser && user.id === auth.currentUser.uid;
+            const isSelf = currentUid && user.id === currentUid;
 
             let btnLabel = 'Arkadaş Ol';
-            let btnAttrs = 'style="background: var(--primary); color: white; border: none; padding: 6px 12px; border-radius: 15px; font-size: 0.7rem; font-weight: 700; cursor: pointer;"';
+            let btnClass = 'suggestion-add-btn';
+            let btnDisabledAttr = '';
             let btnOnclick = `onclick="sendFriendRequestToUid('${user.id}', '${user.username}')"`;
 
-            if (isSelf) {
-                btnLabel = 'Profilinize Gidin';
-                btnAttrs = 'style="background: var(--primary); color: white; border: none; padding: 6px 12px; border-radius: 15px; font-size: 0.7rem; font-weight: 700; cursor: pointer;"';
-                btnOnclick = "onclick=\"window.location='profil.html'\"";
-            } else if (isFriend) {
+            if (isFriend) {
                 btnLabel = 'Zaten Arkadaşsınız';
-                btnAttrs = 'disabled style="opacity:0.6; cursor:default; background:#94a3b8; color:#fff; border:none; padding:6px 12px; border-radius:15px; font-size:0.7rem; font-weight:700;"';
+                btnClass = 'suggestion-add-btn disabled';
+                btnDisabledAttr = 'disabled';
                 btnOnclick = '';
             } else if (isSent) {
                 // allow cancellation from suggestions
                 btnLabel = 'İsteği iptal et';
-                btnAttrs = 'style="background: var(--primary); color: white; border: none; padding:6px 12px; border-radius:15px; font-size:0.7rem; font-weight:700; cursor:pointer;"';
+                btnClass = 'suggestion-add-btn pending';
                 btnOnclick = `onclick="cancelFriendRequestToUid('${user.id}', '${user.username}')"`;
             } else if (isIncoming) {
                 btnLabel = 'İstek Bekleniyor';
-                btnAttrs = 'disabled style="opacity:0.6; cursor:default; background:#94a3b8; color:#fff; border:none; padding:6px 12px; border-radius:15px; font-size:0.7rem; font-weight:700;"';
+                btnClass = 'suggestion-add-btn disabled';
+                btnDisabledAttr = 'disabled';
                 btnOnclick = '';
             }
 
             const userHtml = `
-                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
-                    <div style="display: flex; align-items: center; gap: 10px; cursor: pointer;" 
-                         onclick="window.location.href='${isSelf ? 'profil.html' : `profil.html?id=${encodeURIComponent(user.username)}`}'">                        <img src="${userAvatar}" 
-                             alt="${user.displayName || 'User'}"
-                             style="width: 38px; height: 38px; border-radius: 50%; border: 1.5px solid var(--primary); object-fit: cover;">
-                        <div style="max-width: 90px; overflow: hidden;">
-                            <div style="font-size: 0.8rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                                ${user.displayName || 'İsimsiz'}
-                            </div>
-                            <div style="font-size: 0.7rem; color: var(--text-muted);">
-                                @${user.username || 'user'}
+                <div class="suggestion-card" id="sugg_card_${user.id}">
+                    <div class="suggestion-main" onclick="window.location.href='${isSelf ? 'profil.html' : `profil.html?id=${encodeURIComponent(user.username)}`}'">
+                        <img src="${userAvatar}" alt="${safeDisplayName}" class="suggestion-avatar">
+                        <div class="suggestion-content">
+                            <div class="suggestion-name">${safeDisplayName}</div>
+                            <div class="suggestion-username">@${safeUsername}</div>
+                            <div class="suggestion-meta-row">
+                                <span class="suggestion-meta"><i class="fa-solid fa-location-dot"></i> ${safeLocation}</span>
+                                ${commonInterestsCount > 0 ? `<span class="suggestion-meta suggestion-meta-highlight"><i class="fa-solid fa-fire"></i> ${commonInterestsCount} ortak ilgi</span>` : ''}
+                                ${primaryInterest ? `<span class="suggestion-meta"><i class="fa-solid fa-hashtag"></i> ${primaryInterest}</span>` : ''}
                             </div>
                         </div>
                     </div>
-                    <button id="addFriendBtn_sugg_${user.id}" ${btnOnclick} ${btnAttrs}>
+                    <button id="addFriendBtn_sugg_${user.id}" class="${btnClass}" ${btnOnclick} ${btnDisabledAttr}>
                         ${btnLabel}
                     </button>
                 </div>
@@ -908,7 +973,7 @@ async function loadSuggestions() {
         });
     } catch (error) {
         console.error("Öneriler yüklenirken hata:", error);
-        suggestionsContainer.innerHTML = '<div style="font-size:0.7rem; color:red;">Kullanıcılar yüklenemedi.</div>';
+        suggestionsContainer.innerHTML = '<div class="suggestions-empty" style="color: var(--danger);">Kullanıcılar yüklenemedi.</div>';
     }
 }
 
@@ -973,6 +1038,49 @@ window.openInviteModal = async function () {
     document.body.appendChild(overlay);
     window._currentInviteLink = inviteLink;
     window._currentInviteUsername = username;
+};
+
+window.openPostRulesModal = function () {
+    document.getElementById('postRulesModal')?.remove();
+
+    const overlay = document.createElement('div');
+    overlay.id = 'postRulesModal';
+    overlay.className = 'modal-overlay';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:2100;display:flex;align-items:center;justify-content:center;padding:20px;';
+    overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
+
+    overlay.innerHTML = `
+        <div class="glass-card" style="width:min(560px,100%); padding:24px; box-sizing:border-box;">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px; margin-bottom:16px;">
+                <div>
+                    <h3 style="margin:0 0 6px; color:var(--text-main); display:flex; align-items:center; gap:8px;">
+                        <i class="fa-solid fa-circle-info" style="color:var(--primary);"></i>
+                        Gönderi yapma kuralları
+                    </h3>
+                    <p style="margin:0; color:var(--text-muted); font-size:0.92rem;">Paylaşım yapmadan önce kısa kuralları gözden geçir.</p>
+                </div>
+                <button type="button" onclick="window.closePostRulesModal && window.closePostRulesModal()" style="background:none; border:none; font-size:1.5rem; cursor:pointer; color:var(--text-main); line-height:1;">&times;</button>
+            </div>
+            <div style="display:grid; gap:10px; color:var(--text-main); font-size:0.95rem; line-height:1.6;">
+                <div style="padding:12px 14px; border:1px solid var(--border); border-radius:14px; background:rgba(255,255,255,0.04);">1. Hakaret, küfür, tehdit, taciz ve aşağılayıcı içerik paylaşma.</div>
+                <div style="padding:12px 14px; border:1px solid var(--border); border-radius:14px; background:rgba(255,255,255,0.04);">2. Irkçılık, nefret söylemi, ayrımcılık ve kışkırtıcı içerik paylaşma.</div>
+                <div style="padding:12px 14px; border:1px solid var(--border); border-radius:14px; background:rgba(255,255,255,0.04);">3. Spam, tekrar eden gönderiler, sahte haberler ve yanıltıcı içerik paylaşma.</div>
+                <div style="padding:12px 14px; border:1px solid var(--border); border-radius:14px; background:rgba(255,255,255,0.04);">4. İzin almadan başkasına ait fotoğraf, özel bilgi, ekran görüntüsü veya kişisel veri paylaşma.</div>
+                <div style="padding:12px 14px; border:1px solid var(--border); border-radius:14px; background:rgba(255,255,255,0.04);">5. Cinsel içerik, şiddeti teşvik eden, yasa dışı veya topluluk düzenini bozan içerikler paylaşma.</div>
+                <div style="padding:12px 14px; border:1px solid var(--border); border-radius:14px; background:rgba(255,255,255,0.04);">6. Kurallara aykırı gönderiler silinebilir, hesabın uyarı alabilir veya erişimin kısıtlanabilir.</div>
+                <div style="padding:12px 14px; border:1px solid var(--border); border-radius:14px; background:rgba(255,255,255,0.04);">7. Paylaşım yaparak bu kuralları kabul etmiş sayılırsın.</div>
+            </div>
+            <div style="display:flex; justify-content:flex-end; margin-top:18px;">
+                <button type="button" onclick="window.closePostRulesModal && window.closePostRulesModal()" style="padding:10px 16px; border:none; border-radius:12px; background:var(--primary); color:#fff; font-weight:700; cursor:pointer;">Tamam</button>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(overlay);
+};
+
+window.closePostRulesModal = function () {
+    document.getElementById('postRulesModal')?.remove();
 };
 
 window._copyInviteLink = async function (link) {
@@ -1343,11 +1451,11 @@ window.addAnnouncementsToFeed = async () => {
                     <div id="likers-ann-${announcementId}" style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;"></div>
                 </div>
 
-                <div style="display:flex; gap:12px;">
-                    <button class="tool-btn" onclick="likeAnnouncement('${announcementId}', ${isLiked}, this)" style="gap:5px; color:${isLiked ? '#ef4444' : ''}"><i class="${isLiked ? 'fa-solid' : 'fa-regular'} fa-heart"></i><span>${likeCount}</span></button>
-                    <button class="tool-btn" onclick="toggleAnnouncementComments('${announcementId}')" style="gap:5px;"><i class="fa-regular fa-comment"></i><span>${commentCount}</span></button>
-                    <button class="tool-btn" onclick="bookmarkAnnouncement('${announcementId}', ${isSaved})" style="color:${isSaved ? '#f59e0b' : ''}"><i class="${isSaved ? 'fa-solid' : 'fa-regular'} fa-bookmark"></i></button>
-                    <button class="tool-btn" onclick="window.openShareMenu('${announcementId}')" style="gap:5px; margin-left:auto;"><i class="fa-solid fa-share"></i></button>
+                <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+                    <button class="tool-btn" onclick="likeAnnouncement('${announcementId}', ${isLiked}, this)" style="gap:5px; color:${isLiked ? '#ef4444' : ''}"><i class="${isLiked ? 'fa-solid' : 'fa-regular'} fa-heart"></i><span>Beğen (${likeCount})</span></button>
+                    <button class="tool-btn" onclick="toggleAnnouncementComments('${announcementId}')" style="gap:5px;"><i class="fa-regular fa-comment"></i><span>Yorum Yap (${commentCount})</span></button>
+                    <button class="tool-btn" onclick="bookmarkAnnouncement('${announcementId}', ${isSaved})" style="gap:5px; color:${isSaved ? '#f59e0b' : ''}"><i class="${isSaved ? 'fa-solid' : 'fa-regular'} fa-bookmark"></i><span>Kaydet</span></button>
+                    <button class="tool-btn" onclick="window.openShareMenu('${announcementId}')" style="gap:5px; margin-left:auto;"><i class="fa-solid fa-share"></i><span>Paylaş</span></button>
                 </div>
                 
                 <div id="comments-ann-${announcementId}" class="comment-area" style="display:none;">
@@ -1484,8 +1592,6 @@ window.renderAnnouncementComments = (announcementId, comments) => {
     listDiv.innerHTML = comments.map((c, idx) => `
         <div class="comment-item" style="margin-bottom:12px;">
             <div style="display:flex; gap:10px;">
-                <img src="${c.avatarUrl || 'assets/img/strendsaydamv2.png'}" style="width:32px; height:32px; border-radius:50%;">
-                <div style="flex:1;">
                     <div style="display:flex; justify-content:space-between; align-items:center;">
                         <div style="font-weight:700; font-size:0.85rem;">${c.displayName} <span style="color:var(--text-muted);">@${c.username}</span></div>
                         <button class="comment-delete-btn" onclick="deleteAnnouncementComment('${announcementId}', ${idx})"><i class="fa-solid fa-trash"></i></button>
@@ -1697,11 +1803,11 @@ window.listenForAnnouncementChanges = () => {
                             <div id="likers-ann-${announcementId}" style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;"></div>
                         </div>
 
-                        <div style="display:flex; gap:12px;">
-                            <button class="tool-btn" onclick="likeAnnouncement('${announcementId}', ${isLiked}, this)" style="gap:5px; color:${isLiked ? '#ef4444' : ''}"><i class="${isLiked ? 'fa-solid' : 'fa-regular'} fa-heart"></i><span>${likeCount}</span></button>
-                            <button class="tool-btn" onclick="toggleAnnouncementComments('${announcementId}')" style="gap:5px;"><i class="fa-regular fa-comment"></i><span>${commentCount}</span></button>
-                            <button class="tool-btn" onclick="bookmarkAnnouncement('${announcementId}', ${isSaved})" style="color:${isSaved ? '#f59e0b' : ''}"><i class="${isSaved ? 'fa-solid' : 'fa-regular'} fa-bookmark"></i></button>
-                            <button class="tool-btn" onclick="window.openShareMenu('${announcementId}')" style="gap:5px; margin-left:auto;"><i class="fa-solid fa-share"></i></button>
+                        <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+                            <button class="tool-btn" onclick="likeAnnouncement('${announcementId}', ${isLiked}, this)" style="gap:5px; color:${isLiked ? '#ef4444' : ''}"><i class="${isLiked ? 'fa-solid' : 'fa-regular'} fa-heart"></i><span>Beğen (${likeCount})</span></button>
+                            <button class="tool-btn" onclick="toggleAnnouncementComments('${announcementId}')" style="gap:5px;"><i class="fa-regular fa-comment"></i><span>Yorum Yap (${commentCount})</span></button>
+                            <button class="tool-btn" onclick="bookmarkAnnouncement('${announcementId}', ${isSaved})" style="gap:5px; color:${isSaved ? '#f59e0b' : ''}"><i class="${isSaved ? 'fa-solid' : 'fa-regular'} fa-bookmark"></i><span>Kaydet</span></button>
+                            <button class="tool-btn" onclick="window.openShareMenu('${announcementId}')" style="gap:5px; margin-left:auto;"><i class="fa-solid fa-share"></i><span>Paylaş</span></button>
                         </div>
                         
                         <div id="comments-ann-${announcementId}" class="comment-area" style="display:none;">
@@ -3669,7 +3775,7 @@ window.clearImagePreview = () => {
         // Dynamic widgets and feed content are generated with JS templates,
         // so they must be re-rendered after language switch.
         if (document.getElementById('top-liked-posts-list')) loadTopLikedPosts();
-        if (document.getElementById('top-read-blogs')) loadTopReadBlogs();
+        if (document.getElementById('top-read-blogs') || document.getElementById('sidebar-top-read-blogs')) loadTopReadBlogs();
         if (document.getElementById('dynamic-suggestions-list')) loadSuggestions();
         if (document.getElementById('feed-items') && typeof window.loadPostsFeed === 'function') {
             window.loadPostsFeed(showAllFeedPosts);
@@ -5566,11 +5672,12 @@ window.loadPostsFeed = (showAll = false) => {
             <div id="likers-${d.id}" style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;"></div>
         </div>
 
-        <div style="display:flex; gap:12px;">
-              <button class="tool-btn" onclick="likePost('${d.id}', ${isLiked}, this)" style="gap:5px; color:${isLiked ? '#ef4444' : ''}"><i class="${isLiked ? 'fa-solid' : 'fa-regular'} fa-heart"></i><span>${p.likes?.length || 0}</span></button>
-              <button class="tool-btn" onclick="toggleCommentSection('${d.id}')" style="gap:5px;"><i class="fa-regular fa-comment"></i><span>${p.comments?.length || 0}</span></button>
-              <button class="tool-btn" onclick="toggleBookmark('${d.id}', ${isSaved})" style="color:${isSaved ? '#f59e0b' : ''}"><i class="${isSaved ? 'fa-solid' : 'fa-regular'} fa-bookmark"></i></button>
-              <button class="tool-btn" onclick="window.openShareMenu('${d.id}')" style="gap:5px; margin-left:auto;"><i class="fa-solid fa-share"></i></button>
+        <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+              <button class="tool-btn" onclick="likePost('${d.id}', ${isLiked}, this)" style="gap:5px; color:${isLiked ? '#ef4444' : ''}"><i class="${isLiked ? 'fa-solid' : 'fa-regular'} fa-heart"></i><span>Beğen (${p.likes?.length || 0})</span></button>
+              <button class="tool-btn" onclick="toggleCommentSection('${d.id}')" style="gap:5px;"><i class="fa-regular fa-comment"></i><span>Yorum Yap (${p.comments?.length || 0})</span></button>
+              <button class="tool-btn" onclick="toggleBookmark('${d.id}', ${isSaved})" style="gap:5px; color:${isSaved ? '#f59e0b' : ''}"><i class="${isSaved ? 'fa-solid' : 'fa-regular'} fa-bookmark"></i><span>Kaydet</span></button>
+              <button class="tool-btn" onclick="window.reportPost('${d.id}', '${authorUsername.replace(/'/g, "\\'")}')" title="Gönderiyi bildir" style="gap:5px; margin-left:auto; color:#f59e0b;"><i class="fa-regular fa-flag"></i><span>Bildir</span></button>
+              <button class="tool-btn" onclick="window.openShareMenu('${d.id}')" style="gap:5px;"><i class="fa-solid fa-share"></i><span>Paylaş</span></button>
         </div>
         
         <div id="comments-${d.id}" class="comment-area" style="display:none;">
@@ -6748,6 +6855,7 @@ async function loadVisitorProfile() {
                     ` : "";
                     
                     const isLiked = post.likes?.includes(user.username);
+                    const canReportPost = true;
                     
                     const postHtml = `
                         <div class="glass-card post" style="position: relative;">
@@ -6766,12 +6874,13 @@ async function loadVisitorProfile() {
                             ${postReadMoreButton}
                             ${postImageHtml}
                             
-                            <div style="display:flex; gap:12px;">
+                            <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
                                 <button class="tool-btn" onclick="likePost('${post.id}', ${isLiked}, this)" style="gap:5px; color:${isLiked ? '#ef4444' : ''}">
-                                    <i class="${isLiked ? 'fa-solid' : 'fa-regular'} fa-heart"></i><span>${post.likes?.length || 0}</span>
+                                    <i class="${isLiked ? 'fa-solid' : 'fa-regular'} fa-heart"></i><span>Beğen (${post.likes?.length || 0})</span>
                                 </button>
-                                <button class="tool-btn" style="gap:5px;"><i class="fa-regular fa-comment"></i><span>${post.comments?.length || 0}</span></button>
-                                <button class="tool-btn" onclick="window.openShareMenu('${post.id}')" style="gap:5px; margin-left:auto;"><i class="fa-solid fa-share"></i></button>
+                                <button class="tool-btn" style="gap:5px;"><i class="fa-regular fa-comment"></i><span>Yorum Yap (${post.comments?.length || 0})</span></button>
+                                <button class="tool-btn" onclick="window.reportPost('${post.id}', '${(post.username || '').replace(/'/g, "\\'")}')" title="Gönderiyi bildir" style="gap:5px; margin-left:auto; color:#f59e0b;"><i class="fa-regular fa-flag"></i><span>Bildir</span></button>
+                                <button class="tool-btn" onclick="window.openShareMenu('${post.id}')" style="gap:5px;"><i class="fa-solid fa-share"></i><span>Paylaş</span></button>
                             </div>
                         </div>
                     `;
@@ -6927,6 +7036,7 @@ window.loadProfileSections = async (section = 'all', showAllPosts = false, showA
             const isMine = p.username === uname || p.adminUser === uname;
             const isLiked = p.likes?.includes(uname);
             const isSaved = p.savedBy?.includes(uname);
+            const canReportPost = true;
             const decodedProfileContent = decodeEntities ? decodeEntities(p.content||"") : (p.content||"");
             const profileContentWithLinks = decodedProfileContent.replace(/(#[\wığüşöçİĞÜŞÖÇ]+)/g,'<span class="hashtag-link" onclick="searchTrend(\'$1\')">$1</span>');
             const profileReadMoreBtn = decodedProfileContent.length > 280 ? `<button id="toggle-${d.id}" class="read-more-btn" onclick="togglePostContent('${d.id}')"><i class="fa-solid fa-chevron-down"></i> Daha fazlasını gör</button>` : '';
@@ -6975,10 +7085,12 @@ window.loadProfileSections = async (section = 'all', showAllPosts = false, showA
                              alt="Post görseli">
                     </div>
                     ` : ''}
-                    <div style="display:flex; gap:12px;">
-                        <button class="tool-btn" onclick="likePost('${d.id}', ${isLiked}, this)" style="gap:5px; color:${isLiked?'#ef4444':''}"><i class="${isLiked?'fa-solid':'fa-regular'} fa-heart"></i><span>${p.likes?.length||0}</span></button>
-                        <button class="tool-btn" style="gap:5px;"><i class="fa-regular fa-comment"></i><span>${p.comments?.length||0}</span></button>
-                        <button class="tool-btn" onclick="toggleBookmark('${d.id}', ${isSaved})" style="color:${isSaved ? '#f59e0b' : ''}"><i class="${isSaved ? 'fa-solid' : 'fa-regular'} fa-bookmark"></i></button>
+                    <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+                        <button class="tool-btn" onclick="likePost('${d.id}', ${isLiked}, this)" style="gap:5px; color:${isLiked?'#ef4444':''}"><i class="${isLiked?'fa-solid':'fa-regular'} fa-heart"></i><span>Beğen (${p.likes?.length||0})</span></button>
+                        <button class="tool-btn" style="gap:5px;"><i class="fa-regular fa-comment"></i><span>Yorum Yap (${p.comments?.length||0})</span></button>
+                        <button class="tool-btn" onclick="toggleBookmark('${d.id}', ${isSaved})" style="gap:5px; color:${isSaved ? '#f59e0b' : ''}"><i class="${isSaved ? 'fa-solid' : 'fa-regular'} fa-bookmark"></i><span>Kaydet</span></button>
+                        <button class="tool-btn" onclick="window.reportPost('${d.id}', '${(p.username || '').replace(/'/g, "\\'")}')" title="Gönderiyi bildir" style="gap:5px; margin-left:auto; color:#f59e0b;"><i class="fa-regular fa-flag"></i><span>Bildir</span></button>
+                        <button class="tool-btn" onclick="window.openShareMenu('${d.id}')" style="gap:5px;"><i class="fa-solid fa-share"></i><span>Paylaş</span></button>
                     </div>
                 </div>
             `;
@@ -8544,6 +8656,8 @@ async function sendNotification(recipientUid, type, fromName, extra = {}) {
 
 async function getAdminRecipientIds() {
     const adminIds = new Set();
+    const adminEmailNormalized = String(ADMIN_EMAIL || '').trim().toLowerCase();
+    const adminUsername = adminEmailNormalized.includes('@') ? adminEmailNormalized.split('@')[0] : adminEmailNormalized;
 
     try {
         const adminFlagSnap = await getDocs(query(collection(db, 'users'), where('isAdmin', '==', true), limit(50)));
@@ -8557,6 +8671,29 @@ async function getAdminRecipientIds() {
         adminEmailSnap.forEach((docSnap) => adminIds.add(docSnap.id));
     } catch (error) {
         console.warn('admin email sorgusu başarısız:', error);
+    }
+
+    try {
+        const adminUsernameSnap = await getDocs(query(collection(db, 'users'), where('username', '==', adminUsername), limit(10)));
+        adminUsernameSnap.forEach((docSnap) => adminIds.add(docSnap.id));
+    } catch (error) {
+        console.warn('admin username sorgusu başarısız:', error);
+    }
+
+    try {
+        if (adminIds.size === 0) {
+            const usersSnap = await getDocs(query(collection(db, 'users'), limit(200)));
+            usersSnap.forEach((docSnap) => {
+                const data = docSnap.data() || {};
+                const email = String(data.email || '').trim().toLowerCase();
+                const username = String(data.username || '').trim().toLowerCase();
+                if (email === adminEmailNormalized || username === adminUsername || data.isAdmin === true) {
+                    adminIds.add(docSnap.id);
+                }
+            });
+        }
+    } catch (error) {
+        console.warn('admin fallback sorgusu başarısız:', error);
     }
 
     return [...adminIds];
@@ -9845,6 +9982,100 @@ window.showRestoreModal = showRestoreModal;
 window.restoreNotifications = restoreNotifications;
 window.sendNotification = sendNotification;
 
+window.reportPost = async function(postId, fallbackTargetUsername = '') {
+    if (!auth.currentUser) {
+        alert('Lütfen giriş yapın.');
+        return;
+    }
+    if (!postId) {
+        alert('Şikayet edilecek gönderi bulunamadı.');
+        return;
+    }
+
+    const reason = prompt('Gönderi şikayet nedenini yazın:\n\nÖrnek: Taciz, spam, uygunsuz içerik', '');
+    if (!reason || !reason.trim()) {
+        return;
+    }
+
+    try {
+        const postSnap = await getDoc(doc(db, 'posts', postId));
+        if (!postSnap.exists()) {
+            alert('Gönderi bulunamadı.');
+            return;
+        }
+
+        const post = postSnap.data() || {};
+        const reporterUid = auth.currentUser.uid;
+        const reporterSnap = await getDoc(doc(db, 'users', reporterUid));
+        const reporterData = reporterSnap.exists() ? reporterSnap.data() : {};
+        const targetUsername = post.username || post.authorUsername || fallbackTargetUsername || '';
+
+        if (targetUsername && reporterData.username && targetUsername === reporterData.username) {
+            alert('Kendi gönderinizi şikayet edemezsiniz.');
+            return;
+        }
+
+        let targetUid = post.authorUid || post.uid || null;
+        if (!targetUid && targetUsername) {
+            const targetSnap = await getDocs(query(collection(db, 'users'), where('username', '==', targetUsername), limit(1)));
+            if (!targetSnap.empty) {
+                targetUid = targetSnap.docs[0].id;
+            }
+        }
+
+        const reportDoc = {
+            reporterUid,
+            reporterName: reporterData.displayName || reporterData.name || reporterData.username || 'Bilinmeyen kullanıcı',
+            reporterUsername: reporterData.username || '',
+            targetUid: targetUid || null,
+            targetUsername: targetUsername || null,
+            reason: reason.trim(),
+            createdAt: serverTimestamp(),
+            status: 'pending',
+            category: 'Gönderi',
+            reportGroup: 'content_moderation',
+            contentType: 'post',
+            contentId: postId,
+            postId,
+            postContentPreview: String(post.content || '').slice(0, 200)
+        };
+
+        await addDoc(collection(db, 'reports'), reportDoc);
+
+        const adminIds = await getAdminRecipientIds();
+        const reportText = `Yeni gönderi şikayeti: ${reportDoc.reporterName} (@${reportDoc.reporterUsername || 'unknown'}) bir gönderiyi şikayet etti. Neden: ${reason.trim()}`;
+        for (const adminId of adminIds) {
+            if (adminId === reporterUid) continue;
+            await sendNotification(adminId, 'user_report', reportDoc.reporterName, {
+                reportReason: reason.trim(),
+                targetUsername: targetUsername || '',
+                targetUid: targetUid || '',
+                contentType: 'post',
+                contentId: postId,
+                postId,
+                reportText
+            });
+        }
+
+        await sendNotification(reporterUid, 'report_submitted', 'Sistem / Yönetici', {
+            title: 'Şikayetiniz iletildi',
+            message: 'Gönderi şikayetinizi yöneticilere ilettik. İnceleme sonucunu bildirimlerden takip edebilirsiniz.',
+            reportReason: reason.trim(),
+            targetUsername: targetUsername || '',
+            targetUid: targetUid || '',
+            contentType: 'post',
+            contentId: postId,
+            postId,
+            reportText
+        });
+
+        alert('Gönderi şikayetiniz yöneticilere iletildi.');
+    } catch (error) {
+        console.error('reportPost hatası:', error);
+        alert('Şikayet gönderilirken bir hata oluştu.');
+    }
+};
+
 window.reportUserFromProfile = async function() {
     const targetUid = window.currentVisitedProfileUid || null;
     const targetUsername = typeof getVisitedProfileUsername === 'function' ? getVisitedProfileUsername() : null;
@@ -10224,11 +10455,14 @@ async function updateAddFriendButton(targetUid) {
         // --- ARKADAŞLIK BUTONU DURUMLARI ---
         // Zaten arkadaş mı?
         if (friends.includes(targetUid)) {
-            addFriendBtn.innerHTML = '<i class="fa-solid fa-user-check"></i> Zaten Arkadaşsınız';
-            addFriendBtn.disabled = true;
-            addFriendBtn.style.opacity = '0.6';
-            addFriendBtn.style.cursor = 'default';
-            addFriendBtn.onclick = (e) => e.preventDefault();
+            addFriendBtn.innerHTML = '<i class="fa-solid fa-user-minus"></i> Arkadaşlıktan Çıkar';
+            addFriendBtn.disabled = false;
+            addFriendBtn.style.opacity = '1';
+            addFriendBtn.style.cursor = 'pointer';
+            addFriendBtn.onclick = async () => {
+                await removeFriend(targetUid);
+                await updateAddFriendButton(targetUid);
+            };
         }
         // İstek gönderdik mi?
         else if (sentRequests.some(req => req.toUid === targetUid)) {

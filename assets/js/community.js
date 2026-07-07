@@ -107,6 +107,128 @@ async function queueCommunityModerationAlertIfNeeded(payload = {}) {
   }
 }
 
+async function reportCommunityPost(post = {}) {
+  if (!currentUser) {
+    alert('Lütfen önce giriş yapınız.');
+    return;
+  }
+
+  const postId = post.id;
+  if (!postId) {
+    alert('Şikayet edilecek gönderi bulunamadı.');
+    return;
+  }
+
+  const reason = prompt('Gönderi şikayet nedenini yazın:\n\nÖrnek: Taciz, spam, uygunsuz içerik', '');
+  if (!reason || !reason.trim()) return;
+
+  try {
+    const reporterUid = currentUser.uid;
+    const reporterSnap = await getDoc(doc(db, 'users', reporterUid));
+    const reporterData = reporterSnap.exists() ? reporterSnap.data() : {};
+    const reporterUsername = reporterData.username || (currentUser.email ? currentUser.email.split('@')[0] : '');
+    const reporterName = reporterData.displayName || reporterData.name || reporterUsername || currentUser.displayName || 'Bilinmeyen kullanıcı';
+    const targetUid = post.authorUid || null;
+    const targetUsername = post.authorUsername || '';
+
+    if (targetUid && targetUid === reporterUid) {
+      alert('Kendi gönderinizi şikayet edemezsiniz.');
+      return;
+    }
+    if (!targetUid && targetUsername && reporterUsername && targetUsername === reporterUsername) {
+      alert('Kendi gönderinizi şikayet edemezsiniz.');
+      return;
+    }
+
+    const reportDoc = {
+      reporterUid,
+      reporterName,
+      reporterUsername,
+      targetUid,
+      targetUsername: targetUsername || null,
+      reason: reason.trim(),
+      createdAt: serverTimestamp(),
+      status: 'pending',
+      category: 'Topluluk Gönderisi',
+      reportGroup: 'content_moderation',
+      contentType: 'community_post',
+      communityId: currentCommunityId || null,
+      communityName: currentCommunityData?.name || null,
+      contentId: postId,
+      postId,
+      postContentPreview: String(post.content || '').slice(0, 200)
+    };
+
+    await addDoc(collection(db, 'reports'), reportDoc);
+
+    const adminsSnap = await getDocs(query(collection(db, 'users'), where('isAdmin', '==', true)));
+    const reportText = `Yeni topluluk gönderisi şikayeti: ${reporterName} (@${reporterUsername || 'unknown'}) bir gönderiyi şikayet etti. Neden: ${reason.trim()}`;
+    const notifyTasks = [];
+
+    adminsSnap.forEach((adminDoc) => {
+      if (adminDoc.id === reporterUid) return;
+      const notification = {
+        notificationId: `${Date.now()}_${Math.random().toString(36).slice(2)}`,
+        type: 'user_report',
+        fromName: reporterName,
+        fromUid: reporterUid,
+        timestamp: Date.now(),
+        read: false,
+        reportReason: reason.trim(),
+        targetUsername: targetUsername || '',
+        targetUid: targetUid || '',
+        contentType: 'community_post',
+        contentId: postId,
+        communityId: currentCommunityId || '',
+        reportText
+      };
+      notifyTasks.push(
+        updateDoc(doc(db, 'users', adminDoc.id), {
+          notifications: arrayUnion(notification)
+        }).catch(async (err) => {
+          if (err && err.code === 'not-found') {
+            await setDoc(doc(db, 'users', adminDoc.id), { notifications: [notification] }, { merge: true });
+          }
+        })
+      );
+    });
+
+    const selfNotification = {
+      notificationId: `${Date.now()}_${Math.random().toString(36).slice(2)}`,
+      type: 'report_submitted',
+      fromName: 'Sistem / Yönetici',
+      fromUid: reporterUid,
+      timestamp: Date.now(),
+      read: false,
+      title: 'Şikayetiniz iletildi',
+      message: 'Topluluk gönderisi şikayetinizi yöneticilere ilettik. İnceleme sonucunu bildirimlerden takip edebilirsiniz.',
+      reportReason: reason.trim(),
+      targetUsername: targetUsername || '',
+      targetUid: targetUid || '',
+      contentType: 'community_post',
+      contentId: postId,
+      communityId: currentCommunityId || '',
+      reportText
+    };
+
+    notifyTasks.push(
+      updateDoc(doc(db, 'users', reporterUid), {
+        notifications: arrayUnion(selfNotification)
+      }).catch(async (err) => {
+        if (err && err.code === 'not-found') {
+          await setDoc(doc(db, 'users', reporterUid), { notifications: [selfNotification] }, { merge: true });
+        }
+      })
+    );
+
+    await Promise.allSettled(notifyTasks);
+    alert('Gönderi şikayetiniz yöneticilere iletildi.');
+  } catch (error) {
+    console.error('reportCommunityPost hatası:', error);
+    alert('Şikayet gönderilirken bir hata oluştu.');
+  }
+}
+
 async function communityTranslateToEnglish(text) {
   const source = (text || '').trim();
   if (!source) return '';
@@ -1179,7 +1301,8 @@ function renderCommunityPosts(container, posts) {
         <div style="display:flex; gap:10px; margin-bottom:12px; flex-wrap:wrap;">
           <button class="post-like-btn tool-btn" data-post-id="${post.id}" type="button" style="width:auto; padding:0 12px; border-radius:999px; gap:6px; color:${isLiked ? '#ef4444' : ''};"><i class="${isLiked ? 'fa-solid' : 'fa-regular'} fa-heart"></i><span>${likes.length} Beğeni</span></button>
           <button class="post-comment-btn tool-btn" data-post-id="${post.id}" type="button" style="width:auto; padding:0 12px; border-radius:999px; gap:6px;"><i class="fa-regular fa-comment"></i><span>${commentsCount > 0 ? `${commentsCount} Yorum` : 'Yorum'}</span></button>
-          <button class="post-share-btn tool-btn" data-post-id="${post.id}" type="button" style="width:auto; padding:0 12px; border-radius:999px; gap:6px; margin-left:auto;"><i class="fa-solid fa-share"></i><span>Paylaş</span></button>
+          ${!canManagePost ? `<button class="post-report-btn tool-btn" data-post-id="${post.id}" type="button" style="width:auto; padding:0 12px; border-radius:999px; gap:6px; margin-left:auto; color:#f59e0b;"><i class="fa-regular fa-flag"></i><span>Bildir</span></button>` : ''}
+          <button class="post-share-btn tool-btn" data-post-id="${post.id}" type="button" style="width:auto; padding:0 12px; border-radius:999px; gap:6px; ${canManagePost ? 'margin-left:auto;' : ''}"><i class="fa-solid fa-share"></i><span>Paylaş</span></button>
         </div>
 
         <div style="margin-top:10px; padding-top:10px; border-top:1px solid var(--border);">
@@ -1320,6 +1443,18 @@ function renderCommunityPosts(container, posts) {
       } catch (error) {
         console.error('Paylaşım hatası:', error);
       }
+    });
+  });
+
+  container.querySelectorAll('.post-report-btn').forEach((button) => {
+    button.addEventListener('click', async () => {
+      const postId = button.getAttribute('data-post-id');
+      const selectedPost = posts.find((item) => item.id === postId);
+      if (!selectedPost) {
+        alert('Gönderi bulunamadı.');
+        return;
+      }
+      await reportCommunityPost(selectedPost);
     });
   });
 
@@ -1723,11 +1858,11 @@ async function openCommunityDetail(communityId) {
               <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; gap:12px; flex-wrap:wrap;">
                 <button type="button" style="display:inline-flex; align-items:center; gap:6px; border:1px solid rgba(99,102,241,0.16); background:linear-gradient(135deg, rgba(99,102,241,0.12), rgba(255,255,255,0.06)); color:var(--text-main); padding:8px 12px; border-radius:999px; font-size:0.8rem; font-weight:700; cursor:default; box-shadow:0 6px 16px rgba(15, 23, 42, 0.06);">
                   <i class="fa-solid fa-comments"></i>
-                  <span>Gönderiler</span>
+                  <span>En son gönderilenler</span>
                 </button>
                 <button type="button" style="display:inline-flex; align-items:center; gap:6px; border:1px solid rgba(99,102,241,0.16); background:linear-gradient(135deg, rgba(99,102,241,0.12), rgba(255,255,255,0.06)); color:var(--text-main); padding:8px 12px; border-radius:999px; font-size:0.8rem; font-weight:700; cursor:default; box-shadow:0 6px 16px rgba(15, 23, 42, 0.06);">
                   <i class="fa-solid fa-clock-rotate-left"></i>
-                  <span>Son paylaşım</span>
+                  <span>En son paylaşımlar üsttedir..</span>
                 </button>
               </div>
               <div id="communityPostsList" style="display:flex; flex-direction:column; gap:8px;"></div>

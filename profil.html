@@ -303,6 +303,35 @@
     .content-card h3 { margin: 0 0 12px; font-size: 1rem; font-weight: 800; }
     .content-card p { margin: 0; color: var(--text-muted); font-size: 0.95rem; }
 
+    .quick-interest-btn {
+      border: 1px solid rgba(var(--primary-rgb,99,102,241),0.26);
+      background: linear-gradient(135deg, rgba(var(--primary-rgb,99,102,241),0.08), rgba(255,255,255,0.92));
+      color: var(--text-main);
+      border-radius: 999px;
+      padding: 8px 12px;
+      font-size: 0.82rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+
+    .quick-interest-btn:hover {
+      transform: translateY(-1px);
+      border-color: rgba(var(--primary-rgb,99,102,241),0.45);
+      box-shadow: 0 8px 16px rgba(99,102,241,0.16);
+    }
+
+    .quick-interest-btn.active {
+      background: linear-gradient(135deg, var(--primary), rgba(var(--primary-rgb,99,102,241),0.86));
+      color: #fff;
+      border-color: var(--primary);
+      box-shadow: 0 10px 22px rgba(99,102,241,0.28);
+    }
+
     /* Profil sayfasi koyu mod duzeltmeleri */
     body.dark-mode .profile-header-card,
     body.dark-mode .profile-card,
@@ -328,6 +357,19 @@
     body.dark-mode .inline-edit-panel {
       background: rgba(15, 23, 42, 0.68);
       border-color: rgba(99, 102, 241, 0.28);
+    }
+
+    body.dark-mode .quick-interest-btn {
+      background: linear-gradient(135deg, rgba(30,41,59,0.88), rgba(15,23,42,0.94));
+      border-color: rgba(148,163,184,0.34);
+      color: var(--text-main);
+      box-shadow: 0 8px 16px rgba(2,6,23,0.3);
+    }
+
+    body.dark-mode .quick-interest-btn.active {
+      background: linear-gradient(135deg, var(--primary), rgba(var(--primary-rgb,99,102,241),0.86));
+      border-color: var(--primary);
+      color: #fff;
     }
 
     body.dark-mode .profile-tab-btn {
@@ -461,6 +503,12 @@
       <div style="margin-bottom: 20px;">
         <label class="form-label" for="newInterestsInput">İlgi Alanları</label>
         <input type="text" id="newInterestsInput" class="form-input" placeholder="Virgülle ayrılmış kelimeler">
+        <div style="display:flex; flex-wrap:wrap; gap:8px; margin-top:10px;">
+          <button type="button" class="quick-interest-btn" data-interest-target="newInterestsInput" data-interest-value="Resim çizmek" onclick="toggleQuickInterest(this, 'Resim çizmek')">🎨 Resim çizmek</button>
+          <button type="button" class="quick-interest-btn" data-interest-target="newInterestsInput" data-interest-value="Müzik dinlemek" onclick="toggleQuickInterest(this, 'Müzik dinlemek')">🎵 müzik dinlemek</button>
+          <button type="button" class="quick-interest-btn" data-interest-target="newInterestsInput" data-interest-value="Oyun oynamak" onclick="toggleQuickInterest(this, 'Oyun oynamak')">🎮 oyun oynamak</button>
+          <button type="button" class="quick-interest-btn" data-interest-target="newInterestsInput" data-interest-value="Film izlemek" onclick="toggleQuickInterest(this, 'Film izlemek')">🎬 film izlemek</button>
+        </div>
       </div>
       <div style="background: var(--bg); padding: 15px; border-radius: 12px; border: 1px solid var(--border);">
         <label class="form-label" for="fileAvatarInput" style="color: var(--primary); cursor: pointer;"><i class="fa-solid fa-camera"></i> Profil Resmini Güncelle</label>
@@ -558,6 +606,12 @@
               </div>
               <div id="interestsEditPanel" class="inline-edit-panel" style="display:none;">
                 <div class="inline-edit-row"><label for="editInterestsInput">İlgi Alanları</label><input id="editInterestsInput" class="form-input" type="text" placeholder="Virgülle ayrılmış kelimeler"></div>
+                <div style="display:flex; flex-wrap:wrap; gap:8px; margin-top:4px;">
+                  <button type="button" class="quick-interest-btn" data-interest-target="editInterestsInput" data-interest-value="Resim çizmek" onclick="toggleQuickInterest(this, 'Resim çizmek')">🎨 Resim çizmek</button>
+                  <button type="button" class="quick-interest-btn" data-interest-target="editInterestsInput" data-interest-value="Müzik dinlemek" onclick="toggleQuickInterest(this, 'Müzik dinlemek')">🎵 müzik dinlemek</button>
+                  <button type="button" class="quick-interest-btn" data-interest-target="editInterestsInput" data-interest-value="Oyun oynamak" onclick="toggleQuickInterest(this, 'Oyun oynamak')">🎮 oyun oynamak</button>
+                  <button type="button" class="quick-interest-btn" data-interest-target="editInterestsInput" data-interest-value="Film izlemek" onclick="toggleQuickInterest(this, 'Film izlemek')">🎬 film izlemek</button>
+                </div>
                 <div class="inline-edit-actions">
                   <button type="button" class="save-btn" onclick="saveCardEditChanges('interests')"><i class="fa-solid fa-floppy-disk"></i> Kaydet</button>
                   <button type="button" class="cancel-btn" onclick="closeCardEditSection('interests')">İptal</button>
@@ -664,7 +718,7 @@
 
 <div id="footer-placeholder"></div>
 <script src="assets/js/include.js"></script>
-<script type="module" src="assets/js/app.js"></script>
+<script type="module" src="assets/js/app.js?v=20260707d"></script>
 <script>
 // Sayfa yüklendiğinde hash'e göre ilgili sekmeyi aç
 function openProfileTabByHash(hash) {
@@ -696,6 +750,13 @@ function openProfileTabByHash(hash) {
 document.addEventListener('DOMContentLoaded', function() {
   const hash = window.location.hash.replace('#','');
   if (hash) openProfileTabByHash(hash);
+
+  ['newInterestsInput', 'editInterestsInput'].forEach((inputId) => {
+    const el = document.getElementById(inputId);
+    if (!el) return;
+    el.addEventListener('input', () => refreshQuickInterestButtonsForTarget(inputId));
+    refreshQuickInterestButtonsForTarget(inputId);
+  });
 });
 
 window.addEventListener('hashchange', function() {
@@ -748,6 +809,7 @@ function openEditSection(section) {
     if (bioInput) bioInput.value = user.bio || "";
     const interestsInput = document.getElementById('newInterestsInput');
     if (interestsInput) interestsInput.value = user.interests || "";
+    refreshQuickInterestButtonsForTarget('newInterestsInput');
 
     let focusId = 'newNameInput';
     if (section === 'bio') focusId = 'newBioInput';
@@ -763,6 +825,62 @@ function openEditSection(section) {
     console.error('openEditSection hata:', e);
   }
 }
+
+function normalizeInterestLabel(value) {
+  return String(value || '').trim().toLocaleLowerCase('tr-TR');
+}
+
+function parseInterestsValue(rawValue) {
+  const list = String(rawValue || '')
+    .split(',')
+    .map(item => item.trim())
+    .filter(Boolean);
+
+  const unique = [];
+  const seen = new Set();
+  list.forEach(item => {
+    const key = normalizeInterestLabel(item);
+    if (seen.has(key)) return;
+    seen.add(key);
+    unique.push(item);
+  });
+  return unique;
+}
+
+function refreshQuickInterestButtonsForTarget(targetId) {
+  const input = document.getElementById(targetId);
+  if (!input) return;
+
+  const selectedSet = new Set(parseInterestsValue(input.value).map(item => normalizeInterestLabel(item)));
+  document.querySelectorAll(`.quick-interest-btn[data-interest-target="${targetId}"]`).forEach((btn) => {
+    const value = normalizeInterestLabel(btn.getAttribute('data-interest-value') || btn.textContent || '');
+    btn.classList.toggle('active', selectedSet.has(value));
+  });
+}
+
+window.toggleQuickInterest = function(button, interestLabel) {
+  const targetId = button?.getAttribute('data-interest-target');
+  if (!targetId) return;
+
+  const input = document.getElementById(targetId);
+  if (!input) return;
+
+  const cleanLabel = String(interestLabel || '').trim();
+  if (!cleanLabel) return;
+
+  const current = parseInterestsValue(input.value);
+  const normalizedLabel = normalizeInterestLabel(cleanLabel);
+  const exists = current.some(item => normalizeInterestLabel(item) === normalizedLabel);
+
+  const next = exists
+    ? current.filter(item => normalizeInterestLabel(item) !== normalizedLabel)
+    : [...current, cleanLabel];
+
+  input.value = next.join(', ');
+  input.dispatchEvent(new Event('input', { bubbles: true }));
+  refreshQuickInterestButtonsForTarget(targetId);
+  input.focus();
+};
 
     function openCardEditSection(section) {
       const visitedUsername = new URLSearchParams(window.location.search).get('id');
@@ -812,6 +930,7 @@ function openEditSection(section) {
         document.getElementById('editBioInput').focus();
       } else if (section === 'interests') {
         document.getElementById('editInterestsInput').value = user.interests || '';
+        refreshQuickInterestButtonsForTarget('editInterestsInput');
         document.getElementById('editInterestsInput').focus();
       }
     }

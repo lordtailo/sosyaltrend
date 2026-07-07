@@ -459,10 +459,13 @@
         /* Kullanici Denetim + Icerik Denetimi koyu mod duzeltmeleri */
         body.dark-mode #main-section-user-moderation .glass-card,
         body.dark-mode #main-section-moderation .glass-card,
+        body.dark-mode #main-section-reports .glass-card,
         body.dark-mode #main-section-user-moderation .page-section-card,
         body.dark-mode #main-section-moderation .page-section-card,
+        body.dark-mode #main-section-reports .page-section-card,
         body.dark-mode #main-section-user-moderation .moderation-card,
-        body.dark-mode #main-section-moderation .moderation-card {
+        body.dark-mode #main-section-moderation .moderation-card,
+        body.dark-mode #main-section-reports .moderation-card {
             background: linear-gradient(135deg, rgba(30,41,59,0.9), rgba(15,23,42,0.92)) !important;
             border-color: rgba(148,163,184,0.24) !important;
             color: var(--text-main) !important;
@@ -476,7 +479,11 @@
         body.dark-mode #main-section-moderation [style*="background: rgba(255,255,255"],
         body.dark-mode #main-section-moderation [style*="background: rgba(255, 255, 255"],
         body.dark-mode #main-section-moderation [style*="background: #fff"],
-        body.dark-mode #main-section-moderation [style*="background:white"] {
+        body.dark-mode #main-section-moderation [style*="background:white"],
+        body.dark-mode #main-section-reports [style*="background: rgba(255,255,255"],
+        body.dark-mode #main-section-reports [style*="background: rgba(255, 255, 255"],
+        body.dark-mode #main-section-reports [style*="background: #fff"],
+        body.dark-mode #main-section-reports [style*="background:white"] {
             background: rgba(15,23,42,0.72) !important;
             border-color: rgba(148,163,184,0.24) !important;
             color: var(--text-main) !important;
@@ -486,6 +493,8 @@
         body.dark-mode #main-section-user-moderation [style*="linear-gradient(135deg, rgba(255, 255, 255"],
         body.dark-mode #main-section-moderation [style*="linear-gradient(135deg, rgba(255,255,255"],
         body.dark-mode #main-section-moderation [style*="linear-gradient(135deg, rgba(255, 255, 255"],
+        body.dark-mode #main-section-reports [style*="linear-gradient(135deg, rgba(255,255,255"],
+        body.dark-mode #main-section-reports [style*="linear-gradient(135deg, rgba(255, 255, 255"],
         body.dark-mode #admin-feed-list [style*="linear-gradient(135deg, rgba(255,255,255"],
         body.dark-mode #admin-feed-list [style*="linear-gradient(135deg, rgba(255, 255, 255"] {
             background: linear-gradient(135deg, rgba(30,41,59,0.84), rgba(15,23,42,0.92)) !important;
@@ -494,17 +503,22 @@
 
         body.dark-mode #main-section-user-moderation .section-subtitle,
         body.dark-mode #main-section-moderation .section-subtitle,
+        body.dark-mode #main-section-reports .section-subtitle,
         body.dark-mode #main-section-user-moderation h3,
         body.dark-mode #main-section-moderation h3,
+        body.dark-mode #main-section-reports h3,
         body.dark-mode #main-section-user-moderation p,
         body.dark-mode #main-section-moderation p,
+        body.dark-mode #main-section-reports p,
         body.dark-mode #main-section-user-moderation span,
-        body.dark-mode #main-section-moderation span {
+        body.dark-mode #main-section-moderation span,
+        body.dark-mode #main-section-reports span {
             color: var(--text-main);
         }
 
         body.dark-mode #main-section-user-moderation .moderation-empty,
-        body.dark-mode #main-section-moderation .moderation-empty {
+        body.dark-mode #main-section-moderation .moderation-empty,
+        body.dark-mode #main-section-reports .moderation-empty {
             background: rgba(15,23,42,0.66) !important;
             border-color: rgba(148,163,184,0.24) !important;
             color: var(--text-muted) !important;
@@ -780,6 +794,7 @@
         <button class="tab-btn main-tab-btn" onclick="switchMainSection('management', this)"><i class="fa-solid fa-users-gear"></i> Kullanıcı Takibi</button>
         <button class="tab-btn main-tab-btn" onclick="switchMainSection('user-moderation', this)"><i class="fa-solid fa-user-shield"></i> Kullanıcı Denetim</button>
         <button class="tab-btn main-tab-btn" onclick="switchMainSection('moderation', this)"><i class="fa-solid fa-file-lines"></i> İçerik Denetimi</button>
+        <button class="tab-btn main-tab-btn" onclick="switchMainSection('reports', this)"><i class="fa-solid fa-flag"></i> Şikayetler</button>
     </div>
 
     <!-- SİSTEM PANELI -->
@@ -846,27 +861,10 @@
                 <span style="color: var(--text-muted);">Banlanan kullanıcıları, itirazları ve silinen hesap arşivlerini buradan yönetin.</span>
             </div>
 
-            <div class="section-subtitle"><i class="fa-solid fa-users"></i> Yönetim Özeti</div>
-            <div style="display:grid; gap:12px; margin-bottom:20px; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));">
-                <div class="glass-card" style="padding:14px; border-radius:14px;">
-                    <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px; color:var(--primary);"><i class="fa-solid fa-user-shield"></i><strong>Yetki</strong></div>
-                    <div style="font-size:0.9rem; color:var(--text-muted);">Admin yetkisi verip kaldırabilirsiniz.</div>
-                </div>
-                <div class="glass-card" style="padding:14px; border-radius:14px;">
-                    <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px; color:var(--warning);"><i class="fa-solid fa-ban"></i><strong>Ban</strong></div>
-                    <div style="font-size:0.9rem; color:var(--text-muted);">Banlanan kullanıcıları yönetip itirazları inceleyebilirsiniz.</div>
-                </div>
-                <div class="glass-card" style="padding:14px; border-radius:14px;">
-                    <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px; color:var(--danger);"><i class="fa-solid fa-trash"></i><strong>Silme</strong></div>
-                    <div style="font-size:0.9rem; color:var(--text-muted);">İstenmeyen hesapları arşivleyebilir ve silebilirsiniz.</div>
-                </div>
-            </div>
-
             <div class="admin-subtabs">
                 <button class="tab-btn subtab-btn active" onclick="switchUserManagementSubtab('managed', this)"><i class="fa-solid fa-layer-group"></i> Tüm Kullanıcılar</button>
                 <button class="tab-btn subtab-btn" onclick="switchUserManagementSubtab('banAppeals', this)"><i class="fa-solid fa-ban"></i> Ban & İtirazlar</button>
                 <button class="tab-btn subtab-btn" onclick="switchUserManagementSubtab('deleted', this)"><i class="fa-solid fa-trash"></i> Silinen</button>
-                <button class="tab-btn subtab-btn" onclick="switchUserManagementSubtab('reports', this)"><i class="fa-solid fa-flag"></i> Şikayetler</button>
                 <button class="tab-btn subtab-btn" onclick="switchUserManagementSubtab('invites', this)"><i class="fa-solid fa-paper-plane"></i> Davetler</button>
             </div>
 
@@ -907,17 +905,6 @@
                     <thead><tr><th>Kullanıcı</th><th>Kullanıcı Adı</th><th>Email</th><th>Silme Tarihi</th><th>Silme Yapan</th></tr></thead>
                     <tbody id="deleted-users-body"></tbody>
                 </table>
-            </div>
-
-            <div id="userManagement-subsection-reports" class="admin-subsection">
-                <div class="section-subtitle"><i class="fa-solid fa-flag"></i> Şikayet Listesi</div>
-                <div id="user-management-reports-list" style="display:grid; gap:12px;"></div>
-                <div id="user-management-reports-load-more-wrap" style="display:none; margin-top:14px; text-align:center;">
-                    <button id="userManagementReportsLoadMoreBtn" class="action-btn" type="button" onclick="loadMoreUserReports()">
-                        <i class="fa-solid fa-angles-down"></i> Daha fazla yükle
-                    </button>
-                    <div id="user-management-reports-load-more-meta" style="margin-top:8px; font-size:0.82rem; color: var(--text-muted);"></div>
-                </div>
             </div>
 
             <!-- DAVETLER SEKMESİ -->
@@ -996,53 +983,89 @@
                 <span style="color: var(--text-muted);">Paylaşımları inceleyin, uygunsuz içerikleri yönetin ve düzenleme akışını kontrol edin.</span>
             </div>
             <div id="section-moderation" class="admin-section active">
-                <div class="page-section-grid">
-                    <div class="glass-card page-section-card">
-                        <h3><i class="fa-solid fa-list-check"></i> İnceleme Akışı</h3>
-                        <p>Yayınlanan içerikler düzenli olarak gözden geçirilir ve gerekiyorsa müdahale edilir.</p>
-                    </div>
-                    <div class="glass-card page-section-card">
-                        <h3><i class="fa-solid fa-filter"></i> Hızlı Yönetim</h3>
-                        <p>Uygunsuz içeriklere hızlıca erişip silme, gizleme veya düzenleme işlemi yapabilirsiniz.</p>
-                    </div>
-                    <div class="glass-card page-section-card">
-                        <h3><i class="fa-solid fa-shield-halved"></i> Güvenli Denetim</h3>
-                        <p>Riskli gönderiler için kontrol mekanizması ve düzenli izleme akışı sunulur.</p>
+                <div class="admin-subtabs">
+                    <button class="tab-btn subtab-btn active" onclick="switchModerationSubtab('managed', this)"><i class="fa-solid fa-list"></i> Tüm Paylaşımları Yönet</button>
+                </div>
+
+                <div id="moderation-subsection-managed" class="admin-subsection active">
+                    <div class="glass-card" style="padding: 18px; border-radius: 14px;">
+                        <div class="section-subtitle" style="margin-bottom:14px;"><i class="fa-solid fa-list"></i> Tüm Paylaşımları Yönet</div>
+                        <div class="admin-moderation-head">
+                            <div class="admin-moderation-folder-tabs">
+                                <button type="button" class="admin-folder-tab active" data-filter="all" onclick="setAdminModerationFilter('all', this)" aria-pressed="true">
+                                    <i class="fa-solid fa-folder-open"></i>
+                                    <span class="tab-label">Tümü</span>
+                                    <span id="admin-filter-count-all" class="tab-count">0</span>
+                                </button>
+                                <button type="button" class="admin-folder-tab" data-filter="post" onclick="setAdminModerationFilter('post', this)" aria-pressed="false">
+                                    <i class="fa-solid fa-signs-post"></i>
+                                    <span class="tab-label">Gönderiler</span>
+                                    <span id="admin-filter-count-post" class="tab-count">0</span>
+                                </button>
+                                <button type="button" class="admin-folder-tab" data-filter="community" onclick="setAdminModerationFilter('community', this)" aria-pressed="false">
+                                    <i class="fa-solid fa-users"></i>
+                                    <span class="tab-label">Topluluk</span>
+                                    <span id="admin-filter-count-community" class="tab-count">0</span>
+                                </button>
+                                <button type="button" class="admin-folder-tab" data-filter="blog" onclick="setAdminModerationFilter('blog', this)" aria-pressed="false">
+                                    <i class="fa-solid fa-blog"></i>
+                                    <span class="tab-label">Blog</span>
+                                    <span id="admin-filter-count-blog" class="tab-count">0</span>
+                                </button>
+                            </div>
+                        </div>
+                        <div id="admin-feed-list"></div>
+                        <div id="admin-feed-load-more-wrap" style="display:none; margin-top:14px; text-align:center;">
+                            <button id="adminFeedLoadMoreBtn" class="action-btn" type="button" onclick="loadMoreAdminPosts()">
+                                <i class="fa-solid fa-angles-down"></i> Daha fazla yükle
+                            </button>
+                            <div id="admin-feed-load-more-meta" style="margin-top:8px; font-size:0.82rem; color: var(--text-muted);"></div>
+                        </div>
                     </div>
                 </div>
 
-                <div class="glass-card" style="padding: 18px; border-radius: 14px;">
-                    <div class="section-subtitle" style="margin-bottom:14px;"><i class="fa-solid fa-list"></i> Tüm Paylaşımları Yönet</div>
-                    <div class="admin-moderation-head">
-                        <div class="admin-moderation-folder-tabs">
-                            <button type="button" class="admin-folder-tab active" data-filter="all" onclick="setAdminModerationFilter('all', this)" aria-pressed="true">
-                                <i class="fa-solid fa-folder-open"></i>
-                                <span class="tab-label">Tümü</span>
-                                <span id="admin-filter-count-all" class="tab-count">0</span>
-                            </button>
-                            <button type="button" class="admin-folder-tab" data-filter="post" onclick="setAdminModerationFilter('post', this)" aria-pressed="false">
-                                <i class="fa-solid fa-signs-post"></i>
-                                <span class="tab-label">Gönderiler</span>
-                                <span id="admin-filter-count-post" class="tab-count">0</span>
-                            </button>
-                            <button type="button" class="admin-folder-tab" data-filter="community" onclick="setAdminModerationFilter('community', this)" aria-pressed="false">
-                                <i class="fa-solid fa-users"></i>
-                                <span class="tab-label">Topluluk</span>
-                                <span id="admin-filter-count-community" class="tab-count">0</span>
-                            </button>
-                            <button type="button" class="admin-folder-tab" data-filter="blog" onclick="setAdminModerationFilter('blog', this)" aria-pressed="false">
-                                <i class="fa-solid fa-blog"></i>
-                                <span class="tab-label">Blog</span>
-                                <span id="admin-filter-count-blog" class="tab-count">0</span>
-                            </button>
-                        </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ŞİKAYETLER PANELİ -->
+    <div id="main-section-reports" class="main-section">
+        <div class="admin-block admin-block-page">
+            <h2><i class="fa-solid fa-flag"></i> Şikayetler</h2>
+            <div class="action-toolbar">
+                <i class="fa-solid fa-circle-info"></i>
+                <span style="color: var(--text-muted);">Kullanıcı ve içerik şikayetlerini tek bölümde yönetin.</span>
+            </div>
+
+            <div class="admin-subtabs">
+                <button class="tab-btn subtab-btn active" onclick="switchReportsSubtab('users', this)"><i class="fa-solid fa-user-shield"></i> Kullanıcı Şikayetleri</button>
+                <button class="tab-btn subtab-btn" onclick="switchReportsSubtab('content', this)"><i class="fa-solid fa-file-lines"></i> İçerik Şikayetleri</button>
+            </div>
+
+            <div id="reports-subsection-users" class="admin-subsection active">
+                <div class="section-subtitle"><i class="fa-solid fa-flag"></i> Kullanıcı Şikayet Listesi</div>
+                <div id="user-management-reports-list" style="display:grid; gap:12px;"></div>
+                <div id="user-management-reports-load-more-wrap" style="display:none; margin-top:14px; text-align:center;">
+                    <button id="userManagementReportsLoadMoreBtn" class="action-btn" type="button" onclick="loadMoreUserReports()">
+                        <i class="fa-solid fa-angles-down"></i> Daha fazla yükle
+                    </button>
+                    <div id="user-management-reports-load-more-meta" style="margin-top:8px; font-size:0.82rem; color: var(--text-muted);"></div>
+                </div>
+            </div>
+
+            <div id="reports-subsection-content" class="admin-subsection">
+                <div class="glass-card" style="padding: 18px; border-radius: 14px; margin-top: 14px;">
+                    <div class="section-subtitle" style="margin-bottom:14px;"><i class="fa-solid fa-flag"></i> İçerik Şikayet Bildirileri</div>
+                    <div class="action-toolbar" style="margin-bottom:12px;">
+                        <i class="fa-solid fa-circle-info"></i>
+                        <span style="color: var(--text-muted);">Gönderilerden gelen kullanıcı şikayetleri bu alanda listelenir.</span>
                     </div>
-                    <div id="admin-feed-list"></div>
-                    <div id="admin-feed-load-more-wrap" style="display:none; margin-top:14px; text-align:center;">
-                        <button id="adminFeedLoadMoreBtn" class="action-btn" type="button" onclick="loadMoreAdminPosts()">
+                    <div id="content-report-list" style="display:grid; gap:12px;"></div>
+                    <div id="content-report-load-more-wrap" style="display:none; margin-top:14px; text-align:center;">
+                        <button id="contentReportLoadMoreBtn" class="action-btn" type="button" onclick="loadMoreContentReports()">
                             <i class="fa-solid fa-angles-down"></i> Daha fazla yükle
                         </button>
-                        <div id="admin-feed-load-more-meta" style="margin-top:8px; font-size:0.82rem; color: var(--text-muted);"></div>
+                        <div id="content-report-load-more-meta" style="margin-top:8px; font-size:0.82rem; color: var(--text-muted);"></div>
                     </div>
                 </div>
             </div>
@@ -1195,6 +1218,7 @@
         loadStats();
         loadUsersFromPosts();
         loadAllPosts();
+        loadContentReportsForModeration();
         loadRecentLogins();
         loadLoginTimes();
         loadAllRegisteredUsers();
@@ -2866,6 +2890,11 @@
         if (sectionId === 'moderation') {
             loadAllPosts();
         }
+
+        if (sectionId === 'reports') {
+            loadUserReports();
+            loadContentReportsForModeration();
+        }
         
         // Yönetim tab'ına geçişte kullanıcıları yükle
         if (sectionId === 'management') {
@@ -2950,6 +2979,46 @@
         }
         if (subtabId === 'invites') {
             loadAdminInvitations();
+        }
+    };
+
+    window.switchModerationSubtab = (subtabId, button) => {
+        const moderationSection = document.getElementById('main-section-moderation');
+        const subsection = document.getElementById('moderation-subsection-' + subtabId);
+
+        if (moderationSection) {
+            moderationSection.querySelectorAll('.admin-subsection').forEach(s => s.classList.remove('active'));
+            moderationSection.querySelectorAll('.subtab-btn').forEach(b => b.classList.remove('active'));
+        }
+
+        if (subsection) subsection.classList.add('active');
+        if (button) button.classList.add('active');
+
+        if (subtabId === 'managed') {
+            loadAllPosts();
+        }
+        if (subtabId === 'reports') {
+            loadContentReportsForModeration();
+        }
+    };
+
+    window.switchReportsSubtab = (subtabId, button) => {
+        const reportsSection = document.getElementById('main-section-reports');
+        const subsection = document.getElementById('reports-subsection-' + subtabId);
+
+        if (reportsSection) {
+            reportsSection.querySelectorAll('.admin-subsection').forEach(s => s.classList.remove('active'));
+            reportsSection.querySelectorAll('.subtab-btn').forEach(b => b.classList.remove('active'));
+        }
+
+        if (subsection) subsection.classList.add('active');
+        if (button) button.classList.add('active');
+
+        if (subtabId === 'users') {
+            loadUserReports();
+        }
+        if (subtabId === 'content') {
+            loadContentReportsForModeration();
         }
     };
 
@@ -3553,6 +3622,7 @@
             await deleteDoc(doc(db, 'reports', reportId));
             alert('Şikayet silindi.');
             loadUserReports();
+            loadContentReportsForModeration();
         } catch (error) {
             console.error('deleteReportFromAdmin hatası:', error);
             alert('Şikayet silinemedi.');
@@ -3611,14 +3681,29 @@
             adminReportVisibleCount = 0;
             updateReportsLoadMoreUI();
 
-            const reportsSnap = await getDocs(query(collection(db, 'reports'), orderBy('createdAt', 'desc')));
+            const reportsSnap = await getDocs(collection(db, 'reports'));
             if (reportsSnap.empty) {
                 adminReportCards = [];
                 renderReportCardsPage(true);
                 return;
             }
 
-            const reportCards = await Promise.all(reportsSnap.docs.map(async (docSnap) => {
+            const sortedReportDocs = [...reportsSnap.docs].sort((a, b) => {
+                const aData = a.data() || {};
+                const bData = b.data() || {};
+                const aDate = aData.createdAt?.toDate ? aData.createdAt.toDate() : null;
+                const bDate = bData.createdAt?.toDate ? bData.createdAt.toDate() : null;
+                const aMs = aDate ? aDate.getTime() : 0;
+                const bMs = bDate ? bDate.getTime() : 0;
+                return bMs - aMs;
+            });
+
+            const userReportDocs = sortedReportDocs.filter((docSnap) => {
+                const report = docSnap.data() || {};
+                return !isModerationContentReport(report);
+            });
+
+            const reportCards = await Promise.all(userReportDocs.map(async (docSnap) => {
                 const report = docSnap.data();
                 const createdAt = report.createdAt?.toDate ? report.createdAt.toDate() : null;
                 const timeText = createdAt ? createdAt.toLocaleString('tr-TR', { dateStyle: 'medium', timeStyle: 'short' }) : 'Tarih yok';
@@ -3742,23 +3827,6 @@
                                 </div>
                                 <div style="white-space: pre-wrap; color: var(--text-main); line-height:1.65; background:rgba(255,255,255,0.04); border:1px solid var(--border); border-radius:10px; padding:10px 12px;">${escapeHtml(reasonPreview)}</div>
                             </div>
-                            <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; font-size:0.85rem; color:var(--text-muted);">
-                                <span><i class="fa-solid fa-clock"></i> ${escapeHtml(timeText)}</span>
-                                <span><i class="fa-solid fa-flag"></i> ${escapeHtml(report.category || 'Genel')}</span>
-                            </div>
-                            <div style="padding: 12px; border-radius: 12px; background: linear-gradient(135deg, rgba(245,158,11,0.10), rgba(255,255,255,0.03)); border: 1px solid rgba(245,158,11,0.26); margin-top: 8px; display:grid; gap:10px;">
-                                <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap;">
-                                    <div style="font-weight:800; color:var(--warning); display:flex; align-items:center; gap:8px;"><i class="fa-solid fa-triangle-exclamation"></i> Uyarılan Kullanıcılar</div>
-                                    <div style="display:flex; gap:6px; flex-wrap:wrap;">
-                                        <span style="padding:4px 9px; border-radius:999px; background:rgba(245,158,11,0.16); color:#b45309; font-size:0.78rem; font-weight:800;">Toplam: ${warningCount}</span>
-                                        <span style="padding:4px 9px; border-radius:999px; background:rgba(255,255,255,0.08); color:var(--text-muted); font-size:0.78rem; font-weight:700;">Son Uyarı: ${escapeHtml(lastWarningAt)}</span>
-                                    </div>
-                                </div>
-                                <div style="display:grid; gap:8px;">
-                                    ${warningSummary}
-                                </div>
-                                ${warningHistory.length > 3 ? `<div style="font-size:0.8rem; color:var(--text-muted);">Ek olarak ${warningHistory.length - 3} uyarı daha mevcut.</div>` : ''}
-                            </div>
                             <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top: 8px;">
                                 <button class="action-btn" onclick="window.warnReportTarget('${docSnap.id}')"><i class="fa-solid fa-triangle-exclamation"></i> Uyarı</button>
                                 <button class="action-btn" onclick="window.banReportTarget('${docSnap.id}')"><i class="fa-solid fa-user-slash"></i> Banla</button>
@@ -3769,7 +3837,7 @@
                     </div>`;
             }));
 
-            adminReportCards = reportCards;
+            adminReportCards = reportCards.filter(Boolean);
             renderReportCardsPage(true);
         } catch (error) {
             console.error('loadUserReports hatası:', error);
@@ -3778,6 +3846,155 @@
             adminReportCards = [];
             adminReportVisibleCount = 0;
             updateReportsLoadMoreUI();
+        }
+    }
+
+    let moderationContentReportCards = [];
+    let moderationContentReportVisibleCount = 0;
+    const MODERATION_CONTENT_REPORTS_PAGE_SIZE = 4;
+
+    function isModerationContentReport(report) {
+        const contentType = String(report?.contentType || '').toLowerCase();
+        const category = String(report?.category || '').toLowerCase();
+        const hasPostRef = Boolean(report?.postId || report?.contentId || report?.postContentPreview);
+        return contentType === 'post' || contentType === 'community_post' || category.includes('gönderi') || hasPostRef;
+    }
+
+    function buildContentReportCard(docSnap, report) {
+        const createdAt = report.createdAt?.toDate ? report.createdAt.toDate() : null;
+        const timeText = createdAt ? createdAt.toLocaleString('tr-TR', { dateStyle: 'medium', timeStyle: 'short' }) : 'Tarih yok';
+        const statusResolved = report.status === 'resolved';
+        const statusText = statusResolved ? 'Çözüldü' : 'Bekliyor';
+        const statusColor = statusResolved ? '#10b981' : '#f59e0b';
+        const contentTypeText = report.contentType === 'community_post' ? 'Topluluk Gönderisi' : 'Gönderi';
+        const reporterText = `${report.reporterName || 'Bilinmeyen'}${report.reporterUsername ? ` (@${report.reporterUsername})` : ''}`;
+        const targetText = report.targetUsername ? `@${report.targetUsername}` : 'Bilinmiyor';
+        const reasonText = String(report.reason || '').trim() || 'Belirtilmedi';
+        const previewText = String(report.postContentPreview || '').trim();
+
+        return `
+            <div class="glass-card" style="padding:16px; border-left:4px solid ${statusColor};">
+                <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap; margin-bottom:10px;">
+                    <span style="font-size:0.82rem; font-weight:800; color:var(--text-muted); display:inline-flex; align-items:center; gap:6px;"><i class="fa-solid fa-flag"></i> İçerik Şikayet Bildirisi</span>
+                    <span style="padding:6px 10px; border-radius:999px; background: rgba(255,255,255,0.06); color:${statusColor}; font-size:0.8rem; font-weight:800;">${escapeHtml(statusText)}</span>
+                </div>
+                <div style="display:grid; gap:8px;">
+                    <div style="display:flex; gap:8px; flex-wrap:wrap; font-size:0.82rem; color:var(--text-muted);">
+                        <span style="padding:5px 9px; border-radius:999px; background:rgba(99,102,241,0.12); color:var(--primary); font-weight:700;">Tür: ${escapeHtml(contentTypeText)}</span>
+                        <span style="padding:5px 9px; border-radius:999px; background:rgba(255,255,255,0.08);">${escapeHtml(timeText)}</span>
+                    </div>
+                    <div style="font-size:0.92rem;"><strong>Şikayet Eden:</strong> ${escapeHtml(reporterText)}</div>
+                    <div style="font-size:0.92rem;"><strong>Hedef:</strong> ${escapeHtml(targetText)}</div>
+                    <div style="font-size:0.92rem;"><strong>Neden:</strong> ${escapeHtml(reasonText)}</div>
+                    ${previewText ? `<div style="white-space: pre-wrap; color: var(--text-main); line-height:1.6; background:rgba(255,255,255,0.04); border:1px solid var(--border); border-radius:10px; padding:10px 12px;"><strong>İçerik Önizleme:</strong><br>${escapeHtml(previewText)}</div>` : ''}
+                    <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:6px;">
+                        <button class="action-btn" onclick="window.warnReportTarget('${docSnap.id}')"><i class="fa-solid fa-triangle-exclamation"></i> Uyarı</button>
+                        <button class="action-btn" onclick="window.banReportTarget('${docSnap.id}')"><i class="fa-solid fa-user-slash"></i> Banla</button>
+                        <button class="action-btn btn-delete" onclick="window.deleteReportedUserFromAdmin('${docSnap.id}')"><i class="fa-solid fa-user-xmark"></i> Kullanıcı Sil</button>
+                        <button class="action-btn btn-delete" onclick="window.deleteReportFromAdmin('${docSnap.id}')"><i class="fa-solid fa-trash"></i> Şikayeti Sil</button>
+                    </div>
+                </div>
+            </div>`;
+    }
+
+    function updateContentReportLoadMoreUI() {
+        const wrap = document.getElementById('content-report-load-more-wrap');
+        const btn = document.getElementById('contentReportLoadMoreBtn');
+        const meta = document.getElementById('content-report-load-more-meta');
+        if (!wrap || !btn || !meta) return;
+
+        const total = moderationContentReportCards.length;
+        const shown = Math.min(moderationContentReportVisibleCount, total);
+        const hasMore = shown < total;
+
+        wrap.style.display = total > 0 ? 'block' : 'none';
+        btn.style.display = hasMore ? 'inline-flex' : 'none';
+        meta.textContent = total > 0 ? `${shown} / ${total} şikayet bildirisi gösteriliyor` : '';
+    }
+
+    function renderContentReportCardsPage(reset = false) {
+        const list = document.getElementById('content-report-list');
+        if (!list) return;
+
+        if (reset) {
+            moderationContentReportVisibleCount = MODERATION_CONTENT_REPORTS_PAGE_SIZE;
+        }
+
+        if (moderationContentReportCards.length === 0) {
+            list.innerHTML = '<div class="moderation-empty">Henüz içerik şikayet bildirisi yok.</div>';
+            updateContentReportLoadMoreUI();
+            return;
+        }
+
+        list.innerHTML = moderationContentReportCards.slice(0, moderationContentReportVisibleCount).join('');
+        updateContentReportLoadMoreUI();
+    }
+
+    window.loadMoreContentReports = () => {
+        if (!moderationContentReportCards.length) return;
+        moderationContentReportVisibleCount += MODERATION_CONTENT_REPORTS_PAGE_SIZE;
+        renderContentReportCardsPage(false);
+    };
+
+    window.resolveContentReportFromModeration = async (reportId) => {
+        const note = prompt('Sonuç metnini yazın:', 'İçerik şikayeti sonuçlandırıldı.');
+        if (note === null) return;
+        try {
+            await finalizeReport(reportId, 'İçerik şikayeti sonuçlandırıldı', note || 'İçerik şikayeti sonuçlandırıldı.');
+            await notifyReporterAboutReport(reportId, 'Şikayet sonuçlandı', note || 'İçerik şikayetiniz sonuçlandırıldı.', {
+                reportId,
+                action: 'resolve'
+            });
+            loadContentReportsForModeration();
+            loadUserReports();
+            alert('İçerik şikayeti sonuçlandırıldı.');
+        } catch (error) {
+            console.error('resolveContentReportFromModeration hatası:', error);
+            alert('Şikayet sonuçlandırılamadı.');
+        }
+    };
+
+    async function loadContentReportsForModeration() {
+        try {
+            const list = document.getElementById('content-report-list');
+            if (!list) return;
+            list.innerHTML = '<div class="moderation-empty">İçerik şikayet bildirileri yükleniyor...</div>';
+            moderationContentReportCards = [];
+            moderationContentReportVisibleCount = 0;
+            updateContentReportLoadMoreUI();
+
+            const reportsSnap = await getDocs(collection(db, 'reports'));
+            if (reportsSnap.empty) {
+                moderationContentReportCards = [];
+                renderContentReportCardsPage(true);
+                return;
+            }
+
+            const sortedReportDocs = [...reportsSnap.docs].sort((a, b) => {
+                const aData = a.data() || {};
+                const bData = b.data() || {};
+                const aDate = aData.createdAt?.toDate ? aData.createdAt.toDate() : null;
+                const bDate = bData.createdAt?.toDate ? bData.createdAt.toDate() : null;
+                const aMs = aDate ? aDate.getTime() : 0;
+                const bMs = bDate ? bDate.getTime() : 0;
+                return bMs - aMs;
+            });
+
+            const cards = await Promise.all(sortedReportDocs.map(async (docSnap) => {
+                const report = docSnap.data() || {};
+                if (!isModerationContentReport(report)) return null;
+                return buildContentReportCard(docSnap, report);
+            }));
+
+            moderationContentReportCards = cards.filter(Boolean);
+            renderContentReportCardsPage(true);
+        } catch (error) {
+            console.error('loadContentReportsForModeration hatası:', error);
+            const list = document.getElementById('content-report-list');
+            if (list) list.innerHTML = '<div class="moderation-empty">İçerik şikayet bildirileri yüklenemedi.</div>';
+            moderationContentReportCards = [];
+            moderationContentReportVisibleCount = 0;
+            updateContentReportLoadMoreUI();
         }
     }
 
@@ -4009,7 +4226,8 @@
             system: "[onclick*='switchMainSection(\'system\'']",
             management: "[onclick*='switchMainSection(\'management\'']",
             'user-moderation': "[onclick*='switchMainSection(\'user-moderation\'']",
-            moderation: "[onclick*='switchMainSection(\'moderation\'']"
+            moderation: "[onclick*='switchMainSection(\'moderation\'']",
+            reports: "[onclick*='switchMainSection(\'reports\'']"
         };
 
         if (mainTabMap[tab]) {

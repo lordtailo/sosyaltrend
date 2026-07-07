@@ -8,7 +8,7 @@
   <meta name="keywords" content="sosyaltrend,sosyal ağ,sosyal,ağ,sosyalağ,ücretsiz sosyal ağ">
   <title>SosyaLTrend • Sosyal Ağ - Anasayfa</title>
   <link rel="stylesheet" href="assets/css/all.min.css">
-  <link rel="stylesheet" href="assets/css/style.css?v=20260607">
+    <link rel="stylesheet" href="assets/css/style.css?v=20260707d">
   <link rel="stylesheet" href="assets/css/chat-widget.css?v=20260240">
   <link rel="icon" type="image/x-icon" href="assets/img/strendsaydamv2.ico">
   <link rel="apple-touch-icon" href="assets/img/strendsaydamv2.png">
@@ -71,7 +71,12 @@
                 </div>
                 <button id="shareBtn" class="post-action-btn primary" type="button" data-i18n="shareBtn">Paylaş</button>
             </div>
-            <div id="post-help" class="post-help-text" data-i18n="postHelpText">Yazınızı yazın, resim ekleyin ve ardından hızlıca paylaşın.</div>
+            <div id="post-help" style="margin-top:14px; display:flex; justify-content:flex-start;">
+                <button type="button" onclick="window.openPostRulesModal && window.openPostRulesModal()" style="display:inline-flex; align-items:center; gap:8px; border:1px solid rgba(99,102,241,0.18); background:linear-gradient(135deg, rgba(99,102,241,0.12), rgba(255,255,255,0.06)); color:var(--text-main); padding:10px 14px; border-radius:999px; font-size:0.82rem; font-weight:800; cursor:pointer; box-shadow:0 8px 18px rgba(15,23,42,0.08);">
+                    <i class="fa-solid fa-circle-info" style="color:var(--primary);"></i>
+                    <span>Gönderi kuralları (gönderi yapmadan önce muhakka okuyun.)</span>
+                </button>
+            </div>
             <div id="pollForm" class="poll-form" style="display: none;">
                 <div class="poll-form-grid">
                     <label for="pollQuestionComposer" data-i18n="pollQuestionLabel">Anket sorusu</label>
@@ -103,19 +108,15 @@
                 </button>
             </div>
         </div>
-        <div style="display:flex; gap:16px; flex-wrap:wrap; margin-top:16px;">
-            <div id="top-liked-posts" class="glass-card" style="flex:1 1 320px; min-width:280px; padding:16px;">
-                <div class="sidebar-title" style="margin-bottom: 12px;"><i class="fa-solid fa-heart"></i> <span data-i18n="topLikedPostTitle">En çok beğeni alan gönderi</span></div>
-                <div id="top-liked-posts-list" style="display:flex; flex-direction:column; gap:12px;">
-                    <div data-i18n="loadingText" style="font-size:0.9rem; color: var(--text-muted); text-align:center;">Yükleniyor...</div>
-                </div>
-            </div>
-            <div id="top-read-blogs-widget" class="glass-card" style="flex:1 1 320px; min-width:280px; padding:16px;">
-                <div class="sidebar-title" style="margin-bottom: 12px;"><i class="fa-solid fa-book-open"></i> <span data-i18n="topReadBlogsTitle">Top 3 en çok okunan blog yazısı</span></div>
-                <div id="top-read-blogs" style="display:flex; flex-direction:column; gap:12px; padding: 0; min-height: 60px;">
-                    <div data-i18n="loadingText" style="font-size:0.9rem; color: var(--text-muted); text-align:center;">Yükleniyor...</div>
-                </div>
-            </div>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin:16px 0 12px; gap:12px; flex-wrap:wrap;">
+            <button type="button" style="display:inline-flex; align-items:center; gap:6px; border:1px solid rgba(99,102,241,0.16); background:linear-gradient(135deg, rgba(99,102,241,0.12), rgba(255,255,255,0.06)); color:var(--text-main); padding:8px 12px; border-radius:999px; font-size:0.8rem; font-weight:700; cursor:default; box-shadow:0 6px 16px rgba(15, 23, 42, 0.06);">
+                <i class="fa-solid fa-comments"></i>
+                <span>En son gönderilenler</span>
+            </button>
+            <button type="button" style="display:inline-flex; align-items:center; gap:6px; border:1px solid rgba(99,102,241,0.16); background:linear-gradient(135deg, rgba(99,102,241,0.12), rgba(255,255,255,0.06)); color:var(--text-main); padding:8px 12px; border-radius:999px; font-size:0.8rem; font-weight:700; cursor:default; box-shadow:0 6px 16px rgba(15, 23, 42, 0.06);">
+                <i class="fa-solid fa-clock-rotate-left"></i>
+                <span>En son paylaşımlar üsttedir..</span>
+            </button>
         </div>
         <div id="feed-items"></div>
     </div>
@@ -138,9 +139,36 @@
       </div>
   </div>
 
+  <div id="postRulesModal" class="modal-overlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:2100; align-items:center; justify-content:center; padding:20px;">
+    <div class="glass-card" style="width:min(560px,100%); padding:24px; box-sizing:border-box;">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px; margin-bottom:16px;">
+            <div>
+                <h3 style="margin:0 0 6px; color:var(--text-main); display:flex; align-items:center; gap:8px;">
+                    <i class="fa-solid fa-circle-info" style="color:var(--primary);"></i>
+                    Gönderi yapma kuralları
+                </h3>
+                <p style="margin:0; color:var(--text-muted); font-size:0.92rem;">Paylaşım yapmadan önce kısa kuralları gözden geçir.</p>
+            </div>
+            <button type="button" onclick="window.closePostRulesModal && window.closePostRulesModal()" style="background:none; border:none; font-size:1.5rem; cursor:pointer; color:var(--text-main); line-height:1;">&times;</button>
+        </div>
+        <div style="display:grid; gap:10px; color:var(--text-main); font-size:0.95rem; line-height:1.6;">
+            <div style="padding:12px 14px; border:1px solid var(--border); border-radius:14px; background:rgba(255,255,255,0.04);">1. Hakaret, küfür, tehdit, taciz ve aşağılayıcı içerik paylaşma.</div>
+            <div style="padding:12px 14px; border:1px solid var(--border); border-radius:14px; background:rgba(255,255,255,0.04);">2. Irkçılık, nefret söylemi, ayrımcılık ve kışkırtıcı içerik paylaşma.</div>
+            <div style="padding:12px 14px; border:1px solid var(--border); border-radius:14px; background:rgba(255,255,255,0.04);">3. Spam, tekrar eden gönderiler, sahte haberler ve yanıltıcı içerik paylaşma.</div>
+            <div style="padding:12px 14px; border:1px solid var(--border); border-radius:14px; background:rgba(255,255,255,0.04);">4. İzin almadan başkasına ait fotoğraf, özel bilgi, ekran görüntüsü veya kişisel veri paylaşma.</div>
+            <div style="padding:12px 14px; border:1px solid var(--border); border-radius:14px; background:rgba(255,255,255,0.04);">5. Cinsel içerik, şiddeti teşvik eden, yasa dışı veya topluluk düzenini bozan içerikler paylaşma.</div>
+            <div style="padding:12px 14px; border:1px solid var(--border); border-radius:14px; background:rgba(255,255,255,0.04);">6. Kurallara aykırı gönderiler silinebilir, hesabın uyarı alabilir veya erişimin kısıtlanabilir.</div>
+            <div style="padding:12px 14px; border:1px solid var(--border); border-radius:14px; background:rgba(255,255,255,0.04);">7. Paylaşım yaparak bu kuralları kabul etmiş sayılırsın.</div>
+        </div>
+        <div style="display:flex; justify-content:flex-end; margin-top:18px;">
+            <button type="button" onclick="window.closePostRulesModal && window.closePostRulesModal()" style="padding:10px 16px; border:none; border-radius:12px; background:var(--primary); color:#fff; font-weight:700; cursor:pointer;">Tamam</button>
+        </div>
+    </div>
+  </div>
+
   <div id="footer-placeholder"></div>
 
 <script src="assets/js/include.js"></script>
-<script type="module" src="assets/js/home.js?v=20260603"></script>
+<script type="module" src="assets/js/home.js?v=20260707d"></script>
 </body>
 </html>
