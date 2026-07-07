@@ -1301,8 +1301,8 @@ function renderCommunityPosts(container, posts) {
         <div style="display:flex; gap:10px; margin-bottom:12px; flex-wrap:wrap;">
           <button class="post-like-btn tool-btn icon-count" data-post-id="${post.id}" type="button" style="width:auto; padding:0 12px; border-radius:999px; gap:6px; color:${isLiked ? '#ef4444' : ''};"><i class="${isLiked ? 'fa-solid' : 'fa-regular'} fa-heart"></i><span>(${likes.length})</span></button>
           <button class="post-comment-btn tool-btn icon-count" data-post-id="${post.id}" type="button" style="width:auto; padding:0 12px; border-radius:999px; gap:6px;"><i class="fa-regular fa-comment"></i><span>(${commentsCount})</span></button>
-          ${!canManagePost ? `<button class="post-report-btn tool-btn" data-post-id="${post.id}" type="button" style="width:auto; padding:0 12px; border-radius:999px; gap:6px; margin-left:auto; color:#f59e0b;"><i class="fa-regular fa-flag"></i><span>Bildir</span></button>` : ''}
-          <button class="post-share-btn tool-btn" data-post-id="${post.id}" type="button" style="width:auto; padding:0 12px; border-radius:999px; gap:6px; ${canManagePost ? 'margin-left:auto;' : ''}"><i class="fa-solid fa-share"></i><span>Paylaş</span></button>
+          <button class="post-report-btn tool-btn" data-post-id="${post.id}" type="button" style="width:auto; padding:0 12px; border-radius:999px; gap:6px; margin-left:auto; color:#f59e0b;"><i class="fa-regular fa-flag"></i><span>Bildir</span></button>
+          <button class="post-share-btn tool-btn" data-post-id="${post.id}" type="button" style="width:auto; padding:0 12px; border-radius:999px; gap:6px;"><i class="fa-solid fa-share"></i><span>Paylaş</span></button>
         </div>
 
         <div style="margin-top:10px; padding-top:10px; border-top:1px solid var(--border);">
