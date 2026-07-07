@@ -5827,7 +5827,7 @@ window.loadPostsFeed = (showAll = false) => {
               <button class="tool-btn icon-count" onclick="toggleCommentSection('${d.id}')" style="gap:5px;"><i class="fa-regular fa-comment"></i><span>(${p.comments?.length || 0})</span></button>
               <button class="tool-btn icon-count" onclick="toggleBookmark('${d.id}', ${isSaved})" style="gap:5px; color:${isSaved ? '#f59e0b' : ''}"><i class="${isSaved ? 'fa-solid' : 'fa-regular'} fa-bookmark"></i><span>(${p.savedBy?.length || 0})</span></button>
               <button class="tool-btn" onclick="window.reportPost('${d.id}', '${authorUsername.replace(/'/g, "\\'")}')" title="Gönderiyi bildir" style="gap:5px; margin-left:auto; color:#f59e0b;"><i class="fa-regular fa-flag"></i><span>Bildir</span></button>
-              <button class="tool-btn" onclick="window.openShareMenu('${d.id}')" style="gap:5px;"><i class="fa-solid fa-share"></i><span>Paylaş</span></button>
+              <button class="tool-btn" onclick="window.openShareMenu('${d.id}')" style="gap:5px;"><i class="fa-solid fa-share"></i></button>
         </div>
         
         <div id="comments-${d.id}" class="comment-area" style="display:none;">
