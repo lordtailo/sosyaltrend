@@ -159,106 +159,35 @@ function renderRetractTebrikButton(targetUid, targetUsername) {
     return btn;
 }
 
-// Request card'ı sil
-function removeRequestCard(uid) {
-    const card = document.getElementById(`friend-request-${uid}`);
-    if (card) {
-        card.style.animation = 'slideOut 0.3s ease';
-        setTimeout(() => card.remove(), 300);
+// Initialize chat widget container (loader) — delegates implementation to assets/js/chat-widget.js
+function initChatWidget() {
+    // Prevent double-loading
+    if (window.__chatWidgetLoaderInstalled) return;
+    window.__chatWidgetLoaderInstalled = true;
+
+    // If implementation already present, call it
+    if (typeof window._initChatWidgetImpl === 'function') {
+        window._initChatWidgetImpl();
+        return;
     }
-}
 
-// Bileşenleri dinamik olarak yükleme fonksiyonu    
-async function loadComponents() {
-
-// Diğer header/footer yükleme kodların...
-    await loadSuggestions();
-    await loadTopTebrikList();
-    
-    // Avatar input listener'ı
-    const fileInput = document.getElementById('fileAvatarInput');
-    if (fileInput) {
-        fileInput.addEventListener('change', function() {
-            handleFileSelect(this);
+    // Dynamically load the chat widget implementation
+    const existing = document.querySelector('script[data-chat-widget]');
+    if (existing) {
+        existing.addEventListener('load', () => {
+            if (typeof window._initChatWidgetImpl === 'function') window._initChatWidgetImpl();
         });
+        return;
     }
-    
-    // Paylaş modalını önceden oluştur
-    createShareModal();
-}
 
-// Expose delete functions for HTML onclicks
-window.deleteVideo = deleteVideo;
-window.deleteMusic = deleteMusic;
-
-async function loadTopLikedPosts() {
-    const mainContainer = document.getElementById('top-liked-posts-list');
-    if (!mainContainer) return;
-
-    mainContainer.innerHTML = `<div style="font-size:0.9rem; color: var(--text-muted); text-align:center;">${getLangText('loadingText', 'Yükleniyor...')}</div>`;
-
-    try {
-        const snap = await getDocs(collection(db, 'posts'));
-        const posts = snap.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }));
-        const topPost = posts.sort((a, b) => ((b.likes?.length || 0) - (a.likes?.length || 0)))[0];
-
-        if (!topPost) {
-            mainContainer.innerHTML = `<div style="font-size:0.9rem; color: var(--text-muted); text-align:center;">${getLangText('noPostsYet', 'Henüz paylaşım bulunamadı.')}</div>`;
-            return;
-        }
-
-        const authorAvatar = getAvatarUrl(topPost.avatarUrl || topPost.avatarSeed || 'assets/img/strendsaydamv2.png', 'user');
-        const authorName = escapeHtml(topPost.displayName || topPost.name || topPost.username || 'Anonim');
-        const authorHandle = topPost.username ? `@${escapeHtml(topPost.username)}` : '';
-        const content = escapeHtml(normalizePostText((topPost.content || topPost.description || '').toString()));
-        const snippet = content.length > 250 ? `${content.substring(0, 250)}...` : content;
-        const likeCount = topPost.likes?.length || 0;
-        const commentsCount = Array.isArray(topPost.comments) ? topPost.comments.length : 0;
-        const timestamp = formatPostTimestamp(topPost.createdAt || topPost.timestamp);
-        const topComment = Array.isArray(topPost.comments) && topPost.comments.length ? topPost.comments[0] : null;
-        const commentAuthor = topComment ? escapeHtml(topComment.displayName || topComment.username || 'Anonim') : '';
-        const commentText = topComment ? escapeHtml((topComment.text || '').toString().trim()) : '';
-        const commentAvatar = topComment ? getAvatarUrl(topComment.avatarUrl || topComment.avatarSeed || 'assets/img/strendsaydamv2.png', 'user') : '';
-
-        mainContainer.innerHTML = `
-            <div style="border:1px solid rgba(255,255,255,0.12); border-radius: 24px; background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03)); box-shadow: 0 18px 36px rgba(0,0,0,0.08); overflow:hidden;">
-                <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; padding:18px 18px 0;">
-                    <div style="display:flex; align-items:center; gap:12px; min-width:0;">
-                        <img src="${authorAvatar}" alt="${authorName}" style="width:40px; height:40px; border-radius:50%; object-fit:cover; border:1px solid rgba(255,255,255,0.18);">
-                        <div style="min-width:0;">
-                            <div style="font-size:0.98rem; font-weight:800; color: var(--text-main); line-height:1.2;">${authorName}</div>
-                            ${authorHandle ? `<div style="font-size:0.82rem; color: var(--text-muted); margin-top:4px;">${authorHandle}</div>` : ''}
-                        </div>
-                    </div>
-                    <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; justify-content:flex-end;">
-                        <span style="display:inline-flex; align-items:center; gap:6px; padding:8px 12px; background: rgba(239,68,68,0.14); color:#ef4444; border-radius:999px; font-size:0.82rem; font-weight:700;">❤ ${likeCount}</span>
-                        <span style="display:inline-flex; align-items:center; gap:6px; padding:8px 12px; background: rgba(59,130,246,0.14); color:#3b82f6; border-radius:999px; font-size:0.82rem; font-weight:700;">💬 ${commentsCount}</span>
-                    </div>
-                </div>
-                <div style="padding:0 18px 18px;">
-                    <div style="margin-top:16px; font-size:0.98rem; color: var(--text-main); line-height:1.75;">${snippet || getLangText('postSnippetFallback', 'Görsel veya metin içerikli gönderi.')}</div>
-                    ${topComment ? `
-                        <div style="margin-top:18px; padding:16px; border-radius: 20px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12);">
-                            <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
-                                <img src="${commentAvatar}" alt="${commentAuthor}" style="width:28px; height:28px; border-radius:50%; object-fit:cover; border:1px solid rgba(255,255,255,0.16);">
-                                <div>
-                                    <div style="font-size:0.86rem; font-weight:700; color: var(--text-main);">${commentAuthor} ${getLangText('topCommentBySuffix', 'yorum yaptı')}</div>
-                                    <div style="font-size:0.78rem; color: var(--text-muted);">${getLangText('topCommentLabel', 'En beğenilen yorum')}</div>
-                                </div>
-                            </div>
-                            <div style="font-size:0.9rem; color: var(--text-muted); line-height:1.6;">${commentText || getLangText('commentFallback', 'Gönderiye bir yorum eklendi.')}</div>
-                        </div>
-                    ` : ''}
-                    <div style="margin-top:18px; display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:12px;">
-                        <span style="font-size:0.82rem; color: var(--text-muted);">${timestamp}</span>
-                        <button onclick="window.location.href='#post-${topPost.id}'" style="background: linear-gradient(135deg, #6366f1, #4f46e5); color: white; border:none; padding:12px 18px; border-radius:16px; cursor:pointer; font-weight:700; transition: transform 0.2s ease;">${getLangText('viewPostBtn', 'Gönderiyi Gör')}</button>
-                    </div>
-                </div>
-            </div>`;
-    } catch (e) {
-        console.error('loadTopLikedPosts hata:', e);
-        mainContainer.innerHTML = `<div style="font-size:0.9rem; color: var(--danger); text-align:center;">${getLangText('topLikesLoadError', 'Beğeni sıralaması yüklenemedi.')}</div>`;
-    }
+    const s = document.createElement('script');
+    s.src = 'assets/js/chat-widget.js';
+    s.async = true;
+    s.dataset.chatWidget = '1';
+    s.onload = () => {
+        if (typeof window._initChatWidgetImpl === 'function') window._initChatWidgetImpl();
+    };
+    document.body.appendChild(s);
 }
 
 async function loadTopReadBlogs() {
@@ -8549,8 +8478,12 @@ document.addEventListener('click', (e) => {
     const notificationsDropdown = document.getElementById('notificationsDropdown');
     const friendsBtn = document.getElementById('friendsBtn');
     const friendsDropdown = document.getElementById('friendsDropdown');
+    const headerChatBtn = document.getElementById('headerChatBtn');
+    const mobileChatBtn = document.getElementById('mobileChatBtn');
+    const chatListsPanel = document.getElementById('chat-lists-panel');
+    const chatWidget = document.getElementById('chat-widget-container');
     
-    if (notificationsBtn?.contains(e.target) || friendsBtn?.contains(e.target)) {
+    if (notificationsBtn?.contains(e.target) || friendsBtn?.contains(e.target) || headerChatBtn?.contains(e.target) || mobileChatBtn?.contains(e.target)) {
         e.stopPropagation();
     } else {
         if (notificationsDropdown && notificationsDropdown.style.display !== 'none' && !notificationsDropdown.contains(e.target)) {
@@ -8563,6 +8496,16 @@ document.addEventListener('click', (e) => {
                 friendsBtn.classList.remove('active');
                 friendsBtn.setAttribute('aria-expanded', 'false');
             }
+        }
+        // Chat lists panel: close when clicking outside (like notification widget)
+        if (chatListsPanel && chatListsPanel.classList.contains('active') && !chatListsPanel.contains(e.target)) {
+            chatListsPanel.classList.remove('active');
+            document.body.classList.remove('chat-open');
+        }
+        // Conversation widget: close when clicking outside
+        if (chatWidget && chatWidget.classList.contains('active') && !chatWidget.contains(e.target)) {
+            chatWidget.classList.remove('active');
+            document.body.classList.remove('chat-open');
         }
     }
 });
@@ -11158,83 +11101,8 @@ async function markConversationAsRead(conversationId) {
     }
 }
 
-// Initialize chat widget container
-function initChatWidget() {
-    // Check if widget already exists
-    if (document.getElementById('chat-widget-container')) return;
-    
-    const chatWidget = document.createElement('div');
-    chatWidget.id = 'chat-widget-container';
-    chatWidget.className = 'chat-widget-container';
-    chatWidget.innerHTML = `
-        <div class="chat-widget-header">
-            <div class="chat-header-left">
-                <button class="back-btn" id="chat-back-btn" onclick="backToFriendList()" title="Geri Dön">
-                    <i class="fa-solid fa-arrow-left"></i>
-                </button>
-                <div class="chat-header-title">
-                    <h3 id="chat-widget-title">Sohbet Et</h3>
-                    <span id="chat-unread-count" class="chat-unread-badge" style="display:none;">0 yeni</span>
-                </div>
-            </div>
-            <div class="chat-header-actions">
-                <button id="chat-widget-add-friend-btn" type="button" class="chat-action-secondary chat-widget-add-friend-btn" onclick="addFriendToChatUser()" title="Arkadaş ekle" style="display:none;">
-                    <i class="fa-solid fa-user-plus"></i> Arkadaş Ekle
-                </button>
-            </div>
-        </div>
-        <div id="group-chat-actions-bar" class="group-chat-actions-bar" style="display:none;">
-            <button id="group-chat-delete-btn" type="button" class="group-chat-header-action-btn danger" onclick="window.deleteCurrentGroupChat()" style="display:none;" title="Grubu sil">
-                <i class="fa-solid fa-trash"></i> <span>Sil</span>
-            </button>
-            <button id="group-chat-leave-btn" type="button" class="group-chat-header-action-btn secondary" onclick="window.leaveCurrentGroupChat()" style="display:none;" title="Gruptan ayrıl">
-                <i class="fa-solid fa-right-from-bracket"></i> <span>Gruptan Ayrıl</span>
-            </button>
-            <button id="chat-clear-btn" type="button" onclick="window.clearChatHistory()" class="chat-clear-btn" style="display:none;">
-                <i class="fa-solid fa-trash-can"></i> Geçmişi Sil
-            </button>
-            <button class="close-btn group-chat-close-btn" onclick="closeChatWidget()" title="Kapat">
-                <i class="fa-solid fa-times"></i>
-            </button>
-        </div>
-        <div id="group-chat-members-bar" class="group-chat-members-bar" style="display:none;"></div>
-        <div class="chat-widget-messages" id="chat-widget-messages">
-            <div class="chat-empty">
-                <i class="fa-regular fa-comment"></i>
-                <p>Henüz mesaj yok</p>
-            </div>
-        </div>
-        <div class="chat-widget-input">
-            <button id="chat-attach-btn" onclick="document.getElementById('chat-attachment-input').click()" title="Resim ekle" class="attach-btn">
-                <i class="fa-solid fa-paperclip"></i>
-            </button>
-            <input 
-                type="text" 
-                id="chat-widget-input" 
-                placeholder="Mesaj yaz..."
-                onkeypress="handleChatKeypress(event)"
-            >
-            <button onclick="sendChatMessage()" id="chat-send-btn">
-                <i class="fa-solid fa-paper-plane"></i>
-            </button>
-            <input type="file" id="chat-attachment-input" accept="image/*,audio/*" style="display:none;" onchange="window.handleChatAttachment(event)">
-        </div>
-    `;
-    
-    // Add CSS link if not already added
-    if (!document.querySelector('link[href*="chat-widget.css"]')) {
-        const cssLink = document.createElement('link');
-        cssLink.rel = 'stylesheet';
-        cssLink.href = 'assets/css/chat-widget.css?v=20260240';
-        document.head.appendChild(cssLink);
-    }
-    
-    document.body.appendChild(chatWidget);
-
-    if (auth.currentUser && typeof updateChatUnreadIndicator === 'function') {
-        updateChatUnreadIndicator();
-    }
-}
+// Note: `initChatWidget` implementation moved to `assets/js/chat-widget.js`.
+// Loader at the top of this file loads it dynamically; duplicate legacy definition removed.
 
 function setGroupMembersBarVisible(visible) {
     const bar = document.getElementById('group-chat-members-bar');
@@ -11564,29 +11432,23 @@ window.openChatsList = async function() {
         return;
     }
 
-    const isChatPage = window.location.pathname.toLowerCase().endsWith('/sohbet.html');
-    if (!isChatPage) {
-        navigateTo('sohbet');
-        return;
-    }
-    
+    // Open only the chat friends list panel; do not open the conversation widget here.
     if (!document.getElementById('chat-lists-panel')) {
         initChatListsPanel();
     }
-    if (!document.getElementById('chat-widget-container')) {
-        initChatWidget();
-    }
 
-    if (typeof window.initChatPage === 'function') {
-        window.initChatPage();
-    }
-    
     const panel = document.getElementById('chat-lists-panel');
-    panel.classList.add('active');
-    const widget = document.getElementById('chat-widget-container');
-    if (widget) widget.classList.add('active');
-    document.body.classList.add('chat-open');
-    loadRecentChats();
+    if (!panel) return;
+    const isOpen = panel.classList.contains('active');
+    if (isOpen) {
+        panel.classList.remove('active');
+        document.body.classList.remove('chat-open');
+    } else {
+        panel.classList.add('active');
+        document.body.classList.add('chat-open');
+        // Load recent chats into the list, but do not initialize or show the conversation widget.
+        loadRecentChats();
+    }
 }
 
 // Close chat lists
@@ -12840,7 +12702,9 @@ function formatChatTime(timestamp) {
     }
     
     const now = new Date();
-    const diff = now - date;
+    const offsetMs = 4 * 24 * 60 * 60 * 1000; // 4 gün
+    const adjustedDate = new Date(date.getTime() - offsetMs);
+    const diff = now - adjustedDate;
     const minutes = Math.floor(diff / 60000);
     const hours = Math.floor(diff / 3600000);
     const days = Math.floor(diff / 86400000);
@@ -12849,8 +12713,8 @@ function formatChatTime(timestamp) {
     if (minutes < 60) return `${minutes}d önce`;
     if (hours < 24) return `${hours}s önce`;
     if (days < 7) return `${days}g önce`;
-    
-    return date.toLocaleDateString('tr-TR', { month: 'short', day: 'numeric' });
+
+    return adjustedDate.toLocaleDateString('tr-TR', { month: 'short', day: 'numeric' });
 }
 
 // Listen for incoming messages

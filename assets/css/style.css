@@ -5160,14 +5160,19 @@ body.dark-mode .footer-extra-card {
 }
 
 @media (max-width: 768px) {
+    footer {
+        padding: 24px 12px 96px;
+    }
+
     .footer-shell {
-        gap: 16px;
+        gap: 14px;
     }
 
     .footer-hero {
         flex-direction: column;
         align-items: flex-start;
-        padding: 14px;
+        padding: 0 0 12px;
+        gap: 14px;
     }
 
     .footer-hero-actions {
@@ -5175,10 +5180,14 @@ body.dark-mode .footer-extra-card {
         display: grid;
         grid-template-columns: 1fr;
         min-width: 0;
+        gap: 10px;
     }
 
     .footer-cta {
         justify-content: center;
+        min-height: 46px;
+        border-radius: 14px;
+        padding: 12px 14px;
     }
 
     .footer-metrics {
@@ -5196,15 +5205,29 @@ body.dark-mode .footer-extra-card {
         justify-content: flex-start;
         align-items: flex-start;
         text-align: left;
+        gap: 12px;
     }
 
     .footer-brand-copy {
         align-items: flex-start;
         text-align: left;
+        gap: 8px;
     }
 
     .footer-logo-img {
-        width: 66px;
+        width: 64px;
+        padding: 7px;
+        border-radius: 14px;
+    }
+
+    .footer-brand-title {
+        font-size: 1.12rem;
+    }
+
+    .footer-tagline,
+    .footer-note {
+        font-size: 0.92rem;
+        line-height: 1.5;
     }
 
     .footer-section {
@@ -5227,23 +5250,25 @@ body.dark-mode .footer-extra-card {
     }
 
     .footer-bottom {
-        flex-direction: row;
-        align-items: center;
-        justify-content: space-between;
+        flex-direction: column;
+        align-items: flex-start;
+        justify-content: flex-start;
         text-align: left;
-        gap: 12px;
+        gap: 10px;
+        padding-top: 14px;
     }
 
     .footer-copy {
-        width: auto;
+        width: 100%;
         max-width: none;
         flex: 1 1 auto;
         min-width: 0;
+        line-height: 1.5;
     }
 
     .footer-bottom-right {
-        justify-content: flex-end;
-        width: auto;
+        justify-content: flex-start;
+        width: 100%;
         margin-top: 0;
         flex-wrap: nowrap;
         gap: 8px;
@@ -5253,12 +5278,46 @@ body.dark-mode .footer-extra-card {
     .lang-switcher {
         display: flex;
         flex-wrap: nowrap;
-        justify-content: flex-end;
-        gap: 8px;
+        justify-content: space-between;
+        gap: 6px;
+        width: 100%;
+        padding: 4px;
+    }
+
+    .lang-switcher span {
+        flex: 1;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        padding: 8px 10px;
     }
 
     .footer-divider {
         display: none;
+    }
+}
+
+@media (max-width: 480px) {
+    footer {
+        padding: 20px 10px 100px;
+    }
+
+    .footer-hero {
+        padding-bottom: 10px;
+    }
+
+    .footer-brand {
+        gap: 10px;
+    }
+
+    .footer-logo-img {
+        width: 58px;
+    }
+
+    .footer-cta {
+        min-height: 44px;
+        font-size: 0.9rem;
     }
 }
 
@@ -6195,7 +6254,7 @@ font-size: 0.9rem; font-weight: 800; color: var(--primary); margin: 20px 0 10px;
     }
 
   #mobileChatBtn {
-    background: rgba(99,102,241,0.08) !important;
+    background: transparent !important;
     color: var(--text-main) !important;
     border-color: transparent !important;
     box-shadow: none !important;
@@ -6207,55 +6266,58 @@ font-size: 0.9rem; font-weight: 800; color: var(--primary); margin: 20px 0 10px;
 
   #mobileChatBtn:hover,
   #mobileChatBtn:focus-visible {
-    background: rgba(99,102,241,0.14) !important;
-    border-color: rgba(99,102,241,0.25) !important;
+    background: transparent !important;
+    border-color: transparent !important;
     color: var(--text-main) !important;
   }
 
   #mobileChatBtn.has-unread {
-    background: linear-gradient(135deg, #ef4444, #dc2626) !important;
-    color: #fff !important;
-    border-color: rgba(239, 68, 68, 0.35) !important;
-    box-shadow: 0 8px 20px rgba(239, 68, 68, 0.2) !important;
+    background: transparent !important;
+    color: var(--text-main) !important;
+    border-color: transparent !important;
+    box-shadow: none !important;
   }
 
   #mobileChatBtn.has-unread i {
-    color: #fff !important;
+    color: var(--text-main) !important;
   }
 
   #mobileChatBtn.has-unread:hover,
   #mobileChatBtn.has-unread:focus-visible {
-    background: linear-gradient(135deg, #dc2626, #b91c1c) !important;
-    border-color: rgba(220, 38, 38, 0.55) !important;
-    color: #fff !important;
+    background: transparent !important;
+    border-color: transparent !important;
+    color: var(--text-main) !important;
   }
 
     .mobile-bottom-nav .mobile-nav-item {
         display: inline-flex;
+        flex: 1 1 0;
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        gap: 2px;
+        gap: 4px;
         color: var(--text-main);
         text-decoration: none;
-        font-size: 0.7rem;
-        min-width: 58px;
-        min-height: 44px;
-        padding: 6px 8px;
-        border-radius: 12px;
+        font-size: 0.78rem;
+        min-width: 0;
+        min-height: 56px;
+        padding: 8px 12px;
+        border-radius: 14px;
         border: 1px solid transparent;
-        background: rgba(99,102,241,0.08);
-        transition: background 0.2s ease, border-color 0.2s ease, transform 0.15s ease, color 0.2s ease;
+        background: transparent;
+        box-shadow: none;
+        transition: transform 0.12s ease, color 0.18s ease;
     }
   .mobile-bottom-nav .mobile-nav-item:hover {
-    background: rgba(99,102,241,0.14);
-    border-color: rgba(99,102,241,0.25);
+    background: transparent;
+    border-color: transparent;
+    transform: translateY(-1px);
   }
   .mobile-bottom-nav .mobile-nav-item.active,
   .mobile-bottom-nav .mobile-nav-item:focus-visible {
     color: var(--text-main);
-    background: rgba(99,102,241,0.18);
-    border-color: rgba(99,102,241,0.35);
+    background: transparent;
+    border-color: transparent;
   }
   .mobile-bottom-nav .mobile-nav-item span {
         font-size: 0.68rem;
@@ -6266,7 +6328,7 @@ font-size: 0.9rem; font-weight: 800; color: var(--primary); margin: 20px 0 10px;
     #themeToggleBtn,
     #headerChatBtn { display: none !important; }
   .mobile-bottom-nav .mobile-nav-item i {
-        font-size: 1rem;
+      font-size: 1.15rem;
   }
 
     #mobileProfileTrigger {
@@ -6318,23 +6380,36 @@ font-size: 0.9rem; font-weight: 800; color: var(--primary); margin: 20px 0 10px;
     }
 
   .mobile-bottom-nav .mobile-nav-action-btn {
-        min-width: 58px;
-        min-height: 44px;
-        padding: 6px 8px;
+      min-width: 64px;
+      min-height: 56px;
+      padding: 8px 10px;
+      transform: translateY(-4px);
+      border: 2px solid var(--primary) !important;
+      border-radius: 14px;
+      background: rgba(99, 102, 241, 0.08) !important;
+      box-shadow: 0 0 12px rgba(99, 102, 241, 0.15) !important;
+      transition: all 0.2s ease;
+  }
+  .mobile-bottom-nav .mobile-nav-action-btn:hover {
+      background: rgba(99, 102, 241, 0.16) !important;
+      box-shadow: 0 0 20px rgba(99, 102, 241, 0.25) !important;
+      transform: translateY(-6px);
   }
   .mobile-bottom-nav .mobile-nav-action-btn .mobile-nav-action-circle {
         width: auto;
         height: auto;
         border-radius: 0;
         background: transparent;
-    color: var(--text-main);
+    color: var(--primary);
     display: inline-flex;
     align-items: center;
     justify-content: center;
         box-shadow: none;
+    font-size: 1.4rem;
   }
   .mobile-bottom-nav .mobile-nav-action-btn:hover .mobile-nav-action-circle {
         background: transparent;
+        color: var(--primary);
   }
   .mobile-search-input-wrapper {
     position: relative;
@@ -6373,15 +6448,15 @@ font-size: 0.9rem; font-weight: 800; color: var(--primary); margin: 20px 0 10px;
     box-shadow: none;
   }
   }
-  .mobile-bottom-nav .mobile-nav-action-btn span {
-    display: block;
-    font-size: 0.7rem;
-    font-weight: 700;
-    margin-top: 2px;
-  }
+    .mobile-bottom-nav .mobile-nav-action-btn span {
+        display: block;
+        font-size: 0.76rem;
+        font-weight: 700;
+        margin-top: 4px;
+    }
   .fab-compose { display: none; }
-  /* Avoid content being hidden behind the bottom navigation */
-  body { padding-bottom: 0px; }
+    /* Avoid content being hidden behind the bottom navigation */
+    body { padding-bottom: 84px; }
 
     /* Make header chat button look like mobile bottom nav action on small screens */
     /* sendHeaderMessageBtn removed */

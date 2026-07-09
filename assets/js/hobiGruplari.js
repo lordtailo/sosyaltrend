@@ -261,7 +261,9 @@ window.closeGroupChat = function() {
 const formatChatTime = (timestamp) => {
   if (!timestamp) return '';
   const date = timestamp.toDate ? timestamp.toDate() : (timestamp instanceof Date ? timestamp : new Date(timestamp));
-  return date.toLocaleString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+  const offsetMs = 4 * 24 * 60 * 60 * 1000; // 4 gün
+  const adjustedDate = new Date(date.getTime() - offsetMs);
+  return adjustedDate.toLocaleString('tr-TR', { hour: '2-digit', minute: '2-digit' });
 };
 
 const loadGroupChatMessages = (conversationId) => {
