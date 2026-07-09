@@ -5751,7 +5751,7 @@ window.loadPostsFeed = (showAll = false) => {
             <div id="likers-${d.id}" style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;"></div>
         </div>
 
-        <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+        <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
               <button class="tool-btn icon-count" onclick="likePost('${d.id}', ${isLiked}, this)" style="gap:3px; color:${isLiked ? '#ef4444' : ''}"><i class="${isLiked ? 'fa-solid' : 'fa-regular'} fa-heart"></i><span>${p.likes?.length || 0}</span></button>
               <button class="tool-btn icon-count" onclick="toggleCommentSection('${d.id}')" style="gap:3px;"><i class="fa-regular fa-comment"></i><span>${p.comments?.length || 0}</span></button>
               <button class="tool-btn icon-count" onclick="toggleBookmark('${d.id}', ${isSaved})" style="gap:3px; color:${isSaved ? '#f59e0b' : ''}"><i class="${isSaved ? 'fa-solid' : 'fa-regular'} fa-bookmark"></i><span>${p.savedBy?.length || 0}</span></button>
@@ -7164,7 +7164,7 @@ window.loadProfileSections = async (section = 'all', showAllPosts = false, showA
                              alt="Post görseli">
                     </div>
                     ` : ''}
-                    <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+                    <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
                         <button class="tool-btn icon-count" onclick="likePost('${d.id}', ${isLiked}, this)" style="gap:3px; color:${isLiked?'#ef4444':''}"><i class="${isLiked?'fa-solid':'fa-regular'} fa-heart"></i><span>${p.likes?.length||0}</span></button>
                         <button class="tool-btn icon-count" style="gap:3px;"><i class="fa-regular fa-comment"></i><span>${p.comments?.length||0}</span></button>
                         <button class="tool-btn icon-count" onclick="toggleBookmark('${d.id}', ${isSaved})" style="gap:3px; color:${isSaved ? '#f59e0b' : ''}"><i class="${isSaved ? 'fa-solid' : 'fa-regular'} fa-bookmark"></i><span>${p.savedBy?.length||0}</span></button>
