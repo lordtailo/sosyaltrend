@@ -2624,7 +2624,6 @@ body.dark-mode .dropdown-menu-header .avatar-wrap {
 
 .menu-logout-btn i {
     color: inherit;
-}
     inset: 0;
     background: linear-gradient(135deg, rgba(99,102,241,.1), transparent);
     opacity: 0;
@@ -6455,6 +6454,8 @@ font-size: 0.9rem; font-weight: 800; color: var(--primary); margin: 20px 0 10px;
         margin-top: 4px;
     }
   .fab-compose { display: none; }
+    /* Avoid content being hidden behind the bottom navigation */
+    body { padding-bottom: 0px; }
 
     /* Make header chat button look like mobile bottom nav action on small screens */
     /* sendHeaderMessageBtn removed */
