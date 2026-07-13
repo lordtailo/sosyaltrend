@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SosyaLTrend � Videolar</title>
+  <meta name="description" content="SosyaLTrend video hub. Videolar�n� ke�fet, y�kle ve listelere ekle.">
+  <link rel="stylesheet" href="assets/css/all.min.css">
+  <link rel="stylesheet" href="assets/css/style.css">
+  <link rel="stylesheet" href="assets/css/chat-widget.css?v=20260240">
+  <link rel="icon" type="image/x-icon" href="assets/img/strendsaydamv2.ico">
+  <style>
+    body { background: #f4f7fb; }
+    .video-layout { grid-template-columns: minmax(260px, 280px) minmax(0, 1fr) minmax(260px, 280px); gap: 20px; padding: 100px 40px 80px; max-width: 1600px; margin: 0 auto; }
+    #page-videos { width: 100%; }
+    .video-container { background: rgba(255,255,255,0.96); border: 1px solid rgba(148,163,184,0.18); border-radius: 24px; box-shadow: 0 24px 60px rgba(15,23,42,0.08); padding: 24px; }
+    .video-hero { display: grid; grid-template-columns: 1fr auto; gap: 18px; align-items: center; padding: 24px; border-radius: 24px; background: linear-gradient(135deg, rgba(99,102,241,0.12), rgba(16,185,129,0.08)); border: 1px solid rgba(99,102,241,0.16); margin-bottom: 22px; }
+    .video-hero h2 { margin: 0; font-size: 1.35rem; letter-spacing: -0.02em; }
+    .video-hero p { margin: 8px 0 0; color: var(--text-muted); max-width: 560px; }
+    .video-stats-strip { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 16px; }
+    .video-stat-pill { display: inline-flex; align-items: center; gap: 8px; padding: 10px 14px; border-radius: 999px; background: rgba(255,255,255,0.85); border: 1px solid rgba(148,163,184,0.18); color: var(--text-main); font-weight: 700; }
+    .video-hero-badge { display: inline-flex; align-items: center; background: rgba(16,185,129,0.14); color: var(--primary); border-radius: 999px; padding: 10px 16px; font-weight: 700; }
+    .video-header { display: grid; gap: 18px; margin-bottom: 20px; }
+    .video-header-main { display: grid; gap: 18px; }
+    .video-title-block { display: grid; gap: 10px; }
+    .video-title-block h1 { margin: 0; font-size: 2rem; }
+    .video-summary { display: flex; flex-wrap: wrap; gap: 14px; color: var(--text-muted); font-size: 0.95rem; }
+    .video-toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+    .video-search-box { width: min(100%, 320px); padding: 12px 16px; border: 1px solid var(--border); border-radius: 999px; background: #fff; color: var(--text-main); }
+    .video-search-btn, .video-action-btn, .video-add-btn, .video-add-close, .video-section-button { border: none; border-radius: 999px; cursor: pointer; transition: background 0.2s ease, transform 0.2s ease; }
+    .video-search-btn, .video-action-btn, .video-add-btn, .video-section-button { display: inline-flex; align-items: center; gap: 8px; padding: 12px 18px; background: var(--primary); color: white; font-weight: 700; }
+    .video-search-btn:hover, .video-action-btn:hover, .video-add-btn:hover, .video-section-button:hover { transform: translateY(-1px); }
+    .video-action-btn.secondary { background: rgba(99,102,241,0.08); color: var(--text-main); border: 1px solid rgba(148,163,184,0.22); }
+    .video-toolbar-extra { display: flex; flex-wrap: wrap; gap: 10px; justify-content: flex-start; }
+    .video-section-actions { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 18px; }
+    .video-actions { display: flex; flex-wrap: wrap; gap: 10px; padding-bottom: 12px; border-bottom: 1px solid rgba(148,163,184,0.2); margin-bottom: 22px; }
+    .video-filters { display: flex; flex-wrap: wrap; gap: 10px; }
+    .filter-btn { padding: 10px 16px; border: 1px solid rgba(148,163,184,0.2); background: #fff; color: var(--text-main); font-weight: 700; }
+    .filter-btn.active, .filter-btn:hover { background: var(--primary); color: white; border-color: var(--primary); }
+    .video-add-panel { position: relative; display: none; flex-direction: column; gap: 12px; padding: 22px; border-radius: 24px; background: rgba(255,255,255,0.96); border: 1px solid rgba(148,163,184,0.2); box-shadow: 0 14px 30px rgba(15,23,42,0.06); }
+    .video-add-panel.active { display: flex; }
+    .video-add-panel-header { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+    .video-add-panel-header h3 { margin: 0; }
+    .video-add-close { width: 42px; height: 42px; display: inline-flex; align-items: center; justify-content: center; background: rgba(148,163,184,0.12); color: var(--text-main); font-size: 1.2rem; }
+    .video-add-form { display: grid; gap: 12px; }
+    .video-add-input, .video-add-textarea, .video-add-select { width: 100%; padding: 14px 16px; border: 1px solid var(--border); border-radius: 18px; background: #fff; color: var(--text-main); }
+    .video-add-textarea { min-height: 120px; resize: vertical; }
+    .video-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 18px; }
+    .video-card { display: flex; flex-direction: column; overflow: hidden; border-radius: 22px; border: 1px solid rgba(148,163,184,0.18); background: #fff; box-shadow: 0 14px 32px rgba(15,23,42,0.06); transition: transform 0.25s ease, box-shadow 0.25s ease; }
+    .video-card:hover { transform: translateY(-4px); box-shadow: 0 20px 36px rgba(15,23,42,0.12); }
+    .video-thumbnail { position: relative; width: 100%; padding-bottom: 56.25%; background: #000; }
+    .video-thumbnail img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+    .video-play-icon { position: absolute; inset: auto auto 14px 14px; width: 42px; height: 42px; border-radius: 50%; display: grid; place-items: center; background: rgba(255,255,255,0.92); color: var(--primary); font-size: 1rem; }
+    .video-info { display: flex; flex-direction: column; gap: 12px; padding: 16px; }
+    .video-title { margin: 0; font-size: 1rem; line-height: 1.4; color: var(--text-main); min-height: 2.8em; overflow: hidden; }
+    .video-card__description { margin: 0; line-height: 1.5; color: var(--text-muted); font-size: 0.92rem; height: 3.2em; overflow: hidden; }
+    .video-meta { display: flex; align-items: center; gap: 10px; font-size: 0.88rem; color: var(--text-muted); }
+    .video-avatar { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; }
+    .video-meta-text { display: grid; gap: 2px; }
+    .video-author { color: var(--text-main); font-weight: 700; text-decoration: none; }
+    .video-author:hover { color: var(--primary); }
+    .video-date { font-size: 0.82rem; }
+    .video-stats { display: flex; flex-wrap: wrap; gap: 10px; font-size: 0.82rem; color: var(--text-muted); }
+    .video-stat { display: inline-flex; align-items: center; gap: 6px; background: rgba(99,102,241,0.08); padding: 6px 10px; border-radius: 999px; }
+    .video-card__footer { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: auto; }
+    .video-card__action-group { display: flex; flex-wrap: wrap; gap: 10px; }
+    .video-card__action { padding: 8px 12px; border-radius: 999px; border: 1px solid rgba(148,163,184,0.2); background: rgba(255,255,255,0.96); color: var(--text-main); cursor: pointer; }
+    .video-card-menu { position: relative; }
+    .video-card-menu-toggle { border: none; background: rgba(148,163,184,0.12); border-radius: 999px; padding: 8px 12px; cursor: pointer; }
+    .video-card-menu-panel { position: absolute; right: 0; top: 110%; background: white; border: 1px solid rgba(148,163,184,0.18); border-radius: 18px; box-shadow: 0 18px 40px rgba(15,23,42,0.12); padding: 12px; display: grid; gap: 8px; min-width: 180px; z-index: 10; }
+    .video-card-menu[open] .video-card-menu-panel { display: grid; }
+    .video-card-menu-panel button { width: 100%; text-align: left; padding: 10px 12px; border-radius: 14px; border: none; background: transparent; color: var(--text-main); cursor: pointer; }
+    .my-uploads-panel, .video-playlist-panel { background: rgba(255,255,255,0.96); border: 1px solid rgba(148,163,184,0.18); border-radius: 24px; padding: 22px; margin-top: 22px; }
+    .video-playlist-header { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 18px; align-items: center; margin-bottom: 18px; }
+    .video-playlist-header h3 { margin: 0; }
+    .video-playlist-actions { display: flex; gap: 10px; flex-wrap: wrap; width: 100%; }
+    .video-playlist-actions input { flex: 1; min-width: 180px; padding: 12px 14px; border-radius: 16px; border: 1px solid var(--border); }
+    .playlist-status { color: var(--text-muted); margin: 0; }
+    .my-uploads-grid { display: grid; gap: 14px; }
+    .my-upload-card { border: 1px solid rgba(148,163,184,0.18); border-radius: 18px; padding: 16px; background: #fff; display: grid; gap: 12px; }
+    .my-upload-meta { display: flex; justify-content: space-between; gap: 10px; align-items: center; }
+    .my-upload-title { margin: 0; font-size: 1rem; font-weight: 800; color: var(--text-main); }
+    .my-upload-subtitle { margin: 0; color: var(--text-muted); font-size: 0.92rem; }
+    .my-upload-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+    .playlist-list, .playlist-details { display: grid; gap: 10px; }
+    .playlist-item { border-radius: 16px; border: 1px solid rgba(148,163,184,0.18); padding: 16px; display: flex; justify-content: space-between; align-items: center; gap: 10px; background: #fff; cursor: pointer; }
+    .playlist-item.active { border-color: var(--primary); background: rgba(99,102,241,0.08); }
+    .playlist-item button { border: none; background: transparent; color: var(--text-danger); font-size: 1.15rem; cursor: pointer; }
+    .playlist-details-card { border: 1px solid rgba(148,163,184,0.18); border-radius: 20px; padding: 18px; background: #fff; }
+    .playlist-detail-header { display: flex; justify-content: space-between; gap: 10px; align-items: center; margin-bottom: 12px; }
+    .playlist-empty { color: var(--text-muted); font-size: 0.95rem; }
+    .video-modal { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; background: rgba(15,23,42,0.7); z-index: 1000; padding: 20px; overflow-y: auto; }
+    .video-modal.active { display: flex; }
+    .video-modal-content { width: min(980px, 100%); max-height: calc(100vh - 40px); overflow: hidden; border-radius: 28px; background: #fff; box-shadow: 0 32px 80px rgba(15,23,42,0.25); }
+    .video-modal-close { position: absolute; top: 18px; right: 18px; width: 44px; height: 44px; border-radius: 50%; background: rgba(148,163,184,0.12); color: var(--text-main); border: none; font-size: 1.4rem; cursor: pointer; z-index: 10; }
+    .video-player { padding-top: 56.25%; position: relative; background: #000; }
+    #videoEmbedContainer { position: absolute; inset: 0; }
+    .video-details { padding: 24px; display: grid; gap: 18px; }
+    .video-details-title { margin: 0; font-size: 1.75rem; }
+    .video-details-meta { display: grid; grid-template-columns: auto 1fr; gap: 16px; align-items: center; }
+    .video-details-avatar { width: 52px; height: 52px; border-radius: 50%; object-fit: cover; }
+    .video-details-author-info { display: grid; gap: 4px; }
+    .video-details-author { font-weight: 700; color: var(--text-main); text-decoration: none; }
+    .video-details-date { color: var(--text-muted); font-size: 0.92rem; }
+    .video-details-actions { display: flex; flex-wrap: wrap; gap: 10px; justify-content: end; }
+    .video-details-source { display: inline-flex; align-items: center; padding: 8px 14px; border-radius: 999px; background: rgba(99,102,241,0.12); color: var(--primary); font-weight: 700; }
+    .video-details-description { margin: 0; color: var(--text-main); line-height: 1.7; }
+    .video-details-stats { display: flex; flex-wrap: wrap; gap: 14px; padding: 12px 0; border-top: 1px solid rgba(148,163,184,0.18); border-bottom: 1px solid rgba(148,163,184,0.18); }
+    .video-comment-box { border-top: 1px solid rgba(148,163,184,0.18); padding-top: 18px; }
+    .video-comment-title { margin: 0 0 12px; font-weight: 700; }
+    .video-comment-form { display: flex; gap: 10px; flex-wrap: wrap; }
+    .video-comment-input { flex: 1; min-width: 220px; padding: 12px 16px; border-radius: 999px; border: 1px solid rgba(148,163,184,0.2); }
+    .video-comment-list { display: grid; gap: 10px; margin-top: 14px; max-height: 220px; overflow: auto; }
+    .video-comment-item { border-radius: 18px; padding: 14px; background: rgba(248,250,252,0.9); border: 1px solid rgba(148,163,184,0.18); }
+    .video-comment-meta { display: flex; justify-content: space-between; color: var(--text-muted); font-size: 0.88rem; margin-bottom: 8px; }
+    .video-comment-empty { color: var(--text-muted); }
+    @media (max-width: 1000px) { .video-layout { padding: 88px 24px 60px; grid-template-columns: 1fr; } .video-hero { grid-template-columns: 1fr; } .video-header-main { grid-template-columns: 1fr; } .video-toolbar { justify-content: stretch; } }
+  </style>
+</head>
+<body>
+  <div data-include="partials/topbar.html"></div>
+  <div id="header-placeholder"></div>
+
+  <div class="app-container video-layout">
+    <div data-include="partials/left-aside.html"></div>
+
+    <main id="main-content">
+      <div id="page-videos" class="page-content active">
+        <section class="video-container">
+          <div class="video-hero">
+            <div>
+              <h2><i class="fa-solid fa-play" style="margin-right: 8px;"></i>Videolar</h2>
+              <p>Videolar�n� ke�fet, yeni i�erik y�kle ve kendi listelerini tek bir sayfada y�net.</p>
+              <div class="video-stats-strip">
+                <div class="video-stat-pill"><i class="fa-solid fa-clapperboard"></i><span id="heroTotalVideos">0 i�erik</span></div>
+                <div class="video-stat-pill"><i class="fa-solid fa-user"></i><span id="heroMyVideosCount">0 benim</span></div>
+                <div class="video-stat-pill"><i class="fa-brands fa-youtube"></i><span id="heroYoutubeCount">0 YouTube</span></div>
+                <div class="video-stat-pill"><i class="fa-brands fa-vimeo"></i><span id="heroVimeoCount">0 Vimeo</span></div>
+              </div>
+            </div>
+            <div class="video-hero-badge">Yeniden tasarland�</div>
+          </div>
+
+          <div class="video-header">
+            <div class="video-title-block">
+              <h1><i class="fa-solid fa-play" style="margin-right: 10px;"></i>Video Hub</h1>
+              <div class="video-summary">
+                <span id="videoSummaryText">En son payla��lan i�erikler</span>
+                <span id="videoResultsCount" class="video-results-count">0 sonu�</span>
+              </div>
+            </div>
+
+            <div class="video-toolbar">
+              <input type="search" id="videoSearch" class="video-search-box" placeholder="Videolar� ara...">
+              <button type="button" id="videoSearchButton" class="video-search-btn" aria-label="Ara"><i class="fa-solid fa-magnifying-glass"></i></button>
+              <button type="button" id="clearVideoFilters" class="video-action-btn secondary" aria-label="Filtre temizle"><i class="fa-solid fa-eraser"></i> Temizle</button>
+            </div>
+
+            <div class="video-toolbar-extra">
+              <button type="button" class="video-action-btn secondary" onclick="window.scrollToSection('myUploadsSection')"><i class="fa-solid fa-user"></i> Videolar�m</button>
+              <button type="button" class="video-action-btn secondary" onclick="window.scrollToSection('playlistsSection')"><i class="fa-solid fa-list"></i> Listelerim</button>
+              <button type="button" class="video-action-btn" id="openVideoAddButton"><i class="fa-solid fa-plus"></i> Video Ekle</button>
+            </div>
+          </div>
+
+          <div class="video-actions">
+            <div class="video-filters">
+              <button type="button" class="filter-btn active" data-filter="all"><i class="fa-solid fa-th"></i> T�m�</button>
+              <button type="button" class="filter-btn" data-filter="mine"><i class="fa-solid fa-user"></i> Benim Videolar�m</button>
+              <button type="button" class="filter-btn" data-filter="teknoloji"><i class="fa-solid fa-microchip"></i> Teknoloji</button>
+              <button type="button" class="filter-btn" data-filter="haber"><i class="fa-solid fa-newspaper"></i> Haber</button>
+              <button type="button" class="filter-btn" data-filter="m�zik"><i class="fa-solid fa-music"></i> M�zik</button>
+              <button type="button" class="filter-btn" data-filter="e�itim"><i class="fa-solid fa-chalkboard-user"></i> E�itim</button>
+              <button type="button" class="filter-btn" data-filter="e�lence"><i class="fa-solid fa-grin-stars"></i> E�lence</button>
+              <button type="button" class="filter-btn" data-filter="genel"><i class="fa-solid fa-layer-group"></i> Genel</button>
+            </div>
+          </div>
+
+          <div id="videoAddPanel" class="video-add-panel">
+            <div class="video-add-panel-header">
+              <h3 id="videoAddCardTitle">Yeni Video Payla�</h3>
+              <button type="button" id="videoAddClose" class="video-add-close">�</button>
+            </div>
+            <form id="videoAddForm" class="video-add-form">
+              <input type="url" id="videoAddUrl" class="video-add-input" placeholder="YouTube veya Vimeo ba�lant�s�" required>
+              <input type="text" id="videoAddTitle" class="video-add-input" placeholder="Ba�l�k (opsiyonel)">
+              <textarea id="videoAddDesc" class="video-add-textarea" placeholder="A��klama (opsiyonel)"></textarea>
+              <select id="videoAddCategory" class="video-add-select" aria-label="Kategori se�">
+                <option value="genel">Genel</option>
+                <option value="teknoloji">Teknoloji</option>
+                <option value="haber">Haber</option>
+                <option value="m�zik">M�zik</option>
+                <option value="e�itim">E�itim</option>
+                <option value="e�lence">E�lence</option>
+              </select>
+              <button type="submit" class="video-add-btn">��eri�i ekle</button>
+            </form>
+            <div id="videoAddStatus" class="video-add-status"></div>
+          </div>
+
+          <div id="videosGrid" class="video-grid"></div>
+
+          <div id="noVideosMessage" class="no-videos" style="display: none; text-align:center; padding: 40px 20px; border-radius: 20px; background: rgba(255,255,255,0.9); margin-top: 20px;">
+            <i class="fa-solid fa-video" style="font-size: 2rem; color: var(--text-muted);"></i>
+            <h3>Hen�z video yok</h3>
+            <p>Yeni i�erik ekleyerek videolar sayfan� doldur.</p>
+            <button type="button" class="video-action-btn video-no-content-action">��erik Ekle</button>
+          </div>
+        </section>
+
+        <section id="myUploadsSection" class="my-uploads-panel">
+          <div class="video-playlist-header">
+            <div>
+              <h3>Videolar�m</h3>
+              <p class="playlist-status">Sadece senin y�kledi�in videolar burada g�sterilir.</p>
+            </div>
+            <button type="button" class="video-action-btn secondary" onclick="window.scrollToSection('videosGrid')"><i class="fa-solid fa-video"></i> T�m videolara d�n</button>
+          </div>
+          <div id="myUploadsStatus" class="playlist-status">Hen�z y�klenmi� video yok.</div>
+          <div id="myUploadsGrid" class="my-uploads-grid"></div>
+        </section>
+
+        <section id="playlistsSection" class="video-playlist-panel">
+          <div class="video-playlist-header">
+            <div>
+              <h3>Listelerim</h3>
+              <p class="playlist-status">Videolar�n� listeler halinde sakla ve kolayca y�net.</p>
+            </div>
+            <div class="video-playlist-actions">
+              <input id="newPlaylistName" type="text" placeholder="Yeni liste ad�" />
+              <button type="button" id="createPlaylistBtn" class="video-action-btn"><i class="fa-solid fa-plus"></i> Olu�tur</button>
+            </div>
+          </div>
+          <div id="playlistStatus" class="playlist-status">Yeni bir liste olu�turmak i�in ad gir.</div>
+          <div id="playlistList" class="playlist-list"></div>
+          <div id="playlistDetails" class="playlist-details"></div>
+        </section>
+      </div>
+    </main>
+
+    <div data-include="partials/right-aside.html"></div>
+  </div>
+
+  <button type="button" id="floatingVideoAddButton" class="video-floating-fab" aria-label="Video y�kle" style="position: fixed; right: 26px; bottom: 26px; display: inline-flex; align-items: center; gap: 10px; padding: 14px 18px; border-radius: 999px; background: var(--primary); color: white; border: none; box-shadow: 0 16px 36px rgba(15,23,42,0.18); z-index: 20;">
+    <i class="fa-solid fa-plus"></i>
+    <span>��erik Ekle</span>
+  </button>
+
+  <div id="videoModal" class="video-modal">
+    <div class="video-modal-content">
+      <button class="video-modal-close" onclick="closeVideoModal()">&times;</button>
+      <div class="video-player">
+        <div id="videoPlayerContainer"></div>
+      </div>
+      <div class="video-details">
+        <h2 class="video-details-title" id="modalVideoTitle">Ba�l�k</h2>
+        <div class="video-details-meta">
+          <img id="modalVideoAvatar" class="video-details-avatar" src="assets/img/strendsaydamv2.png" alt="">
+          <div class="video-details-author-info">
+            <a id="modalVideoAuthor" class="video-details-author" href="#">Yazar Ad�</a>
+            <div class="video-details-date" id="modalVideoDate">2 g�n �nce</div>
+          </div>
+          <div class="video-details-actions">
+            <button id="likeVideoButton" class="video-action-btn" onclick="likeVideo()"><i class="fa-regular fa-heart"></i> Be�en</button>
+            <button class="video-action-btn" onclick="watchVideoSource()"><i class="fa-solid fa-up-right-from-square"></i> A�</button>
+            <button id="editVideoModalButton" class="video-action-btn" style="display:none;" onclick="openEditVideo(state.selectedVideo?.id)"><i class="fa-solid fa-pen"></i> D�zenle</button>
+            <button id="deleteVideoModalButton" class="video-action-btn" style="display:none;" onclick="deleteVideo(state.selectedVideo?.id)"><i class="fa-solid fa-trash"></i> Sil</button>
+            <button class="video-action-btn" onclick="addToPlaylist(state.selectedVideo?.id)"><i class="fa-solid fa-list"></i> Listeye ekle</button>
+            <button class="video-action-btn" onclick="shareVideo()"><i class="fa-solid fa-share"></i> Payla�</button>
+          </div>
+        </div>
+        <div class="video-details-source" id="modalVideoSource">��erik</div>
+        <div id="modalVideoDescription" class="video-details-description">��erik a��klamas� buraya gelecek</div>
+        <div class="video-details-stats">
+          <div class="video-stat-item"><i class="fa-solid fa-eye"></i><span id="modalVideoViews"><strong>0</strong> izleme</span></div>
+          <div class="video-stat-item"><i class="fa-solid fa-thumbs-up"></i><span id="modalVideoLikes"><strong>0</strong> be�eni</span></div>
+          <div class="video-stat-item"><i class="fa-solid fa-comment"></i><span id="modalVideoComments"><strong>0</strong> yorum</span></div>
+        </div>
+        <div class="video-comment-box">
+          <div class="video-comment-title">Yorumlar</div>
+          <form class="video-comment-form" onsubmit="event.preventDefault(); addVideoComment();">
+            <input id="videoCommentInput" class="video-comment-input" type="text" maxlength="180" placeholder="Bu video hakk�nda ne d���n�yorsun?">
+            <button type="submit" class="video-action-btn">Yorum Yap</button>
+          </form>
+          <div id="videoCommentList" class="video-comment-list"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="footer-placeholder"></div>
+  <script src="assets/js/include.js"></script>
+  <script type="module" src="assets/js/video.js?v=20260713"></script>
+</body>
+</html>

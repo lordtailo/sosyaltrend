@@ -168,6 +168,41 @@ body.login-page .forgot-link:hover {
   color: var(--primary);
 }
 
+body.login-page .google-auth-btn {
+  width: 100%;
+  padding: 12px;
+  margin: 8px 0 15px;
+  border-radius: 10px;
+  border: 1px solid #dadce0;
+  background: #fff;
+  color: #202124;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  transition: 0.2s;
+}
+
+body.login-page .google-auth-btn:hover {
+  background: #f7f7f7;
+}
+
+body.login-page .google-auth-btn::before {
+  content: 'G';
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  background: #4285f4;
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
 body.login-page .authMsg {
   text-align: center;
   margin-top: 10px;

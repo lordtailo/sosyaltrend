@@ -129,6 +129,57 @@ function decodeEntities(str) {
     return txt.value;
 }
 
+// YouTube URL'sinden video ID'sini çıkaran fonksiyon
+function extractYoutubeVideoId(url) {
+    if (!url) return null;
+    
+    // YouTube URL formatları
+    // https://www.youtube.com/watch?v=VIDEO_ID
+    // https://youtu.be/VIDEO_ID
+    // https://www.youtube.com/embed/VIDEO_ID
+    // youtube.com/watch?v=VIDEO_ID
+    // youtu.be/VIDEO_ID
+    
+    const videoIdPatterns = [
+        /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/,
+        /(?:^|[^=])v=([^&\n?#]+)/
+    ];
+    
+    for (let pattern of videoIdPatterns) {
+        const match = url.match(pattern);
+        if (match && match[1]) {
+            return match[1];
+        }
+    }
+    
+    return null;
+}
+
+// YouTube embed HTML'i oluşturan fonksiyon
+function createYoutubeEmbed(videoId) {
+    if (!videoId) return '';
+    return `<iframe width="100%" height="400" src="https://www.youtube.com/embed/${videoId}?modestbranding=1&rel=0" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen style="border-radius: 12px; margin-top: 16px;"></iframe>`;
+}
+
+// Gönderinin metin kısmındaki YouTube linklerini tespit et ve videolarını embed et
+function extractAndRenderYoutubeVideos(text) {
+    if (!text || typeof text !== 'string') return '';
+    const urls = text.match(/https?:\/\/[^\s]+/g) || [];
+    const videoIds = [];
+    const seenIds = new Set();
+    
+    for (const url of urls) {
+        const id = extractYoutubeVideoId(url);
+        if (id && !seenIds.has(id)) {
+            seenIds.add(id);
+            videoIds.push(id);
+        }
+    }
+    
+    if (!videoIds.length) return '';
+    return videoIds.map(id => createYoutubeEmbed(id)).join('');
+}
+
 function getVisitedProfileUsername() {
     const params = new URLSearchParams(location.search);
     return params.get('id') || params.get('u') || params.get('username') || null;
@@ -189,6 +240,42 @@ function initChatWidget() {
     };
     document.body.appendChild(s);
 }
+
+async function loadTopLikedPosts() {
+    const container = document.getElementById('top-liked-posts-list');
+    if (!container) return;
+
+    container.innerHTML = `<div style="font-size:0.84rem; color: var(--text-muted); padding:6px 0;">Yükleniyor...</div>`;
+
+    try {
+        const snap = await getDocs(query(collection(db, 'posts'), orderBy('timestamp', 'desc'), limit(10)));
+        const posts = snap.docs
+            .map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }))
+            .filter((post) => !post.hidden)
+            .sort((a, b) => ((Array.isArray(b.likes) ? b.likes.length : 0) - (Array.isArray(a.likes) ? a.likes.length : 0)) || (getPostSortTimestamp(b) - getPostSortTimestamp(a)));
+
+        if (!posts.length) {
+            container.innerHTML = `<div style="font-size:0.84rem; color: var(--text-muted); padding:6px 0;">Henüz beğeni alan gönderi yok.</div>`;
+            return;
+        }
+
+        container.innerHTML = posts.slice(0, 5).map((post) => {
+            const text = escapeHtml(String(post.content || '').replace(/\s+/g, ' ').trim());
+            const preview = text.length > 70 ? `${text.slice(0, 67)}...` : text;
+            const author = escapeHtml(post.displayName || post.name || post.username || 'Kullanıcı');
+            const likes = Array.isArray(post.likes) ? post.likes.length : 0;
+            return `
+                <div style="padding:8px 0; border-bottom:1px solid var(--border); display:flex; flex-direction:column; gap:4px;">
+                    <div style="font-size:0.8rem; font-weight:700; color:var(--text-main);">${preview || 'Gönderi'}</div>
+                    <div style="font-size:0.72rem; color:var(--text-muted);">${author} • ${likes} beğeni</div>
+                </div>`;
+        }).join('');
+    } catch (err) {
+        console.error('loadTopLikedPosts hatası:', err);
+        container.innerHTML = `<div style="font-size:0.84rem; color: var(--text-muted); padding:6px 0;">Liste yüklenemedi.</div>`;
+    }
+}
+window.loadTopLikedPosts = loadTopLikedPosts;
 
 async function loadTopReadBlogs() {
     const mainContainer = document.getElementById('top-read-blogs');
@@ -1048,9 +1135,17 @@ function buildInlineShareCard(postId, postData) {
             <div style="margin-top:10px; border-radius:14px; overflow:hidden; border:1px solid var(--border); background:#000; max-height:240px;">
                 <img src="${postData.image}" alt="Gönderi görseli" style="width:100%; height:100%; object-fit:cover; display:block;">
             </div>` : '';
+        const currentIdentity = getCurrentUserIdentity();
+        const likeState = getBookmarkState(postData.likes, currentIdentity);
+        const saveState = getBookmarkState(postData.savedBy, currentIdentity);
+        const isMine = isCurrentUserPost(postData);
+        const isLiked = likeState.isSaved;
+        const isSaved = saveState.isSaved;
+        const commentCount = Array.isArray(postData.comments) ? postData.comments.length : 0;
+        const safePostContent = String(postData.content || '').replace(/`/g, '\\`').replace(/\$/g, '\\$').replace(/\n/g, '\\n');
 
         return `
-            <div class="glass-card post" id="my-share-${postId}" style="position:relative; padding:16px; border-radius:18px; border:1px solid rgba(99,102,241,0.12); background:rgba(255,255,255,0.9); box-shadow:0 8px 20px rgba(15,23,42,0.05);">
+            <div class="glass-card post" data-post-id="${postId}" id="my-share-${postId}" style="position:relative; padding:16px; border-radius:18px; border:1px solid rgba(99,102,241,0.12); background:rgba(255,255,255,0.9); box-shadow:0 8px 20px rgba(15,23,42,0.05);">
                 <div style="display:flex; gap:10px; margin-bottom:10px; align-items:flex-start;">
                     <img src="${avatarUrl}" class="user-avatar" style="width:44px; height:44px; cursor:pointer;" onclick="location.href='profil.html?id=${encodeURIComponent(authorUsername)}'">
                     <div style="min-width:0; flex:1;">
@@ -1060,9 +1155,32 @@ function buildInlineShareCard(postId, postData) {
                         </div>
                         <div style="font-size:0.78rem; color:var(--text-muted); cursor:pointer;" onclick="location.href='profil.html?id=${encodeURIComponent(authorUsername)}'">@${authorUsername}</div>
                     </div>
+                    ${isMine ? `<div style="display:flex; gap:6px;">
+                        <button type="button" onclick="openEditModal('${postId}', '${safePostContent}', 'post')" style="background:none; border:none; color:var(--text-muted); cursor:pointer;" title="Düzenle"><i class="fa-solid fa-pen"></i></button>
+                        <button type="button" class="post-delete-btn" onclick="deletePost('${postId}')" style="position:static;" title="Sil"><i class="fa-solid fa-trash"></i></button>
+                    </div>` : ''}
                 </div>
                 <div style="white-space:pre-wrap; color:var(--text-main); line-height:1.55; font-size:0.94rem;">${content}</div>
                 ${imageHtml}
+                <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center; margin-top:12px;">
+                    <button class="tool-btn icon-count" onclick="likePost('${postId}', this)" data-liked="${isLiked ? 'true' : 'false'}" aria-pressed="${isLiked ? 'true' : 'false'}" style="gap:3px; color:${isLiked ? '#ef4444' : ''}"><i class="${isLiked ? 'fa-solid' : 'fa-regular'} fa-heart"></i><span>(${likeState.normalizedSavedBy.length})</span></button>
+                    <button class="tool-btn icon-count" onclick="toggleCommentSection('${postId}')" style="gap:3px;"><i class="fa-regular fa-comment"></i><span>(${commentCount})</span></button>
+                    <button class="tool-btn icon-count" onclick="toggleBookmark('${postId}', this)" data-saved="${isSaved ? 'true' : 'false'}" aria-pressed="${isSaved ? 'true' : 'false'}" style="gap:3px; color:${isSaved ? '#f59e0b' : ''}"><i class="${isSaved ? 'fa-solid' : 'fa-regular'} fa-bookmark"></i><span>(${saveState.normalizedSavedBy.length})</span></button>
+                    <button class="tool-btn" onclick="window.reportPost('${postId}', '${(authorUsername || '').replace(/'/g, "\\'")}' )" title="Gönderiyi bildir" style="gap:5px; margin-left:auto; color:#f59e0b;"><i class="fa-regular fa-flag"></i></button>
+                    <button class="tool-btn" onclick="window.openShareMenu('${postId}')" style="gap:5px;"><i class="fa-solid fa-share"></i></button>
+                </div>
+                <div id="comments-${postId}" class="comment-area" style="display:none; margin-top:10px;">
+                    <div id="list-${postId}">${(postData.comments || []).map((c) => `
+                        <div class="comment-item" style="margin-bottom:8px;">
+                            <div style="font-weight:700; font-size:0.85rem;">${escapeHtml(c.displayName || c.username || 'Kullanıcı')}</div>
+                            <div style="font-size:0.9rem; color:var(--text-main);">${escapeHtml(c.text || '')}</div>
+                        </div>
+                    `).join('')}</div>
+                    <div style="display:flex; gap:8px; margin-top:8px;">
+                        <input type="text" id="input-${postId}" aria-label="Yorum girin" placeholder="Yorum yaz..." maxlength="200" style="flex:1; padding:8px 12px; border-radius:10px; border:1px solid var(--border); outline:none; background: var(--input-bg); color: var(--text-main);">
+                        <button onclick="addComment('${postId}')" style="background:var(--primary); color:white; border:none; padding:0 15px; border-radius:10px; cursor:pointer;">Gönder</button>
+                    </div>
+                </div>
             </div>`;
 }
 
@@ -1124,15 +1242,15 @@ window.openMyShares = function() {
         const sharesPanel = document.getElementById('my-shares-panel');
 
         if (sharesPanel) {
-            sharesPanel.style.display = 'none';
-            sharesPanel.innerHTML = '';
+            sharesPanel.style.display = 'block';
+            sharesPanel.innerHTML = '<div style="padding:8px 2px; color:var(--text-secondary);">Paylaşımların yükleniyor...</div>';
         }
         if (feed) {
-            feed.style.display = 'block';
+            feed.style.display = 'none';
         }
 
         currentFeedFilterMode = 'mine';
-        return window.loadPostsFeed(true);
+        return window.renderMySharesInline();
 };
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -1181,6 +1299,32 @@ window._recordInvite = async function (platform, encodedLink) {
         console.warn('Davet kaydedilemedi:', e);
     }
 };
+
+function loadComponents() {
+    try {
+        if (typeof initChatWidget === 'function') {
+            initChatWidget();
+        }
+        if (typeof updateUIWithUser === 'function') {
+            updateUIWithUser();
+        }
+        if (typeof updateSidebarStats === 'function') {
+            updateSidebarStats();
+        }
+        if (typeof updateChatUnreadIndicator === 'function') {
+            updateChatUnreadIndicator();
+        }
+        if (typeof loadTopReadBlogs === 'function') {
+            loadTopReadBlogs();
+        }
+        if (typeof loadTopLikedPosts === 'function') {
+            loadTopLikedPosts();
+        }
+    } catch (err) {
+        console.warn('loadComponents hatası:', err);
+    }
+}
+window.loadComponents = loadComponents;
 
 // Sayfa yüklendiğinde çalıştır (parçalar yüklendikten sonra)
 document.addEventListener('includesLoaded', () => {
@@ -1447,6 +1591,72 @@ window.limit = typeof limit !== 'undefined' ? limit : undefined;
 window.updateDoc = typeof updateDoc !== 'undefined' ? updateDoc : undefined;
 window.setDoc = typeof setDoc !== 'undefined' ? setDoc : undefined;
 
+function normalizeBookmarkIdentity(value) {
+    if (typeof value !== 'string') return '';
+    const trimmed = value.trim();
+    if (!trimmed) return '';
+    return trimmed.toLowerCase().split('@')[0];
+}
+
+function getCurrentBookmarkIdentity() {
+    const candidates = [
+        window.user?.username,
+        window.user?.displayName,
+        auth?.currentUser?.displayName,
+        auth?.currentUser?.email,
+        auth?.currentUser?.uid
+    ];
+
+    for (const candidate of candidates) {
+        const normalized = normalizeBookmarkIdentity(candidate);
+        if (normalized) return normalized;
+    }
+
+    return '';
+}
+
+function getBookmarkState(savedBy, currentIdentity) {
+    const normalizedSavedBy = (Array.isArray(savedBy) ? savedBy : [])
+        .map(normalizeBookmarkIdentity)
+        .filter(Boolean);
+
+    return {
+        normalizedSavedBy,
+        isSaved: Boolean(currentIdentity && normalizedSavedBy.includes(currentIdentity))
+    };
+}
+
+function getCurrentUserIdentity() {
+    return getCurrentBookmarkIdentity();
+}
+
+function isCurrentUserPost(post) {
+    if (!post) return false;
+
+    const currentIdentity = getCurrentUserIdentity();
+    const currentUid = auth?.currentUser?.uid || user?.uid || null;
+    const identityCandidates = [
+        post.username,
+        post.authorUsername,
+        post.adminUser,
+        post.authorUser,
+        post.userName,
+        post.ownerUsername
+    ];
+
+    const hasMatchingIdentity = identityCandidates.some((value) => {
+        if (!value) return false;
+        return normalizeBookmarkIdentity(value) === currentIdentity;
+    });
+
+    const hasMatchingUid = [post.authorUid, post.uid, post.userId, post.ownerUid].some((value) => {
+        if (!value || !currentUid) return false;
+        return String(value) === String(currentUid);
+    });
+
+    return hasMatchingIdentity || hasMatchingUid;
+}
+
 // Feed'e duyuruları ekle
 window.addAnnouncementsToFeed = async () => {
     try {
@@ -1459,7 +1669,7 @@ window.addAnnouncementsToFeed = async () => {
         
         if (announcementsSnap.empty) return;
         
-        const currentUsername = (window.user && window.user.username) || (auth.currentUser && auth.currentUser.email.split('@')[0]) || null;
+        const currentUsername = getCurrentBookmarkIdentity();
         const announcementElements = [];
         
         announcementsSnap.forEach(doc => {
@@ -1480,7 +1690,8 @@ window.addAnnouncementsToFeed = async () => {
                 createdAt = `${day}.${month}.${year} ${hours}:${minutes}:${seconds}`;
             }
             const isLiked = currentUsername && data.likes ? data.likes.includes(currentUsername) : false;
-            const isSaved = currentUsername && data.savedBy ? data.savedBy.includes(currentUsername) : false;
+            const savedState = getBookmarkState(data.savedBy, currentUsername);
+            const isSaved = savedState.isSaved;
             const likeCount = data.likes ? data.likes.length : 0;
             const commentCount = data.comments ? data.comments.length : 0;
             
@@ -1525,7 +1736,7 @@ window.addAnnouncementsToFeed = async () => {
                 <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
                     <button class="tool-btn icon-count" onclick="likeAnnouncement('${announcementId}', ${isLiked}, this)" style="gap:5px; color:${isLiked ? '#ef4444' : ''}"><i class="${isLiked ? 'fa-solid' : 'fa-regular'} fa-heart"></i><span>(${likeCount})</span></button>
                     <button class="tool-btn icon-count" onclick="toggleAnnouncementComments('${announcementId}')" style="gap:5px;"><i class="fa-regular fa-comment"></i><span>(${commentCount})</span></button>
-                    <button class="tool-btn icon-count" onclick="bookmarkAnnouncement('${announcementId}', ${isSaved})" style="gap:5px; color:${isSaved ? '#f59e0b' : ''}"><i class="${isSaved ? 'fa-solid' : 'fa-regular'} fa-bookmark"></i><span>(${data.savedBy ? data.savedBy.length : 0})</span></button>
+                    <button class="tool-btn icon-count" onclick="bookmarkAnnouncement('${announcementId}', this)" data-saved="${isSaved ? 'true' : 'false'}" aria-pressed="${isSaved ? 'true' : 'false'}" style="gap:5px; color:${isSaved ? '#f59e0b' : ''}"><i class="${isSaved ? 'fa-solid' : 'fa-regular'} fa-bookmark"></i><span>(${savedState.normalizedSavedBy.length})</span></button>
                     <button class="tool-btn" onclick="window.openShareMenu('${announcementId}')" style="gap:5px; margin-left:auto;"><i class="fa-solid fa-share"></i><span>Paylaş</span></button>
                 </div>
                 
@@ -1685,25 +1896,45 @@ window.renderAnnouncementComments = (announcementId, comments) => {
 };
 
 // Duyuru kaydet
-window.bookmarkAnnouncement = async (announcementId, isCurrentlySaved) => {
+window.bookmarkAnnouncement = async (announcementId, button) => {
     if (!auth.currentUser) {
         alert('Kaydetmek için giriş yapmalısınız');
         return;
     }
-    
+
     try {
         const ref = doc(db, "announcements", announcementId);
         const snap = await getDoc(ref);
         if (!snap.exists()) return;
-        
+
         const data = snap.data();
-        const saved = data.savedBy || [];
-        const username = user.username || auth.currentUser.email;
-        
-        if (isCurrentlySaved) {
-            await updateDoc(ref, { savedBy: saved.filter(u => u !== username) });
-        } else {
-            await updateDoc(ref, { savedBy: [...saved, username] });
+        const currentIdentity = getCurrentBookmarkIdentity();
+        if (!currentIdentity) {
+            alert('Kaydetmek için giriş yapmalısınız');
+            return;
+        }
+
+        const savedState = getBookmarkState(data.savedBy, currentIdentity);
+        const nextSaved = !savedState.isSaved;
+        const updatedSaved = nextSaved
+            ? [...new Set([...savedState.normalizedSavedBy, currentIdentity])]
+            : savedState.normalizedSavedBy.filter(u => u !== currentIdentity);
+
+        await updateDoc(ref, { savedBy: updatedSaved });
+
+        if (button) {
+            const icon = button.querySelector('i');
+            const count = button.querySelector('span');
+            button.dataset.saved = String(nextSaved);
+            button.setAttribute('aria-pressed', String(nextSaved));
+            if (icon) {
+                icon.classList.toggle('fa-solid', nextSaved);
+                icon.classList.toggle('fa-regular', !nextSaved);
+            }
+            if (count) {
+                count.textContent = `(${updatedSaved.length})`;
+            }
+            button.style.color = nextSaved ? '#f59e0b' : '';
         }
     } catch (e) {
         console.error('Duyuru kaydet hatası:', e);
@@ -1877,7 +2108,7 @@ window.listenForAnnouncementChanges = () => {
                         <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
                             <button class="tool-btn icon-count" onclick="likeAnnouncement('${announcementId}', ${isLiked}, this)" style="gap:5px; color:${isLiked ? '#ef4444' : ''}"><i class="${isLiked ? 'fa-solid' : 'fa-regular'} fa-heart"></i><span>(${likeCount})</span></button>
                             <button class="tool-btn icon-count" onclick="toggleAnnouncementComments('${announcementId}')" style="gap:5px;"><i class="fa-regular fa-comment"></i><span>(${commentCount})</span></button>
-                            <button class="tool-btn icon-count" onclick="bookmarkAnnouncement('${announcementId}', ${isSaved})" style="gap:5px; color:${isSaved ? '#f59e0b' : ''}"><i class="${isSaved ? 'fa-solid' : 'fa-regular'} fa-bookmark"></i><span>(${data.savedBy ? data.savedBy.length : 0})</span></button>
+                            <button class="tool-btn icon-count" onclick="bookmarkAnnouncement('${announcementId}', this)" data-saved="${isSaved ? 'true' : 'false'}" aria-pressed="${isSaved ? 'true' : 'false'}" style="gap:5px; color:${isSaved ? '#f59e0b' : ''}"><i class="${isSaved ? 'fa-solid' : 'fa-regular'} fa-bookmark"></i><span>(${data.savedBy ? data.savedBy.length : 0})</span></button>
                             <button class="tool-btn" onclick="window.openShareMenu('${announcementId}')" style="gap:5px; margin-left:auto;"><i class="fa-solid fa-share"></i><span>Paylaş</span></button>
                         </div>
                         
@@ -2408,24 +2639,11 @@ onAuthStateChanged(auth, async (fbUser) => {
         migrateOldAvatars();
 
         // ADMIN ÖZEL İŞLEMLERİ
-        const adminBtn = document.getElementById('adminMenuBtn');
         if (user.isAdmin) {
             // İstatistikleri çek
             updateAdminStats();
-            // HTML'deki admin butonunu görünür yap
-            if (adminBtn) {
-                adminBtn.style.display = 'flex'; // Veya 'block', tasarımınıza göre
-            }
-        } else {
-            // Eğer admin değilse butonu gizle (Güvenlik için önlem)
-            if (adminBtn) {
-                adminBtn.style.display = 'none';
-            }
         }
-        const sidebarAdminBtn = document.getElementById('sidebarAdminBtn');
-        if (sidebarAdminBtn) {
-            sidebarAdminBtn.style.display = user.isAdmin ? 'flex' : 'none';
-        }
+        syncAdminUiVisibility();
         // NOTE: Moderatör butonu kaldırıldı; sadece admin butonu gösteriliyor.
     }
     
@@ -4157,6 +4375,17 @@ function getAvatarUrl(avatarUrlOrSeed, type = 'user') {
                 pYoutube.classList.remove('disabled');
                 pYoutube.removeAttribute('aria-disabled');
                 pYoutube.removeAttribute('tabindex');
+                
+                // YouTube video oynatıcısını göster
+                const youtubeCard = document.getElementById('profileYoutubeCard');
+                const youtubeContainer = document.getElementById('youtubeContainer');
+                if (youtubeCard && youtubeContainer) {
+                    const videoId = extractYoutubeVideoId(user.youtube);
+                    if (videoId) {
+                        youtubeContainer.innerHTML = createYoutubeEmbed(videoId);
+                        youtubeCard.style.display = 'block';
+                    }
+                }
             } else {
                 pYoutube.removeAttribute('href');
                 pYoutube.removeAttribute('target');
@@ -4164,6 +4393,10 @@ function getAvatarUrl(avatarUrlOrSeed, type = 'user') {
                 pYoutube.classList.add('disabled');
                 pYoutube.setAttribute('aria-disabled', 'true');
                 pYoutube.setAttribute('tabindex', '-1');
+                
+                // YouTube kartını gizle
+                const youtubeCard = document.getElementById('profileYoutubeCard');
+                if (youtubeCard) youtubeCard.style.display = 'none';
             }
         }
         if (pBio) {
@@ -4264,7 +4497,6 @@ function setNavActiveByPath() {
         'arkadaslarim.html': 'btn-arkadaslarim',
         'bildirimler.html': 'btn-bildirimler',
         'blog.html': 'btn-tum-yazilar',
-        'video.html': 'btn-video',
         'music.html': 'btn-music'
     };
 
@@ -5376,92 +5608,115 @@ function formatPostTimestamp(timestamp) {
 
 /* --- SEARCH SON --- */
     
-window.likePost = async (id, isLiked, btn) => {
-
-    // optimistic UI toggle
-    if(btn) {
-        const icon = btn.querySelector('i');
-        const countSpan = btn.querySelector('span');
-        if(icon) icon.className = isLiked ? 'fa-regular fa-heart' : 'fa-solid fa-heart';
-        if(countSpan) {
-            const current = parseInt(countSpan.textContent) || 0;
-            countSpan.textContent = isLiked ? current - 1 : current + 1;
-        }
-        btn.style.color = isLiked ? '' : '#ef4444';
+window.likePost = async (id, isLikedOrButton, btn) => {
+    const button = btn || (isLikedOrButton && typeof isLikedOrButton === 'object' ? isLikedOrButton : null);
+    const currentIdentity = getCurrentUserIdentity();
+    if (!currentIdentity) {
+        alert('Beğenmek için giriş yapmalısınız');
+        return;
     }
+
+    const currentState = button ? button.dataset.liked === 'true' : Boolean(isLikedOrButton);
+    const nextLiked = !currentState;
+
+    if (button) {
+        const icon = button.querySelector('i');
+        const countSpan = button.querySelector('span');
+        if (icon) {
+            icon.classList.toggle('fa-solid', nextLiked);
+            icon.classList.toggle('fa-regular', !nextLiked);
+        }
+        if (countSpan) {
+            const current = parseInt(countSpan.textContent.replace(/[^0-9-]/g, ''), 10) || 0;
+            countSpan.textContent = `(${Math.max(0, current + (nextLiked ? 1 : -1))})`;
+        }
+        button.dataset.liked = String(nextLiked);
+        button.setAttribute('aria-pressed', String(nextLiked));
+        button.style.color = nextLiked ? '#ef4444' : '';
+    }
+
     try {
         const ref = doc(db, "posts", id);
-        // önce gönderiyi oku (sahibi için bildirim göndermek üzere)
         const snap = await getDoc(ref);
         if (!snap.exists()) return;
         const post = snap.data();
+        const likes = Array.isArray(post.likes) ? post.likes : [];
+        const normalizedLikes = likes.map(normalizeBookmarkIdentity).filter(Boolean);
+        const updatedLikes = nextLiked
+            ? [...new Set([...normalizedLikes, currentIdentity])]
+            : normalizedLikes.filter((value) => value !== currentIdentity);
 
-        const addingLike = !isLiked;
-        // note: UI already adjusted above
-        await updateDoc(ref, { likes: addingLike ? arrayUnion(user.username) : arrayRemove(user.username) });
+        await updateDoc(ref, { likes: updatedLikes });
 
-        // Eğer beğenen kişi gönderi sahibi değilse ve beğenme ekleniyorsa bildirim gönder
-        if (addingLike && post.username && post.username !== user.username) {
-            // hedef kullanıcının UID'sini al
+        if (nextLiked && post.username && normalizeBookmarkIdentity(post.username) !== currentIdentity) {
             const uQuery = query(collection(db, "users"), where("username", "==", post.username), limit(1));
             const uSnap = await getDocs(uQuery);
             if (!uSnap.empty) {
                 const recipientUid = uSnap.docs[0].id;
-                // gönderi sahibine beğeni bildirimi gönder
                 const postSnippet = post.content ? post.content.slice(0, 50) : '(Görselli gönderi)';
-                await sendNotification(recipientUid, 'post_like', user.displayName, { postId: id, postContent: postSnippet });
+                await sendNotification(recipientUid, 'post_like', user.displayName || currentIdentity, { postId: id, postContent: postSnippet });
             }
         }
     } catch (e) {
         console.error('likePost hatası:', e);
     }
 };
-  // id: post id, isSaved: current state at render time, btn: HTML element that was clicked (optional)
-  window.toggleBookmark = async (id, isSaved, btn) => {
+
+window.toggleBookmark = async (id, isSavedOrButton, btn) => {
+    const button = btn || (isSavedOrButton && typeof isSavedOrButton === 'object' ? isSavedOrButton : null);
+    const currentIdentity = getCurrentUserIdentity();
+    if (!currentIdentity) {
+        alert('Kaydetmek için giriş yapmalısınız');
+        return;
+    }
+
+    const currentState = button ? button.dataset.saved === 'true' : Boolean(isSavedOrButton);
+    const saving = !currentState;
 
     try {
         const ref = doc(db, "posts", id);
-        // read post to know owner for notification
         const snap = await getDoc(ref);
         if (!snap.exists()) return;
         const post = snap.data();
+        const saved = Array.isArray(post.savedBy) ? post.savedBy : [];
+        const normalizedSaved = saved.map(normalizeBookmarkIdentity).filter(Boolean);
+        const updatedSaved = saving
+            ? [...new Set([...normalizedSaved, currentIdentity])]
+            : normalizedSaved.filter((value) => value !== currentIdentity);
 
-        const saving = !isSaved;
-        await updateDoc(ref, { savedBy: saving ? arrayUnion(user.username) : arrayRemove(user.username) });
+        await updateDoc(ref, { savedBy: updatedSaved });
 
-        // update button appearance immediately if element provided
-        if (btn) {
-            try {
-                const icon = btn.querySelector('i');
-                if (saving) {
-                    icon.classList.remove('fa-regular');
-                    icon.classList.add('fa-solid');
-                    btn.style.color = '#f59e0b';
-                } else {
-                    icon.classList.remove('fa-solid');
-                    icon.classList.add('fa-regular');
-                    btn.style.color = '';
-                }
-            } catch(_) {}
+        if (button) {
+            const icon = button.querySelector('i');
+            const countSpan = button.querySelector('span');
+            if (icon) {
+                icon.classList.toggle('fa-solid', saving);
+                icon.classList.toggle('fa-regular', !saving);
+            }
+            if (countSpan) {
+                const current = parseInt(countSpan.textContent.replace(/[^0-9-]/g, ''), 10) || 0;
+                countSpan.textContent = `(${Math.max(0, current + (saving ? 1 : -1))})`;
+            }
+            button.dataset.saved = String(saving);
+            button.setAttribute('aria-pressed', String(saving));
+            button.style.color = saving ? '#f59e0b' : '';
         }
 
-        // notify owner when someone else saves their post
-        if (saving && post.username && post.username !== user.username) {
+        if (saving && post.username && normalizeBookmarkIdentity(post.username) !== currentIdentity) {
             const uQuery = query(collection(db, "users"), where("username", "==", post.username), limit(1));
             const uSnap = await getDocs(uQuery);
             if (!uSnap.empty) {
                 const recipientUid = uSnap.docs[0].id;
                 const postSnippet = post.content ? post.content.slice(0, 50) : '(Görselli gönderi)';
-                await sendNotification(recipientUid, 'post_saved', user.displayName, { postId: id, postContent: postSnippet });
+                await sendNotification(recipientUid, 'post_saved', user.displayName || currentIdentity, { postId: id, postContent: postSnippet });
             }
         }
-        // also send a small confirmation to ourselves so we see something
+
         if (saving && auth.currentUser) {
             const meSnippet = post.content ? post.content.slice(0, 50) : '(Görselli gönderi)';
-            await sendNotification(auth.currentUser.uid, 'saved_self', user.displayName, { postId: id, postContent: meSnippet });
+            await sendNotification(auth.currentUser.uid, 'saved_self', user.displayName || currentIdentity, { postId: id, postContent: meSnippet });
         }
 
-        // if we are on profile page, trigger a reload of section lists so counts update
         if (window.location.pathname.endsWith('profil.html') && typeof window.loadProfileSections === 'function') {
             const hash = window.location.hash.replace('#', '');
             const section = hash || 'posts';
@@ -5470,7 +5725,7 @@ window.likePost = async (id, isLiked, btn) => {
     } catch (e) {
         console.error('toggleBookmark hatası:', e);
     }
-  };  window.toggleCommentSection = (id) => { const el = document.getElementById(`comments-${id}`); if(el) {
+};  window.toggleCommentSection = (id) => { const el = document.getElementById(`comments-${id}`); if(el) {
         el.style.display = el.style.display === 'none' ? 'block' : 'none';
         // update counter when opened
         if (el.style.display === 'block') {
@@ -5604,7 +5859,19 @@ window.deleteReply = async (postId, commentTime, replyTime) => {
       }
   };
 
-window.deletePost = async (id) => { if(confirm(translations[currentLang].confirmDelete)) await deleteDoc(doc(db, "posts", id)); }
+window.deletePost = async (id) => {
+    if (!confirm(translations[currentLang].confirmDelete)) return;
+    try {
+        await deleteDoc(doc(db, "posts", id));
+        const card = document.querySelector(`[data-post-id="${id}"]`);
+        if (card && card.parentNode) card.parentNode.removeChild(card);
+        if (typeof window.loadPostsFeed === 'function') {
+            setTimeout(() => window.loadPostsFeed(showAllFeedPosts), 250);
+        }
+    } catch (e) {
+        console.error('deletePost hatası:', e);
+    }
+};
 
 window.togglePostContent = function(postId) {
     const preview = document.getElementById(`post-preview-${postId}`);
@@ -5666,10 +5933,13 @@ window.loadPostsFeed = (showAll = false) => {
               const p = d.data();
               if (p.hidden === true) return;
 
-              const isPage = p.username?.startsWith('page_') || p.username === 'official_system', 
-                    isMine = p.username === user.username || p.adminUser === user.username, 
-                    isLiked = p.likes?.includes(user.username), 
-                    isSaved = p.savedBy?.includes(user.username);
+              const isPage = p.username?.startsWith('page_') || p.username === 'official_system';
+              const currentIdentity = getCurrentUserIdentity();
+              const likeState = getBookmarkState(p.likes, currentIdentity);
+              const saveState = getBookmarkState(p.savedBy, currentIdentity);
+              const isMine = isCurrentUserPost(p);
+              const isLiked = likeState.isSaved;
+              const isSaved = saveState.isSaved;
               
               // Decode content and prepare rendering
               const decoded = decodeEntities ? decodeEntities(p.content || "") : (p.content || "");
@@ -5711,6 +5981,7 @@ window.loadPostsFeed = (showAll = false) => {
     </div>
 ` : "";
 
+        const youtubeHtml = extractAndRenderYoutubeVideos(decoded);
         const pollHtml = p.poll ? renderPostPoll(p.poll, d.id) : '';
         const postContentHtml = decoded ? `
         <div class="post-content-block" style="margin-bottom:12px;">
@@ -5719,7 +5990,7 @@ window.loadPostsFeed = (showAll = false) => {
         </div>` : '';
 
         const postHtmlBase = `
-    <div class="glass-card post" style="${p.username === 'official_system' ? 'border: 2px solid var(--primary); background: rgba(99, 102, 241, 0.05);' : ''}; position: relative;">
+    <div class="glass-card post" data-post-id="${d.id}" style="${p.username === 'official_system' ? 'border: 2px solid var(--primary); background: rgba(99, 102, 241, 0.05);' : ''}; position: relative;">
         <div style="position: absolute; top: 15px; right: 15px; display: flex; gap: 8px; z-index: 55; pointer-events: auto;">
              <button type="button" class="translate-content-btn" data-translate-target="post-preview-${d.id}" onclick="event.preventDefault(); event.stopPropagation(); toggleTranslateContentToEnglish(this, 'post-preview-${d.id}'); return false;" title="${getLangText('translateToEnglishTitle', 'İngilizceye çevir')}" style="background:rgba(99,102,241,0.08); border:1px solid var(--border); color:var(--primary); cursor:pointer; width:32px; height:32px; border-radius:999px; display:inline-flex; align-items:center; justify-content:center; position:relative; z-index:40; pointer-events:auto;">
                  <span class="translate-lang-badge">EN</span>
@@ -5745,16 +6016,16 @@ window.loadPostsFeed = (showAll = false) => {
               </div>
         </div>
         
-        ${postContentHtml}${pollHtml}${postImageHtml}
+        ${postContentHtml}${pollHtml}${postImageHtml}${youtubeHtml}
 
         <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:10px; min-height:28px;">
             <div id="likers-${d.id}" style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;"></div>
         </div>
 
         <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
-              <button class="tool-btn icon-count" onclick="likePost('${d.id}', ${isLiked}, this)" style="gap:3px; color:${isLiked ? '#ef4444' : ''}"><i class="${isLiked ? 'fa-solid' : 'fa-regular'} fa-heart"></i><span>(${p.likes?.length || 0})</span></button>
+              <button class="tool-btn icon-count" onclick="likePost('${d.id}', this)" data-liked="${isLiked ? 'true' : 'false'}" aria-pressed="${isLiked ? 'true' : 'false'}" style="gap:3px; color:${isLiked ? '#ef4444' : ''}"><i class="${isLiked ? 'fa-solid' : 'fa-regular'} fa-heart"></i><span>(${likeState.normalizedSavedBy.length})</span></button>
               <button class="tool-btn icon-count" onclick="toggleCommentSection('${d.id}')" style="gap:3px;"><i class="fa-regular fa-comment"></i><span>(${p.comments?.length || 0})</span></button>
-              <button class="tool-btn icon-count" onclick="toggleBookmark('${d.id}', ${isSaved})" style="gap:3px; color:${isSaved ? '#f59e0b' : ''}"><i class="${isSaved ? 'fa-solid' : 'fa-regular'} fa-bookmark"></i><span>(${p.savedBy?.length || 0})</span></button>
+              <button class="tool-btn icon-count" onclick="toggleBookmark('${d.id}', this)" data-saved="${isSaved ? 'true' : 'false'}" aria-pressed="${isSaved ? 'true' : 'false'}" style="gap:3px; color:${isSaved ? '#f59e0b' : ''}"><i class="${isSaved ? 'fa-solid' : 'fa-regular'} fa-bookmark"></i><span>(${saveState.normalizedSavedBy.length})</span></button>
               <button class="tool-btn" onclick="window.reportPost('${d.id}', '${authorUsername.replace(/'/g, "\\'")}')" title="Gönderiyi bildir" style="gap:5px; margin-left:auto; color:#f59e0b;"><i class="fa-regular fa-flag"></i></button>
               <button class="tool-btn" onclick="window.openShareMenu('${d.id}')" style="gap:5px;"><i class="fa-solid fa-share"></i></button>
         </div>
@@ -6859,6 +7130,17 @@ async function loadVisitorProfile() {
                     pYoutube.classList.remove('disabled');
                     pYoutube.removeAttribute('aria-disabled');
                     pYoutube.removeAttribute('tabindex');
+                    
+                    // YouTube video oynatıcısını göster
+                    const youtubeCard = document.getElementById('profileYoutubeCard');
+                    const youtubeContainer = document.getElementById('youtubeContainer');
+                    if (youtubeCard && youtubeContainer) {
+                        const videoId = extractYoutubeVideoId(visitedData.youtube);
+                        if (videoId) {
+                            youtubeContainer.innerHTML = createYoutubeEmbed(videoId);
+                            youtubeCard.style.display = 'block';
+                        }
+                    }
                 } else {
                     pYoutube.removeAttribute('href');
                     pYoutube.removeAttribute('target');
@@ -6866,6 +7148,10 @@ async function loadVisitorProfile() {
                     pYoutube.classList.add('disabled');
                     pYoutube.setAttribute('aria-disabled', 'true');
                     pYoutube.setAttribute('tabindex', '-1');
+                    
+                    // YouTube kartını gizle
+                    const youtubeCard = document.getElementById('profileYoutubeCard');
+                    if (youtubeCard) youtubeCard.style.display = 'none';
                 }
             }
             try {
@@ -8901,6 +9187,23 @@ function applyFriendSearch() {
     });
 }
 
+function syncAdminUiVisibility() {
+    const adminBtn = document.getElementById('adminMenuBtn');
+    const sidebarAdminBtn = document.getElementById('sidebarAdminBtn');
+    const isAdmin = Boolean(
+        window.user?.isAdmin === true ||
+        (auth?.currentUser?.email && auth.currentUser.email.toLowerCase() === ADMIN_EMAIL.toLowerCase())
+    );
+
+    [adminBtn, sidebarAdminBtn].forEach((btn) => {
+        if (!btn) return;
+        btn.style.display = isAdmin ? 'flex' : 'none';
+        btn.style.visibility = isAdmin ? 'visible' : 'hidden';
+        btn.setAttribute('aria-hidden', isAdmin ? 'false' : 'true');
+    });
+}
+window.syncAdminUiVisibility = syncAdminUiVisibility;
+
 // Arkadaşlar listesini yükle (isOwnProfile=true ise tüm arkadaşlar, false ise ortak arkadaşlar)
 async function loadFriendsList(userRef, isOwnProfile = true) {
     // Koruma: aynı hedef için çok kısa sürede birden fazla çağrı gelirse tekrar işleme
@@ -9192,6 +9495,7 @@ async function removeFriend(friendUid) {
 
 // Fonksiyonu HTML'den (onclick) erişilebilir hale getirir
 window.removeFriend = removeFriend;
+window.loadFriendsList = loadFriendsList;
 
 // Bir arkadaş ile ortak olan arkadaşları gösteren modal
 async function showMutuals(friendUid) {
@@ -13658,6 +13962,12 @@ async function loadBlogPostById(id) {
         if (contentEl) {
             contentEl.textContent = data.content || '';
             contentEl.dataset.originalEncoded = encodeURIComponent(data.content || '');
+            
+            // YouTube videolarını ekle
+            const youtubeHtml = extractAndRenderYoutubeVideos(data.content || '');
+            if (youtubeHtml) {
+                contentEl.innerHTML += youtubeHtml;
+            }
         }
 
         // show edit + delete icons for author (only one of each)

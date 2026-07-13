@@ -24,6 +24,43 @@ let currentPostsUnsubscribe = null;
 let communityComposerState = { imageBase64: null, poll: null };
 const communityEnglishTranslationCache = new Map();
 
+// YouTube URL'sinden video ID'sini çıkaran fonksiyon
+function extractYoutubeVideoId(url) {
+    if (!url) return null;
+    const videoIdPatterns = [
+        /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/,
+        /(?:^|[^=])v=([^&\n?#]+)/
+    ];
+    for (let pattern of videoIdPatterns) {
+        const match = url.match(pattern);
+        if (match && match[1]) return match[1];
+    }
+    return null;
+}
+
+// YouTube embed HTML'i oluşturan fonksiyon
+function createYoutubeEmbed(videoId) {
+    if (!videoId) return '';
+    return `<iframe width="100%" height="400" src="https://www.youtube.com/embed/${videoId}?modestbranding=1&rel=0" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen style="border-radius: 12px; margin-top: 16px;"></iframe>`;
+}
+
+// Topluluk gönderisinin metin kısmındaki YouTube linklerini tespit et ve videolarını embed et
+function extractAndRenderYoutubeVideos(text) {
+    if (!text || typeof text !== 'string') return '';
+    const urls = text.match(/https?:\/\/[^\s]+/g) || [];
+    const videoIds = [];
+    const seenIds = new Set();
+    for (const url of urls) {
+        const id = extractYoutubeVideoId(url);
+        if (id && !seenIds.has(id)) {
+            seenIds.add(id);
+            videoIds.push(id);
+        }
+    }
+    if (!videoIds.length) return '';
+    return videoIds.map(id => createYoutubeEmbed(id)).join('');
+}
+
 function getCommunityModerationFindings(text = '') {
   const lower = String(text || '').toLowerCase();
   if (!lower.trim()) return [];
@@ -1073,13 +1110,25 @@ function getCommunityInvitedUids(data = {}) {
   return invitedUsers.map((entry) => typeof entry === 'object' ? entry.uid : entry).filter(Boolean);
 }
 
+function getCommunityAdminUids(data = {}) {
+  const adminEntries = Array.isArray(data.admins) ? data.admins : [];
+  const adminUids = adminEntries.map((entry) => typeof entry === 'object' ? entry.uid : entry).filter(Boolean);
+  const ownerUid = data.ownerUid;
+  return Array.from(new Set([ownerUid, ...adminUids].filter(Boolean)));
+}
+
 function isCurrentUserAdmin() {
   return Boolean(window.user?.isAdmin) || localStorage.getItem('st_isAdmin') === '1';
 }
 
+function isCommunityAdminUser(data = {}, user = null) {
+  if (!user?.uid) return false;
+  return getCommunityAdminUids(data).includes(user.uid) || isCurrentUserAdmin();
+}
+
 function isCommunityVisibleToUser(data = {}, user = null) {
   if (!data?.isPrivate) return true;
-  if (isCurrentUserAdmin()) return true;
+  if (isCommunityAdminUser(data, user)) return true;
   if (!user?.uid) return false;
   const memberUids = getCommunityMemberUids(data);
   const invitedUids = getCommunityInvitedUids(data);
@@ -1290,6 +1339,7 @@ function renderCommunityPosts(container, posts) {
         <div id="community-post-content-${post.id}" data-original-encoded="${encodeURIComponent(post.content || '')}" class="post-content-view" style="color:var(--text-main); line-height:1.7; white-space:pre-wrap; font-size:0.95rem; margin-bottom:10px;">${escapeHtml(post.content || '')}</div>
         ${post.image ? `<div style="margin-bottom:10px;"><img src="${escapeHtml(post.image)}" alt="Topluluk fotoğrafı" style="max-width:100%; max-height:320px; border-radius:14px; object-fit:cover; border:1px solid var(--border);"></div>` : ''}
         ${post.poll ? renderCommunityPoll(post.poll, post.id) : ''}
+        ${extractAndRenderYoutubeVideos(post.content || '')}
         <div class="post-edit-area" style="display:none; margin-top:8px;">
           <textarea class="post-edit-textarea" rows="3" style="width:100%; border:1px solid var(--border); border-radius:12px; padding:10px 12px; background:rgba(255,255,255,0.04); color:var(--text-main); resize:vertical; box-sizing:border-box;">${escapeHtml(post.content || '')}</textarea>
           <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:8px;">
@@ -1975,18 +2025,34 @@ function renderCommunityMembersList(memberUids = []) {
     return;
   }
 
+  const canManageMembers = Boolean(currentUser?.uid) && isCommunityAdminUser(currentCommunityData, currentUser);
+  const isCurrentOwner = currentCommunityData?.ownerUid === currentUser?.uid;
   const memberItems = memberUids.map((member) => {
     const uid = typeof member === 'object' ? member.uid : member;
     const displayName = typeof member === 'object' ? (member.displayName || 'Üye') : 'Üye';
     const isOwner = uid === currentCommunityData?.ownerUid;
     const isCurrentUser = uid === currentUser?.uid;
-    const roleLabel = isOwner ? 'Yönetici' : isCurrentUser ? 'Sen' : 'Üye';
-    const roleText = isOwner ? 'Topluluğun kurucusu' : isCurrentUser ? 'Bu topluluğun üyesisin' : 'Katılan üye';
+    const isAdmin = getCommunityAdminUids(currentCommunityData).includes(uid);
+    const roleLabel = isOwner ? 'Sahip' : isAdmin ? 'Yönetici' : isCurrentUser ? 'Sen' : 'Üye';
+    const roleText = isOwner ? 'Topluluğun kurucusu' : isAdmin ? 'Topluluk yöneticisi' : isCurrentUser ? 'Bu topluluğun üyesisin' : 'Katılan üye';
     const badgeStyle = isOwner
       ? 'background:rgba(99,102,241,0.14); color:var(--primary);'
-      : isCurrentUser
+      : isAdmin
         ? 'background:rgba(16,185,129,0.16); color:#10b981;'
-        : 'background:rgba(255,255,255,0.06); color:var(--text-secondary);';
+        : isCurrentUser
+          ? 'background:rgba(255,255,255,0.06); color:var(--text-secondary);'
+          : 'background:rgba(255,255,255,0.06); color:var(--text-secondary);';
+
+    const actionButtons = [];
+    if (canManageMembers && !isOwner && !isCurrentUser && !isAdmin) {
+      actionButtons.push(`<button type="button" onclick="window.promoteCommunityAdmin('${uid}')" style="padding:6px 10px; border:none; border-radius:999px; background:rgba(99,102,241,0.12); color:var(--primary); cursor:pointer; font-weight:700; font-size:0.75rem;">Yönetici yap</button>`);
+    }
+    if (canManageMembers && !isOwner && !isCurrentUser && isAdmin) {
+      actionButtons.push(`<button type="button" onclick="window.demoteCommunityAdmin('${uid}')" style="padding:6px 10px; border:none; border-radius:999px; background:rgba(239,68,68,0.10); color:#dc2626; cursor:pointer; font-weight:700; font-size:0.75rem;">Yönetici kaldır</button>`);
+    }
+    if (isCurrentOwner && !isOwner && !isCurrentUser) {
+      actionButtons.push(`<button type="button" onclick="window.transferCommunityOwnership('${uid}')" style="padding:6px 10px; border:none; border-radius:999px; background:rgba(245,158,11,0.14); color:#d97706; cursor:pointer; font-weight:700; font-size:0.75rem;">Devret</button>`);
+    }
 
     return `
       <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; padding:12px 14px; border:1px solid rgba(99,102,241,0.12); border-radius:16px; background:rgba(255,255,255,0.05); box-shadow:0 6px 16px rgba(15,23,42,0.04);">
@@ -1999,7 +2065,10 @@ function renderCommunityMembersList(memberUids = []) {
             <div style="font-size:0.8rem; color:var(--text-secondary); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(roleText)}</div>
           </div>
         </div>
-        <span style="padding:4px 8px; border-radius:999px; font-size:0.75rem; font-weight:700; ${badgeStyle}">${escapeHtml(roleLabel)}</span>
+        <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap; justify-content:flex-end;">
+          <span style="padding:4px 8px; border-radius:999px; font-size:0.75rem; font-weight:700; ${badgeStyle}">${escapeHtml(roleLabel)}</span>
+          ${actionButtons.length ? `<div style="display:flex; gap:6px; flex-wrap:wrap;">${actionButtons.join('')}</div>` : ''}
+        </div>
       </div>
     `;
   }).join('');
@@ -2022,6 +2091,75 @@ function toggleCommunityMembersView(communityId) {
     renderCommunityMembersList(memberUids);
   }
 }
+
+async function updateCommunityAdminRole(targetUid, makeAdmin) {
+  if (!currentCommunityId || !currentUser?.uid || !currentCommunityData) return;
+  if (!targetUid || targetUid === currentCommunityData.ownerUid) return;
+  if (!isCommunityAdminUser(currentCommunityData, currentUser)) return;
+
+  const currentAdminUids = getCommunityAdminUids(currentCommunityData);
+  const nextAdminUids = makeAdmin
+    ? Array.from(new Set([...currentAdminUids, targetUid].filter(Boolean)))
+    : currentAdminUids.filter((uid) => uid !== targetUid);
+
+  const finalAdminUids = Array.from(new Set([currentCommunityData.ownerUid, ...nextAdminUids].filter(Boolean)));
+
+  await updateDoc(doc(communitiesCollection, currentCommunityId), {
+    admins: finalAdminUids
+  });
+
+  currentCommunityData = {
+    ...currentCommunityData,
+    admins: finalAdminUids
+  };
+  await openCommunityDetail(currentCommunityId);
+}
+
+window.promoteCommunityAdmin = async function(targetUid) {
+  if (!targetUid) return;
+  if (currentCommunityData?.ownerUid !== currentUser?.uid && !isCommunityAdminUser(currentCommunityData, currentUser)) {
+    alert('Yalnızca topluluk sahibi veya yöneticileri yeni yönetici atayabilir.');
+    return;
+  }
+  const confirmed = confirm('Bu üyeyi topluluk yöneticisi yapmak istiyor musunuz?');
+  if (!confirmed) return;
+  await updateCommunityAdminRole(targetUid, true);
+};
+
+window.demoteCommunityAdmin = async function(targetUid) {
+  if (!targetUid) return;
+  if (currentCommunityData?.ownerUid !== currentUser?.uid && !isCommunityAdminUser(currentCommunityData, currentUser)) {
+    alert('Yalnızca topluluk sahibi veya yöneticileri yöneticilik yetkisini kaldırabilir.');
+    return;
+  }
+  const confirmed = confirm('Bu yöneticinin yetkisini kaldırmak istiyor musunuz?');
+  if (!confirmed) return;
+  await updateCommunityAdminRole(targetUid, false);
+};
+
+window.transferCommunityOwnership = async function(targetUid) {
+  if (!currentCommunityId || !currentUser?.uid || !currentCommunityData) return;
+  if (currentCommunityData.ownerUid !== currentUser?.uid) {
+    alert('Yalnızca topluluğun sahibi yöneticiliği devredebilir.');
+    return;
+  }
+  if (!targetUid || targetUid === currentCommunityData.ownerUid) return;
+  const confirmed = confirm('Topluluk sahipliğini bu üyeye devretmek istiyor musunuz?');
+  if (!confirmed) return;
+
+  const nextAdminUids = Array.from(new Set([...(getCommunityAdminUids(currentCommunityData)), targetUid].filter(Boolean)));
+  await updateDoc(doc(communitiesCollection, currentCommunityId), {
+    ownerUid: targetUid,
+    admins: nextAdminUids
+  });
+
+  currentCommunityData = {
+    ...currentCommunityData,
+    ownerUid: targetUid,
+    admins: nextAdminUids
+  };
+  await openCommunityDetail(currentCommunityId);
+};
 
 async function inviteUserToCommunity(communityRef, communityData, targetUid) {
   if (!targetUid || targetUid === currentUser?.uid) {
@@ -2427,6 +2565,7 @@ async function createNewCommunity() {
       isPrivate: isPrivate,
       ownerUid: currentUser.uid,
       ownerName: currentUser.displayName || currentUser.email,
+      admins: [currentUser.uid],
       invitedUsers: [],
       members: [
         {

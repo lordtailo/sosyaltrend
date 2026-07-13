@@ -1,6 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import { getFirestore, doc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { getFirestore, doc, getDoc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyBegJHqlfPagx8biFyS_FnE3iXOksgfoAU",
@@ -15,6 +15,51 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
+const googleProvider = new GoogleAuthProvider();
+googleProvider.setCustomParameters({ prompt: 'select_account' });
+
+async function handleGoogleSignIn() {
+  const msg = document.getElementById('loginMsg') || document.getElementById('regMsg');
+  try {
+    showStatus(msg, 'Google ile bağlanılıyor...', '#4f46e5');
+    const result = await signInWithPopup(auth, googleProvider);
+    const user = result.user;
+    if (!user) throw new Error('Google kullanıcı bilgisi alınamadı.');
+
+    const userRef = doc(db, 'users', user.uid);
+    const snapshot = await getDoc(userRef);
+    if (!snapshot.exists()) {
+      const email = user.email || '';
+      const name = user.displayName || 'Google Kullanıcısı';
+      const username = email
+        ? email.split('@')[0].replace(/[^a-z0-9]/gi, '').toLowerCase().slice(0, 20) || `google${Date.now()}`
+        : `google${Date.now()}`;
+
+      await setDoc(userRef, {
+        displayName: name,
+        username,
+        email,
+        location: null,
+        hometown: null,
+        dob: null,
+        occupation: null,
+        website: null,
+        bio: null,
+        interests: null,
+        avatarUrl: user.photoURL || 'assets/img/strendsaydamv2.png',
+        provider: 'google',
+        createdAt: serverTimestamp(),
+        friends: [],
+        friendRequests: []
+      });
+    }
+
+    showStatus(msg, 'Google ile giriş başarılı! Yönlendiriliyorsunuz...', '#10b981');
+    setTimeout(() => (window.location.href = 'index.html'), 1200);
+  } catch (err) {
+    handleAuthError(msg, err.code || err.message);
+  }
+}
 
 window.toggleAuth = (target) => {
   const cards = document.querySelectorAll('.card');
@@ -83,6 +128,15 @@ function handleAuthError(el, code) {
       break;
     case 'auth/too-many-requests':
       message = 'Çok fazla deneme! Lütfen bekleyin.';
+      break;
+    case 'auth/popup-closed-by-user':
+      message = 'Google penceresini kapattınız, tekrar deneyin.';
+      break;
+    case 'auth/cancelled-popup-request':
+      message = 'Google oturumu iptal edildi.';
+      break;
+    case 'auth/account-exists-with-different-credential':
+      message = 'Bu e-posta başka bir yöntemle zaten kullanılıyor.';
       break;
   }
 

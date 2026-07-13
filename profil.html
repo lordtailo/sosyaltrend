@@ -620,6 +620,20 @@
             </div>
           </article>
         </div>
+
+        <article id="profileYoutubeCard" class="profile-card" style="display:none;">
+          <div class="card-header">
+            <div>
+              <h2 class="card-title">YouTube Kanalı</h2>
+              <p class="card-subtitle">Favori YouTube videolarınız.</p>
+            </div>
+          </div>
+          <div class="card-body">
+            <div id="youtubeContainer" style="width:100%;">
+              <!-- YouTube embed buraya yerleştirilecek -->
+            </div>
+          </div>
+        </article>
       </div>
 
       <div class="profile-tabs-card" style="margin-bottom:20px;">
@@ -680,7 +694,7 @@
 
               
 
-              <div id="friends-list" style="margin-top:18px; display:grid; grid-template-columns: repeat(auto-fill, minmax(180px,1fr)); gap:12px;"></div>
+              <div id="friends-list" style="margin-top:18px; display:grid; grid-template-columns: repeat(auto-fill, minmax(180px,1fr)); gap:12px; min-height: 120px;"></div>
               <div id="no-friends-msg" style="display:none; text-align:center; color:var(--text-muted); padding:30px 0;">Henüz arkadaş bulunamadı.</div>
             </div>
           </section>
@@ -1094,8 +1108,11 @@ window.toggleQuickInterest = function(button, interestLabel) {
         tablinks[i].classList.remove("active");
     }
     
-    document.getElementById(tabName).style.display = "block";
-    document.getElementById(tabName).classList.add("active");
+    const targetTabContent = document.getElementById(tabName);
+    if (targetTabContent) {
+        targetTabContent.style.display = "block";
+        targetTabContent.classList.add("active");
+    }
     if (evt && evt.currentTarget) {
         evt.currentTarget.classList.add("active");
     }
@@ -1131,7 +1148,7 @@ window.toggleQuickInterest = function(button, interestLabel) {
                     const searchInput = document.getElementById('friendSearch');
                     if (searchInput) searchInput.value = '';
                     window.loadFriendsList(null, isOwnProfile);
-                }, 0);
+                }, 50);
             }
         });
     }
