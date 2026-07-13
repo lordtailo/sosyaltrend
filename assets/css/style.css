@@ -6455,8 +6455,6 @@ font-size: 0.9rem; font-weight: 800; color: var(--primary); margin: 20px 0 10px;
         margin-top: 4px;
     }
   .fab-compose { display: none; }
-    /* Avoid content being hidden behind the bottom navigation */
-    body { padding-bottom: 84px; }
 
     /* Make header chat button look like mobile bottom nav action on small screens */
     /* sendHeaderMessageBtn removed */
