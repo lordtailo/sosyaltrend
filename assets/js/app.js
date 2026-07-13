@@ -180,6 +180,12 @@ function extractAndRenderYoutubeVideos(text) {
     return videoIds.map(id => createYoutubeEmbed(id)).join('');
 }
 
+function stripYoutubeLinks(text) {
+    if (!text || typeof text !== 'string') return '';
+    const stripped = text.replace(/(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/watch\?v=[A-Za-z0-9_-]{11}(?:[^\s]*)?|youtu\.be\/[A-Za-z0-9_-]{11}(?:[^\s]*)?|youtube\.com\/embed\/[A-Za-z0-9_-]{11}(?:[^\s]*)?)/gi, '');
+    return stripped.replace(/\s{2,}/g, ' ').trim();
+}
+
 function getVisitedProfileUsername() {
     const params = new URLSearchParams(location.search);
     return params.get('id') || params.get('u') || params.get('username') || null;
@@ -5943,7 +5949,7 @@ window.loadPostsFeed = (showAll = false) => {
               
               // Decode content and prepare rendering
               const decoded = decodeEntities ? decodeEntities(p.content || "") : (p.content || "");
-              const contentWithLinks = decoded.replace(/(#[\wığüşöçİĞÜŞÖÇ]+)/g, '<span class="hashtag-link" onclick="searchTrend(\'$1\')">$1</span>');
+              const contentWithLinks = stripYoutubeLinks(decoded).replace(/(#[\wığüşöçİĞÜŞÖÇ]+)/g, '<span class="hashtag-link" onclick="searchTrend(\'$1\')">$1</span>');
               const avatarUrl = getAvatarUrl(p.avatarUrl || p.avatarSeed || 'assets/img/strendsaydamv2.png', 'user');
               const authorDisplayName = escapeHtml(p.name || p.displayName || p.authorDisplayName || p.username || 'Kullanıcı');
               const authorUsername = p.username || p.authorUsername || p.displayName || 'kullanici';
@@ -7209,7 +7215,7 @@ async function loadVisitorProfile() {
                     // Gelen içerikte HTML-entity olarak girilmiş emojiler olabilir,
                     // decodeEntities kullanarak bunları dönüştürelim.
                     const decodedPost = decodeEntities ? decodeEntities(post.content || "") : (post.content || "");
-                    const contentWithLinks = decodedPost.replace(/(#[\wığüşöçİĞÜŞÖÇ]+)/g, '<span class="hashtag-link" onclick="searchTrend(\'$1\')">$1</span>');
+                    const contentWithLinks = stripYoutubeLinks(decodedPost).replace(/(#[\wığüşöçİĞÜŞÖÇ]+)/g, '<span class="hashtag-link" onclick="searchTrend(\'$1\')">$1</span>');
                     const postTextClass = decodedPost.length > 280 ? ' post-text-clamp' : '';
                     const postReadMoreButton = decodedPost.length > 280 ? `<button id="toggle-${post.id}" class="read-more-btn" onclick="togglePostContent('${post.id}')"><i class="fa-solid fa-chevron-down"></i> Daha fazlasını gör</button>` : '';
                     
@@ -7403,7 +7409,7 @@ window.loadProfileSections = async (section = 'all', showAllPosts = false, showA
             const isSaved = p.savedBy?.includes(uname);
             const canReportPost = true;
             const decodedProfileContent = decodeEntities ? decodeEntities(p.content||"") : (p.content||"");
-            const profileContentWithLinks = decodedProfileContent.replace(/(#[\wığüşöçİĞÜŞÖÇ]+)/g,'<span class="hashtag-link" onclick="searchTrend(\'$1\')">$1</span>');
+            const profileContentWithLinks = stripYoutubeLinks(decodedProfileContent).replace(/(#[\wığüşöçİĞÜŞÖÇ]+)/g,'<span class="hashtag-link" onclick="searchTrend(\'$1\')">$1</span>');
             const profileReadMoreBtn = decodedProfileContent.length > 280 ? `<button id="toggle-${d.id}" class="read-more-btn" onclick="togglePostContent('${d.id}')"><i class="fa-solid fa-chevron-down"></i> Daha fazlasını gör</button>` : '';
             const profileTextClass = decodedProfileContent.length > 280 ? ' post-text-clamp' : '';
             
@@ -11764,49 +11770,6 @@ window.closeChatsList = function() {
     document.body.classList.remove('chat-open');
 }
 
-window.initChatPage = function() {
-    const shell = document.getElementById('chat-page-shell');
-    if (!shell) return;
-
-    if (!document.getElementById('chat-lists-panel')) {
-        initChatListsPanel();
-    }
-    if (!document.getElementById('chat-widget-container')) {
-        initChatWidget();
-    }
-
-    const panel = document.getElementById('chat-lists-panel');
-    const widget = document.getElementById('chat-widget-container');
-
-    if (panel && panel.parentElement !== shell) {
-        shell.appendChild(panel);
-    }
-    if (widget && widget.parentElement !== shell) {
-        shell.appendChild(widget);
-    }
-
-    document.body.classList.add('chat-open');
-    if (panel) panel.classList.add('active');
-    if (widget) widget.classList.add('active');
-
-    loadRecentChats();
-};
-
-window.openUnreadChatsPanel = async function() {
-    if (!auth.currentUser) {
-        alert('Lütfen giriş yapın');
-        return;
-    }
-    if (!document.getElementById('chat-lists-panel')) {
-        initChatListsPanel();
-    }
-    const panel = document.getElementById('chat-lists-panel');
-    if (panel && !panel.classList.contains('active')) {
-        panel.classList.add('active');
-    }
-    await loadUnreadChats();
-}
-
 // Load friends for chat
 
 window.loadChatFriends = async function() {
@@ -13960,8 +13923,7 @@ async function loadBlogPostById(id) {
         if (titleEl) titleEl.textContent = data.title || '';
         if (categoryEl) categoryEl.textContent = `Kategori: ${data.category || 'Genel'}`;
         if (contentEl) {
-            contentEl.textContent = data.content || '';
-            contentEl.dataset.originalEncoded = encodeURIComponent(data.content || '');
+                contentEl.textContent = stripYoutubeLinks(data.content || '');
             
             // YouTube videolarını ekle
             const youtubeHtml = extractAndRenderYoutubeVideos(data.content || '');
@@ -14615,14 +14577,6 @@ document.addEventListener('DOMContentLoaded', () => {
     initChatListsPanel();
     loadStoredChatNotifications();
 
-    if (window.location.pathname.toLowerCase().endsWith('/sohbet.html')) {
-        setTimeout(() => {
-            if (typeof window.initChatPage === 'function') {
-                window.initChatPage();
-            }
-        }, 0);
-    }
-
     // blog page init
     if (document.getElementById('page-blog')) {
         updateBlogViewFromUrl();
@@ -14747,98 +14701,5 @@ window.deleteBlogPost = deleteBlogPost;
  * Sohbet sayfasında chat header'ı güncelle
  * @param {Object|null} participant - { name, avatar, online } veya null (gizle)
  */
-window.spUpdateHeader = function(participant) {
-  const header = document.getElementById('sp-chat-header');
-  if (!header) return;
-
-  if (!participant) {
-    // Header gizle
-    header.style.display = 'none';
-    return;
-  }
-
-  // Header göster ve güncelle
-  header.style.display = '';
-
-  // Avatar
-  const avatarImg = document.getElementById('sp-chat-avatar');
-  if (avatarImg) {
-    avatarImg.src = participant.avatar || 'assets/img/default-avatar.png';
-    avatarImg.onerror = function() { this.src = 'assets/img/default-avatar.png'; };
-  }
-
-  // Name
-  const nameEl = document.getElementById('sp-chat-name');
-  if (nameEl) nameEl.textContent = participant.name || 'Kullanıcı';
-
-  // Status
-  const statusEl = document.getElementById('sp-chat-status');
-  if (statusEl) {
-    statusEl.textContent = participant.online ? 'Çevrimiçi' : 'Çevrimdışı';
-  }
-
-  // Status Dot
-  const statusDot = document.getElementById('sp-chat-status-dot');
-  if (statusDot) {
-    statusDot.classList.toggle('offline', !participant.online);
-  }
-};
-
-/**
- * Sohbet sayfasında: bir arkadaşla sohbet aç
- * Orijinal openChatWithFriend fonksiyonunu yükseltelim
- */
-if (typeof window.openChatWithFriend === 'function') {
-  const originalOpenChat = window.openChatWithFriend;
-  window.openChatWithFriend = function(friendUid, friendName, friendAvatar) {
-    // Orijinal fonksiyonu çalıştır
-    originalOpenChat(friendUid, friendName, friendAvatar);
-    
-    // Sohbet sayfasında ise header'ı güncelle
-    if (document.body.classList.contains('sohbet-pg')) {
-      const onlineStatus = document.querySelector(`[data-uid="${friendUid}"] .online-indicator`)?.classList.contains('active') || false;
-      window.spUpdateHeader({
-        name: friendName,
-        avatar: friendAvatar,
-        online: onlineStatus
-      });
-    }
-  };
-}
-
-/**
- * Sohbet sayfasında: grup sohbeti aç
- */
-if (typeof window.openGroupChat === 'function') {
-  const originalOpenGroup = window.openGroupChat;
-  window.openGroupChat = function(groupUid, groupName, groupAvatar, groupDescription) {
-    // Orijinal fonksiyonu çalıştır
-    originalOpenGroup(groupUid, groupName, groupAvatar, groupDescription);
-    
-    // Sohbet sayfasında ise header'ı güncelle
-    if (document.body.classList.contains('sohbet-pg')) {
-      window.spUpdateHeader({
-        name: groupName,
-        avatar: groupAvatar,
-        online: true
-      });
-    }
-  };
-}
-
-/**
- * Sohbet sayfasında: sohbeti kapat
- */
-if (typeof window.closeChatWidget === 'function') {
-  const originalCloseChat = window.closeChatWidget;
-  window.closeChatWidget = function() {
-    // Sohbet sayfasında ise header'ı gizle
-    if (document.body.classList.contains('sohbet-pg')) {
-      window.spUpdateHeader(null);
-    }
-    // Orijinal fonksiyonu çalıştır
-    originalCloseChat();
-  };
-}
 
 

@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SosyalTrend • Bilgi Sayfası</title>
+  <meta name="description" content="SosyalTrend bilgi sayfası. Giriş ekranına geri dönme seçeneğiyle birlikte.">
+  <link rel="icon" type="image/x-icon" href="assets/img/strendsaydamv2.ico">
+  <link rel="stylesheet" href="assets/css/login.css">
+</head>
+<body class="login-page">
+  <div class="wrapper">
+    <div class="left">
+      <div class="hero-icon">✨</div>
+      <h1>SosyalTrend</h1>
+      <p>Trendleri yakalamak ve topluluğa katılmak için hemen aramıza katılın.</p>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="card active info-card">
+      <h1 id="infoTitle">Bilgi Sayfası</h1>
+      <p class="subtitle" id="infoSubtitle">İçeriği seçtiğiniz bağlantıya göre hazırladık.</p>
+      <div id="infoBody"></div>
+      <a class="back-link" href="login.html">Giriş kısmına geri dön</a>
+    </div>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-links">
+      <span>© 2026 SosyalTrend</span>
+      <a href="info-page.html?section=faq">S.S.S</a>
+      <a href="info-page.html?section=privacy">Gizlilik Politikası</a>
+      <a href="info-page.html?section=about">Hakkımızda</a>
+      <a href="info-page.html?section=contact">İletişim</a>
+    </div>
+  </footer>
+
+  <script>
+    const sections = {
+      faq: {
+        title: 'S.S.S',
+        subtitle: 'Sıkça sorulan sorulara hızlı cevaplar.',
+        body: '<p>SosyalTrend ile ilgili en çok merak edilen konular burada özetlenmiştir.</p><ul class="info-list"><li>Hesabınızı nasıl yöneteceğinizi öğrenebilirsiniz.</li><li>Profil, güvenlik ve ayarlar hakkında bilgi alabilirsiniz.</li><li>Platformu daha iyi kullanmak için kısa rehberler bulabilirsiniz.</li></ul>'
+      },
+      privacy: {
+        title: 'Gizlilik Politikası',
+        subtitle: 'Verilerinizin nasıl korunduğunu ve kullanıldığını öğrenin.',
+        body: '<p>Gizliliğiniz bizim için önemlidir. Bu platformda kişisel verilerinizin güvenliğini önceliklendiriyoruz.</p><ul class="info-list"><li>Paylaştığınız bilgileri yalnızca hizmet kalitesi için kullanırız.</li><li>Üçüncü taraflarla izinsiz veri paylaşımı yapmayız.</li><li>İsterseniz hesabınızla ilgili ayarları istediğiniz zaman güncelleyebilirsiniz.</li></ul>'
+      },
+      about: {
+        title: 'Hakkımızda',
+        subtitle: 'SosyalTrend’in amacı ve yaklaşımı.',
+        body: '<p>SosyalTrend, kullanıcıların birbirleriyle bağlantı kurduğu, içerik paylaştığı ve topluluk oluşturduğu modern bir sosyal platformdur.</p><ul class="info-list"><li>Hızlı, sade ve kullanıcı dostu bir deneyim sunar.</li><li>Topluluk odaklı bir yapı sağlar.</li><li>Güvenli kullanım ve düzenli gelişim hedeflenir.</li></ul>'
+      },
+      contact: {
+        title: 'İletişim',
+        subtitle: 'Sorularınız, önerileriniz veya destek talepleriniz için bizimle bağlantıya geçin.',
+        body: '<p>İletişim sayfası sayesinde görüşlerinizi, önerilerinizi ve destek isteklerinizi doğrudan iletebilirsiniz.</p><ul class="info-list"><li>Teknik destek taleplerinizi paylaşabilirsiniz.</li><li>Platforma dair önerilerinizi iletebilirsiniz.</li><li>İş birliği ve topluluk ile ilgili mesajlarınızı gönderebilirsiniz.</li></ul>'
+      }
+    };
+
+    const params = new URLSearchParams(window.location.search);
+    const key = params.get('section') || 'faq';
+    const page = sections[key] || sections.faq;
+
+    document.getElementById('infoTitle').textContent = page.title;
+    document.getElementById('infoSubtitle').textContent = page.subtitle;
+    document.getElementById('infoBody').innerHTML = page.body;
+    document.title = `${page.title} • SosyalTrend`;
+  </script>
+</body>
+</html>

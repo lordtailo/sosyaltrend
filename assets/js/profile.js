@@ -64,6 +64,12 @@ function escapeHTML(value) {
   }[char]));
 }
 
+function stripYoutubeLinks(text) {
+  if (!text || typeof text !== 'string') return '';
+  const stripped = text.replace(/(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/watch\?v=[A-Za-z0-9_-]{11}(?:[^\s]*)?|youtu\.be\/[A-Za-z0-9_-]{11}(?:[^\s]*)?|youtube\.com\/embed\/[A-Za-z0-9_-]{11}(?:[^\s]*)?)/gi, '');
+  return stripped.replace(/\s{2,}/g, ' ').trim();
+}
+
 function formatTimestamp(value) {
   if (!value) return '—';
   const date = value.toDate ? value.toDate() : (value.seconds ? new Date(value.seconds * 1000) : new Date(value));
@@ -71,7 +77,7 @@ function formatTimestamp(value) {
 }
 
 function createPostCard(post) {
-  const content = escapeHTML(post.content || '');
+  const content = escapeHTML(stripYoutubeLinks(post.content || ''));
   const linkedContent = content.replace(/(#[\wığüşöçİĞÜŞÖÇ]+)/g, '<span class="hashtag-link">$1</span>');
   const imageHtml = post.image ? `<div class="post-image-wrapper" style="margin:12px 0; border-radius:12px; overflow:hidden; border:1px solid var(--border); background:#f8fafc;"><img src="${escapeHTML(post.image)}" alt="Gönderi görseli" style="width:100%; height:auto; display:block;"></div>` : '';
   const avatarUrl = escapeHTML(resolveAvatarUrl(post.avatarUrl || post.avatar || post.avatarSeed || post.photoURL || DEFAULT_AVATAR_URL));

@@ -18,8 +18,18 @@ const db = getFirestore(app);
 const googleProvider = new GoogleAuthProvider();
 googleProvider.setCustomParameters({ prompt: 'select_account' });
 
-async function handleGoogleSignIn() {
-  const msg = document.getElementById('loginMsg') || document.getElementById('regMsg');
+async function handleGoogleSignIn(event) {
+  if (event && typeof event.preventDefault === 'function') {
+    event.preventDefault();
+  }
+  const currentCard = event?.currentTarget?.closest('.card') || document.querySelector('.card.active');
+  const msg = currentCard?.querySelector('.authMsg') || document.getElementById('loginMsg') || document.getElementById('regMsg');
+
+  if (window.location.protocol === 'file:') {
+    showStatus(msg, 'Google ile giriş dosya protokolünde çalışmaz. Lütfen sayfayı http://localhost veya http://127.0.0.1 üzerinden açın.', '#ef4444');
+    return;
+  }
+
   try {
     showStatus(msg, 'Google ile bağlanılıyor...', '#4f46e5');
     const result = await signInWithPopup(auth, googleProvider);
@@ -57,7 +67,9 @@ async function handleGoogleSignIn() {
     showStatus(msg, 'Google ile giriş başarılı! Yönlendiriliyorsunuz...', '#10b981');
     setTimeout(() => (window.location.href = 'index.html'), 1200);
   } catch (err) {
-    handleAuthError(msg, err.code || err.message);
+    console.error('Google sign-in error:', err);
+    console.error('Current origin:', window.location.origin, 'protocol:', window.location.protocol);
+    handleAuthError(msg, err.code || err.message || err);
   }
 }
 
@@ -113,6 +125,12 @@ function handleAuthError(el, code) {
   if (!el) return;
   let message = 'Bir hata oluştu.';
 
+  if (typeof code === 'string' && !code.startsWith('auth/')) {
+    message = code;
+    showStatus(el, message, '#ef4444');
+    return;
+  }
+
   switch (code) {
     case 'auth/user-not-found':
       message = 'Kullanıcı bulunamadı.';
@@ -132,12 +150,31 @@ function handleAuthError(el, code) {
     case 'auth/popup-closed-by-user':
       message = 'Google penceresini kapattınız, tekrar deneyin.';
       break;
+    case 'auth/popup-blocked':
+      message = 'Google açılır penceresi engellendi. Lütfen tarayıcı ayarlarınızı kontrol edin.';
+      break;
     case 'auth/cancelled-popup-request':
       message = 'Google oturumu iptal edildi.';
       break;
     case 'auth/account-exists-with-different-credential':
       message = 'Bu e-posta başka bir yöntemle zaten kullanılıyor.';
       break;
+    case 'auth/operation-not-allowed':
+      message = 'Google oturum açma Firebase konsolunda etkin değil.';
+      break;
+    case 'auth/unauthorized-domain':
+      message = 'Bu alan adı Google ile giriş için yetkili değil. Lütfen Firebase Console’da Authorized domains altına bu adresi ekleyin.';
+      break;
+    case 'auth/network-request-failed':
+      message = 'Ağ hatası oluştu. İnternet bağlantınızı kontrol edin.';
+      break;
+    case 'auth/internal-error':
+      message = 'Sunucu hatası oluştu. Lütfen tekrar deneyin.';
+      break;
+  }
+
+  if (message === 'Bir hata oluştu.' && typeof code === 'string' && code.startsWith('auth/')) {
+    message = `${code.replace('auth/', '')} hatası oluştu.`;
   }
 
   showStatus(el, message, '#ef4444');
@@ -259,5 +296,6 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('loginForm')?.addEventListener('submit', handleLogin);
   document.getElementById('registerForm')?.addEventListener('submit', handleRegister);
   document.getElementById('forgotForm')?.addEventListener('submit', handleForgot);
+  document.querySelectorAll('.google-auth-btn').forEach(btn => btn.addEventListener('click', handleGoogleSignIn));
   showRegisterStep(1);
 });

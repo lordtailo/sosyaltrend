@@ -24,13 +24,14 @@
     <h1>🔑 Giriş Yap</h1>
     <p class="subtitle">Bilgilerinizi girerek devam edin</p>
     <form id="loginForm">
-        <input id="loginEmail" type="email" placeholder="E‑posta Adresi" required autocomplete="username" />
+        <input id="loginEmail" type="email" placeholder="E‑ posta Adresi" required autocomplete="username" />
         <input id="loginPassword" type="password" placeholder="Şifre" required autocomplete="current-password" />
         <div class="forgot-container">
           <span class="forgot-link" onclick="toggleAuth('forgot')">Şifremi Unuttum?</span>
         </div>
         <button type="submit">Giriş Yap</button>
     </form>
+    <div class="auth-or"><span>veya</span></div>
     <button type="button" class="google-auth-btn">Google ile devam et</button>
     <p id="loginMsg" class="authMsg"></p>
     <span class="toggle-link" onclick="toggleAuth('register')">Hesabınız yok mu? Kayıt Olun</span>
@@ -65,9 +66,22 @@
         </div>
       </div>
     </form>
-    <button type="button" class="google-auth-btn">Google ile devam et</button>
+    <div class="auth-or"><span>veya</span></div>
+    <button type="button" class="google-auth-btn">Google ile kayıt ol</button>
     <p id="regMsg" class="authMsg"></p>
     <span class="toggle-link" onclick="toggleAuth('login')">Zaten hesabınız var mı? Giriş Yap</span>
+  </div>
+
+  <div id="forgotCard" class="card">
+    <div class="section-icon">✉️</div>
+    <h1>Şifre Yenileme</h1>
+    <p class="subtitle">E-posta adresinizi girin, size bir sıfırlama bağlantısı gönderelim.</p>
+    <form id="forgotForm">
+        <input id="resetEmail" type="email" placeholder="E‑posta Adresi" required />
+        <button type="submit">Sıfırlama Bağlantısı Gönder</button>
+    </form>
+    <p id="resetMsg" class="authMsg"></p>
+    <span class="toggle-link" onclick="toggleAuth('login')">Anasayfaya dönmek istermisin? Girişe Dön</span>
   </div>
 
   <div id="forgotCard" class="card">
@@ -88,10 +102,10 @@
 <footer class="site-footer">
   <div class="footer-links">
     <span>© 2026 SosyalTrend</span>
-    <a href="yardim.html">S.S.S</a>
-    <a href="yardim.html">Gizlilik Politikası</a>
-    <a href="hakkimizda.html">Hakkımızda</a>
-    <a href="contact.html">İletişim</a>
+    <a href="info-page.html?section=faq">S.S.S</a>
+    <a href="info-page.html?section=privacy">Gizlilik Politikası</a>
+    <a href="info-page.html?section=about">Hakkımızda</a>
+    <a href="info-page.html?section=contact">İletişim</a>
   </div>
 </footer>
 

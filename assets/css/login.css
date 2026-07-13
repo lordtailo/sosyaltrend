@@ -73,6 +73,41 @@ body.login-page .card.active {
   animation: fadeIn 0.5s ease;
 }
 
+body.login-page .info-card {
+  text-align: left;
+  padding: 32px;
+}
+
+body.login-page .info-card h1 {
+  text-align: left;
+  margin-bottom: 8px;
+  font-size: 1.7rem;
+}
+
+body.login-page .info-card .subtitle {
+  text-align: left;
+  margin-bottom: 16px;
+}
+
+body.login-page .info-list {
+  margin: 16px 0 0;
+  padding-left: 18px;
+  color: #64748b;
+  line-height: 1.7;
+}
+
+body.login-page .back-link {
+  display: inline-block;
+  margin-top: 24px;
+  font-weight: 700;
+  color: var(--primary);
+  text-decoration: none;
+}
+
+body.login-page .back-link:hover {
+  text-decoration: underline;
+}
+
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -187,6 +222,33 @@ body.login-page .google-auth-btn {
 
 body.login-page .google-auth-btn:hover {
   background: #f7f7f7;
+}
+
+body.login-page .auth-or {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 12px 0 14px;
+  position: relative;
+}
+
+body.login-page .auth-or span {
+  padding: 0 14px;
+  font-size: 0.9rem;
+  color: #7a8196;
+  background: var(--card);
+  z-index: 1;
+}
+
+body.login-page .auth-or::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  height: 1px;
+  background: #e0e4ed;
 }
 
 body.login-page .google-auth-btn::before {

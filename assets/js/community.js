@@ -61,6 +61,12 @@ function extractAndRenderYoutubeVideos(text) {
     return videoIds.map(id => createYoutubeEmbed(id)).join('');
 }
 
+function stripYoutubeLinks(text) {
+    if (!text || typeof text !== 'string') return '';
+    const stripped = text.replace(/(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/watch\?v=[A-Za-z0-9_-]{11}(?:[^\s]*)?|youtu\.be\/[A-Za-z0-9_-]{11}(?:[^\s]*)?|youtube\.com\/embed\/[A-Za-z0-9_-]{11}(?:[^\s]*)?)/gi, '');
+    return stripped.replace(/\s{2,}/g, ' ').trim();
+}
+
 function getCommunityModerationFindings(text = '') {
   const lower = String(text || '').toLowerCase();
   if (!lower.trim()) return [];
@@ -1336,7 +1342,7 @@ function renderCommunityPosts(container, posts) {
           </div>
         </div>
 
-        <div id="community-post-content-${post.id}" data-original-encoded="${encodeURIComponent(post.content || '')}" class="post-content-view" style="color:var(--text-main); line-height:1.7; white-space:pre-wrap; font-size:0.95rem; margin-bottom:10px;">${escapeHtml(post.content || '')}</div>
+        <div id="community-post-content-${post.id}" data-original-encoded="${encodeURIComponent(post.content || '')}" class="post-content-view" style="color:var(--text-main); line-height:1.7; white-space:pre-wrap; font-size:0.95rem; margin-bottom:10px;">${escapeHtml(stripYoutubeLinks(post.content || ''))}</div>
         ${post.image ? `<div style="margin-bottom:10px;"><img src="${escapeHtml(post.image)}" alt="Topluluk fotoğrafı" style="max-width:100%; max-height:320px; border-radius:14px; object-fit:cover; border:1px solid var(--border);"></div>` : ''}
         ${post.poll ? renderCommunityPoll(post.poll, post.id) : ''}
         ${extractAndRenderYoutubeVideos(post.content || '')}
