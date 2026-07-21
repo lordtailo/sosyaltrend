@@ -1716,45 +1716,42 @@ function buildAnnouncementCard(announcementId, data, currentUsername) {
     card.className = 'glass-card post-composer announcement-card';
     card.setAttribute('data-announcement-id', announcementId);
     card.setAttribute('data-announcement-data', JSON.stringify(data));
-    card.style.cssText = `
-        border: 1px solid rgba(99, 102, 241, 0.16);
-        background: linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.92));
-        position: relative;
-        padding: 18px 18px 16px;
-        box-shadow: 0 12px 24px rgba(15, 23, 42, 0.05);
-        border-radius: 20px;
-    `;
 
     card.innerHTML = `
-        <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:10px;">
-            <div style="display:flex; gap:12px; align-items:center; flex:1; min-width:0;">
-                <div style="width:44px; height:44px; border-radius:14px; background:linear-gradient(135deg, var(--primary), #8b5cf6); display:flex; align-items:center; justify-content:center; color:#fff; font-weight:800; box-shadow:0 8px 18px rgba(99,102,241,0.24); flex-shrink:0;">
-                    <i class="fa-solid fa-circle-check"></i>
-                </div>
-                <div style="min-width:0; flex:1;">
-                    <div style="font-weight:800; display:flex; align-items:center; gap:6px; cursor:pointer; color:var(--text-main); font-size:0.96rem;" onclick="location.href='profil.html?id=official_system'">
+        <div class="announcement-header">
+            <div class="announcement-author">
+                <div class="announcement-avatar"><i class="fa-solid fa-bullhorn"></i></div>
+                <div class="announcement-details">
+                    <div class="announcement-title">
                         SosyaLTrend Duyurusu
-                        <i class="fa-solid fa-circle-check" style="color:var(--primary); font-size:0.72rem;"></i>
+                        <span class="announcement-badge">Resmi</span>
                     </div>
-                    <div style="font-size:0.76rem; color:var(--text-muted); cursor:pointer; margin-top:2px;" onclick="location.href='profil.html?id=official_system'">@official_system</div>
+                    <div class="announcement-subtitle">@official_system</div>
                 </div>
             </div>
-            <div style="font-size:0.76rem; color:var(--text-muted); font-weight:700; white-space:nowrap; text-align:right; flex-shrink:0;">${createdAt}</div>
+            <div class="announcement-meta">${createdAt}</div>
         </div>
-        
-        <div class="post-content-block" style="margin-bottom:14px; padding:13px 14px; border-radius:16px; background:rgba(255,255,255,0.65); border:1px solid rgba(99,102,241,0.12);">
-            <p style="white-space: pre-wrap; margin:0; color: var(--text-main); font-size: 0.95rem; line-height: 1.65;">${content}</p>
+        <div class="announcement-content">
+            ${content}
         </div>
-
-        <div id="comments-ann-${announcementId}" class="comment-area" style="display:none; margin-top:8px; padding-top:8px; border-top:1px solid rgba(99,102,241,0.12);">
-            <div class="comment-input-area" style="display:flex; gap:10px; margin-bottom:12px;">
-                <img src="${(window.user && window.user.avatarUrl) || 'assets/img/strendsaydamv2.png'}" style="width:32px; height:32px; border-radius:50%;">
-                <div style="flex:1; display:flex; gap:8px;">
-                    <input id="input-ann-${announcementId}" type="text" placeholder="Yorum yaz..." style="flex:1; border:1px solid var(--border); border-radius:20px; padding:8px 16px; background:var(--input-bg); color:var(--text-main); outline:none;">
-                    <button onclick="postAnnouncementComment('${announcementId}')" style="background:var(--primary); color:white; border:none; border-radius:20px; padding:8px 16px; cursor:pointer; font-weight:700;">Gönder</button>
+        <div class="announcement-footer">
+            <div class="announcement-stats">
+                <span>${likeCount} beğeni</span>
+                <span><span class="announcement-comment-count">${commentCount}</span> yorum</span>
+            </div>
+            <button id="comment-toggle-${announcementId}" class="announcement-action-btn" type="button" onclick="toggleAnnouncementComments('${announcementId}')">
+                ${commentCount > 0 ? `Yorumları Göster (${commentCount})` : 'Yorumları Göster'}
+            </button>
+        </div>
+        <div id="comments-ann-${announcementId}" class="comment-area announcement-comment-area">
+            <div class="comment-input-area">
+                <img src="${(window.user && window.user.avatarUrl) || 'assets/img/strendsaydamv2.png'}" alt="Avatar">
+                <div class="comment-row-inner">
+                    <input id="input-ann-${announcementId}" type="text" placeholder="Yorum yaz...">
+                    <button class="comment-submit-btn" type="button" onclick="postAnnouncementComment('${announcementId}')">Gönder</button>
                 </div>
             </div>
-            <div id="list-ann-${announcementId}"></div>
+            <div id="list-ann-${announcementId}" class="announcement-comment-list"></div>
         </div>
     `;
 
@@ -1847,8 +1844,15 @@ window.likeAnnouncement = async (announcementId, isCurrentlyLiked, btn) => {
 // Duyuru yorum
 window.toggleAnnouncementComments = (announcementId) => {
     const commentArea = document.getElementById(`comments-ann-${announcementId}`);
-    if (commentArea) {
-        commentArea.style.display = commentArea.style.display === 'none' ? 'block' : 'none';
+    const toggleButton = document.getElementById(`comment-toggle-${announcementId}`);
+    if (!commentArea) return;
+
+    const isExpanded = commentArea.classList.toggle('expanded');
+    if (toggleButton) {
+        const commentCount = Number(document.querySelector(`[data-announcement-id="${announcementId}"] .announcement-comment-count`)?.textContent || 0);
+        toggleButton.textContent = isExpanded
+            ? `Yorumları Gizle (${commentCount})`
+            : (commentCount > 0 ? `Yorumları Göster (${commentCount})` : 'Yorumları Göster');
     }
 };
 
@@ -1883,15 +1887,22 @@ window.postAnnouncementComment = async (announcementId) => {
         await updateDoc(ref, { comments: [...comments, newComment] });
         
         input.value = '';
-        // Yorum listesini güncelle
-        renderAnnouncementComments(announcementId, [...comments, newComment]);
+        const updatedComments = [...comments, newComment];
+        renderAnnouncementComments(announcementId, updatedComments);
         
-        // Yorum sayacını güncelle
         const announcementCard = document.querySelector(`[data-announcement-id="${announcementId}"]`);
         if (announcementCard) {
-            const commentBtn = announcementCard.querySelector('button:nth-of-type(2) span');
-            if (commentBtn) {
-                commentBtn.textContent = parseInt(commentBtn.textContent || 0) + 1;
+            const commentCount = announcementCard.querySelector('.announcement-comment-count');
+            const toggleButton = document.getElementById(`comment-toggle-${announcementId}`);
+            if (commentCount) {
+                commentCount.textContent = updatedComments.length;
+            }
+            if (toggleButton) {
+                toggleButton.textContent = `Yorumları Gizle (${updatedComments.length})`;
+            }
+            const commentArea = document.getElementById(`comments-ann-${announcementId}`);
+            if (commentArea && !commentArea.classList.contains('expanded')) {
+                commentArea.classList.add('expanded');
             }
         }
     } catch (e) {
@@ -1902,29 +1913,36 @@ window.postAnnouncementComment = async (announcementId) => {
 window.renderAnnouncementComments = (announcementId, comments) => {
     const listDiv = document.getElementById(`list-ann-${announcementId}`);
     if (!listDiv) return;
-    
-    listDiv.innerHTML = comments.map((c, idx) => `
-        <div class="comment-item" style="margin-bottom:12px;">
-            <div style="display:flex; gap:10px;">
-                    <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <div style="font-weight:700; font-size:0.85rem;">${c.displayName} <span style="color:var(--text-muted);">@${c.username}</span></div>
-                        <button class="comment-delete-btn" onclick="deleteAnnouncementComment('${announcementId}', ${idx})"><i class="fa-solid fa-trash"></i></button>
+
+    if (!Array.isArray(comments) || comments.length === 0) {
+        listDiv.innerHTML = `<div class="comment-item"><p style="margin:0;color:var(--text-muted);font-size:0.92rem;">Henüz yorum yok. İlk yorumu sen yap!</p></div>`;
+        return;
+    }
+
+    listDiv.innerHTML = comments.map((c, idx) => {
+        const date = new Date(c.time);
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = date.getFullYear();
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        const seconds = String(date.getSeconds()).padStart(2, '0');
+        const formattedTime = `${day}.${month}.${year} ${hours}:${minutes}:${seconds}`;
+
+        return `
+            <div class="comment-item">
+                <div class="comment-header">
+                    <div>
+                        <span class="comment-author">${c.displayName || c.username}</span>
+                        <span class="comment-username">@${c.username}</span>
                     </div>
-                    <p style="margin:4px 0; font-size:0.9rem; color:var(--text-main);">${c.text}</p>
-                    <div style="font-size:0.75rem; color:var(--text-muted);">${(() => {
-                        const date = new Date(c.time);
-                        const day = String(date.getDate()).padStart(2, '0');
-                        const month = String(date.getMonth() + 1).padStart(2, '0');
-                        const year = date.getFullYear();
-                        const hours = String(date.getHours()).padStart(2, '0');
-                        const minutes = String(date.getMinutes()).padStart(2, '0');
-                        const seconds = String(date.getSeconds()).padStart(2, '0');
-                        return `${day}.${month}.${year} ${hours}:${minutes}:${seconds}`;
-                    })()}</div>
+                    <button class="comment-delete-btn" onclick="deleteAnnouncementComment('${announcementId}', ${idx})"><i class="fa-solid fa-trash"></i></button>
                 </div>
+                <p>${c.text}</p>
+                <div class="comment-time">${formattedTime}</div>
             </div>
-        </div>
-    `).join('');
+        `;
+    }).join('');
 };
 
 // Duyuru kaydet
