@@ -6,6 +6,45 @@ document.addEventListener('DOMContentLoaded', () => {
     // stories array will contain the create card plus persisted stories
     let stories = [];
 
+    function getStoryGroupKey(story) {
+        return story.authorUid || story.user || 'unknown';
+    }
+
+    function prepareStory(story) {
+        return {
+            ...story,
+            groupKey: story.groupKey || getStoryGroupKey(story)
+        };
+    }
+
+    const VIEWED_GROUPS_KEY = 'slt_viewed_story_groups';
+
+    function loadViewedGroups() {
+        try {
+            const raw = localStorage.getItem(VIEWED_GROUPS_KEY);
+            if (!raw) return new Set();
+            const arr = JSON.parse(raw);
+            return new Set(Array.isArray(arr) ? arr.filter(Boolean) : []);
+        } catch (e) {
+            return new Set();
+        }
+    }
+
+    function saveViewedGroups(viewedGroups) {
+        try {
+            localStorage.setItem(VIEWED_GROUPS_KEY, JSON.stringify(Array.from(viewedGroups)));
+        } catch (e) {}
+    }
+
+    const viewedGroups = loadViewedGroups();
+
+    function markGroupViewed(groupKey) {
+        if (!groupKey || viewedGroups.has(groupKey)) return;
+        viewedGroups.add(groupKey);
+        saveViewedGroups(viewedGroups);
+        render();
+    }
+
     function loadStories() {
         try {
             const raw = localStorage.getItem('slt_stories');
@@ -14,7 +53,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const now = Date.now();
             const day = 24 * 60 * 60 * 1000;
             // filter expired (older than 24 hours)
-            const valid = arr.filter(s => s.timestamp && (now - s.timestamp) < day);
+            const valid = arr.filter(s => s.timestamp && (now - s.timestamp) < day).map(prepareStory);
             return valid;
         } catch (e) {
             return [];
@@ -35,9 +74,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function saveStories() {
         try {
-            const toSave = stories.filter(s => s.type === 'story');
+            const toSave = stories.filter(s => s.type === 'story').map((story) => {
+                const clone = { ...story };
+                delete clone.file;
+                return clone;
+            });
             localStorage.setItem('slt_stories', JSON.stringify(toSave));
         } catch (e) {}
+    }
+
+    async function uploadStoryImageFile(file) {
+        if (!hasFirestore() || !window.auth?.currentUser || !window.ref || !window.uploadBytes || !window.getDownloadURL || !window.storage) {
+            throw new Error('Storage backend hazır değil');
+        }
+        const ext = file.name.split('.').pop();
+        const storagePath = `stories/${window.auth.currentUser.uid}/${Date.now()}.${ext}`;
+        const storageRef = window.ref(window.storage, storagePath);
+        const snapshot = await window.uploadBytes(storageRef, file);
+        return await window.getDownloadURL(snapshot.ref);
     }
 
     async function waitForBackendReady(timeout = 12000) {
@@ -80,6 +134,7 @@ document.addEventListener('DOMContentLoaded', () => {
             timestamp,
             comments: Array.isArray(data.comments) ? data.comments : [],
             authorUid: data.authorUid || null,
+            groupKey: data.authorUid || data.authorName || data.author || data.user || 'unknown',
             expiresAt,
         };
     }
@@ -144,17 +199,28 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function saveStoryToBackend(story) {
-        if (!hasFirestore() || !window.auth?.currentUser || !story || story.type !== 'story') return;
+        if (!hasFirestore() || !window.auth?.currentUser || !story || story.type !== 'story') return null;
         try {
             const id = story.id || ('s_' + Date.now());
+            let imageUrl = story.img;
+            if (story.file) {
+                try {
+                    imageUrl = await uploadStoryImageFile(story.file);
+                } catch (uploadErr) {
+                    console.warn('Hikaye resmi yüklenemedi, yerelde kalacak:', uploadErr);
+                }
+            }
             const storyRef = getStoryDocRef(id);
-            await window.setDoc(storyRef, buildFirestoreStory(story));
+            await window.setDoc(storyRef, buildFirestoreStory({ ...story, img: imageUrl }));
             story.id = id;
             story.remote = true;
-            return true;
+            if (imageUrl) {
+                story.img = imageUrl;
+            }
+            return imageUrl;
         } catch (err) {
             console.warn('Hikaye uzak depoya kaydedilemedi:', err);
-            return false;
+            return null;
         }
     }
 
@@ -203,72 +269,85 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function render() {
         container.innerHTML = '';
-        stories.forEach(s => {
+        const createCard = document.createElement('div');
+        createCard.className = 'story-card';
+        createCard.dataset.id = 'create';
+        createCard.innerHTML = `
+            <div class="story-create">
+                <div class="plus-btn">+</div>
+                <div class="story-label">Stori Oluştur</div>
+            </div>`;
+        createCard.addEventListener('click', () => openCreateModal());
+        container.appendChild(createCard);
+
+        const grouped = new Map();
+        stories.filter(s => s.type === 'story').forEach((s) => {
+            const key = s.groupKey || getStoryGroupKey(s);
+            if (!grouped.has(key)) {
+                grouped.set(key, { key, stories: [], preview: s });
+            }
+            const group = grouped.get(key);
+            group.stories.push(s);
+            if (s.timestamp > (group.preview.timestamp || 0)) {
+                group.preview = s;
+            }
+        });
+
+        const groupedStories = Array.from(grouped.values()).sort((a, b) => b.preview.timestamp - a.preview.timestamp);
+
+        groupedStories.forEach(group => {
+            const s = group.preview;
             const card = document.createElement('div');
             card.className = 'story-card';
             card.dataset.id = s.id;
 
-            if (s.type === 'create') {
-                card.innerHTML = `
-                    <div class="story-create">
-                        <div class="plus-btn">+</div>
-                        <div class="story-label">${s.label}</div>
-                    </div>`;
-                card.addEventListener('click', () => {
-                    openCreateModal();
-                });
-            } else {
-                const img = document.createElement('img');
-                img.className = 'story-cover';
-                img.src = s.img;
-                img.alt = s.label || 'Hikaye';
-                card.appendChild(img);
+            const img = document.createElement('img');
+            img.className = 'story-cover';
+            img.src = s.img;
+            img.alt = s.label || 'Hikaye';
+            card.appendChild(img);
 
-                const avatar = document.createElement('img');
-                avatar.className = 'story-small-avatar';
-                avatar.src = s.avatar || s.img;
-                avatar.alt = s.user || '';
-                card.appendChild(avatar);
+            const avatar = document.createElement('img');
+            avatar.className = 'story-small-avatar';
+            avatar.src = s.avatar || s.img;
+            avatar.alt = s.user || '';
+            card.appendChild(avatar);
 
-                const grad = document.createElement('div');
-                grad.className = 'overlay-gradient';
-                card.appendChild(grad);
+            const countBadge = document.createElement('div');
+            countBadge.className = 'story-count-badge';
+            countBadge.textContent = `${group.stories.length} hikaye`;
+            card.appendChild(countBadge);
 
-                const txt = document.createElement('div');
-                txt.className = 'story-text-overlay';
-                txt.innerHTML = `${s.user ? s.user + '<br/>' : ''}${s.label || ''}`;
-                card.appendChild(txt);
+            const grad = document.createElement('div');
+            grad.className = 'overlay-gradient';
+            card.appendChild(grad);
 
-                // delete button for own stories
-                const currentName = (window.user && (window.user.displayName || window.user.username)) || null;
-                    if (currentName && s.user && (s.user === currentName || s.user === 'Sen')) {
-                        const delBtn = document.createElement('button');
-                        delBtn.className = 'story-delete-btn';
-                        delBtn.title = 'Hikayeyi sil';
-                        delBtn.innerHTML = '<i class="fa-solid fa-trash"></i>';
-                        delBtn.addEventListener('click', async (ev) => {
-                            ev.stopPropagation();
-                            if (!confirm('Bu hikayeyi silmek istediğinizden emin misiniz?')) return;
-                            const idx = stories.findIndex(x => x.id === s.id);
-                            if (idx >= 0) {
-                                const storyToRemove = stories[idx];
-                                stories.splice(idx, 1);
-                                saveStories();
-                                render();
-                                await deleteRemoteStory(storyToRemove);
-                            }
-                        });
-                        card.appendChild(delBtn);
-                    }
+            const currentUid = window.auth?.currentUser?.uid;
+            const isOwnStory = currentUid && currentUid === s.authorUid;
+            const txt = document.createElement('div');
+            txt.className = 'story-text-overlay';
+            txt.innerHTML = `${s.user ? escapeHtml(s.user) : ''}${isOwnStory ? `<br/>${escapeHtml(s.label || '')}` : ''}`;
+            card.appendChild(txt);
 
-                    card.addEventListener('click', () => openViewer(s));
+            if (group.stories.length > 1) {
+                const countBadge = document.createElement('div');
+                countBadge.className = 'story-group-count';
+                countBadge.textContent = `${group.stories.length} hikaye`;
+                card.appendChild(countBadge);
             }
 
+            const avatarClass = viewedGroups.has(group.key) ? 'story-small-avatar seen' : 'story-small-avatar unseen';
+            avatar.className = avatarClass;
+            card.addEventListener('click', () => {
+                if (group.key) {
+                    markGroupViewed(group.key);
+                }
+                openViewer(s);
+            });
             container.appendChild(card);
         });
 
-        // If there are no user stories (only the create card), show empty state
-        const hasUserStories = stories.some(s => s.type === 'story');
+        const hasUserStories = groupedStories.length > 0;
         if (!hasUserStories) {
             const empty = document.createElement('div');
             empty.className = 'story-empty';
@@ -278,11 +357,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function openViewer(story) {
-        // Build playlist: all stories for this user
-        const playlist = stories.filter(s => s.type === 'story' && s.user === story.user);
+        // Build playlist: all stories for this author group and show the oldest first
+        const playlist = stories
+            .filter(s => s.type === 'story' && s.groupKey === story.groupKey)
+            .sort((a, b) => a.timestamp - b.timestamp);
         if (!playlist || playlist.length === 0) return;
-        let current = playlist.findIndex(s => s.id === story.id);
-        if (current < 0) current = 0;
+        let current = 0;
 
         let overlay = document.getElementById('story-viewer-overlay');
         if (!overlay) {
@@ -319,7 +399,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const top = document.createElement('div'); top.className = 'story-viewer-top';
             const meta = document.createElement('div'); meta.className = 'meta';
             const avatar = document.createElement('img'); avatar.src = item.avatar || 'assets/img/strendsaydamv2.png';
-            const who = document.createElement('div'); who.innerHTML = `<div class="who">${item.user || ''}</div><div class="label">${item.label || ''}</div>`;
+            const who = document.createElement('div'); who.innerHTML = `<div class="who">${item.user || ''}</div>`;
             meta.appendChild(avatar); meta.appendChild(who);
             const right = document.createElement('div');
             const closeBtn = document.createElement('button'); closeBtn.className = 'story-viewer-close'; closeBtn.innerHTML = '&times;';
@@ -378,8 +458,31 @@ document.addEventListener('DOMContentLoaded', () => {
                 link.click();
                 link.remove();
             });
+            const deleteBtn = document.createElement('button'); deleteBtn.type = 'button'; deleteBtn.className = 'story-action-btn'; deleteBtn.title = 'Bu storiyi sil'; deleteBtn.innerHTML = '<i class="fa-solid fa-trash"></i>';
+            deleteBtn.addEventListener('click', async (ev) => {
+                ev.stopPropagation();
+                if (!confirm('Bu storiyi silmek istediğinizden emin misiniz?')) return;
+                const removedId = item.id;
+                const idx = stories.findIndex(s => s.id === removedId);
+                if (idx >= 0) {
+                    const removedStory = stories[idx];
+                    stories.splice(idx, 1);
+                    saveStories();
+                    await deleteRemoteStory(removedStory);
+                    if (playlist.length > 1) {
+                        playlist.splice(current, 1);
+                        if (current >= playlist.length) current = playlist.length - 1;
+                        renderViewer();
+                    } else {
+                        clearTimers();
+                        overlay.remove();
+                    }
+                    render();
+                }
+            });
             mediaActions.appendChild(expandBtn);
             mediaActions.appendChild(downloadBtn);
+            mediaActions.appendChild(deleteBtn);
             media.appendChild(mediaActions);
 
             // nav
@@ -391,16 +494,27 @@ document.addEventListener('DOMContentLoaded', () => {
             // footer
             const footer = document.createElement('div'); footer.className = 'story-viewer-footer';
             const footerTop = document.createElement('div'); footerTop.className = 'story-viewer-footer-top';
-            footerTop.innerHTML = `<div class="story-viewer-user">${item.user || ''}</div><div class="story-viewer-time">${item.timestamp ? new Date(item.timestamp).toLocaleString() : ''}</div>`;
-            const countdownLabel = document.createElement('div'); countdownLabel.className = 'story-viewer-countdown';
-            countdownLabel.textContent = playlist.length > 1 ? '5 saniyeden sonra sonraki hikayeye geçilecek...' : 'Tek hikaye gösteriliyor';
-            const comments = document.createElement('div'); comments.className = 'story-comments'; comments.innerHTML = renderCommentsHtml(item);
-            const commentRow = document.createElement('div'); commentRow.className = 'comment-row';
-            commentRow.innerHTML = `<input id="story-comment-input" placeholder="Yorum yaz..." /><button id="story-comment-btn" class="post-action-btn primary">Yorumu Gönder</button>`;
+            footerTop.innerHTML = `<div class="story-viewer-footer-row"><div class="story-title-actions"><div class="story-viewer-title">${item.label || ''}</div><button type="button" class="story-edit-btn" title="Başlığı Düzenle"><i class="fa-solid fa-pen"></i></button></div><div class="story-viewer-countdown">${playlist.length > 1 ? '10 saniye sonra...' : 'Tek hikaye gösteriliyor'}</div><div class="story-viewer-time">${item.timestamp ? new Date(item.timestamp).toLocaleString() : ''}</div></div>`;
+            const editBtn = footerTop.querySelector('.story-edit-btn');
+            if (editBtn) {
+                editBtn.addEventListener('click', async (ev) => {
+                    ev.stopPropagation();
+                    const newTitle = prompt('Stori başlığını girin:', item.label || '');
+                    if (newTitle === null) return;
+                    item.label = newTitle.trim();
+                    saveStories();
+                    if (item.remote) {
+                        try {
+                            const storyRef = getStoryDocRef(item.id);
+                            await window.setDoc(storyRef, buildFirestoreStory(item));
+                        } catch (err) {
+                            console.warn('Başlık uzak depoya kaydedilemedi:', err);
+                        }
+                    }
+                    renderViewer();
+                });
+            }
             footer.appendChild(footerTop);
-            footer.appendChild(countdownLabel);
-            footer.appendChild(comments);
-            footer.appendChild(commentRow);
 
             inner.appendChild(prog);
             inner.appendChild(top);
@@ -413,41 +527,26 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // prevent overlay close when clicking viewer
             viewer.addEventListener('click', (ev) => ev.stopPropagation());
-                overlay.addEventListener('click', (ev) => { if (ev.target === overlay) { clearTimers(); overlay.remove(); } });
-
-            // comment posting
-            const postBtn = overlay.querySelector('#story-comment-btn');
-            const commentInput = overlay.querySelector('#story-comment-input');
-postBtn.addEventListener('click', async () => {
-                const text = commentInput.value.trim(); if (!text) return;
-                item.comments = item.comments || [];
-                const whoName = (window.user && (window.user.displayName || window.user.username)) || 'Sen';
-                item.comments.push({ author: whoName, text, ts: Date.now() });
-                const commentsDiv = overlay.querySelector('.story-comments'); if (commentsDiv) commentsDiv.innerHTML = renderCommentsHtml(item);
-                commentInput.value = '';
-                saveStories();
-                if (item.remote) {
-                    try {
-                        const storyRef = getStoryDocRef(item.id);
-                        await window.setDoc(storyRef, buildFirestoreStory(item));
-                    } catch (err) {
-                        console.warn('Yorum uzak depoya kaydedilemedi:', err);
-                    }
-                }
-            });
+            overlay.addEventListener('click', (ev) => { if (ev.target === overlay) { clearTimers(); overlay.remove(); } });
 
             function startProgress() {
                 const fills = overlay.querySelectorAll('.story-viewer-progress .seg .fill');
                 fills.forEach((f, i) => { f.style.transition = 'none'; f.style.width = i < current ? '100%' : '0%'; });
                 const curFill = overlay.querySelector(`.story-viewer-progress .seg[data-idx="${current}"] .fill`);
                 const countdownLabelEl = overlay.querySelector('.story-viewer-countdown');
-                const totalSeconds = 5;
-                if (playlist.length > 1) {
+                const totalSeconds = 10;
+                const hasNext = playlist.length > 1 && current < playlist.length - 1;
+
+                if (hasNext) {
                     let remaining = totalSeconds;
-                    if (curFill) { void curFill.offsetWidth; curFill.style.transition = 'width 5s linear'; curFill.style.width = '100%'; }
+                    if (curFill) { void curFill.offsetWidth; curFill.style.transition = 'width 10s linear'; curFill.style.width = '100%'; }
                     if (countdownLabelEl) {
-                        countdownLabelEl.textContent = `5 saniyeden sonra sonraki hikayeye geçilecek...`;
+                        countdownLabelEl.style.display = '';
+                        countdownLabelEl.textContent = `10 saniyeden sonra sonraki hikayeye geçilecek...`;
                     }
+                    const clearCountdown = () => {
+                        if (countdownTimer) { clearInterval(countdownTimer); countdownTimer = null; }
+                    };
                     clearTimers();
                     countdownTimer = setInterval(() => {
                         remaining -= 1;
@@ -455,14 +554,14 @@ postBtn.addEventListener('click', async () => {
                             countdownLabelEl.textContent = `${remaining} saniye sonra sonraki hikayeye geçilecek...`;
                         }
                         if (remaining <= 0) {
-                            clearTimers();
+                            clearCountdown();
                         }
                     }, 1000);
                     autoTimer = setTimeout(() => { nextStory(); }, totalSeconds * 1000);
                 } else {
                     if (curFill) { curFill.style.width = '100%'; }
                     if (countdownLabelEl) {
-                        countdownLabelEl.textContent = 'Tek hikaye gösteriliyor';
+                        countdownLabelEl.style.display = 'none';
                     }
                     clearTimers();
                 }
@@ -477,10 +576,6 @@ postBtn.addEventListener('click', async () => {
         renderViewer();
     }
 
-    function renderCommentsHtml(story) {
-        if (!story.comments || story.comments.length === 0) return '<div style="color:var(--text-muted);">Henüz yorum yok.</div>';
-        return story.comments.map(c => `<div style="padding:8px 0; border-bottom:1px solid rgba(0,0,0,0.04);"><strong style="display:block">${escapeHtml(c.author)}</strong><div style="font-size:0.95rem">${escapeHtml(c.text)}</div></div>`).join('');
-    }
 
     function escapeHtml(s) {
         return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -514,32 +609,71 @@ postBtn.addEventListener('click', async () => {
             const fileInput = modal.querySelector('#story-file-input');
             const selectBtn = modal.querySelector('#story-select-btn');
             const previewWrap = modal.querySelector('#story-preview-wrap');
+            const captionInput = modal.querySelector('#story-caption');
             const cancelBtn = modal.querySelector('#story-cancel-btn');
             const postBtn = modal.querySelector('#story-post-btn');
+            let selectedDataUrl = '';
+            let selectedFile = null;
+
+            const readFileAsDataUrl = (file) => new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (ev) => resolve(ev.target.result);
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
 
             selectBtn.addEventListener('click', () => fileInput.click());
-            fileInput.addEventListener('change', (e) => {
+            fileInput.addEventListener('change', async (e) => {
                 const file = e.target.files && e.target.files[0];
                 if (!file) return;
-                const reader = new FileReader();
-                reader.onload = (ev) => {
-                    previewWrap.innerHTML = `<img src="${ev.target.result}" style="max-width:160px; max-height:120px; display:block; border-radius:8px;">`;
-                    previewWrap.dataset.img = ev.target.result;
-                };
-                reader.readAsDataURL(file);
+                selectedFile = file;
+                try {
+                    selectedDataUrl = await readFileAsDataUrl(file);
+                    previewWrap.innerHTML = `<img src="${selectedDataUrl}" style="max-width:160px; max-height:120px; display:block; border-radius:8px;">`;
+                    previewWrap.dataset.img = selectedDataUrl;
+                } catch (err) {
+                    console.warn('Hikaye resmi okunamadı:', err);
+                    alert('Resim yüklenirken bir hata oluştu. Lütfen tekrar deneyin.');
+                }
             });
 
             cancelBtn.addEventListener('click', () => modal.remove());
             postBtn.addEventListener('click', async () => {
-                const imgData = previewWrap.dataset.img;
-                const caption = modal.querySelector('#story-caption').value.trim();
+                let imgData = previewWrap.dataset.img || selectedDataUrl;
+                const caption = captionInput.value.trim();
+                if (!imgData && selectedFile) {
+                    try {
+                        imgData = await readFileAsDataUrl(selectedFile);
+                        selectedDataUrl = imgData;
+                        previewWrap.innerHTML = `<img src="${imgData}" style="max-width:160px; max-height:120px; display:block; border-radius:8px;">`;
+                    } catch (err) {
+                        console.warn('Hikaye resmi okunamadı:', err);
+                    }
+                }
                 if (!imgData) { alert('Lütfen bir görsel seçin.'); return; }
                 const id = 's_' + Date.now();
-                const storyObj = { id, type: 'story', label: caption || '', user: (window.user && window.user.displayName) || 'Sen', avatar: (window.user && window.user.avatarUrl) || 'assets/img/strendsaydamv2.png', img: imgData, timestamp: Date.now(), comments: [] };
+                const authorUid = window.auth?.currentUser?.uid || (window.user && window.user.uid) || null;
+                const authorName = (window.user && (window.user.displayName || window.user.username)) || 'Sen';
+                const storyObj = {
+                    id,
+                    type: 'story',
+                    label: caption || '',
+                    user: authorName,
+                    avatar: (window.user && window.user.avatarUrl) || 'assets/img/strendsaydamv2.png',
+                    img: imgData,
+                    file: selectedFile,
+                    timestamp: Date.now(),
+                    comments: [],
+                    authorUid,
+                    groupKey: authorUid || authorName
+                };
                 stories.push(storyObj);
                 saveStories();
-                if (await saveStoryToBackend(storyObj)) {
+                const remoteUrl = await saveStoryToBackend(storyObj);
+                if (remoteUrl) {
                     storyObj.remote = true;
+                    storyObj.img = remoteUrl;
+                    saveStories();
                 }
                 modal.remove();
                 render();
