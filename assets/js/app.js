@@ -33,6 +33,7 @@ function updateCommentCount(postId) {
     counter.textContent = `${len}/500`;
 }
 
+window.updateCommentCount = updateCommentCount;
 window.commentReplyContext = {};
 
 window.prepareReply = function(button) {
@@ -11321,6 +11322,11 @@ function hideConversationFromRecentChats(conversationId) {
     saveHiddenConversationIds(nextHiddenIds);
 }
 
+function shouldHideConversation(conversationId) {
+    if (!conversationId) return false;
+    return getHiddenConversationIds().includes(String(conversationId));
+}
+
 function unhideConversationFromRecentChats(conversationId) {
     if (!conversationId) return;
     const normalizedId = String(conversationId);
@@ -11547,22 +11553,173 @@ function initChatListsPanel() {
 }
 
 window.showChatHistoryView = function() {
-    if (!document.getElementById('chat-lists-panel')) {
-        initChatListsPanel();
+    window.__chatHistoryPending = true;
+
+    if (!document.getElementById('chat-widget-container')) {
+        initChatWidget();
     }
 
-    const panel = document.getElementById('chat-lists-panel');
-    if (panel) {
-        panel.classList.add('active');
-        panel.style.display = 'flex';
-        document.body.classList.add('chat-open');
+    const widget = document.getElementById('chat-widget-container');
+    if (widget) {
+        widget.classList.add('active');
     }
 
-    setTimeout(() => {
-        if (typeof window.loadRecentChats === 'function') {
-            window.loadRecentChats();
+    const titleEl = document.getElementById('chat-widget-title');
+    if (titleEl) {
+        titleEl.textContent = 'Sohbet Geçmişi';
+    }
+
+    const messagesContainer = document.getElementById('chat-widget-messages');
+    if (messagesContainer) {
+        messagesContainer.innerHTML = '<div class="chat-empty"><i class="fa-regular fa-comment"></i><p>Sohbet geçmişi yükleniyor...</p></div>';
+    }
+
+    setChatWidgetInputVisible(false);
+    setChatClearButtonVisibility(false);
+    setGroupChatHeaderActionsVisibility(false);
+    currentConversationId = null;
+    currentChatUserId = null;
+    currentChatUsername = null;
+    currentConversationIsGroup = false;
+    currentGroupMembers = [];
+
+    document.body.classList.add('chat-open');
+    window.closeChatsList && window.closeChatsList();
+
+    const renderHistory = () => {
+        const container = document.getElementById('chat-widget-messages');
+        if (!container) {
+            if (window.__chatHistoryPending) {
+                setTimeout(renderHistory, 120);
+            }
+            return;
         }
-    }, 0);
+
+        window.__chatHistoryPending = false;
+        if (typeof window.renderChatHistoryInWidget === 'function') {
+            window.renderChatHistoryInWidget();
+        }
+    };
+
+    renderHistory();
+};
+
+function setChatWidgetInputVisible(visible = true) {
+    const inputShell = document.querySelector('#chat-widget-container .chat-widget-input');
+    if (inputShell) {
+        inputShell.style.display = visible ? 'flex' : 'none';
+    }
+}
+
+window.renderChatHistoryInWidget = async function() {
+    const messagesContainer = document.getElementById('chat-widget-messages');
+    const titleEl = document.getElementById('chat-widget-title');
+    if (!messagesContainer) return;
+
+    if (titleEl) {
+        titleEl.textContent = 'Sohbet Geçmişi';
+    }
+
+    setChatWidgetInputVisible(false);
+    setChatClearButtonVisibility(false);
+    setGroupChatHeaderActionsVisibility(false);
+
+    if (!auth.currentUser) {
+        messagesContainer.innerHTML = '<div class="chat-empty"><i class="fa-solid fa-lock"></i><p>Lütfen giriş yapın</p></div>';
+        return;
+    }
+
+    messagesContainer.innerHTML = '<div class="chat-empty"><i class="fa-solid fa-spinner"></i><p>Geçmiş yükleniyor...</p></div>';
+
+    try {
+        const currentUserId = auth.currentUser.uid;
+        let convSnap;
+
+        try {
+            convSnap = await getDocs(query(
+                collection(db, 'conversations'),
+                where('participants', 'array-contains', currentUserId)
+            ));
+        } catch (queryError) {
+            console.warn('Geçmiş sorgusu başarısız, yedek listeleme denenecek:', queryError);
+            convSnap = await getDocs(collection(db, 'conversations'));
+        }
+
+        const conversations = (convSnap.docs || [])
+            .filter((docSnap) => {
+                const convData = docSnap.data() || {};
+                const participants = Array.isArray(convData.participants) ? convData.participants : [];
+                return participants.includes(currentUserId);
+            })
+            .sort((a, b) => {
+                const aTime = a.data()?.lastMessageAt?.toDate ? a.data().lastMessageAt.toDate().getTime() : 0;
+                const bTime = b.data()?.lastMessageAt?.toDate ? b.data().lastMessageAt.toDate().getTime() : 0;
+                return bTime - aTime;
+            });
+
+        if (!conversations.length) {
+            messagesContainer.innerHTML = '<div class="chat-empty"><i class="fa-regular fa-comment"></i><p>Henüz sohbet geçmişi yok</p></div>';
+            return;
+        }
+
+        const historyHtml = [];
+        for (const docSnap of conversations) {
+            const convData = docSnap.data() || {};
+            const conversationId = docSnap.id;
+            const isGroup = Boolean(convData.group);
+            const lastMessage = convData.lastMessage || 'Sohbet temizlendi';
+            const lastSenderId = convData.lastSenderId || null;
+            let displayName = 'Sohbet';
+            let username = '';
+            let avatarUrl = 'assets/img/strendsaydamv2.png';
+            let previewLabel = 'Sohbet';
+
+            if (isGroup) {
+                displayName = convData.groupName || 'Grup Sohbeti';
+                previewLabel = 'Grup';
+            } else {
+                const otherParticipantId = (convData.participants || []).find((id) => id !== currentUserId);
+                if (otherParticipantId) {
+                    try {
+                        const friendSnap = await getDoc(doc(db, 'users', otherParticipantId));
+                        if (friendSnap.exists()) {
+                            const friendData = friendSnap.data();
+                            avatarUrl = getAvatarUrl(friendData.avatarUrl || 'assets/img/strendsaydamv2.png', 'user');
+                            displayName = friendData.displayName || friendData.username || otherParticipantId;
+                            username = friendData.username || 'user';
+                        }
+                    } catch (error) {
+                        console.warn('Geçmişte kullanıcı bilgisi alınamadı:', error);
+                    }
+                }
+            }
+
+            const previewText = lastSenderId === currentUserId
+                ? `Sen: ${lastMessage || 'Mesaj yok'}`
+                : `${isGroup ? 'Grup' : displayName}: ${lastMessage || 'Mesaj yok'}`;
+
+            historyHtml.push(`
+                <div class="chat-friend-item" style="cursor:pointer;" onclick="window.openConversationFromList('${conversationId}', '${displayName}', ${isGroup})">
+                    <div class="chat-friend-avatar-wrap online">
+                        <img src="${avatarUrl}" class="chat-friend-avatar" alt="">
+                    </div>
+                    <div class="chat-friend-info">
+                        <p class="chat-friend-name">${escapeHtml(displayName)}</p>
+                        <p class="chat-friend-lastmsg">${escapeHtml(previewText)}</p>
+                    </div>
+                </div>
+            `);
+        }
+
+        messagesContainer.innerHTML = `
+            <div style="display:grid; gap:8px; padding:4px 0;">
+                ${historyHtml.join('')}
+            </div>
+        `;
+    } catch (error) {
+        console.error('Sohbet geçmişi yüklenirken hata:', error);
+        messagesContainer.innerHTML = '<div class="chat-empty"><i class="fa-solid fa-circle-exclamation"></i><p>Geçmiş yüklenemedi</p></div>';
+    }
 };
 
 function ensureGroupCreateActionButton(container) {
@@ -11872,12 +12029,23 @@ window.loadRecentChats = async function() {
     try {
         removeGroupCreateActionButton(friendsList);
         const currentUserId = auth.currentUser.uid;
-        const convSnap = await getDocs(collection(db, 'conversations'));
-        const conversations = convSnap.docs
+        let convSnap;
+
+        try {
+            convSnap = await getDocs(query(
+                collection(db, 'conversations'),
+                where('participants', 'array-contains', currentUserId)
+            ));
+        } catch (queryError) {
+            console.warn('array-contains sorgusu başarısız, yedek listeleme denenecek:', queryError);
+            convSnap = await getDocs(collection(db, 'conversations'));
+        }
+
+        const conversations = (convSnap.docs || [])
             .filter((docSnap) => {
                 const convData = docSnap.data() || {};
                 const participants = Array.isArray(convData.participants) ? convData.participants : [];
-                return participants.includes(currentUserId);
+                return participants.includes(currentUserId) && !shouldHideConversation(docSnap.id);
             })
             .sort((a, b) => {
                 const aTime = a.data()?.lastMessageAt?.toDate ? a.data().lastMessageAt.toDate().getTime() : 0;
@@ -11901,7 +12069,7 @@ window.loadRecentChats = async function() {
             const lastSenderId = convData.lastSenderId || null;
             const unreadCount = convData.unreadCount?.[currentUserId] || 0;
 
-            if (hiddenConversationIds.includes(String(conversationId))) {
+            if (shouldHideConversation(conversationId)) {
                 continue;
             }
 
@@ -12957,9 +13125,11 @@ function shortenEmail(email) {
 // Format timestamp to readable time for chat
 function formatChatTime(timestamp) {
     if (!timestamp) return '';
-    
+
     let date;
-    if (timestamp.seconds) {
+    if (timestamp?.toDate) {
+        date = timestamp.toDate();
+    } else if (timestamp?.seconds != null) {
         date = new Date(timestamp.seconds * 1000);
     } else if (timestamp instanceof Date) {
         date = timestamp;
@@ -12968,21 +13138,25 @@ function formatChatTime(timestamp) {
     } else {
         return '';
     }
-    
-    const now = new Date();
-    const offsetMs = 4 * 24 * 60 * 60 * 1000; // 4 gün
-    const adjustedDate = new Date(date.getTime() - offsetMs);
-    const diff = now - adjustedDate;
-    const minutes = Math.floor(diff / 60000);
-    const hours = Math.floor(diff / 3600000);
-    const days = Math.floor(diff / 86400000);
-    
-    if (minutes < 1) return 'Az önce';
-    if (minutes < 60) return `${minutes}d önce`;
-    if (hours < 24) return `${hours}s önce`;
-    if (days < 7) return `${days}g önce`;
 
-    return adjustedDate.toLocaleDateString('tr-TR', { month: 'short', day: 'numeric' });
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMinutes = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMinutes < 1) return 'Az önce';
+    if (diffMinutes < 60) return `${diffMinutes} dk önce`;
+    if (diffHours < 24) return `${diffHours} saat önce`;
+    if (diffDays < 7) return `${diffDays} gün önce`;
+
+    return date.toLocaleString('tr-TR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
 }
 
 // Listen for incoming messages

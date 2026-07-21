@@ -18,9 +18,13 @@
   <meta name="theme-color" content="#6366f1">
   <script>
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js').catch((err) => {
-        console.warn('Service worker register failed:', err);
-      });
+      try {
+        navigator.serviceWorker.getRegistrations().then((registrations) => {
+          registrations.forEach((registration) => registration.unregister());
+        }).catch(() => {});
+      } catch (err) {
+        console.warn('Service worker cleanup failed:', err);
+      }
     }
   </script> 
 </head>

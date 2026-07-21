@@ -64,10 +64,106 @@ function escapeHTML(value) {
   }[char]));
 }
 
+let activeProfileContext = null;
+
 function stripYoutubeLinks(text) {
   if (!text || typeof text !== 'string') return '';
   const stripped = text.replace(/(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/watch\?v=[A-Za-z0-9_-]{11}(?:[^\s]*)?|youtu\.be\/[A-Za-z0-9_-]{11}(?:[^\s]*)?|youtube\.com\/embed\/[A-Za-z0-9_-]{11}(?:[^\s]*)?)/gi, '');
   return stripped.replace(/\s{2,}/g, ' ').trim();
+}
+
+function buildProfilePostActions(post) {
+  const postId = String(post?.id || '').replace(/'/g, "\\'");
+  const goToUrl = `index.html#post-${encodeURIComponent(post?.id || '')}`;
+  const commentCount = Array.isArray(post?.comments) ? post.comments.length : 0;
+  return `
+    <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:12px;">
+      <button type="button" class="profile-post-comment-btn tool-btn icon-count" data-post-id="${postId}" style="gap:3px; min-width:auto;">
+        <i class="fa-regular fa-comment"></i><span>(${commentCount})</span>
+      </button>
+      <button type="button" class="profile-post-go-btn" data-post-url="${goToUrl}" style="border:1px solid var(--border); border-radius:999px; padding:8px 12px; background:rgba(255,255,255,0.72); color:var(--text-main); font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:6px;">
+        <i class="fa-solid fa-arrow-up-right-from-square"></i> Gönderiye Git
+      </button>
+    </div>
+  `;
+}
+
+function buildProfileCommentSection(post) {
+  const postId = String(post?.id || '');
+  const comments = Array.isArray(post?.comments) ? post.comments : [];
+  const commentItems = comments.map((comment) => {
+    const avatar = resolveAvatarUrl(comment.avatarUrl || comment.avatarSeed || DEFAULT_AVATAR_URL);
+    const name = escapeHTML(comment.displayName || comment.username || 'Kullanıcı');
+    const text = escapeHTML(comment.text || '');
+    const time = comment.time ? new Date(comment.time).toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'az önce';
+    return `
+      <div style="padding:10px 0; border-top:1px solid var(--border);">
+        <div style="display:flex; gap:8px; align-items:flex-start;">
+          <img src="${escapeHTML(avatar)}" onerror="this.onerror=null;this.src='assets/img/strendsaydamv2.png';" style="width:30px; height:30px; border-radius:50%; object-fit:cover; flex-shrink:0;">
+          <div style="flex:1; min-width:0;">
+            <div style="font-weight:700; color:var(--text-main); font-size:0.9rem;">${name}</div>
+            <div style="font-size:0.74rem; color:var(--text-muted); margin-top:2px;">${escapeHTML(time)}</div>
+            <div style="margin-top:6px; color:var(--text-main); font-size:0.92rem; white-space:pre-wrap;">${text}</div>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  return `
+    <div id="comments-${postId}" class="comment-area" style="display:none; margin-top:10px;">
+      <div id="list-${postId}" style="display:grid; gap:4px;">
+        ${comments.length ? commentItems : '<div style="padding:8px 0; color:var(--text-muted); font-size:0.9rem;">Henüz yorum yok.</div>'}
+      </div>
+      <div style="display:flex; flex-direction:column; gap:8px; margin-top:10px;">
+        <div id="reply-info-${postId}" class="comment-reply-info"></div>
+        <div style="display:flex; gap:8px;">
+          <input type="text" id="input-${postId}" aria-label="Yorum girin" data-default-placeholder="Yorum yaz..." placeholder="Yorum yaz..." oninput="window.updateCommentCount && window.updateCommentCount('${postId}')" onkeydown="if(event.key==='Enter'){ window.addComment('${postId}'); }" maxlength="200" style="flex:1; padding:8px 12px; border-radius:10px; border:1px solid var(--border); outline:none; background: var(--input-bg); color: var(--text-main);">
+          <button type="button" onclick="window.addComment('${postId}');" style="background:var(--primary); color:white; border:none; padding:0 15px; border-radius:10px; cursor:pointer;">Gönder</button>
+        </div>
+        <div id="charcount-${postId}" style="font-size:0.78rem; color:var(--text-muted);">0/500</div>
+      </div>
+    </div>
+  `;
+}
+
+window.openProfilePostComment = function(postId) {
+  if (!postId) return;
+  const area = document.getElementById(`comments-${postId}`);
+  if (area) {
+    area.style.display = area.style.display === 'none' ? 'block' : 'none';
+    if (area.style.display === 'block') {
+      const input = document.getElementById(`input-${postId}`);
+      if (input) {
+        setTimeout(() => input.focus(), 80);
+      }
+    }
+  }
+};
+
+function bindProfileCardActions(container) {
+  if (!container) return;
+  container.querySelectorAll('.profile-post-comment-btn').forEach((button) => {
+    button.onclick = (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      const postId = button.getAttribute('data-post-id');
+      if (postId && typeof window.openProfilePostComment === 'function') {
+        window.openProfilePostComment(postId);
+      }
+    };
+  });
+
+  container.querySelectorAll('.profile-post-go-btn').forEach((button) => {
+    button.onclick = (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      const targetUrl = button.getAttribute('data-post-url');
+      if (targetUrl) {
+        window.location.href = targetUrl;
+      }
+    };
+  });
 }
 
 function formatTimestamp(value) {
@@ -76,13 +172,15 @@ function formatTimestamp(value) {
   return date.toLocaleString('tr-TR', { year: 'numeric', month: 'short', day: 'numeric' });
 }
 
-function createPostCard(post) {
+function createPostCard(post, includeActions = false) {
   const content = escapeHTML(stripYoutubeLinks(post.content || ''));
   const linkedContent = content.replace(/(#[\wığüşöçİĞÜŞÖÇ]+)/g, '<span class="hashtag-link">$1</span>');
   const imageHtml = post.image ? `<div class="post-image-wrapper" style="margin:12px 0; border-radius:12px; overflow:hidden; border:1px solid var(--border); background:#f8fafc;"><img src="${escapeHTML(post.image)}" alt="Gönderi görseli" style="width:100%; height:auto; display:block;"></div>` : '';
   const avatarUrl = escapeHTML(resolveAvatarUrl(post.avatarUrl || post.avatar || post.avatarSeed || post.photoURL || DEFAULT_AVATAR_URL));
   const authorName = escapeHTML(post.name || post.displayName || post.username || 'Anonim');
   const authorUsername = escapeHTML(post.username || '');
+  const actionsHtml = includeActions ? buildProfilePostActions(post) : '';
+  const commentsHtml = includeActions ? buildProfileCommentSection(post) : '';
   return `
     <div class="glass-card post" style="position: relative; margin-bottom:18px;">
       <div style="display:flex; gap:10px; margin-bottom:12px; align-items:center;">
@@ -97,6 +195,8 @@ function createPostCard(post) {
       </div>
       <p style="white-space: pre-wrap; margin:0 0 12px; color:var(--text-main);">${linkedContent}</p>
       ${imageHtml}
+      ${actionsHtml}
+      ${commentsHtml}
     </div>
   `;
 }
@@ -372,8 +472,8 @@ function renderFriendsList(friends) {
 
 async function renderLikes(username) {
   const likes = await loadLikes(username);
-  const list = document.getElementById('likes-list');
-  const empty = document.getElementById('no-likes-message');
+  const list = document.getElementById('my-liked-list') || document.getElementById('likes-list');
+  const empty = document.getElementById('no-likes-msg') || document.getElementById('no-likes-message');
   if (!list) return;
   if (!likes || likes.length === 0) {
     list.innerHTML = '';
@@ -381,13 +481,14 @@ async function renderLikes(username) {
     return;
   }
   if (empty) empty.style.display = 'none';
-  list.innerHTML = likes.map(createPostCard).join('');
+  list.innerHTML = likes.map((post) => createPostCard(post, true)).join('');
+  bindProfileCardActions(list);
 }
 
 async function renderSaves(username) {
   const saves = await loadSaves(username);
-  const list = document.getElementById('saves-list');
-  const empty = document.getElementById('no-saves-message');
+  const list = document.getElementById('bookmark-items') || document.getElementById('saves-list');
+  const empty = document.getElementById('no-saves-msg') || document.getElementById('no-saves-message');
   if (!list) return;
   if (!saves || saves.length === 0) {
     list.innerHTML = '';
@@ -395,7 +496,8 @@ async function renderSaves(username) {
     return;
   }
   if (empty) empty.style.display = 'none';
-  list.innerHTML = saves.map(createPostCard).join('');
+  list.innerHTML = saves.map((post) => createPostCard(post, true)).join('');
+  bindProfileCardActions(list);
 }
 
 function renderNotifications(notifications) {
@@ -417,6 +519,8 @@ function renderNotifications(notifications) {
 }
 
 async function loadAndRenderTab(tabKey, profileData, isOwnProfile) {
+  activeProfileContext = { profileData, isOwnProfile, tabKey };
+
   if (tabKey === 'posts') {
     const posts = await loadPosts(profileData.username);
     renderPosts(posts);
@@ -436,6 +540,12 @@ async function loadAndRenderTab(tabKey, profileData, isOwnProfile) {
     renderNotifications([]);
   }
 }
+
+window.refreshProfileActiveTab = async function() {
+  if (!activeProfileContext) return;
+  const { profileData, isOwnProfile, tabKey } = activeProfileContext;
+  await loadAndRenderTab(tabKey, profileData, isOwnProfile);
+};
 
 function selectInitialTab(isOwnProfile) {
   const urlHash = window.location.hash.replace('#', '');

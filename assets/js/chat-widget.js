@@ -96,6 +96,14 @@
         window.handleChatAttachment(e);
       }
     });
+
+    if (window.__chatHistoryPending && typeof window.renderChatHistoryInWidget === 'function') {
+      setTimeout(() => {
+        if (window.__chatHistoryPending) {
+          window.renderChatHistoryInWidget();
+        }
+      }, 0);
+    }
   }
 
   function appendLocalMessage(text) {
