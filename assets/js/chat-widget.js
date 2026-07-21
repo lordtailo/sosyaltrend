@@ -19,7 +19,7 @@
     chatWidget.innerHTML = `
       <div class="chat-widget-header">
         <div class="chat-header-left">
-          <button class="back-btn" id="chat-back-btn" title="Geri Dön">
+          <button class="back-btn" id="chat-back-btn" title="Geri Dön" type="button" onclick="event.preventDefault(); event.stopPropagation(); if (window.backToFriendList) window.backToFriendList();">
             <i class="fa-solid fa-arrow-left"></i>
           </button>
           <div class="chat-header-title">
@@ -28,6 +28,9 @@
           </div>
         </div>
         <div class="chat-header-actions">
+          <button class="chat-clear-btn" id="chat-clear-btn" style="display:none;" title="Sohbeti temizle" type="button">
+            <i class="fa-solid fa-broom"></i>
+          </button>
           <button class="close-btn group-chat-close-btn" id="chat-close-btn" title="Kapat">
             <i class="fa-solid fa-times"></i>
           </button>
@@ -50,7 +53,21 @@
 
     // Basic behavior wiring
     document.getElementById('chat-close-btn').addEventListener('click', closeChatWidget);
-    document.getElementById('chat-back-btn').addEventListener('click', backToFriendList);
+    document.getElementById('chat-back-btn').addEventListener('click', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      if (typeof window.backToFriendList === 'function') {
+        window.backToFriendList();
+      }
+    });
+    const clearBtn = document.getElementById('chat-clear-btn');
+    if (clearBtn) {
+      clearBtn.addEventListener('click', () => {
+        if (typeof window.clearChatHistory === 'function') {
+          window.clearChatHistory();
+        }
+      });
+    }
     document.getElementById('chat-send-btn').addEventListener('click', () => {
       const txt = document.getElementById('chat-widget-input').value.trim();
       if (!txt) return;
@@ -112,9 +129,14 @@
     const msgs = document.getElementById('chat-widget-messages'); if (msgs) msgs.scrollTop = msgs.scrollHeight;
   };
 
-  window.closeChatWidget = function(){ const w = document.getElementById('chat-widget-container'); if (w) w.classList.remove('active'); };
+  window.closeChatWidget = function(){
+    const w = document.getElementById('chat-widget-container');
+    if (w) w.classList.remove('active');
+    const clearBtn = document.getElementById('chat-clear-btn');
+    if (clearBtn) clearBtn.style.display = 'none';
+  };
 
-  window.backToFriendList = function(){ window.closeChatWidget(); if (typeof window.openChatsList === 'function') window.openChatsList(); };
+  window.backToFriendList = function(){ window.closeChatWidget(); if (typeof window.openChatsList === 'function') window.openChatsList(true); };
 
   // Initialize immediately if loader already requested init
   if (window.__chatWidgetLoaderInstalled) {

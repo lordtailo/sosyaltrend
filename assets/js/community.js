@@ -1123,6 +1123,16 @@ function getCommunityAdminUids(data = {}) {
   return Array.from(new Set([ownerUid, ...adminUids].filter(Boolean)));
 }
 
+function isCommunityPrivate(data = {}) {
+  const value = data?.isPrivate;
+  if (typeof value === 'boolean') return value;
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase();
+    return normalized === 'true' || normalized === '1' || normalized === 'yes';
+  }
+  return Boolean(value);
+}
+
 function isCurrentUserAdmin() {
   return Boolean(window.user?.isAdmin) || localStorage.getItem('st_isAdmin') === '1';
 }
@@ -1133,7 +1143,7 @@ function isCommunityAdminUser(data = {}, user = null) {
 }
 
 function isCommunityVisibleToUser(data = {}, user = null) {
-  if (!data?.isPrivate) return true;
+  if (!isCommunityPrivate(data)) return true;
   if (isCommunityAdminUser(data, user)) return true;
   if (!user?.uid) return false;
   const memberUids = getCommunityMemberUids(data);
@@ -1190,6 +1200,7 @@ function renderPostComments(container, comments) {
     const commentDisplayName = comment.authorDisplayName || comment.authorName || 'Kullanıcı';
     const commentUsername = comment.authorUsername || formatCommunityUsername(commentDisplayName);
     const commentAvatar = getCommunityAvatarUrl(comment.authorAvatarUrl);
+    const commentTimestamp = comment.createdAt || comment.timestamp || comment.createdAtMs;
     return `
       <div class="comment-item" data-comment-id="${comment.id}" style="padding:10px 0; border-top:1px solid var(--border); display:flex; justify-content:space-between; gap:8px; align-items:flex-start;">
         <div style="display:flex; gap:8px; flex:1;">
@@ -1197,6 +1208,7 @@ function renderPostComments(container, comments) {
           <div style="flex:1;">
             <div style="font-weight:600; color:var(--text-main); font-size:0.9rem;">${escapeHtml(commentDisplayName)}</div>
             <div style="font-size:0.75rem; color:var(--text-muted); margin-bottom:3px;">@${escapeHtml(commentUsername)}</div>
+            <div style="font-size:0.72rem; color:var(--text-muted); margin-bottom:6px;">${formatPostDate(commentTimestamp)}</div>
             <div class="comment-content-view" style="color:var(--text-secondary); line-height:1.5; white-space:pre-wrap; font-size:0.9rem;">${escapeHtml(comment.content || '')}</div>
             <div class="comment-edit-area" style="display:none; margin-top:6px;">
               <textarea class="comment-edit-textarea" rows="2" style="width:100%; border:1px solid var(--border); border-radius:10px; padding:8px 10px; background:rgba(255,255,255,0.04); color:var(--text-main); resize:vertical; box-sizing:border-box;">${escapeHtml(comment.content || '')}</textarea>
@@ -1714,13 +1726,18 @@ async function toggleCommunityMembership(communityId, isJoined) {
     };
 
     if (isJoined) {
+      const existingMembers = Array.isArray(communityData.members) ? communityData.members : [];
+      const updatedMembers = existingMembers.filter((entry) => {
+        const entryUid = typeof entry === 'object' ? entry.uid : entry;
+        return entryUid !== currentUser.uid;
+      });
       await updateDoc(communityRef, {
-        members: arrayRemove(memberData)
+        members: updatedMembers
       });
       console.log('Topluluğundan ayrıldı:', communityId);
       return { ok: true, joined: false };
     } else {
-      if (communityData.isPrivate && communityData.ownerUid !== currentUser.uid && !getCommunityInvitedUids(communityData).includes(currentUser.uid)) {
+      if (isCommunityPrivate(communityData) && communityData.ownerUid !== currentUser.uid && !getCommunityInvitedUids(communityData).includes(currentUser.uid)) {
         alert('Bu özel topluluğa katılmak için davet almanız gerekir.');
         return { ok: false, joined: isJoined };
       }
@@ -1817,7 +1834,7 @@ async function openCommunityDetail(communityId) {
     const memberUids = getCommunityMemberUids(data);
     const invitedUids = getCommunityInvitedUids(data);
     const isAccessible = isCommunityVisibleToUser(data, currentUser);
-    if (data.isPrivate && !isAccessible) {
+    if (isCommunityPrivate(data) && !isAccessible) {
       detailView.innerHTML = '<div style="padding: 20px; color: var(--text-secondary);">Bu özel topluluk sadece davet edilen kişiler tarafından görülebilir.</div>';
       currentCommunityData = { id: snap.id, ...data, memberUids, invitedUids };
       return;
@@ -1876,7 +1893,7 @@ async function openCommunityDetail(communityId) {
             <div style="display:flex; flex-direction:column; gap:8px; color:var(--text-secondary); flex:1; min-width:260px;">
               <p style="margin:0; line-height:1.7; font-size:0.97rem;">${data.description || 'Açıklama yok.'}</p>
               <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
-                <span style="font-size:0.9rem; color:var(--text-main); font-weight:600;">${data.isPrivate ? 'Özel' : 'Herkese açık'}</span>
+                <span style="font-size:0.9rem; color:var(--text-main); font-weight:600;">${isCommunityPrivate(data) ? 'Özel' : 'Herkese açık'}</span>
                 ${(isOwner || isJoined) ? `<button type="button" onclick="window.openCommunityInvitePrompt('${communityId}')" style="padding:6px 10px; border:none; border-radius:999px; background:rgba(99,102,241,0.12); color:var(--primary); cursor:pointer; font-weight:700; font-size:0.8rem;">Davet Et</button>` : ''}
               </div>
             </div>
@@ -2056,6 +2073,9 @@ function renderCommunityMembersList(memberUids = []) {
     if (canManageMembers && !isOwner && !isCurrentUser && isAdmin) {
       actionButtons.push(`<button type="button" onclick="window.demoteCommunityAdmin('${uid}')" style="padding:6px 10px; border:none; border-radius:999px; background:rgba(239,68,68,0.10); color:#dc2626; cursor:pointer; font-weight:700; font-size:0.75rem;">Yönetici kaldır</button>`);
     }
+    if (canManageMembers && !isOwner && !isCurrentUser) {
+      actionButtons.push(`<button type="button" onclick="window.removeCommunityMember('${uid}')" style="padding:6px 10px; border:none; border-radius:999px; background:rgba(239,68,68,0.12); color:#ef4444; cursor:pointer; font-weight:700; font-size:0.75rem;">Çıkar</button>`);
+    }
     if (isCurrentOwner && !isOwner && !isCurrentUser) {
       actionButtons.push(`<button type="button" onclick="window.transferCommunityOwnership('${uid}')" style="padding:6px 10px; border:none; border-radius:999px; background:rgba(245,158,11,0.14); color:#d97706; cursor:pointer; font-weight:700; font-size:0.75rem;">Devret</button>`);
     }
@@ -2141,6 +2161,70 @@ window.demoteCommunityAdmin = async function(targetUid) {
   const confirmed = confirm('Bu yöneticinin yetkisini kaldırmak istiyor musunuz?');
   if (!confirmed) return;
   await updateCommunityAdminRole(targetUid, false);
+};
+
+window.removeCommunityMember = async function(targetUid) {
+  if (!currentCommunityId || !currentUser?.uid || !currentCommunityData) return;
+  if (!targetUid || targetUid === currentCommunityData.ownerUid) return;
+  if (targetUid === currentUser?.uid) {
+    alert('Kendi üyeliğinizi kendiniz çıkaramazsınız.');
+    return;
+  }
+  if (!isCommunityAdminUser(currentCommunityData, currentUser)) {
+    alert('Yalnızca topluluk sahibi veya yöneticileri üyeleri çıkarabilir.');
+    return;
+  }
+
+  const targetDisplayName = (() => {
+    const memberEntry = Array.isArray(currentCommunityData.members)
+      ? currentCommunityData.members.find((entry) => {
+          const entryUid = typeof entry === 'object' ? entry.uid : entry;
+          return entryUid === targetUid;
+        })
+      : null;
+    return typeof memberEntry === 'object' ? (memberEntry.displayName || 'Bu üye') : 'Bu üye';
+  })();
+
+  const confirmed = confirm(`${targetDisplayName} topluluktan çıkarılsın mı?`);
+  if (!confirmed) return;
+
+  try {
+    const currentMembers = Array.isArray(currentCommunityData.members) ? currentCommunityData.members : [];
+    const currentInvitedUsers = Array.isArray(currentCommunityData.invitedUsers) ? currentCommunityData.invitedUsers : [];
+    const currentAdmins = Array.isArray(currentCommunityData.admins) ? currentCommunityData.admins : [];
+
+    const nextMembers = currentMembers.filter((entry) => {
+      const entryUid = typeof entry === 'object' ? entry.uid : entry;
+      return entryUid !== targetUid;
+    });
+    const nextInvitedUsers = currentInvitedUsers.filter((entry) => {
+      const entryUid = typeof entry === 'object' ? entry.uid : entry;
+      return entryUid !== targetUid;
+    });
+    const nextAdmins = currentAdmins.filter((entry) => {
+      const entryUid = typeof entry === 'object' ? entry.uid : entry;
+      return entryUid !== targetUid;
+    });
+
+    await updateDoc(doc(communitiesCollection, currentCommunityId), {
+      members: nextMembers,
+      invitedUsers: nextInvitedUsers,
+      admins: nextAdmins,
+      updatedAt: serverTimestamp()
+    });
+
+    currentCommunityData = {
+      ...currentCommunityData,
+      members: nextMembers,
+      invitedUsers: nextInvitedUsers,
+      admins: nextAdmins
+    };
+
+    await openCommunityDetail(currentCommunityId);
+  } catch (error) {
+    console.error('Üye topluluktan çıkarılırken hata:', error);
+    alert('Üye çıkarılamadı. Lütfen tekrar deneyin.');
+  }
 };
 
 window.transferCommunityOwnership = async function(targetUid) {
@@ -2503,6 +2587,7 @@ function openEditCommunityModal(communityId, data) {
   document.getElementById('editCommunityName').value = data.name || '';
   document.getElementById('editCommunityCategory').value = data.category || '';
   document.getElementById('editCommunityDescription').value = data.description || '';
+  document.getElementById('editCommunityPrivate').checked = Boolean(data.isPrivate);
   modal.style.display = 'flex';
 }
 
@@ -2517,6 +2602,7 @@ async function saveEditedCommunity() {
   const name = document.getElementById('editCommunityName').value.trim();
   const category = document.getElementById('editCommunityCategory').value;
   const description = document.getElementById('editCommunityDescription').value.trim();
+  const isPrivate = document.getElementById('editCommunityPrivate').checked;
 
   if (!name || !category || !description) {
     alert('Lütfen tüm alanları doldurunuz.');
@@ -2528,6 +2614,7 @@ async function saveEditedCommunity() {
       name,
       category,
       description,
+      isPrivate,
       updatedAt: serverTimestamp()
     });
     if (currentCommunityData) {
@@ -2535,7 +2622,8 @@ async function saveEditedCommunity() {
         ...currentCommunityData,
         name,
         category,
-        description
+        description,
+        isPrivate
       };
     }
     closeEditCommunityModal();

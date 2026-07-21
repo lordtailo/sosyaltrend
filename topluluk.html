@@ -104,6 +104,13 @@
         <textarea id="editCommunityDescription" style="width: 100%; height: 100px; padding: 10px 15px; border: 1px solid var(--border); border-radius: 8px; background: transparent; color: var(--text-main); outline: none; box-sizing: border-box; resize: vertical;"></textarea>
       </div>
 
+      <div style="margin-bottom: 20px;">
+        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; color: var(--text-main);">
+          <input type="checkbox" id="editCommunityPrivate" style="cursor: pointer;">
+          <span>Özel Topluluk (yalnızca davetliler katılabilir)</span>
+        </label>
+      </div>
+
       <div style="display: flex; justify-content: flex-end; gap: 10px;">
         <button onclick="closeEditCommunityModal()" style="padding: 10px 20px; border-radius: 20px; border: 1px solid var(--border); background: transparent; cursor: pointer; color: var(--text-main);">İptal</button>
         <button onclick="saveEditedCommunity()" style="padding: 10px 20px; border-radius: 20px; border: none; background: var(--primary); color: white; font-weight: bold; cursor: pointer;">Kaydet</button>
@@ -160,8 +167,8 @@
   </div>
 
   <script src="assets/js/include.js"></script>
-  <script type="module" src="assets/js/app.js?v=20260707d"></script>
-  <script type="module" src="assets/js/community.js?v=20260707f"></script>
+  <script type="module" src="assets/js/app.js?v=20260721a"></script>
+  <script type="module" src="assets/js/community.js?v=20260721a"></script>
 
 </body>
 </html>

@@ -1136,11 +1136,13 @@ function buildInlineShareCard(postId, postData) {
         const authorName = postData.displayName || postData.name || postData.username || 'Anonim';
         const authorUsername = postData.username || '';
         const decodedContent = decodeEntities ? decodeEntities(postData.content || '') : (postData.content || '');
-        const content = decodedContent.length > 240 ? `${decodedContent.slice(0, 240).trim()}...` : decodedContent;
+        const contentPreviewText = stripYoutubeLinks(decodedContent);
+        const content = contentPreviewText.length > 240 ? `${contentPreviewText.slice(0, 240).trim()}...` : contentPreviewText;
         const imageHtml = postData.image ? `
             <div style="margin-top:10px; border-radius:14px; overflow:hidden; border:1px solid var(--border); background:#000; max-height:240px;">
                 <img src="${postData.image}" alt="Gönderi görseli" style="width:100%; height:100%; object-fit:cover; display:block;">
             </div>` : '';
+        const youtubeHtml = extractAndRenderYoutubeVideos(postData.content || '');
         const currentIdentity = getCurrentUserIdentity();
         const likeState = getBookmarkState(postData.likes, currentIdentity);
         const saveState = getBookmarkState(postData.savedBy, currentIdentity);
@@ -1166,8 +1168,9 @@ function buildInlineShareCard(postId, postData) {
                         <button type="button" class="post-delete-btn" onclick="deletePost('${postId}')" style="position:static;" title="Sil"><i class="fa-solid fa-trash"></i></button>
                     </div>` : ''}
                 </div>
-                <div style="white-space:pre-wrap; color:var(--text-main); line-height:1.55; font-size:0.94rem;">${content}</div>
+                ${content ? `<div style="white-space:pre-wrap; color:var(--text-main); line-height:1.55; font-size:0.94rem;">${content}</div>` : ''}
                 ${imageHtml}
+                ${youtubeHtml}
                 <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center; margin-top:12px;">
                     <button class="tool-btn icon-count" onclick="likePost('${postId}', this)" data-liked="${isLiked ? 'true' : 'false'}" aria-pressed="${isLiked ? 'true' : 'false'}" style="gap:3px; color:${isLiked ? '#ef4444' : ''}"><i class="${isLiked ? 'fa-solid' : 'fa-regular'} fa-heart"></i><span>(${likeState.normalizedSavedBy.length})</span></button>
                     <button class="tool-btn icon-count" onclick="toggleCommentSection('${postId}')" style="gap:3px;"><i class="fa-regular fa-comment"></i><span>(${commentCount})</span></button>
@@ -1663,113 +1666,120 @@ function isCurrentUserPost(post) {
     return hasMatchingIdentity || hasMatchingUid;
 }
 
-// Feed'e duyuruları ekle
+function buildAnnouncementCard(announcementId, data, currentUsername) {
+    const content = (data.content || '').trim();
+    if (!content) return null;
+
+    let createdAt = 'Bilinmiyor';
+    if (data.timestamp) {
+        const date = data.timestamp.toDate();
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = date.getFullYear();
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        const seconds = String(date.getSeconds()).padStart(2, '0');
+        createdAt = `${day}.${month}.${year} ${hours}:${minutes}:${seconds}`;
+    }
+
+    const isLiked = currentUsername && data.likes ? data.likes.includes(currentUsername) : false;
+    const savedState = getBookmarkState(data.savedBy, currentUsername);
+    const isSaved = savedState.isSaved;
+    const likeCount = data.likes ? data.likes.length : 0;
+    const commentCount = data.comments ? data.comments.length : 0;
+
+    const card = document.createElement('div');
+    card.className = 'glass-card post';
+    card.setAttribute('data-announcement-id', announcementId);
+    card.setAttribute('data-announcement-data', JSON.stringify(data));
+    card.style.cssText = `
+        border: 2px solid var(--primary);
+        background: rgba(99, 102, 241, 0.08);
+        position: relative;
+    `;
+
+    card.innerHTML = `
+        <div style="position: absolute; top: 15px; right: 15px; display: flex; gap: 8px; z-index: 10;">
+            <button class="post-edit-btn" style="position:static;" onclick="editAnnouncement('${announcementId}')" title="Düzenle">
+                <i class="fa-solid fa-pen"></i>
+            </button>
+            <button class="post-delete-btn" style="position:static;" onclick="deleteAnnouncement('${announcementId}')">
+                <i class="fa-solid fa-trash"></i>
+            </button>
+        </div>
+        <div style="display:flex; gap:10px; margin-bottom:10px;">
+            <img src="assets/img/strendsaydamv2.png" class="user-avatar" style="width:40px; height:40px; border-radius:50%; cursor:pointer;" onclick="location.href='profil.html?id=official_system'">
+            <div>
+                <div style="font-weight:700; display:flex; align-items:center; gap:5px; cursor:pointer;" onclick="location.href='profil.html?id=official_system'">
+                    SosyaLTrend <i class="fa-solid fa-circle-check" style="color:var(--primary); font-size:0.7rem;"></i>
+                    <span class="post-time">• ${createdAt}</span>
+                </div>
+                <div style="font-size:0.75rem; color:var(--text-muted); cursor:pointer;" onclick="location.href='profil.html?id=official_system'">@official_system</div>
+            </div>
+        </div>
+        
+        <div class="post-content-block" style="margin-bottom:12px;">
+            <p style="white-space: pre-wrap; margin:0; color: var(--text-main); font-size: 0.95rem; line-height: 1.5;">${content}</p>
+        </div>
+
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:10px; min-height:28px;">
+            <div id="likers-ann-${announcementId}" style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;"></div>
+        </div>
+
+        <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+            <button class="tool-btn icon-count" onclick="likeAnnouncement('${announcementId}', ${isLiked}, this)" style="gap:5px; color:${isLiked ? '#ef4444' : ''}"><i class="${isLiked ? 'fa-solid' : 'fa-regular'} fa-heart"></i><span>(${likeCount})</span></button>
+            <button class="tool-btn icon-count" onclick="toggleAnnouncementComments('${announcementId}')" style="gap:5px;"><i class="fa-regular fa-comment"></i><span>(${commentCount})</span></button>
+            <button class="tool-btn icon-count" onclick="bookmarkAnnouncement('${announcementId}', this)" data-saved="${isSaved ? 'true' : 'false'}" aria-pressed="${isSaved ? 'true' : 'false'}" style="gap:5px; color:${isSaved ? '#f59e0b' : ''}"><i class="${isSaved ? 'fa-solid' : 'fa-regular'} fa-bookmark"></i><span>(${savedState.normalizedSavedBy.length})</span></button>
+            <button class="tool-btn" onclick="window.openShareMenu('${announcementId}')" style="gap:5px; margin-left:auto;"><i class="fa-solid fa-share"></i><span>Paylaş</span></button>
+        </div>
+        
+        <div id="comments-ann-${announcementId}" class="comment-area" style="display:none;">
+            <div class="comment-input-area" style="display:flex; gap:10px; margin-bottom:12px;">
+                <img src="${(window.user && window.user.avatarUrl) || 'assets/img/strendsaydamv2.png'}" style="width:32px; height:32px; border-radius:50%;">
+                <div style="flex:1; display:flex; gap:8px;">
+                    <input id="input-ann-${announcementId}" type="text" placeholder="Yorum yaz..." style="flex:1; border:1px solid var(--border); border-radius:20px; padding:8px 16px; background:var(--input-bg); color:var(--text-main); outline:none;">
+                    <button onclick="postAnnouncementComment('${announcementId}')" style="background:var(--primary); color:white; border:none; border-radius:20px; padding:8px 16px; cursor:pointer; font-weight:700;">Gönder</button>
+                </div>
+            </div>
+            <div id="list-ann-${announcementId}"></div>
+        </div>
+    `;
+
+    return card;
+}
+
 window.addAnnouncementsToFeed = async () => {
     try {
         const feed = document.getElementById('feed-items');
         if (!feed) return;
-        
+
         const announcementsSnap = await getDocs(
             query(collection(db, "announcements"), orderBy("timestamp", "desc"), limit(10))
         );
-        
+
         if (announcementsSnap.empty) return;
-        
+
         const currentUsername = getCurrentBookmarkIdentity();
+        const existingAnnouncementIds = new Set(Array.from(feed.querySelectorAll('[data-announcement-id]')).map((card) => card.getAttribute('data-announcement-id')));
         const announcementElements = [];
-        
-        announcementsSnap.forEach(doc => {
+
+        announcementsSnap.forEach((doc) => {
             const data = doc.data();
-            const content = (data.content || '').trim();
-            if (!content) return;
-            
             const announcementId = doc.id;
-            let createdAt = 'Bilinmiyor';
-            if (data.timestamp) {
-                const date = data.timestamp.toDate();
-                const day = String(date.getDate()).padStart(2, '0');
-                const month = String(date.getMonth() + 1).padStart(2, '0');
-                const year = date.getFullYear();
-                const hours = String(date.getHours()).padStart(2, '0');
-                const minutes = String(date.getMinutes()).padStart(2, '0');
-                const seconds = String(date.getSeconds()).padStart(2, '0');
-                createdAt = `${day}.${month}.${year} ${hours}:${minutes}:${seconds}`;
-            }
-            const isLiked = currentUsername && data.likes ? data.likes.includes(currentUsername) : false;
-            const savedState = getBookmarkState(data.savedBy, currentUsername);
-            const isSaved = savedState.isSaved;
-            const likeCount = data.likes ? data.likes.length : 0;
-            const commentCount = data.comments ? data.comments.length : 0;
-            
-            const card = document.createElement('div');
-            card.className = 'glass-card post';
-            card.setAttribute('data-announcement-id', announcementId);
-            card.setAttribute('data-announcement-data', JSON.stringify(data));
-            card.style.cssText = `
-                border: 2px solid var(--primary);
-                background: rgba(99, 102, 241, 0.08);
-                position: relative;
-            `;
-            
-            card.innerHTML = `
-                <div style="position: absolute; top: 15px; right: 15px; display: flex; gap: 8px; z-index: 10;">
-                    <button class="post-edit-btn" style="position:static;" onclick="editAnnouncement('${announcementId}')" title="Düzenle">
-                        <i class="fa-solid fa-pen"></i>
-                    </button>
-                    <button class="post-delete-btn" style="position:static;" onclick="deleteAnnouncement('${announcementId}')">
-                        <i class="fa-solid fa-trash"></i>
-                    </button>
-                </div>
-                <div style="display:flex; gap:10px; margin-bottom:10px;">
-                    <img src="assets/img/strendsaydamv2.png" class="user-avatar" style="width:40px; height:40px; border-radius:50%; cursor:pointer;" onclick="location.href='profil.html?id=official_system'">
-                    <div>
-                        <div style="font-weight:700; display:flex; align-items:center; gap:5px; cursor:pointer;" onclick="location.href='profil.html?id=official_system'">
-                            SosyaLTrend <i class="fa-solid fa-circle-check" style="color:var(--primary); font-size:0.7rem;"></i>
-                            <span class="post-time">• ${createdAt}</span>
-                        </div>
-                        <div style="font-size:0.75rem; color:var(--text-muted); cursor:pointer;" onclick="location.href='profil.html?id=official_system'">@official_system</div>
-                    </div>
-                </div>
-                
-                <div class="post-content-block" style="margin-bottom:12px;">
-                    <p style="white-space: pre-wrap; margin:0; color: var(--text-main); font-size: 0.95rem; line-height: 1.5;">${content}</p>
-                </div>
+            if (existingAnnouncementIds.has(announcementId)) return;
 
-                <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:10px; min-height:28px;">
-                    <div id="likers-ann-${announcementId}" style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;"></div>
-                </div>
+            const card = buildAnnouncementCard(announcementId, data, currentUsername);
+            if (!card) return;
 
-                <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
-                    <button class="tool-btn icon-count" onclick="likeAnnouncement('${announcementId}', ${isLiked}, this)" style="gap:5px; color:${isLiked ? '#ef4444' : ''}"><i class="${isLiked ? 'fa-solid' : 'fa-regular'} fa-heart"></i><span>(${likeCount})</span></button>
-                    <button class="tool-btn icon-count" onclick="toggleAnnouncementComments('${announcementId}')" style="gap:5px;"><i class="fa-regular fa-comment"></i><span>(${commentCount})</span></button>
-                    <button class="tool-btn icon-count" onclick="bookmarkAnnouncement('${announcementId}', this)" data-saved="${isSaved ? 'true' : 'false'}" aria-pressed="${isSaved ? 'true' : 'false'}" style="gap:5px; color:${isSaved ? '#f59e0b' : ''}"><i class="${isSaved ? 'fa-solid' : 'fa-regular'} fa-bookmark"></i><span>(${savedState.normalizedSavedBy.length})</span></button>
-                    <button class="tool-btn" onclick="window.openShareMenu('${announcementId}')" style="gap:5px; margin-left:auto;"><i class="fa-solid fa-share"></i><span>Paylaş</span></button>
-                </div>
-                
-                <div id="comments-ann-${announcementId}" class="comment-area" style="display:none;">
-                    <div class="comment-input-area" style="display:flex; gap:10px; margin-bottom:12px;">
-                        <img src="${(window.user && window.user.avatarUrl) || 'assets/img/strendsaydamv2.png'}" style="width:32px; height:32px; border-radius:50%;">
-                        <div style="flex:1; display:flex; gap:8px;">
-                            <input id="input-ann-${announcementId}" type="text" placeholder="Yorum yaz..." style="flex:1; border:1px solid var(--border); border-radius:20px; padding:8px 16px; background:var(--input-bg); color:var(--text-main); outline:none;">
-                            <button onclick="postAnnouncementComment('${announcementId}')" style="background:var(--primary); color:white; border:none; border-radius:20px; padding:8px 16px; cursor:pointer; font-weight:700;">Gönder</button>
-                        </div>
-                    </div>
-                    <div id="list-ann-${announcementId}"></div>
-                </div>
-            `;
-            
             announcementElements.push({ card, data, id: announcementId });
         });
-        
-        // Duyuruları feed'in en başına ekle
-        announcementElements.reverse().forEach(item => {
+
+        announcementElements.reverse().forEach((item) => {
             feed.insertBefore(item.card, feed.firstChild);
-            // Yorumları render et
             if (item.data.comments && item.data.comments.length > 0) {
                 renderAnnouncementComments(item.id, item.data.comments);
             }
         });
-        
     } catch (e) {
         console.error('Feed duyuru ekleme hatası:', e);
     }
@@ -2045,101 +2055,28 @@ window.listenForAnnouncementChanges = () => {
         onSnapshot(
             query(collection(db, "announcements"), orderBy("timestamp", "desc")),
             (snap) => {
-                // Eski duyru kartlarını kaldır
-                feed.querySelectorAll('[data-announcement-id]').forEach(card => card.remove());
-                
-                // Yeni duyuruları ekle
+                const existingIds = new Set(Array.from(feed.querySelectorAll('[data-announcement-id]')).map((card) => card.getAttribute('data-announcement-id')));
                 const announcementElements = [];
-                
-                snap.forEach(doc => {
+
+                snap.forEach((doc) => {
                     const data = doc.data();
                     const content = (data.content || '').trim();
                     if (!content) return;
-                    
+
                     const announcementId = doc.id;
-                    let createdAt = 'Bilinmiyor';
-                    if (data.timestamp) {
-                        const date = data.timestamp.toDate();
-                        const day = String(date.getDate()).padStart(2, '0');
-                        const month = String(date.getMonth() + 1).padStart(2, '0');
-                        const year = date.getFullYear();
-                        const hours = String(date.getHours()).padStart(2, '0');
-                        const minutes = String(date.getMinutes()).padStart(2, '0');
-                        const seconds = String(date.getSeconds()).padStart(2, '0');
-                        createdAt = `${day}.${month}.${year} ${hours}:${minutes}:${seconds}`;
-                    }
-                    const isLiked = currentUsername && data.likes ? data.likes.includes(currentUsername) : false;
-                    const isSaved = currentUsername && data.savedBy ? data.savedBy.includes(currentUsername) : false;
-                    const likeCount = data.likes ? data.likes.length : 0;
-                    const commentCount = data.comments ? data.comments.length : 0;
-                    
-                    const card = document.createElement('div');
-                    card.className = 'glass-card post';
-                    card.setAttribute('data-announcement-id', announcementId);
-                    card.style.cssText = `
-                        border: 2px solid var(--primary);
-                        background: rgba(99, 102, 241, 0.08);
-                        position: relative;
-                        animation: slideIn 0.3s ease-out;
-                    `;
-                    
-                    card.innerHTML = `
-                        <div style="position: absolute; top: 15px; right: 15px; display: flex; gap: 8px; z-index: 10;">
-                            <button class="post-edit-btn" style="position:static;" onclick="editAnnouncement('${announcementId}')" title="Düzenle">
-                                <i class="fa-solid fa-pen"></i>
-                            </button>
-                            <button class="post-delete-btn" style="position:static;" onclick="deleteAnnouncement('${announcementId}')">
-                                <i class="fa-solid fa-trash"></i>
-                            </button>
-                        </div>
-                        <div style="display:flex; gap:10px; margin-bottom:10px;">
-                            <img src="assets/img/strendsaydamv2.png" class="user-avatar" style="width:40px; height:40px; border-radius:50%; cursor:pointer;" onclick="location.href='profil.html?id=official_system'">
-                            <div>
-                                <div style="font-weight:700; display:flex; align-items:center; gap:5px; cursor:pointer;" onclick="location.href='profil.html?id=official_system'">
-                                    SosyaLTrend <i class="fa-solid fa-circle-check" style="color:var(--primary); font-size:0.7rem;"></i>
-                                    <span class="post-time">• ${createdAt}</span>
-                                </div>
-                                <div style="font-size:0.75rem; color:var(--text-muted); cursor:pointer;" onclick="location.href='profil.html?id=official_system'">@official_system</div>
-                            </div>
-                        </div>
-                        
-                        <div class="post-content-block" style="margin-bottom:12px;">
-                            <p style="white-space: pre-wrap; margin:0; color: var(--text-main); font-size: 0.95rem; line-height: 1.5;">${content}</p>
-                        </div>
+                    if (existingIds.has(announcementId)) return;
 
-                        <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:10px; min-height:28px;">
-                            <div id="likers-ann-${announcementId}" style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;"></div>
-                        </div>
+                    const card = buildAnnouncementCard(announcementId, data, currentUsername);
+                    if (!card) return;
 
-                        <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
-                            <button class="tool-btn icon-count" onclick="likeAnnouncement('${announcementId}', ${isLiked}, this)" style="gap:5px; color:${isLiked ? '#ef4444' : ''}"><i class="${isLiked ? 'fa-solid' : 'fa-regular'} fa-heart"></i><span>(${likeCount})</span></button>
-                            <button class="tool-btn icon-count" onclick="toggleAnnouncementComments('${announcementId}')" style="gap:5px;"><i class="fa-regular fa-comment"></i><span>(${commentCount})</span></button>
-                            <button class="tool-btn icon-count" onclick="bookmarkAnnouncement('${announcementId}', this)" data-saved="${isSaved ? 'true' : 'false'}" aria-pressed="${isSaved ? 'true' : 'false'}" style="gap:5px; color:${isSaved ? '#f59e0b' : ''}"><i class="${isSaved ? 'fa-solid' : 'fa-regular'} fa-bookmark"></i><span>(${data.savedBy ? data.savedBy.length : 0})</span></button>
-                            <button class="tool-btn" onclick="window.openShareMenu('${announcementId}')" style="gap:5px; margin-left:auto;"><i class="fa-solid fa-share"></i><span>Paylaş</span></button>
-                        </div>
-                        
-                        <div id="comments-ann-${announcementId}" class="comment-area" style="display:none;">
-                            <div class="comment-input-area" style="display:flex; gap:10px; margin-bottom:12px;">
-                                <img src="${(window.user && window.user.avatarUrl) || 'assets/img/strendsaydamv2.png'}" style="width:32px; height:32px; border-radius:50%;">
-                                <div style="flex:1; display:flex; gap:8px;">
-                                    <input id="input-ann-${announcementId}" type="text" placeholder="Yorum yaz..." style="flex:1; border:1px solid var(--border); border-radius:20px; padding:8px 16px; background:var(--input-bg); color:var(--text-main); outline:none;">
-                                    <button onclick="postAnnouncementComment('${announcementId}')" style="background:var(--primary); color:white; border:none; border-radius:20px; padding:8px 16px; cursor:pointer; font-weight:700;">Gönder</button>
-                                </div>
-                            </div>
-                            <div id="list-ann-${announcementId}"></div>
-                        </div>
-                    `;
-                    
                     announcementElements.push({ card, data, id: announcementId });
                 });
-                
-                // Duyuruları feed'in en başına ekle
-                announcementElements.forEach(item => {
+
+                announcementElements.reverse().forEach((item) => {
                     feed.insertBefore(item.card, feed.firstChild);
                 });
 
-                // Her duyuru için yorumları render et
-                snap.forEach(doc => {
+                snap.forEach((doc) => {
                     const data = doc.data();
                     if (data.comments && data.comments.length > 0) {
                         renderAnnouncementComments(doc.id, data.comments);
@@ -11420,11 +11357,17 @@ function setGroupMembersBarVisible(visible) {
     bar.style.display = visible ? 'flex' : 'none';
 }
 
+function setChatClearButtonVisibility(visible = false) {
+    const clearBtn = document.getElementById('chat-clear-btn');
+    if (clearBtn) {
+        clearBtn.style.display = visible ? 'inline-flex' : 'none';
+    }
+}
+
 function setGroupChatHeaderActionsVisibility(isGroup = false, ownerUid = null) {
     const actionsBar = document.getElementById('group-chat-actions-bar');
     const deleteBtn = document.getElementById('group-chat-delete-btn');
     const leaveBtn = document.getElementById('group-chat-leave-btn');
-    const clearBtn = document.getElementById('chat-clear-btn');
     const currentUserId = auth.currentUser?.uid;
     const canDelete = Boolean(isGroup && currentUserId && ownerUid && currentUserId === ownerUid);
 
@@ -11437,9 +11380,7 @@ function setGroupChatHeaderActionsVisibility(isGroup = false, ownerUid = null) {
     if (leaveBtn) {
         leaveBtn.style.display = isGroup ? 'inline-flex' : 'none';
     }
-    if (clearBtn) {
-        clearBtn.style.display = isGroup ? 'inline-flex' : 'none';
-    }
+    setChatClearButtonVisibility(Boolean(currentConversationId));
 }
 
 async function renderGroupChatMembersBar(participantIds = []) {
@@ -11559,6 +11500,16 @@ function initChatListsPanel() {
                 </button>
             </div>
         </div>
+        <div class="chat-lists-footer" style="padding:0 18px 12px;">
+            <div class="chat-lists-footer-actions" style="display:flex; gap:10px; flex-wrap:wrap; margin-top: 8px;">
+                <button type="button" class="chat-action-btn chat-action-primary" onclick="loadRecentChats()" style="flex:1; min-width: 140px;">
+                    <i class="fa-solid fa-clock-rotate-left"></i> Son Sohbetler
+                </button>
+                <button type="button" class="chat-action-btn chat-action-primary" onclick="loadChatFriends()" style="flex:1; min-width: 140px;">
+                    <i class="fa-solid fa-users"></i> Arkadaşlarım
+                </button>
+            </div>
+        </div>
         <div class="chat-lists-search" id="chat-lists-search" style="display:none; padding:0 18px 10px;">
             <input 
                 type="text" 
@@ -11578,16 +11529,15 @@ function initChatListsPanel() {
                 <p>Arkadaşlar yükleniyor...</p>
             </div>
         </div>
-        <div class="chat-lists-footer">
-            <div class="chat-lists-footer-actions" style="display:flex; gap:10px; flex-wrap:wrap;">
-                <button type="button" class="chat-action-btn chat-action-primary" onclick="loadRecentChats()" style="flex:1; min-width: 140px;">
-                    <i class="fa-solid fa-clock-rotate-left"></i> Son Sohbetler
-                </button>
-                <button type="button" class="chat-action-btn chat-action-primary" onclick="loadChatFriends()" style="flex:1; min-width: 140px;">
-                    <i class="fa-solid fa-users"></i> Arkadaşlarım
-                </button>
+        <div class="chat-lists-footer" style="padding:0 18px 12px;">
+            <div style="border-top:1px solid var(--border, rgba(255,255,255,0.12)); padding-top:10px; display:grid; gap:8px;">
+                <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                    <button type="button" class="chat-action-btn chat-action-primary" onclick="window.showChatHistoryView()" style="flex:1; min-width:140px; justify-content:center;">
+                        <i class="fa-solid fa-clock-rotate-left"></i> Sohbet Geçmişi
+                    </button>
+                </div>
             </div>
-            <button id="chat-add-friend-btn" class="chat-action-btn chat-action-secondary" onclick="addFriendFromChat()" title="Arkadaş ekle" style="display:none;">
+            <button id="chat-add-friend-btn" class="chat-action-btn chat-action-secondary" onclick="addFriendFromChat()" title="Arkadaş ekle" style="display:none; width:100%; justify-content:center; margin-top:10px;">
                 <i class="fa-solid fa-user-plus"></i> Arkadaş ekle
             </button>
         </div>
@@ -11595,6 +11545,25 @@ function initChatListsPanel() {
     
     document.body.appendChild(chatListsPanel);
 }
+
+window.showChatHistoryView = function() {
+    if (!document.getElementById('chat-lists-panel')) {
+        initChatListsPanel();
+    }
+
+    const panel = document.getElementById('chat-lists-panel');
+    if (panel) {
+        panel.classList.add('active');
+        panel.style.display = 'flex';
+        document.body.classList.add('chat-open');
+    }
+
+    setTimeout(() => {
+        if (typeof window.loadRecentChats === 'function') {
+            window.loadRecentChats();
+        }
+    }, 0);
+};
 
 function ensureGroupCreateActionButton(container) {
     if (!container) return;
@@ -11736,29 +11705,32 @@ window.openCreateGroupChatModal = async function() {
 };
 
 // Open or close chat friends list
-window.openChatsList = async function() {
+window.openChatsList = async function(forceOpen = false) {
     if (!auth.currentUser) {
         alert('Lütfen giriş yapın');
         return;
     }
 
-    // Open only the chat friends list panel; do not open the conversation widget here.
     if (!document.getElementById('chat-lists-panel')) {
         initChatListsPanel();
     }
 
     const panel = document.getElementById('chat-lists-panel');
     if (!panel) return;
-    const isOpen = panel.classList.contains('active');
-    if (isOpen) {
-        panel.classList.remove('active');
-        document.body.classList.remove('chat-open');
-    } else {
+
+    if (forceOpen || !panel.classList.contains('active')) {
         panel.classList.add('active');
+        panel.style.display = 'flex';
         document.body.classList.add('chat-open');
-        // Load recent chats into the list, but do not initialize or show the conversation widget.
-        loadRecentChats();
+        if (typeof loadRecentChats === 'function') {
+            loadRecentChats();
+        }
+        return;
     }
+
+    panel.classList.remove('active');
+    panel.style.display = 'none';
+    document.body.classList.remove('chat-open');
 }
 
 // Close chat lists
@@ -11766,6 +11738,7 @@ window.closeChatsList = function() {
     const panel = document.getElementById('chat-lists-panel');
     if (panel) {
         panel.classList.remove('active');
+        panel.style.display = 'none';
     }
     document.body.classList.remove('chat-open');
 }
@@ -11861,6 +11834,21 @@ window.loadChatFriends = async function() {
     }
 }
 
+async function conversationHasMessages(conversationId) {
+    if (!conversationId) return false;
+    try {
+        const messagesQuery = query(
+            collection(db, 'conversations', conversationId, 'messages'),
+            limit(1)
+        );
+        const messagesSnap = await getDocs(messagesQuery);
+        return !messagesSnap.empty;
+    } catch (error) {
+        console.warn('Konuşma mesaj durumu kontrol edilemedi:', error);
+        return false;
+    }
+}
+
 // Load recent chats when opening list
 window.loadRecentChats = async function() {
     const friendsList = document.getElementById('chat-friends-list');
@@ -11884,26 +11872,33 @@ window.loadRecentChats = async function() {
     try {
         removeGroupCreateActionButton(friendsList);
         const currentUserId = auth.currentUser.uid;
-        const q = query(
-            collection(db, 'conversations'),
-            where('participants', 'array-contains', currentUserId),
-            orderBy('lastMessageAt', 'desc'),
-            limit(20)
-        );
+        const convSnap = await getDocs(collection(db, 'conversations'));
+        const conversations = convSnap.docs
+            .filter((docSnap) => {
+                const convData = docSnap.data() || {};
+                const participants = Array.isArray(convData.participants) ? convData.participants : [];
+                return participants.includes(currentUserId);
+            })
+            .sort((a, b) => {
+                const aTime = a.data()?.lastMessageAt?.toDate ? a.data().lastMessageAt.toDate().getTime() : 0;
+                const bTime = b.data()?.lastMessageAt?.toDate ? b.data().lastMessageAt.toDate().getTime() : 0;
+                return bTime - aTime;
+            })
+            .slice(0, 20);
 
-        const convSnap = await getDocs(q);
-        if (convSnap.empty) {
+        if (!conversations.length) {
             friendsList.innerHTML = '<div class="chat-lists-empty"><i class="fa-solid fa-comment-slash"></i><p>Henüz sohbetiniz yok</p></div>';
             return;
         }
 
         const hiddenConversationIds = getHiddenConversationIds();
         const recentChats = [];
-        for (const docSnap of convSnap.docs) {
+        for (const docSnap of conversations) {
             const convData = docSnap.data();
             const isGroup = !!convData.group;
             const conversationId = docSnap.id;
             const lastMessage = convData.lastMessage || 'Yeni sohbet';
+            const lastSenderId = convData.lastSenderId || null;
             const unreadCount = convData.unreadCount?.[currentUserId] || 0;
 
             if (hiddenConversationIds.includes(String(conversationId))) {
@@ -11919,6 +11914,7 @@ window.loadRecentChats = async function() {
                     username: 'group',
                     avatarUrl: 'assets/img/strendsaydamv2.png',
                     lastMessage,
+                    lastSenderId,
                     unreadCount,
                     presence: { status: 'online', label: 'Grup' }
                 });
@@ -11939,14 +11935,14 @@ window.loadRecentChats = async function() {
                 const username = friendData.username || 'user';
                 const presence = resolvePresenceStatus(friendData);
 
-                recentChats.push({ conversationId, otherParticipantId, displayName, username, avatarUrl, lastMessage, unreadCount, presence, isGroup: false });
+                recentChats.push({ conversationId, otherParticipantId, displayName, username, avatarUrl, lastMessage, lastSenderId, unreadCount, presence, isGroup: false });
             } catch (error) {
                 console.error('Sohbet kullanıcısı yüklenirken hata:', error);
             }
         }
 
         const titleEl = document.querySelector('.chat-lists-title');
-        if (titleEl) titleEl.textContent = 'Son Sohbetler';
+        if (titleEl) titleEl.textContent = 'Sohbet Geçmişi';
 
         const loadMoreBtn = document.getElementById('chat-load-more-btn');
         if (recentChats.length > 2 && loadMoreBtn) {
@@ -11961,6 +11957,8 @@ window.loadRecentChats = async function() {
         let friendsHtml = '';
         for (let i = 0; i < recentChats.length; i++) {
             const chat = recentChats[i];
+            const previewLabel = chat.lastSenderId === currentUserId ? 'Sen' : (chat.isGroup ? 'Grup' : chat.displayName);
+            const previewText = `${previewLabel}: ${chat.lastMessage || 'Mesaj yok'}`;
             friendsHtml += `
                 <div class="chat-friend-item" data-conversation-id="${chat.conversationId}" data-recent-index="${i}" onclick="window.openConversationFromList('${chat.conversationId}', '${chat.displayName}', ${chat.isGroup})">
                     <div class="chat-friend-avatar-wrap ${chat.presence?.status || 'offline'}">
@@ -11969,7 +11967,7 @@ window.loadRecentChats = async function() {
                     </div>
                     <div class="chat-friend-info">
                         <p class="chat-friend-name">${escapeHtml(chat.displayName)}</p>
-                        <p class="chat-friend-lastmsg">${escapeHtml(chat.lastMessage)}</p>
+                        <p class="chat-friend-lastmsg">${escapeHtml(previewText)}</p>
                     </div>
                     <div class="chat-friend-meta">
                         ${chat.unreadCount > 0 ? `<span class="chat-last-sender"><strong>${chat.unreadCount}</strong> Yeni Mesaj</span>` : ''}
@@ -11993,6 +11991,8 @@ window.loadRecentChats = async function() {
         if (recentChats.length > 2) {
             for (let i = 2; i < recentChats.length; i++) {
                 const chat = recentChats[i];
+                const previewLabel = chat.lastSenderId === currentUserId ? 'Sen' : (chat.isGroup ? 'Grup' : chat.displayName);
+                const previewText = `${previewLabel}: ${chat.lastMessage || 'Mesaj yok'}`;
                 const hiddenItem = document.createElement('div');
                 hiddenItem.className = 'chat-friend-item hidden-recent';
                 hiddenItem.style.display = 'none';
@@ -12004,7 +12004,7 @@ window.loadRecentChats = async function() {
                     </div>
                     <div class="chat-friend-info">
                         <p class="chat-friend-name">${escapeHtml(chat.displayName)}</p>
-                        <p class="chat-friend-lastmsg">${escapeHtml(chat.lastMessage)}</p>
+                        <p class="chat-friend-lastmsg">${escapeHtml(previewText)}</p>
                     </div>
                     <div class="chat-friend-actions">
                         <button class="chat-friend-action chat-friend-chat${chat.isGroup ? ' group-conversation-action' : ''}${chat.unreadCount > 0 ? ' has-unread' : ''}" title="Mesaj yaz" onclick="event.stopPropagation(); window.openConversationFromList('${chat.conversationId}', '${chat.displayName}', ${chat.isGroup})">
@@ -12375,10 +12375,7 @@ window.openChatWithUser = async function(userId, displayName) {
         widgetEl.classList.add('active');
         document.body.classList.add('chat-open');
 
-        const clearButton = document.getElementById('chat-clear-btn');
-        if (clearButton) {
-            clearButton.style.display = 'inline-flex';
-        }
+        setChatClearButtonVisibility(true);
         setGroupChatHeaderActionsVisibility(false);
         
         // Load messages
@@ -12510,10 +12507,7 @@ window.openGroupChat = async function(groupId, groupName, memberIds = [], ownerU
     const widgetEl = document.getElementById('chat-widget-container');
     widgetEl.classList.add('active');
 
-    const clearButton = document.getElementById('chat-clear-btn');
-    if (clearButton) {
-        clearButton.style.display = 'inline-flex';
-    }
+    setChatClearButtonVisibility(true);
 
     setGroupChatHeaderActionsVisibility(true, resolvedOwnerUid);
     await renderGroupChatMembersBar(participants);
@@ -12831,7 +12825,13 @@ window.closeChatWidget = function() {
     if (widgetEl) {
         widgetEl.classList.remove('active');
     }
-    document.body.classList.remove('chat-open');
+
+    const panel = document.getElementById('chat-lists-panel');
+    if (panel) {
+        panel.classList.add('active');
+        panel.style.display = 'flex';
+    }
+    document.body.classList.add('chat-open');
 
     const clearButton = document.getElementById('chat-clear-btn');
     if (clearButton) {
@@ -12880,9 +12880,10 @@ function clearChatInactivityTimer() {
 
 // NAVIGATION FROM CHAT TO FRIEND LIST
 window.backToFriendList = function() {
-    // close current conversation widget and show the friends list panel
     window.closeChatWidget();
-    window.openChatsList();
+    if (typeof window.openChatsList === 'function') {
+        window.openChatsList(true);
+    }
 };
 
 // Escape HTML special characters
@@ -13326,7 +13327,9 @@ window.clearChatHistory = async function() {
 
     const messagesContainer = document.getElementById('chat-widget-messages');
     const clearButton = document.getElementById('chat-clear-btn');
+    const headerClearButton = document.getElementById('chat-clear-header-btn');
     if (clearButton) clearButton.disabled = true;
+    if (headerClearButton) headerClearButton.disabled = true;
 
     try {
         const messagesQuery = query(collection(db, 'conversations', currentConversationId, 'messages'));
@@ -13339,9 +13342,9 @@ window.clearChatHistory = async function() {
 
         await Promise.all(deletePromises);
         await updateDoc(doc(db, 'conversations', currentConversationId), {
-            lastMessage: '',
+            lastMessage: 'Sohbet temizlendi',
             lastMessageAt: serverTimestamp(),
-            lastSenderId: ''
+            lastSenderId: 'system'
         });
 
         if (messagesContainer) {
@@ -13357,7 +13360,35 @@ window.clearChatHistory = async function() {
         alert('Sohbet geçmişi silinirken bir hata oluştu.');
     } finally {
         if (clearButton) clearButton.disabled = false;
+        if (headerClearButton) headerClearButton.disabled = false;
     }
+}
+
+function updateChatHeaderActions() {
+    const headerActions = document.getElementById('chat-header-actions');
+    if (!headerActions) return;
+
+    const existingButton = document.getElementById('chat-clear-header-btn');
+    if (existingButton) return;
+
+    if (!currentConversationId) {
+        headerActions.innerHTML = '';
+        return;
+    }
+
+    const button = document.createElement('button');
+    button.id = 'chat-clear-header-btn';
+    button.className = 'chat-action-btn chat-action-secondary';
+    button.type = 'button';
+    button.title = 'Sohbeti temizle';
+    button.innerHTML = '<i class="fa-solid fa-broom"></i>';
+    button.onclick = () => {
+        if (typeof window.clearChatHistory === 'function') {
+            window.clearChatHistory();
+        }
+    };
+
+    headerActions.appendChild(button);
 }
 
 // --- attachment helpers ---
@@ -14677,15 +14708,25 @@ window.addEventListener('visibilitychange', () => {
     } catch (e) {}
 });
 
-// The back button has an inline onclick attribute that calls backToFriendList().
-// Add listener only if element already exists to avoid null errors.
+// The back button should return to the chat list panel instead of leaving the widget open.
 const backBtnElem = document.getElementById('chat-back-btn');
 if (backBtnElem) {
-    backBtnElem.addEventListener('click', () => {
-        // Sohbet penceresini gizle
-        document.querySelector('.chat-widget-container').classList.remove('active');
-        // Arkadaş listesini göster
-        document.querySelector('.chat-lists-panel').classList.add('active');
+    backBtnElem.addEventListener('click', (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        if (typeof window.backToFriendList === 'function') {
+            window.backToFriendList();
+            return;
+        }
+
+        const widget = document.querySelector('.chat-widget-container');
+        const panel = document.querySelector('.chat-lists-panel');
+        if (widget) widget.classList.remove('active');
+        if (panel) {
+            panel.classList.add('active');
+            panel.style.display = 'flex';
+            document.body.classList.add('chat-open');
+        }
     });
 }
 
