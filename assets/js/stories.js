@@ -21,11 +21,178 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    const STORY_COLLECTION = 'stories';
+    const STORY_EXPIRY_MS = 24 * 60 * 60 * 1000;
+    let remoteListenerAttached = false;
+
+    function nowMs() {
+        return Date.now();
+    }
+
+    function isExpired(story) {
+        return story.timestamp && (nowMs() - story.timestamp) >= STORY_EXPIRY_MS;
+    }
+
     function saveStories() {
         try {
             const toSave = stories.filter(s => s.type === 'story');
             localStorage.setItem('slt_stories', JSON.stringify(toSave));
         } catch (e) {}
+    }
+
+    async function waitForBackendReady(timeout = 12000) {
+        const start = nowMs();
+        return new Promise((resolve) => {
+            const check = () => {
+                if (window.db && window.collection && window.doc && window.setDoc && window.getDocs) {
+                    resolve(true);
+                } else if (nowMs() - start >= timeout) {
+                    resolve(false);
+                } else {
+                    setTimeout(check, 200);
+                }
+            };
+            check();
+        });
+    }
+
+    function hasFirestore() {
+        return window.db && window.collection && window.doc && window.setDoc && window.getDocs;
+    }
+
+    function normalizeRemoteStory(docId, data) {
+        if (!data || !data.timestamp) return null;
+        const timestamp = data.timestamp && typeof data.timestamp.toMillis === 'function'
+            ? data.timestamp.toMillis()
+            : (typeof data.timestamp === 'number' ? data.timestamp : nowMs());
+        const expiresAt = data.expiresAt && typeof data.expiresAt.toMillis === 'function'
+            ? data.expiresAt.toMillis()
+            : (data.expiresAt instanceof Date ? data.expiresAt.getTime() : timestamp + STORY_EXPIRY_MS);
+        if (nowMs() >= expiresAt) return null;
+        return {
+            id: docId,
+            type: 'story',
+            remote: true,
+            label: data.label || data.caption || '',
+            user: data.authorName || data.author || data.user || 'Bilinmeyen',
+            avatar: data.avatarUrl || data.authorAvatar || 'assets/img/strendsaydamv2.png',
+            img: data.img || data.imageData || '',
+            timestamp,
+            comments: Array.isArray(data.comments) ? data.comments : [],
+            authorUid: data.authorUid || null,
+            expiresAt,
+        };
+    }
+
+    function mergeRemoteStories(remoteStories) {
+        const localStories = loadStories();
+        const merged = [{ id: 'create', type: 'create', label: 'Stori Oluştur', img: 'assets/img/strendsaydamv2.png' }];
+        const storyMap = new Map();
+
+        localStories.forEach((story) => {
+            if (!isExpired(story)) {
+                storyMap.set(story.id, story);
+            }
+        });
+
+        remoteStories.forEach((story) => {
+            if (story && story.id && !isExpired(story)) {
+                storyMap.set(story.id, story);
+            }
+        });
+
+        const sortedStories = Array.from(storyMap.values()).sort((a, b) => b.timestamp - a.timestamp);
+        stories = merged.concat(sortedStories);
+        saveStories();
+        render();
+    }
+
+    async function loadRemoteStoriesOnce() {
+        if (!hasFirestore()) return;
+        try {
+            const q = window.query(window.collection(window.db, STORY_COLLECTION), window.orderBy('timestamp', 'desc'), window.limit(100));
+            const snap = await window.getDocs(q);
+            const remoteDocs = [];
+            snap.forEach((docSnap) => {
+                const story = normalizeRemoteStory(docSnap.id, docSnap.data());
+                if (story) remoteDocs.push(story);
+            });
+            mergeRemoteStories(remoteDocs);
+        } catch (err) {
+            console.warn('Remote stories yüklenemedi:', err);
+        }
+    }
+
+    function getStoryDocRef(storyId) {
+        return window.doc(window.db, STORY_COLLECTION, storyId);
+    }
+
+    function buildFirestoreStory(story) {
+        const currentUser = window.user || {};
+        return {
+            authorUid: window.auth?.currentUser?.uid || currentUser.uid || null,
+            authorName: currentUser.displayName || currentUser.username || story.user || 'Sen',
+            authorAvatar: currentUser.avatarUrl || story.avatar || 'assets/img/strendsaydamv2.png',
+            label: story.label || '',
+            caption: story.label || '',
+            img: story.img,
+            imageData: story.img,
+            timestamp: window.serverTimestamp ? window.serverTimestamp() : new Date(),
+            comments: Array.isArray(story.comments) ? story.comments : [],
+            expiresAt: new Date(Date.now() + STORY_EXPIRY_MS),
+        };
+    }
+
+    async function saveStoryToBackend(story) {
+        if (!hasFirestore() || !window.auth?.currentUser || !story || story.type !== 'story') return;
+        try {
+            const id = story.id || ('s_' + Date.now());
+            const storyRef = getStoryDocRef(id);
+            await window.setDoc(storyRef, buildFirestoreStory(story));
+            story.id = id;
+            story.remote = true;
+            return true;
+        } catch (err) {
+            console.warn('Hikaye uzak depoya kaydedilemedi:', err);
+            return false;
+        }
+    }
+
+    async function deleteRemoteStory(story) {
+        if (!hasFirestore() || !window.auth?.currentUser || !story || !story.id) return;
+        try {
+            if (story.authorUid && story.authorUid !== window.auth.currentUser.uid) return;
+            const storyRef = getStoryDocRef(story.id);
+            await window.deleteDoc(storyRef);
+        } catch (err) {
+            console.warn('Uzak hikaye silme hatası:', err);
+        }
+    }
+
+    function handleRemoteSnapshot(snapshot) {
+        const remoteDocs = [];
+        snapshot.forEach((docSnap) => {
+            const story = normalizeRemoteStory(docSnap.id, docSnap.data());
+            if (story) remoteDocs.push(story);
+        });
+        mergeRemoteStories(remoteDocs);
+    }
+
+    async function initRemoteStories() {
+        const backendReady = await waitForBackendReady();
+        if (!backendReady || !hasFirestore()) return;
+        if (remoteListenerAttached || !window.onSnapshot) {
+            await loadRemoteStoriesOnce();
+            return;
+        }
+        const q = window.query(window.collection(window.db, STORY_COLLECTION), window.orderBy('timestamp', 'desc'), window.limit(100));
+        try {
+            window.onSnapshot(q, handleRemoteSnapshot);
+            remoteListenerAttached = true;
+        } catch (err) {
+            console.warn('Remote story listener kurulamadı:', err);
+            await loadRemoteStoriesOnce();
+        }
     }
 
     // initialize stories with create card + loaded ones
@@ -79,14 +246,16 @@ document.addEventListener('DOMContentLoaded', () => {
                         delBtn.className = 'story-delete-btn';
                         delBtn.title = 'Hikayeyi sil';
                         delBtn.innerHTML = '<i class="fa-solid fa-trash"></i>';
-                        delBtn.addEventListener('click', (ev) => {
+                        delBtn.addEventListener('click', async (ev) => {
                             ev.stopPropagation();
                             if (!confirm('Bu hikayeyi silmek istediğinizden emin misiniz?')) return;
                             const idx = stories.findIndex(x => x.id === s.id);
                             if (idx >= 0) {
+                                const storyToRemove = stories[idx];
                                 stories.splice(idx, 1);
                                 saveStories();
                                 render();
+                                await deleteRemoteStory(storyToRemove);
                             }
                         });
                         card.appendChild(delBtn);
@@ -124,9 +293,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         let autoTimer = null;
+        let countdownTimer = null;
 
         function clearTimers() {
             if (autoTimer) { clearTimeout(autoTimer); autoTimer = null; }
+            if (countdownTimer) { clearInterval(countdownTimer); countdownTimer = null; }
         }
 
         function renderViewer() {
@@ -163,9 +334,39 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const mediaActions = document.createElement('div'); mediaActions.className = 'story-media-actions';
             const expandBtn = document.createElement('button'); expandBtn.type = 'button'; expandBtn.className = 'story-action-btn'; expandBtn.title = 'Resmi büyüt'; expandBtn.innerHTML = '<i class="fa-solid fa-expand"></i>';
-            expandBtn.addEventListener('click', (ev) => {
+            expandBtn.addEventListener('click', async (ev) => {
                 ev.stopPropagation();
-                window.open(item.img, '_blank');
+                const openUrl = async (href) => {
+                    const link = document.createElement('a');
+                    link.href = href;
+                    link.target = '_blank';
+                    link.rel = 'noopener noreferrer';
+                    link.style.display = 'none';
+                    document.body.appendChild(link);
+                    link.click();
+                    link.remove();
+                };
+
+                if (typeof item.img === 'string' && item.img.startsWith('data:image/')) {
+                    try {
+                        const parts = item.img.split(',');
+                        const mime = parts[0].match(/data:(.*?);base64/)?.[1] || 'image/jpeg';
+                        const byteString = atob(parts[1] || '');
+                        const array = new Uint8Array(byteString.length);
+                        for (let i = 0; i < byteString.length; i += 1) {
+                            array[i] = byteString.charCodeAt(i);
+                        }
+                        const blob = new Blob([array], { type: mime });
+                        const objectUrl = URL.createObjectURL(blob);
+                        await openUrl(objectUrl);
+                        setTimeout(() => URL.revokeObjectURL(objectUrl), 10000);
+                        return;
+                    } catch (innerErr) {
+                        console.warn('Data URI açılırken hata:', innerErr);
+                    }
+                }
+
+                await openUrl(item.img);
             });
             const downloadBtn = document.createElement('button'); downloadBtn.type = 'button'; downloadBtn.className = 'story-action-btn'; downloadBtn.title = 'Resmi indir'; downloadBtn.innerHTML = '<i class="fa-solid fa-download"></i>';
             downloadBtn.addEventListener('click', (ev) => {
@@ -191,10 +392,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const footer = document.createElement('div'); footer.className = 'story-viewer-footer';
             const footerTop = document.createElement('div'); footerTop.className = 'story-viewer-footer-top';
             footerTop.innerHTML = `<div class="story-viewer-user">${item.user || ''}</div><div class="story-viewer-time">${item.timestamp ? new Date(item.timestamp).toLocaleString() : ''}</div>`;
+            const countdownLabel = document.createElement('div'); countdownLabel.className = 'story-viewer-countdown';
+            countdownLabel.textContent = playlist.length > 1 ? '5 saniyeden sonra sonraki hikayeye geçilecek...' : 'Tek hikaye gösteriliyor';
             const comments = document.createElement('div'); comments.className = 'story-comments'; comments.innerHTML = renderCommentsHtml(item);
             const commentRow = document.createElement('div'); commentRow.className = 'comment-row';
             commentRow.innerHTML = `<input id="story-comment-input" placeholder="Yorum yaz..." /><button id="story-comment-btn" class="post-action-btn primary">Yorumu Gönder</button>`;
             footer.appendChild(footerTop);
+            footer.appendChild(countdownLabel);
             footer.appendChild(comments);
             footer.appendChild(commentRow);
 
@@ -214,7 +418,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // comment posting
             const postBtn = overlay.querySelector('#story-comment-btn');
             const commentInput = overlay.querySelector('#story-comment-input');
-            postBtn.addEventListener('click', () => {
+postBtn.addEventListener('click', async () => {
                 const text = commentInput.value.trim(); if (!text) return;
                 item.comments = item.comments || [];
                 const whoName = (window.user && (window.user.displayName || window.user.username)) || 'Sen';
@@ -222,14 +426,46 @@ document.addEventListener('DOMContentLoaded', () => {
                 const commentsDiv = overlay.querySelector('.story-comments'); if (commentsDiv) commentsDiv.innerHTML = renderCommentsHtml(item);
                 commentInput.value = '';
                 saveStories();
+                if (item.remote) {
+                    try {
+                        const storyRef = getStoryDocRef(item.id);
+                        await window.setDoc(storyRef, buildFirestoreStory(item));
+                    } catch (err) {
+                        console.warn('Yorum uzak depoya kaydedilemedi:', err);
+                    }
+                }
             });
 
             function startProgress() {
                 const fills = overlay.querySelectorAll('.story-viewer-progress .seg .fill');
                 fills.forEach((f, i) => { f.style.transition = 'none'; f.style.width = i < current ? '100%' : '0%'; });
                 const curFill = overlay.querySelector(`.story-viewer-progress .seg[data-idx="${current}"] .fill`);
-                if (curFill) { void curFill.offsetWidth; curFill.style.transition = 'width 5s linear'; curFill.style.width = '100%'; }
-                clearTimers(); autoTimer = setTimeout(() => { nextStory(); }, 5000);
+                const countdownLabelEl = overlay.querySelector('.story-viewer-countdown');
+                const totalSeconds = 5;
+                if (playlist.length > 1) {
+                    let remaining = totalSeconds;
+                    if (curFill) { void curFill.offsetWidth; curFill.style.transition = 'width 5s linear'; curFill.style.width = '100%'; }
+                    if (countdownLabelEl) {
+                        countdownLabelEl.textContent = `5 saniyeden sonra sonraki hikayeye geçilecek...`;
+                    }
+                    clearTimers();
+                    countdownTimer = setInterval(() => {
+                        remaining -= 1;
+                        if (countdownLabelEl) {
+                            countdownLabelEl.textContent = `${remaining} saniye sonra sonraki hikayeye geçilecek...`;
+                        }
+                        if (remaining <= 0) {
+                            clearTimers();
+                        }
+                    }, 1000);
+                    autoTimer = setTimeout(() => { nextStory(); }, totalSeconds * 1000);
+                } else {
+                    if (curFill) { curFill.style.width = '100%'; }
+                    if (countdownLabelEl) {
+                        countdownLabelEl.textContent = 'Tek hikaye gösteriliyor';
+                    }
+                    clearTimers();
+                }
             }
 
             function nextStory() { clearTimers(); if (current < playlist.length - 1) { current++; renderViewer(); } }
@@ -262,9 +498,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     <h3>Stori Oluştur</h3>
                     <div style="margin:8px 0 12px; color:var(--text-muted); font-size:0.95rem;">Görsel seç ve kısa bir başlık ekle.</div>
                     <input id="story-file-input" type="file" accept="image/*" style="display:none;">
-                    <div style="display:flex; gap:10px; align-items:center;">
+                    <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
                         <button id="story-select-btn" class="post-action-btn icon-btn">Resim Seç</button>
-                        <div id="story-preview-wrap" style="flex:1;"></div>
+                        <div id="story-preview-wrap" style="flex:1; min-width:160px;"></div>
                     </div>
                     <input id="story-caption" type="text" placeholder="Kısa başlık (opsiyonel)" style="width:100%; margin-top:10px; padding:10px; border-radius:10px; border:1px solid var(--border); background:var(--input-bg); color:var(--text-main);">
                     <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:12px;">
@@ -294,16 +530,17 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             cancelBtn.addEventListener('click', () => modal.remove());
-            postBtn.addEventListener('click', () => {
+            postBtn.addEventListener('click', async () => {
                 const imgData = previewWrap.dataset.img;
                 const caption = modal.querySelector('#story-caption').value.trim();
                 if (!imgData) { alert('Lütfen bir görsel seçin.'); return; }
-                // add story to array (with timestamp for expiry)
                 const id = 's_' + Date.now();
                 const storyObj = { id, type: 'story', label: caption || '', user: (window.user && window.user.displayName) || 'Sen', avatar: (window.user && window.user.avatarUrl) || 'assets/img/strendsaydamv2.png', img: imgData, timestamp: Date.now(), comments: [] };
                 stories.push(storyObj);
-                // persist and refresh
                 saveStories();
+                if (await saveStoryToBackend(storyObj)) {
+                    storyObj.remote = true;
+                }
                 modal.remove();
                 render();
             });
@@ -311,4 +548,5 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     render();
+    initRemoteStories();
 });

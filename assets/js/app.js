@@ -1613,6 +1613,7 @@ await updateDoc(currentUserRef, {
 window.user = user;
 window.db = typeof db !== 'undefined' ? db : undefined;
 window.auth = typeof auth !== 'undefined' ? auth : undefined;
+window.storage = typeof storage !== 'undefined' ? storage : undefined;
 window.query = typeof query !== 'undefined' ? query : undefined;
 window.collection = typeof collection !== 'undefined' ? collection : undefined;
 window.doc = typeof doc !== 'undefined' ? doc : undefined;
@@ -1623,6 +1624,17 @@ window.orderBy = typeof orderBy !== 'undefined' ? orderBy : undefined;
 window.limit = typeof limit !== 'undefined' ? limit : undefined;
 window.updateDoc = typeof updateDoc !== 'undefined' ? updateDoc : undefined;
 window.setDoc = typeof setDoc !== 'undefined' ? setDoc : undefined;
+window.addDoc = typeof addDoc !== 'undefined' ? addDoc : undefined;
+window.deleteDoc = typeof deleteDoc !== 'undefined' ? deleteDoc : undefined;
+window.onSnapshot = typeof onSnapshot !== 'undefined' ? onSnapshot : undefined;
+window.serverTimestamp = typeof serverTimestamp !== 'undefined' ? serverTimestamp : undefined;
+window.arrayUnion = typeof arrayUnion !== 'undefined' ? arrayUnion : undefined;
+window.arrayRemove = typeof arrayRemove !== 'undefined' ? arrayRemove : undefined;
+window.Timestamp = typeof Timestamp !== 'undefined' ? Timestamp : undefined;
+window.ref = typeof ref !== 'undefined' ? ref : undefined;
+window.uploadBytes = typeof uploadBytes !== 'undefined' ? uploadBytes : undefined;
+window.getDownloadURL = typeof getDownloadURL !== 'undefined' ? getDownloadURL : undefined;
+window.deleteObject = typeof deleteObject !== 'undefined' ? deleteObject : undefined;
 
 function normalizeBookmarkIdentity(value) {
     if (typeof value !== 'string') return '';
