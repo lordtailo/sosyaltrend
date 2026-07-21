@@ -13,7 +13,14 @@ document.addEventListener('DOMContentLoaded', () => {
     function prepareStory(story) {
         return {
             ...story,
-            groupKey: story.groupKey || getStoryGroupKey(story)
+            groupKey: story.groupKey || getStoryGroupKey(story),
+            likesCount: Number(story.likesCount || 0),
+            likedBy: Array.isArray(story.likedBy) ? story.likedBy : [],
+            textStyle: {
+                fontFamily: story.textStyle?.fontFamily || 'system-ui, sans-serif',
+                bgColor: story.textStyle?.bgColor || 'rgba(15,23,42,0.92)',
+                textColor: story.textStyle?.textColor || '#ffffff'
+            }
         };
     }
 
@@ -22,27 +29,125 @@ document.addEventListener('DOMContentLoaded', () => {
     function loadViewedGroups() {
         try {
             const raw = localStorage.getItem(VIEWED_GROUPS_KEY);
-            if (!raw) return new Set();
-            const arr = JSON.parse(raw);
-            return new Set(Array.isArray(arr) ? arr.filter(Boolean) : []);
+            if (!raw) return new Map();
+            const data = JSON.parse(raw);
+            if (!data || typeof data !== 'object') return new Map();
+            return new Map(Object.entries(data).filter(([key, value]) => key && typeof value === 'number'));
         } catch (e) {
-            return new Set();
+            return new Map();
         }
     }
 
     function saveViewedGroups(viewedGroups) {
         try {
-            localStorage.setItem(VIEWED_GROUPS_KEY, JSON.stringify(Array.from(viewedGroups)));
+            const obj = Object.fromEntries(viewedGroups);
+            localStorage.setItem(VIEWED_GROUPS_KEY, JSON.stringify(obj));
         } catch (e) {}
     }
 
     const viewedGroups = loadViewedGroups();
 
-    function markGroupViewed(groupKey) {
-        if (!groupKey || viewedGroups.has(groupKey)) return;
-        viewedGroups.add(groupKey);
+    function markGroupViewed(groupKey, viewedAt = Date.now()) {
+        if (!groupKey) return;
+        const previous = viewedGroups.get(groupKey) || 0;
+        if (viewedAt <= previous) return;
+        viewedGroups.set(groupKey, viewedAt);
         saveViewedGroups(viewedGroups);
         render();
+    }
+
+    function getCurrentUserUid() {
+        return window.auth?.currentUser?.uid || (window.user && window.user.uid) || null;
+    }
+
+    function isStoryLikedByCurrentUser(story) {
+        const currentUid = getCurrentUserUid();
+        return currentUid && Array.isArray(story.likedBy) && story.likedBy.includes(currentUid);
+    }
+
+    async function saveStoryMetadataToRemote(story) {
+        if (!hasFirestore() || !story.remote || !story.id || !window.updateDoc || !window.doc || !window.collection || !window.db) return;
+        try {
+            await window.updateDoc(window.doc(window.db, STORY_COLLECTION, story.id), {
+                likesCount: Number(story.likesCount || 0),
+                likedBy: Array.isArray(story.likedBy) ? story.likedBy : []
+            });
+        } catch (err) {
+            console.warn('Story metadata remote update failed:', err);
+        }
+    }
+
+    async function toggleStoryLike(story) {
+        const currentUid = getCurrentUserUid();
+        if (!currentUid) {
+            alert('Beğeni gönderebilmek için lütfen giriş yapın.');
+            return;
+        }
+        if (!story || !story.id) return;
+        if (story.authorUid && story.authorUid === currentUid) {
+            alert('Kendi hikayenizi beğenemezsiniz.');
+            return;
+        }
+        const liked = isStoryLikedByCurrentUser(story);
+        if (liked) {
+            story.likedBy = story.likedBy.filter(uid => uid !== currentUid);
+            story.likesCount = Math.max(0, Number(story.likesCount || 1) - 1);
+        } else {
+            story.likedBy = Array.isArray(story.likedBy) ? story.likedBy.slice() : [];
+            story.likedBy.push(currentUid);
+            story.likesCount = Number(story.likesCount || 0) + 1;
+            if (story.authorUid && window.sendNotification) {
+                const fromName = (window.user && (window.user.displayName || window.user.username)) || 'Bir kullanıcı';
+                window.sendNotification(story.authorUid, 'story_like', fromName, {
+                    title: 'Hikayen beğenildi',
+                    message: `${fromName} hikayeni "${story.label || 'hikaye'}" ile beğendi.`,
+                    storyId: story.id,
+                    storyLabel: story.label || '',
+                    fromUid: currentUid
+                });
+            }
+        }
+        saveStories();
+        await saveStoryMetadataToRemote(story);
+    }
+
+    async function reportStory(story) {
+        const currentUid = getCurrentUserUid();
+        if (!currentUid) {
+            alert('Şikayet gönderebilmek için lütfen giriş yapın.');
+            return;
+        }
+        const reporterName = (window.user && (window.user.displayName || window.user.username)) || 'Bir kullanıcı';
+        const reason = prompt('Bu hikayeyi neden şikayet ediyorsunuz?\n\nÖrnek: spam, taciz, uygunsuz içerik', '');
+        if (!reason || !reason.trim()) return;
+        const reportDoc = {
+            reporterUid: currentUid,
+            reporterName,
+            targetUid: story.authorUid || null,
+            targetUsername: story.user || null,
+            contentType: 'story',
+            contentId: story.id,
+            storyLabel: story.label || '',
+            reason: reason.trim(),
+            createdAt: window.serverTimestamp ? window.serverTimestamp() : new Date(),
+            status: 'pending'
+        };
+        if (hasFirestore() && window.addDoc && window.collection && window.db) {
+            try {
+                await window.addDoc(window.collection(window.db, 'reports'), reportDoc);
+            } catch (err) {
+                console.warn('Story report kaydedilemedi:', err);
+            }
+        }
+        if (window.sendNotification) {
+            window.sendNotification(currentUid, 'story_report_submitted', 'Sistem / Yönetici', {
+                title: 'Şikayetiniz iletildi',
+                message: `"${story.label || 'hikaye'}" için şikayetiniz alındı.`,
+                storyId: story.id,
+                storyLabel: story.label || ''
+            });
+        }
+        alert('Şikayetiniz alındı. İnceleme için iletildi.');
     }
 
     function loadStories() {
@@ -84,17 +189,18 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function uploadStoryImageFile(file) {
-        if (!hasFirestore() || !window.auth?.currentUser || !window.ref || !window.uploadBytes || !window.getDownloadURL || !window.storage) {
+        if (!hasFirestore() || !window.ref || !window.uploadBytes || !window.getDownloadURL || !window.storage) {
             throw new Error('Storage backend hazır değil');
         }
         const ext = file.name.split('.').pop();
-        const storagePath = `stories/${window.auth.currentUser.uid}/${Date.now()}.${ext}`;
+        const ownerId = window.auth?.currentUser?.uid || (window.user && window.user.uid) || 'public';
+        const storagePath = `stories/${ownerId}/${Date.now()}.${ext}`;
         const storageRef = window.ref(window.storage, storagePath);
         const snapshot = await window.uploadBytes(storageRef, file);
         return await window.getDownloadURL(snapshot.ref);
     }
 
-    async function waitForBackendReady(timeout = 12000) {
+    async function waitForBackendReady(timeout = 20000) {
         const start = nowMs();
         return new Promise((resolve) => {
             const check = () => {
@@ -192,6 +298,13 @@ document.addEventListener('DOMContentLoaded', () => {
             caption: story.label || '',
             img: story.img,
             imageData: story.img,
+            likesCount: Number(story.likesCount || 0),
+            likedBy: Array.isArray(story.likedBy) ? story.likedBy : [],
+            textStyle: {
+                fontFamily: story.textStyle?.fontFamily || 'system-ui, sans-serif',
+                bgColor: story.textStyle?.bgColor || 'rgba(15,23,42,0.92)',
+                textColor: story.textStyle?.textColor || '#ffffff'
+            },
             timestamp: window.serverTimestamp ? window.serverTimestamp() : new Date(),
             comments: Array.isArray(story.comments) ? story.comments : [],
             expiresAt: new Date(Date.now() + STORY_EXPIRY_MS),
@@ -199,7 +312,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function saveStoryToBackend(story) {
-        if (!hasFirestore() || !window.auth?.currentUser || !story || story.type !== 'story') return null;
+        await waitForBackendReady();
+        if (!hasFirestore() || !story || story.type !== 'story') return null;
         try {
             const id = story.id || ('s_' + Date.now());
             let imageUrl = story.img;
@@ -284,11 +398,12 @@ document.addEventListener('DOMContentLoaded', () => {
         stories.filter(s => s.type === 'story').forEach((s) => {
             const key = s.groupKey || getStoryGroupKey(s);
             if (!grouped.has(key)) {
-                grouped.set(key, { key, stories: [], preview: s });
+                grouped.set(key, { key, stories: [], preview: s, latestTimestamp: s.timestamp || 0 });
             }
             const group = grouped.get(key);
             group.stories.push(s);
-            if (s.timestamp > (group.preview.timestamp || 0)) {
+            group.latestTimestamp = Math.max(group.latestTimestamp || 0, s.timestamp || 0);
+            if (s.timestamp < (group.preview.timestamp || Infinity)) {
                 group.preview = s;
             }
         });
@@ -301,15 +416,25 @@ document.addEventListener('DOMContentLoaded', () => {
             card.className = 'story-card';
             card.dataset.id = s.id;
 
-            const img = document.createElement('img');
-            img.className = 'story-cover';
-            img.src = s.img;
-            img.alt = s.label || 'Hikaye';
-            card.appendChild(img);
+            if (s.img) {
+                const img = document.createElement('img');
+                img.className = 'story-cover';
+                img.src = s.img;
+                img.alt = s.label || 'Hikaye';
+                card.appendChild(img);
+            } else {
+                const textCover = document.createElement('div');
+                textCover.className = 'story-text-cover';
+                textCover.textContent = s.label || 'Hikaye';
+                textCover.style.background = s.textStyle?.bgColor || 'rgba(15,23,42,0.92)';
+                textCover.style.color = s.textStyle?.textColor || '#ffffff';
+                textCover.style.fontFamily = s.textStyle?.fontFamily || 'system-ui, sans-serif';
+                card.appendChild(textCover);
+            }
 
             const avatar = document.createElement('img');
             avatar.className = 'story-small-avatar';
-            avatar.src = s.avatar || s.img;
+            avatar.src = s.avatar || s.img || 'assets/img/strendsaydamv2.png';
             avatar.alt = s.user || '';
             card.appendChild(avatar);
 
@@ -336,12 +461,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 card.appendChild(countBadge);
             }
 
-            const avatarClass = viewedGroups.has(group.key) ? 'story-small-avatar seen' : 'story-small-avatar unseen';
+            const lastViewedAt = viewedGroups.get(group.key) || 0;
+            const avatarClass = lastViewedAt >= (group.latestTimestamp || 0) ? 'story-small-avatar seen' : 'story-small-avatar unseen';
             avatar.className = avatarClass;
             card.addEventListener('click', () => {
-                if (group.key) {
-                    markGroupViewed(group.key);
-                }
                 openViewer(s);
             });
             container.appendChild(card);
@@ -362,7 +485,8 @@ document.addEventListener('DOMContentLoaded', () => {
             .filter(s => s.type === 'story' && s.groupKey === story.groupKey)
             .sort((a, b) => a.timestamp - b.timestamp);
         if (!playlist || playlist.length === 0) return;
-        let current = 0;
+        let current = playlist.findIndex((p) => p.id === story.id);
+        if (current < 0) current = 0;
 
         let overlay = document.getElementById('story-viewer-overlay');
         if (!overlay) {
@@ -409,10 +533,48 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // media
             const media = document.createElement('div'); media.className = 'story-viewer-media';
-            const img = document.createElement('img'); img.src = item.img; img.alt = item.label || ''; img.className = 'story-viewer-photo';
-            media.appendChild(img);
+            const currentUid = getCurrentUserUid();
+            const isOwner = currentUid && item.authorUid && currentUid === item.authorUid;
+            const liked = isStoryLikedByCurrentUser(item);
+            const createActionButton = (className, title, html, handler) => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = `story-action-btn ${className}`;
+                btn.title = title;
+                btn.innerHTML = html;
+                btn.addEventListener('click', handler);
+                return btn;
+            };
+
+            if (item.img) {
+                const img = document.createElement('img'); img.src = item.img; img.alt = item.label || ''; img.className = 'story-viewer-photo';
+                media.appendChild(img);
+            } else {
+                const textBlock = document.createElement('div');
+                textBlock.className = 'story-viewer-text';
+                textBlock.textContent = item.label || 'Hikaye';
+                textBlock.style.background = item.textStyle?.bgColor || 'rgba(255,255,255,0.95)';
+                textBlock.style.color = item.textStyle?.textColor || 'var(--text-main)';
+                textBlock.style.fontFamily = item.textStyle?.fontFamily || 'system-ui, sans-serif';
+                media.appendChild(textBlock);
+            }
 
             const mediaActions = document.createElement('div'); mediaActions.className = 'story-media-actions';
+            const leftActions = document.createElement('div'); leftActions.className = 'story-media-actions-left';
+            const rightActions = document.createElement('div'); rightActions.className = 'story-media-actions-right';
+            const likeBtn = document.createElement('button'); likeBtn.type = 'button'; likeBtn.className = `story-action-btn story-like-btn${liked ? ' liked' : ''}`;
+            likeBtn.title = 'Beğen';
+            likeBtn.innerHTML = `<i class="fa-solid fa-heart"></i><span class="like-count">${Number(item.likesCount || 0)}</span>`;
+            likeBtn.addEventListener('click', async (ev) => {
+                ev.stopPropagation();
+                await toggleStoryLike(item);
+                renderViewer();
+            });
+            const reportBtn = document.createElement('button'); reportBtn.type = 'button'; reportBtn.className = 'story-action-btn story-report-btn'; reportBtn.title = 'Şikayet et'; reportBtn.innerHTML = '<i class="fa-solid fa-flag"></i>';
+            reportBtn.addEventListener('click', async (ev) => {
+                ev.stopPropagation();
+                await reportStory(item);
+            });
             const expandBtn = document.createElement('button'); expandBtn.type = 'button'; expandBtn.className = 'story-action-btn'; expandBtn.title = 'Resmi büyüt'; expandBtn.innerHTML = '<i class="fa-solid fa-expand"></i>';
             expandBtn.addEventListener('click', async (ev) => {
                 ev.stopPropagation();
@@ -458,6 +620,23 @@ document.addEventListener('DOMContentLoaded', () => {
                 link.click();
                 link.remove();
             });
+            const editTextBtn = document.createElement('button'); editTextBtn.type = 'button'; editTextBtn.className = 'story-action-btn'; editTextBtn.title = 'Yazıyı düzenle'; editTextBtn.innerHTML = '<i class="fa-solid fa-pen"></i>';
+            editTextBtn.addEventListener('click', async (ev) => {
+                ev.stopPropagation();
+                const newText = prompt('Hikaye içeriğini düzenleyin:', item.label || '');
+                if (newText === null) return;
+                item.label = newText.trim();
+                saveStories();
+                if (item.remote) {
+                    try {
+                        const storyRef = getStoryDocRef(item.id);
+                        await window.setDoc(storyRef, buildFirestoreStory(item));
+                    } catch (err) {
+                        console.warn('Yazı hikayesi uzaktan kaydedilemedi:', err);
+                    }
+                }
+                renderViewer();
+            });
             const deleteBtn = document.createElement('button'); deleteBtn.type = 'button'; deleteBtn.className = 'story-action-btn'; deleteBtn.title = 'Bu storiyi sil'; deleteBtn.innerHTML = '<i class="fa-solid fa-trash"></i>';
             deleteBtn.addEventListener('click', async (ev) => {
                 ev.stopPropagation();
@@ -480,9 +659,20 @@ document.addEventListener('DOMContentLoaded', () => {
                     render();
                 }
             });
-            mediaActions.appendChild(expandBtn);
-            mediaActions.appendChild(downloadBtn);
-            mediaActions.appendChild(deleteBtn);
+            leftActions.appendChild(likeBtn);
+            leftActions.appendChild(reportBtn);
+            if (item.img) {
+                rightActions.appendChild(expandBtn);
+                rightActions.appendChild(downloadBtn);
+            }
+            if (isOwner && !item.img) {
+                rightActions.appendChild(editTextBtn);
+            }
+            if (isOwner) {
+                rightActions.appendChild(deleteBtn);
+            }
+            mediaActions.appendChild(leftActions);
+            mediaActions.appendChild(rightActions);
             media.appendChild(mediaActions);
 
             // nav
@@ -494,7 +684,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // footer
             const footer = document.createElement('div'); footer.className = 'story-viewer-footer';
             const footerTop = document.createElement('div'); footerTop.className = 'story-viewer-footer-top';
-            footerTop.innerHTML = `<div class="story-viewer-footer-row"><div class="story-title-actions"><div class="story-viewer-title">${item.label || ''}</div><button type="button" class="story-edit-btn" title="Başlığı Düzenle"><i class="fa-solid fa-pen"></i></button></div><div class="story-viewer-countdown">${playlist.length > 1 ? '10 saniye sonra...' : 'Tek hikaye gösteriliyor'}</div><div class="story-viewer-time">${item.timestamp ? new Date(item.timestamp).toLocaleString() : ''}</div></div>`;
+            footerTop.innerHTML = `<div class="story-viewer-footer-row"><div class="story-title-actions"><div class="story-viewer-title">${item.label || ''}</div>${isOwner ? '<button type="button" class="story-edit-btn" title="Başlığı Düzenle"><i class="fa-solid fa-pen"></i></button>' : ''}</div><div class="story-viewer-countdown">${playlist.length > 1 ? '10 saniye sonra...' : 'Tek hikaye gösteriliyor'}</div><div class="story-viewer-time">${item.timestamp ? new Date(item.timestamp).toLocaleString() : ''}</div></div>`;
             const editBtn = footerTop.querySelector('.story-edit-btn');
             if (editBtn) {
                 editBtn.addEventListener('click', async (ev) => {
@@ -524,6 +714,10 @@ document.addEventListener('DOMContentLoaded', () => {
             viewer.appendChild(navLeft);
             viewer.appendChild(navRight);
             overlay.appendChild(viewer);
+
+            if (current === playlist.length - 1 && item.groupKey) {
+                markGroupViewed(item.groupKey, item.timestamp || Date.now());
+            }
 
             // prevent overlay close when clicking viewer
             viewer.addEventListener('click', (ev) => ev.stopPropagation());
@@ -591,13 +785,54 @@ document.addEventListener('DOMContentLoaded', () => {
             modal.innerHTML = `
                 <div class="story-upload-modal-inner" role="dialog" aria-modal="true">
                     <h3>Stori Oluştur</h3>
-                    <div style="margin:8px 0 12px; color:var(--text-muted); font-size:0.95rem;">Görsel seç ve kısa bir başlık ekle.</div>
+                    <div style="margin:8px 0 12px; color:var(--text-muted); font-size:0.95rem;">Görsel seçebilir veya sadece yazı paylaşabilirsiniz.</div>
                     <input id="story-file-input" type="file" accept="image/*" style="display:none;">
                     <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
                         <button id="story-select-btn" class="post-action-btn icon-btn">Resim Seç</button>
                         <div id="story-preview-wrap" style="flex:1; min-width:160px;"></div>
                     </div>
-                    <input id="story-caption" type="text" placeholder="Kısa başlık (opsiyonel)" style="width:100%; margin-top:10px; padding:10px; border-radius:10px; border:1px solid var(--border); background:var(--input-bg); color:var(--text-main);">
+                    <input id="story-caption" type="text" placeholder="Hikaye metnini veya başlığını yazın" style="width:100%; margin-top:10px; padding:10px; border-radius:10px; border:1px solid var(--border); background:var(--input-bg); color:var(--text-main);">
+                    <div style="display:flex; flex-wrap:wrap; gap:10px; margin-top:12px; align-items:center;">
+                        <label style="display:flex; flex-direction:column; gap:6px; font-size:0.85rem; color:var(--text-muted);">Font seçimi
+                            <select id="story-font-select" style="padding:10px; border-radius:10px; border:1px solid var(--border); background:var(--input-bg); color:var(--text-main); min-width:170px;">
+                                <option value="system-ui, sans-serif">Sans Serif</option>
+                                <option value="'Segoe UI', Tahoma, Geneva, Verdana, sans-serif">Segoe UI</option>
+                                <option value="Georgia, serif">Serif</option>
+                                <option value="'Times New Roman', Times, serif">Times New Roman</option>
+                                <option value="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace">Monospace</option>
+                                <option value="'Comic Sans MS', 'Comic Sans', cursive">Cursive</option>
+                                <option value="'Lucida Handwriting', 'Brush Script MT', cursive">Script</option>
+                                <option value="'Poppins', sans-serif">Poppins</option>
+                            </select>
+                        </label>
+                        <label style="display:flex; flex-direction:column; gap:6px; font-size:0.85rem; color:var(--text-muted);">Yazı rengi
+                            <input id="story-text-color" type="color" value="#ffffff" style="width:44px; height:44px; border-radius:12px; border:none; padding:0;">
+                        </label>
+                        <label style="display:flex; flex-direction:column; gap:6px; font-size:0.85rem; color:var(--text-muted);">Arka plan
+                            <input id="story-bg-color" type="color" value="#0f172a" style="width:44px; height:44px; border-radius:12px; border:none; padding:0;">
+                        </label>
+                    </div>
+                    <div style="display:flex; flex-wrap:wrap; gap:8px; margin-top:10px;">
+                        <div style="display:flex; flex-direction:column; gap:6px; font-size:0.85rem; color:var(--text-muted);">Arka plan renkleri
+                            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                                <button type="button" data-bg="#0f172a" class="story-color-swatch" style="width:28px; height:28px; border-radius:8px; border:1px solid rgba(255,255,255,0.4); background:#0f172a;"></button>
+                                <button type="button" data-bg="#6d28d9" class="story-color-swatch" style="width:28px; height:28px; border-radius:8px; border:1px solid rgba(255,255,255,0.4); background:#6d28d9;"></button>
+                                <button type="button" data-bg="#2563eb" class="story-color-swatch" style="width:28px; height:28px; border-radius:8px; border:1px solid rgba(255,255,255,0.4); background:#2563eb;"></button>
+                                <button type="button" data-bg="#15803d" class="story-color-swatch" style="width:28px; height:28px; border-radius:8px; border:1px solid rgba(255,255,255,0.4); background:#15803d;"></button>
+                                <button type="button" data-bg="#db2777" class="story-color-swatch" style="width:28px; height:28px; border-radius:8px; border:1px solid rgba(255,255,255,0.4); background:#db2777;"></button>
+                            </div>
+                        </div>
+                        <div style="display:flex; flex-direction:column; gap:6px; font-size:0.85rem; color:var(--text-muted);">Yazı renkleri
+                            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                                <button type="button" data-text="#ffffff" class="story-text-swatch" style="width:28px; height:28px; border-radius:8px; border:1px solid rgba(15,23,42,0.2); background:#ffffff;"></button>
+                                <button type="button" data-text="#000000" class="story-text-swatch" style="width:28px; height:28px; border-radius:8px; border:1px solid rgba(15,23,42,0.2); background:#000000;"></button>
+                                <button type="button" data-text="#fde047" class="story-text-swatch" style="width:28px; height:28px; border-radius:8px; border:1px solid rgba(15,23,42,0.2); background:#fde047;"></button>
+                                <button type="button" data-text="#f472b6" class="story-text-swatch" style="width:28px; height:28px; border-radius:8px; border:1px solid rgba(15,23,42,0.2); background:#f472b6;"></button>
+                                <button type="button" data-text="#34d399" class="story-text-swatch" style="width:28px; height:28px; border-radius:8px; border:1px solid rgba(15,23,42,0.2); background:#34d399;"></button>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="story-text-style-preview" style="margin-top:12px; min-height:120px; width:100%; border-radius:14px; padding:16px; display:flex; align-items:center; justify-content:center; text-align:center; background:#0f172a; color:#fff; font-family:system-ui, sans-serif; box-shadow:0 10px 25px rgba(15,23,42,0.12);">Yazı stili önizlemesi</div>
                     <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:12px;">
                         <button id="story-cancel-btn" class="post-action-btn">İptal</button>
                         <button id="story-post-btn" class="post-action-btn primary">Gönder</button>
@@ -610,6 +845,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const selectBtn = modal.querySelector('#story-select-btn');
             const previewWrap = modal.querySelector('#story-preview-wrap');
             const captionInput = modal.querySelector('#story-caption');
+            const fontSelect = modal.querySelector('#story-font-select');
+            const bgColorInput = modal.querySelector('#story-bg-color');
+            const textColorInput = modal.querySelector('#story-text-color');
+            const stylePreview = modal.querySelector('#story-text-style-preview');
             const cancelBtn = modal.querySelector('#story-cancel-btn');
             const postBtn = modal.querySelector('#story-post-btn');
             let selectedDataUrl = '';
@@ -637,6 +876,42 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
 
+            const updateTextPreview = () => {
+                const fontFamily = fontSelect.value;
+                const bgColor = bgColorInput.value;
+                const textColor = textColorInput.value;
+                stylePreview.style.fontFamily = fontFamily;
+                stylePreview.style.background = bgColor;
+                stylePreview.style.color = textColor;
+                stylePreview.textContent = captionInput.value.trim() || 'Yazı stili önizlemesi';
+            };
+
+            const colorSwatches = modal.querySelectorAll('.story-color-swatch');
+            const textSwatches = modal.querySelectorAll('.story-text-swatch');
+            colorSwatches.forEach((btn) => {
+                btn.addEventListener('click', (ev) => {
+                    const value = ev.currentTarget.dataset.bg;
+                    if (value) {
+                        bgColorInput.value = value;
+                        updateTextPreview();
+                    }
+                });
+            });
+            textSwatches.forEach((btn) => {
+                btn.addEventListener('click', (ev) => {
+                    const value = ev.currentTarget.dataset.text;
+                    if (value) {
+                        textColorInput.value = value;
+                        updateTextPreview();
+                    }
+                });
+            });
+            fontSelect.addEventListener('change', updateTextPreview);
+            bgColorInput.addEventListener('change', updateTextPreview);
+            textColorInput.addEventListener('change', updateTextPreview);
+            captionInput.addEventListener('input', updateTextPreview);
+            updateTextPreview();
+
             cancelBtn.addEventListener('click', () => modal.remove());
             postBtn.addEventListener('click', async () => {
                 let imgData = previewWrap.dataset.img || selectedDataUrl;
@@ -650,7 +925,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         console.warn('Hikaye resmi okunamadı:', err);
                     }
                 }
-                if (!imgData) { alert('Lütfen bir görsel seçin.'); return; }
+                if (!imgData && !caption) { alert('Lütfen bir görsel seçin ya da hikaye metni girin.'); return; }
                 const id = 's_' + Date.now();
                 const authorUid = window.auth?.currentUser?.uid || (window.user && window.user.uid) || null;
                 const authorName = (window.user && (window.user.displayName || window.user.username)) || 'Sen';
@@ -660,10 +935,17 @@ document.addEventListener('DOMContentLoaded', () => {
                     label: caption || '',
                     user: authorName,
                     avatar: (window.user && window.user.avatarUrl) || 'assets/img/strendsaydamv2.png',
-                    img: imgData,
+                    img: imgData || '',
                     file: selectedFile,
                     timestamp: Date.now(),
                     comments: [],
+                    likesCount: 0,
+                    likedBy: [],
+                    textStyle: {
+                        fontFamily: fontSelect.value,
+                        bgColor: bgColorInput.value,
+                        textColor: textColorInput.value
+                    },
                     authorUid,
                     groupKey: authorUid || authorName
                 };
