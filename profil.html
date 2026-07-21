@@ -429,6 +429,10 @@
 
   <div id="page-profile" class="page-content active">
     <div class="profile-header-card">
+      <div id="profilePrivacyNotice" style="display:none; margin-bottom:14px; padding:12px 14px; border-radius:12px; background:rgba(99,102,241,0.08); border:1px solid rgba(99,102,241,0.16); color:var(--text-main);">
+        <strong>Bu hesap sadece arkadaşlarına açık</strong>
+        <div style="color:var(--text-muted); margin-top:6px;">Profil sahibinin gizlilik ayarları nedeniyle diğer sekmeler gizlenmiştir.</div>
+      </div>
       <div class="profile-header-inner">
         <div class="profile-avatar-wrap">
           <img id="profilePageAvatar" src="assets/img/strendsaydamv2.png" alt="Profil Resmi" onerror="this.onerror=null;this.src='assets/img/strendsaydamv2.png';">
@@ -508,6 +512,19 @@
           <button type="button" class="quick-interest-btn" data-interest-target="newInterestsInput" data-interest-value="Müzik dinlemek" onclick="toggleQuickInterest(this, 'Müzik dinlemek')">🎵 müzik dinlemek</button>
           <button type="button" class="quick-interest-btn" data-interest-target="newInterestsInput" data-interest-value="Oyun oynamak" onclick="toggleQuickInterest(this, 'Oyun oynamak')">🎮 oyun oynamak</button>
           <button type="button" class="quick-interest-btn" data-interest-target="newInterestsInput" data-interest-value="Film izlemek" onclick="toggleQuickInterest(this, 'Film izlemek')">🎬 film izlemek</button>
+          <button type="button" class="quick-interest-btn" data-interest-target="newInterestsInput" data-interest-value="Kitap okumak" onclick="toggleQuickInterest(this, 'Kitap okumak')">📚 kitap okumak</button>
+          <button type="button" class="quick-interest-btn" data-interest-target="newInterestsInput" data-interest-value="Spor yapmak" onclick="toggleQuickInterest(this, 'Spor yapmak')">🏃 spor yapmak</button>
+          <button type="button" class="quick-interest-btn" data-interest-target="newInterestsInput" data-interest-value="Seyahat etmek" onclick="toggleQuickInterest(this, 'Seyahat etmek')">✈️ seyahat etmek</button>
+          <button type="button" class="quick-interest-btn" data-interest-target="newInterestsInput" data-interest-value="Yemek yapmak" onclick="toggleQuickInterest(this, 'Yemek yapmak')">🍜 yemek yapmak</button>
+          <button type="button" class="quick-interest-btn" data-interest-target="newInterestsInput" data-interest-value="Fotoğraf çekmek" onclick="toggleQuickInterest(this, 'Fotoğraf çekmek')">📷 fotoğraf çekmek</button>
+          <button type="button" class="quick-interest-btn" data-interest-target="newInterestsInput" data-interest-value="Kod yazmak" onclick="toggleQuickInterest(this, 'Kod yazmak')">💻 kod yazmak</button>
+          <button type="button" class="quick-interest-btn" data-interest-target="newInterestsInput" data-interest-value="Sanat yapmak" onclick="toggleQuickInterest(this, 'Sanat yapmak')">🎨 sanat yapmak</button>
+          <button type="button" class="quick-interest-btn" data-interest-target="newInterestsInput" data-interest-value="Kahve içmek" onclick="toggleQuickInterest(this, 'Kahve içmek')">☕ kahve içmek</button>
+          <button type="button" class="quick-interest-btn" data-interest-target="newInterestsInput" data-interest-value="Kamp yapmak" onclick="toggleQuickInterest(this, 'Kamp yapmak')">⛺ kamp yapmak</button>
+          <button type="button" class="quick-interest-btn" data-interest-target="newInterestsInput" data-interest-value="Yüzmek" onclick="toggleQuickInterest(this, 'Yüzmek')">🏊 yüzmek</button>
+          <button type="button" class="quick-interest-btn" data-interest-target="newInterestsInput" data-interest-value="Tiyatro izlemek" onclick="toggleQuickInterest(this, 'Tiyatro izlemek')">🎭 tiyatro izlemek</button>
+          <button type="button" class="quick-interest-btn" data-interest-target="newInterestsInput" data-interest-value="Bisiklet sürmek" onclick="toggleQuickInterest(this, 'Bisiklet sürmek')">🚲 bisiklet sürmek</button>
+          <button type="button" class="quick-interest-btn" data-interest-target="newInterestsInput" data-interest-value="Kişisel gelişim" onclick="toggleQuickInterest(this, 'Kişisel gelişim')">🌱 kişisel gelişim</button>
         </div>
       </div>
       <div style="background: var(--bg); padding: 15px; border-radius: 12px; border: 1px solid var(--border);">
@@ -611,6 +628,19 @@
                   <button type="button" class="quick-interest-btn" data-interest-target="editInterestsInput" data-interest-value="Müzik dinlemek" onclick="toggleQuickInterest(this, 'Müzik dinlemek')">🎵 müzik dinlemek</button>
                   <button type="button" class="quick-interest-btn" data-interest-target="editInterestsInput" data-interest-value="Oyun oynamak" onclick="toggleQuickInterest(this, 'Oyun oynamak')">🎮 oyun oynamak</button>
                   <button type="button" class="quick-interest-btn" data-interest-target="editInterestsInput" data-interest-value="Film izlemek" onclick="toggleQuickInterest(this, 'Film izlemek')">🎬 film izlemek</button>
+                  <button type="button" class="quick-interest-btn" data-interest-target="editInterestsInput" data-interest-value="Kitap okumak" onclick="toggleQuickInterest(this, 'Kitap okumak')">📚 kitap okumak</button>
+                  <button type="button" class="quick-interest-btn" data-interest-target="editInterestsInput" data-interest-value="Spor yapmak" onclick="toggleQuickInterest(this, 'Spor yapmak')">🏃 spor yapmak</button>
+                  <button type="button" class="quick-interest-btn" data-interest-target="editInterestsInput" data-interest-value="Seyahat etmek" onclick="toggleQuickInterest(this, 'Seyahat etmek')">✈️ seyahat etmek</button>
+                  <button type="button" class="quick-interest-btn" data-interest-target="editInterestsInput" data-interest-value="Yemek yapmak" onclick="toggleQuickInterest(this, 'Yemek yapmak')">🍜 yemek yapmak</button>
+                  <button type="button" class="quick-interest-btn" data-interest-target="editInterestsInput" data-interest-value="Fotoğraf çekmek" onclick="toggleQuickInterest(this, 'Fotoğraf çekmek')">📷 fotoğraf çekmek</button>
+                  <button type="button" class="quick-interest-btn" data-interest-target="editInterestsInput" data-interest-value="Kod yazmak" onclick="toggleQuickInterest(this, 'Kod yazmak')">💻 kod yazmak</button>
+                  <button type="button" class="quick-interest-btn" data-interest-target="editInterestsInput" data-interest-value="Sanat yapmak" onclick="toggleQuickInterest(this, 'Sanat yapmak')">🎨 sanat yapmak</button>
+                  <button type="button" class="quick-interest-btn" data-interest-target="editInterestsInput" data-interest-value="Kahve içmek" onclick="toggleQuickInterest(this, 'Kahve içmek')">☕ kahve içmek</button>
+                  <button type="button" class="quick-interest-btn" data-interest-target="editInterestsInput" data-interest-value="Kamp yapmak" onclick="toggleQuickInterest(this, 'Kamp yapmak')">⛺ kamp yapmak</button>
+                  <button type="button" class="quick-interest-btn" data-interest-target="editInterestsInput" data-interest-value="Yüzmek" onclick="toggleQuickInterest(this, 'Yüzmek')">🏊 yüzmek</button>
+                  <button type="button" class="quick-interest-btn" data-interest-target="editInterestsInput" data-interest-value="Tiyatro izlemek" onclick="toggleQuickInterest(this, 'Tiyatro izlemek')">🎭 tiyatro izlemek</button>
+                  <button type="button" class="quick-interest-btn" data-interest-target="editInterestsInput" data-interest-value="Bisiklet sürmek" onclick="toggleQuickInterest(this, 'Bisiklet sürmek')">🚲 bisiklet sürmek</button>
+                  <button type="button" class="quick-interest-btn" data-interest-target="editInterestsInput" data-interest-value="Kişisel gelişim" onclick="toggleQuickInterest(this, 'Kişisel gelişim')">🌱 kişisel gelişim</button>
                 </div>
                 <div class="inline-edit-actions">
                   <button type="button" class="save-btn" onclick="saveCardEditChanges('interests')"><i class="fa-solid fa-floppy-disk"></i> Kaydet</button>

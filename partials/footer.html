@@ -51,7 +51,7 @@
       <i class="fa-solid fa-comments"></i>
       <span data-i18n="mobileNavChat">Sohbet</span>
     </button>
-    <button type="button" id="mobileProfileTrigger" class="mobile-nav-item" aria-label="Profil menüsü">
+    <button type="button" id="mobileProfileTrigger" class="mobile-nav-item" aria-label="Profil menüsü" onclick="event.stopPropagation(); window.toggleProfileDropdown && window.toggleProfileDropdown(this); return false;">
       <img id="mobileProfileAvatar" src="assets/img/strendsaydamv2.png" alt="Kullanıcı avatar" style="width:22px; height:22px; border-radius:50%; object-fit:cover;">
     </button>
   </div>

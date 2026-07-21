@@ -882,13 +882,21 @@ async function loadSuggestions() {
         const dedupedUsers = [];
         const seenKeys = new Set();
         for (const user of usersArray) {
-            const usernameKey = String(user.username || '').trim().toLowerCase();
-            const uidKey = String(user.uid || user.id || '').trim().toLowerCase();
-            const emailKey = String(user.email || '').trim().toLowerCase();
-            const dedupeKey = usernameKey || uidKey || emailKey;
-            if (!dedupeKey) continue;
-            if (seenKeys.has(dedupeKey)) continue;
-            seenKeys.add(dedupeKey);
+            const identityKeys = [
+                String(user.username || '').trim().toLowerCase(),
+                String(user.uid || user.id || '').trim().toLowerCase(),
+                String(user.email || '').trim().toLowerCase()
+            ].filter(Boolean);
+
+            if (!identityKeys.length) {
+                dedupedUsers.push(user);
+                continue;
+            }
+
+            const hasExistingKey = identityKeys.some((key) => seenKeys.has(key));
+            if (hasExistingKey) continue;
+
+            identityKeys.forEach((key) => seenKeys.add(key));
             dedupedUsers.push(user);
         }
 
@@ -915,9 +923,24 @@ async function loadSuggestions() {
 
         // Hafif rastgelelik + tekrar yüklemede aynı görünüm için kullanıcı adına göre ikinci sıralama
         filteredUsers.sort(() => Math.random() - 0.5);
-        const selectedUsers = filteredUsers
-            .slice(0, 2)
-            .sort((a, b) => String(a.displayName || a.username || '').localeCompare(String(b.displayName || b.username || ''), 'tr'));
+        const selectedUsers = [];
+        const selectedSeen = new Set();
+        for (const user of filteredUsers) {
+            const identityKeys = [
+                String(user.username || '').trim().toLowerCase(),
+                String(user.uid || user.id || '').trim().toLowerCase(),
+                String(user.email || '').trim().toLowerCase()
+            ].filter(Boolean);
+
+            const isDuplicateSelection = identityKeys.some((key) => selectedSeen.has(key));
+            if (isDuplicateSelection) continue;
+
+            identityKeys.forEach((key) => selectedSeen.add(key));
+            selectedUsers.push(user);
+            if (selectedUsers.length === 2) break;
+        }
+
+        selectedUsers.sort((a, b) => String(a.displayName || a.username || '').localeCompare(String(b.displayName || b.username || ''), 'tr'));
 
         const normalizeInterest = (value) => String(value || '').trim().toLocaleLowerCase('tr-TR');
         const splitInterests = (value) => String(value || '')
@@ -1690,51 +1713,40 @@ function buildAnnouncementCard(announcementId, data, currentUsername) {
     const commentCount = data.comments ? data.comments.length : 0;
 
     const card = document.createElement('div');
-    card.className = 'glass-card post';
+    card.className = 'glass-card post-composer announcement-card';
     card.setAttribute('data-announcement-id', announcementId);
     card.setAttribute('data-announcement-data', JSON.stringify(data));
     card.style.cssText = `
-        border: 2px solid var(--primary);
-        background: rgba(99, 102, 241, 0.08);
+        border: 1px solid rgba(99, 102, 241, 0.16);
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.92));
         position: relative;
+        padding: 18px 18px 16px;
+        box-shadow: 0 12px 24px rgba(15, 23, 42, 0.05);
+        border-radius: 20px;
     `;
 
     card.innerHTML = `
-        <div style="position: absolute; top: 15px; right: 15px; display: flex; gap: 8px; z-index: 10;">
-            <button class="post-edit-btn" style="position:static;" onclick="editAnnouncement('${announcementId}')" title="Düzenle">
-                <i class="fa-solid fa-pen"></i>
-            </button>
-            <button class="post-delete-btn" style="position:static;" onclick="deleteAnnouncement('${announcementId}')">
-                <i class="fa-solid fa-trash"></i>
-            </button>
-        </div>
-        <div style="display:flex; gap:10px; margin-bottom:10px;">
-            <img src="assets/img/strendsaydamv2.png" class="user-avatar" style="width:40px; height:40px; border-radius:50%; cursor:pointer;" onclick="location.href='profil.html?id=official_system'">
-            <div>
-                <div style="font-weight:700; display:flex; align-items:center; gap:5px; cursor:pointer;" onclick="location.href='profil.html?id=official_system'">
-                    SosyaLTrend <i class="fa-solid fa-circle-check" style="color:var(--primary); font-size:0.7rem;"></i>
-                    <span class="post-time">• ${createdAt}</span>
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:10px;">
+            <div style="display:flex; gap:12px; align-items:center; flex:1; min-width:0;">
+                <div style="width:44px; height:44px; border-radius:14px; background:linear-gradient(135deg, var(--primary), #8b5cf6); display:flex; align-items:center; justify-content:center; color:#fff; font-weight:800; box-shadow:0 8px 18px rgba(99,102,241,0.24); flex-shrink:0;">
+                    <i class="fa-solid fa-circle-check"></i>
                 </div>
-                <div style="font-size:0.75rem; color:var(--text-muted); cursor:pointer;" onclick="location.href='profil.html?id=official_system'">@official_system</div>
+                <div style="min-width:0; flex:1;">
+                    <div style="font-weight:800; display:flex; align-items:center; gap:6px; cursor:pointer; color:var(--text-main); font-size:0.96rem;" onclick="location.href='profil.html?id=official_system'">
+                        SosyaLTrend Duyurusu
+                        <i class="fa-solid fa-circle-check" style="color:var(--primary); font-size:0.72rem;"></i>
+                    </div>
+                    <div style="font-size:0.76rem; color:var(--text-muted); cursor:pointer; margin-top:2px;" onclick="location.href='profil.html?id=official_system'">@official_system</div>
+                </div>
             </div>
+            <div style="font-size:0.76rem; color:var(--text-muted); font-weight:700; white-space:nowrap; text-align:right; flex-shrink:0;">${createdAt}</div>
         </div>
         
-        <div class="post-content-block" style="margin-bottom:12px;">
-            <p style="white-space: pre-wrap; margin:0; color: var(--text-main); font-size: 0.95rem; line-height: 1.5;">${content}</p>
+        <div class="post-content-block" style="margin-bottom:14px; padding:13px 14px; border-radius:16px; background:rgba(255,255,255,0.65); border:1px solid rgba(99,102,241,0.12);">
+            <p style="white-space: pre-wrap; margin:0; color: var(--text-main); font-size: 0.95rem; line-height: 1.65;">${content}</p>
         </div>
 
-        <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:10px; min-height:28px;">
-            <div id="likers-ann-${announcementId}" style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;"></div>
-        </div>
-
-        <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
-            <button class="tool-btn icon-count" onclick="likeAnnouncement('${announcementId}', ${isLiked}, this)" style="gap:5px; color:${isLiked ? '#ef4444' : ''}"><i class="${isLiked ? 'fa-solid' : 'fa-regular'} fa-heart"></i><span>(${likeCount})</span></button>
-            <button class="tool-btn icon-count" onclick="toggleAnnouncementComments('${announcementId}')" style="gap:5px;"><i class="fa-regular fa-comment"></i><span>(${commentCount})</span></button>
-            <button class="tool-btn icon-count" onclick="bookmarkAnnouncement('${announcementId}', this)" data-saved="${isSaved ? 'true' : 'false'}" aria-pressed="${isSaved ? 'true' : 'false'}" style="gap:5px; color:${isSaved ? '#f59e0b' : ''}"><i class="${isSaved ? 'fa-solid' : 'fa-regular'} fa-bookmark"></i><span>(${savedState.normalizedSavedBy.length})</span></button>
-            <button class="tool-btn" onclick="window.openShareMenu('${announcementId}')" style="gap:5px; margin-left:auto;"><i class="fa-solid fa-share"></i><span>Paylaş</span></button>
-        </div>
-        
-        <div id="comments-ann-${announcementId}" class="comment-area" style="display:none;">
+        <div id="comments-ann-${announcementId}" class="comment-area" style="display:none; margin-top:8px; padding-top:8px; border-top:1px solid rgba(99,102,241,0.12);">
             <div class="comment-input-area" style="display:flex; gap:10px; margin-bottom:12px;">
                 <img src="${(window.user && window.user.avatarUrl) || 'assets/img/strendsaydamv2.png'}" style="width:32px; height:32px; border-radius:50%;">
                 <div style="flex:1; display:flex; gap:8px;">
@@ -1751,17 +1763,20 @@ function buildAnnouncementCard(announcementId, data, currentUsername) {
 
 window.addAnnouncementsToFeed = async () => {
     try {
-        const feed = document.getElementById('feed-items');
-        if (!feed) return;
+        const announcementContainer = document.getElementById('announcement-feed');
+        if (!announcementContainer) return;
 
         const announcementsSnap = await getDocs(
             query(collection(db, "announcements"), orderBy("timestamp", "desc"), limit(10))
         );
 
-        if (announcementsSnap.empty) return;
+        if (announcementsSnap.empty) {
+            announcementContainer.innerHTML = '';
+            return;
+        }
 
         const currentUsername = getCurrentBookmarkIdentity();
-        const existingAnnouncementIds = new Set(Array.from(feed.querySelectorAll('[data-announcement-id]')).map((card) => card.getAttribute('data-announcement-id')));
+        const existingAnnouncementIds = new Set(Array.from(announcementContainer.querySelectorAll('[data-announcement-id]')).map((card) => card.getAttribute('data-announcement-id')));
         const announcementElements = [];
 
         announcementsSnap.forEach((doc) => {
@@ -1776,7 +1791,7 @@ window.addAnnouncementsToFeed = async () => {
         });
 
         announcementElements.reverse().forEach((item) => {
-            feed.insertBefore(item.card, feed.firstChild);
+            announcementContainer.insertBefore(item.card, announcementContainer.firstChild);
             if (item.data.comments && item.data.comments.length > 0) {
                 renderAnnouncementComments(item.id, item.data.comments);
             }
@@ -2047,8 +2062,8 @@ window.deleteAnnouncementComment = async (announcementId, commentIndex) => {
 // Feed real-time güncellemesi - duyuruları dinle
 window.listenForAnnouncementChanges = () => {
     try {
-        const feed = document.getElementById('feed-items');
-        if (!feed) return;
+        const announcementContainer = document.getElementById('announcement-feed');
+        if (!announcementContainer) return;
         
         // User ready değilse, hata olmasın
         const currentUsername = (window.user && window.user.username) || (auth.currentUser && auth.currentUser.email.split('@')[0]) || null;
@@ -2056,7 +2071,7 @@ window.listenForAnnouncementChanges = () => {
         onSnapshot(
             query(collection(db, "announcements"), orderBy("timestamp", "desc")),
             (snap) => {
-                const existingIds = new Set(Array.from(feed.querySelectorAll('[data-announcement-id]')).map((card) => card.getAttribute('data-announcement-id')));
+                const existingIds = new Set(Array.from(announcementContainer.querySelectorAll('[data-announcement-id]')).map((card) => card.getAttribute('data-announcement-id')));
                 const announcementElements = [];
 
                 snap.forEach((doc) => {
@@ -2074,7 +2089,7 @@ window.listenForAnnouncementChanges = () => {
                 });
 
                 announcementElements.reverse().forEach((item) => {
-                    feed.insertBefore(item.card, feed.firstChild);
+                    announcementContainer.insertBefore(item.card, announcementContainer.firstChild);
                 });
 
                 snap.forEach((doc) => {
@@ -6215,11 +6230,15 @@ if (typeof updatePostCount === 'function') updatePostCount();
             e.stopPropagation();
             toggleProfileDropdown(triggerEl);
         };
-    });
 
-  window.onclick = () => {
-        closeProfileDropdown();
-  };
+        triggerEl.onkeydown = (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                e.stopPropagation();
+                toggleProfileDropdown(triggerEl);
+            }
+        };
+    });
 /* ============================ */
 
 /* Gündem özelliği kaldırıldı */
@@ -8364,8 +8383,15 @@ let headerInteractionsInitialized = false;
 function closeProfileDropdown() {
     const wrapper = document.querySelector('.dropdown-menu-wrapper');
     const menu = document.getElementById('dropdownMenu');
-    if (wrapper) wrapper.classList.remove('active');
-    if (menu) menu.classList.remove('active');
+    if (wrapper) {
+        wrapper.classList.remove('active');
+        wrapper.style.display = 'none';
+    }
+    if (menu) {
+        menu.classList.remove('active');
+        menu.style.display = 'none';
+        menu.setAttribute('aria-hidden', 'true');
+    }
 }
 
 function positionProfileDropdown(triggerEl) {
@@ -8399,7 +8425,10 @@ function positionProfileDropdown(triggerEl) {
 function toggleProfileDropdown(triggerEl) {
     const wrapper = document.querySelector('.dropdown-menu-wrapper');
     const menu = document.getElementById('dropdownMenu');
-    if (!wrapper || !menu) return;
+    if (!wrapper || !menu) {
+        setTimeout(() => toggleProfileDropdown(triggerEl), 100);
+        return;
+    }
 
     const shouldOpen = !menu.classList.contains('active');
     if (!shouldOpen) {
@@ -8407,10 +8436,16 @@ function toggleProfileDropdown(triggerEl) {
         return;
     }
 
+    wrapper.style.display = 'block';
     wrapper.classList.add('active');
+    menu.style.display = 'flex';
     menu.classList.add('active');
+    menu.setAttribute('aria-hidden', 'false');
     positionProfileDropdown(triggerEl || document.getElementById('profileTrigger'));
 }
+
+window.toggleProfileDropdown = toggleProfileDropdown;
+window.closeProfileDropdown = closeProfileDropdown;
 
 function initHeaderInteractions() {
     const hasHeaderSearch = document.getElementById('headerSearchButton') && document.getElementById('headerSearchInput') && document.getElementById('headerSearchWrapper');
@@ -8691,13 +8726,14 @@ document.addEventListener('click', (e) => {
     const dropdownMenu = document.getElementById('dropdownMenu');
     const profileTrigger = e.target.closest('#profileTrigger, #mobileProfileTrigger');
 
-    // Profil tetikleyiciye tıklandıysa
+    // Profil tetikleyiciye tıklandıysa, kendi olayını kullanalım; dışarı kapatma işlemi yapmayalım.
     if (profileTrigger) {
-        toggleProfileDropdown(profileTrigger);
-        e.stopPropagation(); // Tıklamanın dışarı sızmasını engelle
-    } 
+        e.stopPropagation();
+        return;
+    }
+
     // Menü açıkken dışarıya tıklandıysa kapat
-    else if (dropdownMenu && dropdownMenu.classList.contains('active')) {
+    if (dropdownMenu && dropdownMenu.classList.contains('active')) {
         if (!dropdownMenu.contains(e.target)) {
             closeProfileDropdown();
         }

@@ -78,10 +78,10 @@ function buildProfilePostActions(post) {
   const commentCount = Array.isArray(post?.comments) ? post.comments.length : 0;
   return `
     <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:12px;">
-      <button type="button" class="profile-post-comment-btn tool-btn icon-count" data-post-id="${postId}" style="gap:3px; min-width:auto;">
+      <button type="button" class="tool-btn icon-count" onclick="window.openProfilePostComment('${postId}'); return false;" style="gap:3px; min-width:auto;">
         <i class="fa-regular fa-comment"></i><span>(${commentCount})</span>
       </button>
-      <button type="button" class="profile-post-go-btn" data-post-url="${goToUrl}" style="border:1px solid var(--border); border-radius:999px; padding:8px 12px; background:rgba(255,255,255,0.72); color:var(--text-main); font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:6px;">
+      <button type="button" onclick="window.location.href='${goToUrl}'; return false;" style="border:1px solid var(--border); border-radius:999px; padding:8px 12px; background:rgba(255,255,255,0.72); color:var(--text-main); font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:6px;">
         <i class="fa-solid fa-arrow-up-right-from-square"></i> Gönderiye Git
       </button>
     </div>
@@ -140,31 +140,6 @@ window.openProfilePostComment = function(postId) {
     }
   }
 };
-
-function bindProfileCardActions(container) {
-  if (!container) return;
-  container.querySelectorAll('.profile-post-comment-btn').forEach((button) => {
-    button.onclick = (event) => {
-      event.preventDefault();
-      event.stopPropagation();
-      const postId = button.getAttribute('data-post-id');
-      if (postId && typeof window.openProfilePostComment === 'function') {
-        window.openProfilePostComment(postId);
-      }
-    };
-  });
-
-  container.querySelectorAll('.profile-post-go-btn').forEach((button) => {
-    button.onclick = (event) => {
-      event.preventDefault();
-      event.stopPropagation();
-      const targetUrl = button.getAttribute('data-post-url');
-      if (targetUrl) {
-        window.location.href = targetUrl;
-      }
-    };
-  });
-}
 
 function formatTimestamp(value) {
   if (!value) return '—';
@@ -402,7 +377,7 @@ function renderProfileHeader(profileData, isOwnProfile) {
     privacyNotice.style.display = !isOwnProfile && isPrivateProfile ? 'block' : 'none';
   }
   if (personalInfoCard) {
-    personalInfoCard.style.display = !isOwnProfile && isPrivateProfile ? 'none' : 'block';
+    personalInfoCard.style.display = 'block';
   }
 
   if (editBtn) editBtn.style.display = isOwnProfile ? 'inline-flex' : 'none';
@@ -482,7 +457,6 @@ async function renderLikes(username) {
   }
   if (empty) empty.style.display = 'none';
   list.innerHTML = likes.map((post) => createPostCard(post, true)).join('');
-  bindProfileCardActions(list);
 }
 
 async function renderSaves(username) {
@@ -497,7 +471,6 @@ async function renderSaves(username) {
   }
   if (empty) empty.style.display = 'none';
   list.innerHTML = saves.map((post) => createPostCard(post, true)).join('');
-  bindProfileCardActions(list);
 }
 
 function renderNotifications(notifications) {
@@ -577,8 +550,6 @@ async function initProfilePage() {
     return;
   }
 
-  // Gizli profil davranışı: eğer profil gizliyse ve ziyaretçi sahibi değilse ve arkadaş değilse,
-  // sadece sekme kartını (profile-tabs-card) gizle.
   const isPrivateProfile = [profileData.private, profileData.isPrivate, profileData.privateProfile].some((v) => v === true || v === 'true');
   let isFriend = false;
   try {
@@ -591,7 +562,7 @@ async function initProfilePage() {
   }
 
   renderProfileHeader(profileData, isOwnProfile);
-  updateTabVisibility(isOwnProfile);
+  updateTabVisibility(isOwnProfile || isFriend);
 
   const initialTab = selectInitialTab(isOwnProfile);
   setActiveTab(initialTab, true);
@@ -612,24 +583,9 @@ async function initProfilePage() {
     await loadAndRenderTab(tabKey, profileData, isOwnProfile);
   });
 
-  // Eğer gizli profil ise ve ziyaretçi arkadaş değilse, sekmeleri gizle
   try {
-    if (isPrivateProfile && !isOwnProfile && !isFriend) {
-      const tabsCard = document.querySelector('.profile-tabs-card');
-      if (tabsCard) tabsCard.style.display = 'none';
-      // Ayrıca, gizli profil ziyaretçisine bilgi göstermeyi sağlayan basit bir not ekleyebiliriz
-      const headerCard = document.querySelector('.profile-header-card');
-      if (headerCard) {
-        const note = document.createElement('div');
-        note.style.marginTop = '14px';
-        note.style.padding = '14px';
-        note.style.borderRadius = '12px';
-        note.style.background = 'rgba(255,255,255,0.96)';
-        note.style.border = '1px solid var(--border)';
-        note.innerHTML = '<strong>Bu hesap sadece arkadaşlarına açık</strong><div style="color:var(--text-muted); margin-top:6px;">Profil sahibinin gizlilik ayarları nedeniyle diğer sekmeler gizlenmiştir.</div>';
-        headerCard.parentNode.insertBefore(note, headerCard.nextSibling);
-      }
-    }
+    const tabsCard = document.querySelector('.profile-tabs-card');
+    if (tabsCard) tabsCard.style.display = 'block';
   } catch (e) {
     console.warn('Gizli profil DOM güncelleme hatası:', e);
   }

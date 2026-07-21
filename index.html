@@ -37,7 +37,9 @@
 
     <main id="main-content">
       <div id="page-feed" class="page-content active">
-        <div class="glass-card post-composer">
+                <div class="feed-stack">
+                    <div id="announcement-feed" class="announcement-feed"></div>
+          <div class="glass-card post-composer">
             <div class="post-composer-header">
                 <div class="post-composer-profile">
                     <div class="post-composer-avatar">
@@ -115,18 +117,20 @@
                 </button>
             </div>
         </div>
-        <div style="display:flex; justify-content:space-between; align-items:center; margin:16px 0 12px; gap:12px; flex-wrap:wrap;">
-            <button type="button" onclick="window.openLatestHomePosts && window.openLatestHomePosts()" style="display:inline-flex; align-items:center; gap:6px; border:1px solid rgba(99,102,241,0.16); background:linear-gradient(135deg, rgba(99,102,241,0.12), rgba(255,255,255,0.06)); color:var(--text-main); padding:8px 12px; border-radius:999px; font-size:0.8rem; font-weight:700; cursor:pointer; box-shadow:0 6px 16px rgba(15, 23, 42, 0.06);">
+        <div id="stories-row" class="stories-row" aria-label="Hikayeler"></div>
+        <div class="feed-toolbar">
+            <button class="feed-toolbar-btn" type="button" onclick="window.openLatestHomePosts && window.openLatestHomePosts()">
                 <i class="fa-solid fa-comments"></i>
                 <span>En son gönderilenler</span>
             </button>
-            <button type="button" onclick="window.openMyShares && window.openMyShares()" style="display:inline-flex; align-items:center; gap:6px; border:1px solid rgba(99,102,241,0.16); background:linear-gradient(135deg, rgba(99,102,241,0.12), rgba(255,255,255,0.06)); color:var(--text-main); padding:8px 12px; border-radius:999px; font-size:0.8rem; font-weight:700; cursor:pointer; box-shadow:0 6px 16px rgba(15, 23, 42, 0.06);">
+            <button class="feed-toolbar-btn" type="button" onclick="window.openMyShares && window.openMyShares()">
                 <i class="fa-solid fa-clock-rotate-left"></i>
                 <span>En son Paylaştıklarım</span>
             </button>
         </div>
-        <div id="my-shares-panel" style="display:none; margin:0 0 16px; padding:16px; border:1px solid rgba(99,102,241,0.14); border-radius:18px; background:linear-gradient(180deg, rgba(255,255,255,0.92), rgba(248,250,252,0.94)); box-shadow:0 10px 28px rgba(15,23,42,0.06);"></div>
-        <div id="feed-items"></div>
+        <div id="my-shares-panel" class="feed-panel"></div>
+        <div id="feed-items" class="feed-items"></div>
+      </div>
     </div>
     </main>
 
@@ -177,6 +181,7 @@
   <div id="footer-placeholder"></div>
 
 <script src="assets/js/include.js"></script>
+<script src="assets/js/stories.js" defer></script>
 <script type="module" src="assets/js/home.js?v=20260707d"></script>
 </body>
 </html>

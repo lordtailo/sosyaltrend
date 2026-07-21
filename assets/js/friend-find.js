@@ -29,8 +29,12 @@ function splitInterests(value) {
   return String(value || '')
     .split(/[;,|]/)
     .map((item) => item.trim())
-    .filter(Boolean)
-    .slice(0, 1);
+    .filter(Boolean);
+}
+
+function resolveInterestTags(value) {
+  const items = splitInterests(value);
+  return items.slice(0, 2);
 }
 
 function sortUsers(list) {
@@ -206,7 +210,7 @@ function renderList(
     let buttonHtml = '';
 
     if (state === 'friend') {
-      buttonHtml = '<button type="button" class="friend-btn success" disabled><i class="fa-solid fa-check"></i> Arkadaş</button>';
+      buttonHtml = `<button type="button" class="friend-btn warning" data-action="remove" data-uid="${u.uid}" data-username="${escapeHtml(u.username || '')}"><i class="fa-solid fa-user-minus"></i> Arkadaşlıktan Çıkar</button>`;
     } else if (state === 'sent') {
       buttonHtml = `<button type="button" class="friend-btn warning" data-action="cancel" data-uid="${u.uid}" data-username="${escapeHtml(u.username || '')}"><i class="fa-solid fa-clock-rotate-left"></i> İsteği İptal Et</button>`;
     } else {
@@ -219,10 +223,11 @@ function renderList(
     const hometownText = escapeHtml(u.hometown || 'Belirtilmedi');
     const occupationText = escapeHtml(u.occupation || 'Belirtilmedi');
     const placeText = locationText === hometownText ? locationText : `${locationText} • ${hometownText}`;
-    const interestItems = splitInterests(u.interests);
-    const interestMarkup = interestItems.length
-      ? interestItems.map((interest) => `<span class="friend-card-chip"><i class="fa-solid fa-hashtag"></i> ${escapeHtml(interest)}</span>`).join('')
-      : '';
+    const interestTags = resolveInterestTags(u.interests);
+    const hasResimInterest = interestTags.some((tag) => /resim/i.test(tag));
+    const interestMarkup = hasResimInterest
+      ? interestTags.map((tag) => `<button type="button" class="friend-card-chip friend-card-chip-filter" data-interest="${escapeHtml(tag)}"><i class="fa-solid fa-hashtag"></i> ${escapeHtml(tag)}</button>`).join('')
+      : `<span class="friend-card-chip friend-card-chip-placeholder"><i class="fa-solid fa-hashtag"></i> henüz eklemedi</span>`;
 
     return `
       <div class="friend-card">
@@ -230,8 +235,10 @@ function renderList(
           <div class="friend-card-main">
             <img src="${avatarUrlFor(u)}" alt="${safeName}" class="friend-card-avatar" onerror="this.onerror=null;this.src='assets/img/strendsaydamv2.png';" />
             <div class="friend-card-identity">
-              <div class="friend-card-name">${safeName}</div>
-              <div class="friend-card-username">@${safeUsername}</div>
+              <div class="friend-card-identity-title">
+                <div class="friend-card-name">${safeName}</div>
+                <div class="friend-card-username">@${safeUsername}</div>
+              </div>
               <div class="friend-card-meta-line">
                 <span><i class="fa-solid fa-location-dot"></i> ${placeText}</span>
                 <span><i class="fa-solid fa-briefcase"></i> ${occupationText}</span>
@@ -457,6 +464,15 @@ async function initFriendFindPage() {
   });
 
   listEl.addEventListener('click', async (event) => {
+    const interestBtn = event.target.closest('.friend-card-chip-filter');
+    if (interestBtn) {
+      const interest = interestBtn.dataset.interest || '';
+      inputEl.value = interest;
+      activeFilter = 'all';
+      renderCurrentState();
+      return;
+    }
+
     const btn = event.target.closest('button[data-action]');
     if (!btn) return;
 
@@ -475,6 +491,8 @@ async function initFriendFindPage() {
         await window.sendFriendRequestToUid(targetUid, targetUsername);
       } else if (action === 'cancel' && typeof window.cancelFriendRequestToUid === 'function') {
         await window.cancelFriendRequestToUid(targetUid, targetUsername);
+      } else if (action === 'remove' && typeof window.removeFriend === 'function') {
+        await window.removeFriend(targetUid);
       }
       await loadUsersPage(true);
     } catch (err) {

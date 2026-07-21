@@ -93,7 +93,7 @@
       <button id="headerChatBtn" class="theme-btn" type="button" onclick="if (typeof openChatsList === 'function') { openChatsList(); } return false;" title="Sohbet">
         <i class="fa-solid fa-comments"></i>
       </button>
-      <div class="profile-trigger" id="profileTrigger" title="Profil menüsü" aria-label="Profil menüsü" role="button" tabindex="0">
+      <div class="profile-trigger" id="profileTrigger" title="Profil menüsü" aria-label="Profil menüsü" role="button" tabindex="0" onclick="event.stopPropagation(); window.toggleProfileDropdown && window.toggleProfileDropdown(this); return false;" onkeydown="if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.stopPropagation(); window.toggleProfileDropdown && window.toggleProfileDropdown(this); }">
         <div class="avatar-wrap offline" id="headerAvatarWrap">
           <img id="headerAvatar" src="assets/img/strendsaydamv2.png" alt="Kullanıcı avatar">
           <span class="status-badge status-offline"></span>
