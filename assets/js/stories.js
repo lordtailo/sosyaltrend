@@ -31,7 +31,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // initialize stories with create card + loaded ones
     (function initStories() {
         const loaded = loadStories();
-        stories = [{ id: 'create', type: 'create', label: 'Hikaye Oluştur', img: 'assets/img/strendsaydamv2.png' }].concat(loaded);
+        stories = [{ id: 'create', type: 'create', label: 'Stori Oluştur', img: 'assets/img/strendsaydamv2.png' }].concat(loaded);
     })();
 
     function render() {
@@ -259,7 +259,7 @@ document.addEventListener('DOMContentLoaded', () => {
             modal.className = 'story-upload-modal';
             modal.innerHTML = `
                 <div class="story-upload-modal-inner" role="dialog" aria-modal="true">
-                    <h3>Hikaye Oluştur</h3>
+                    <h3>Stori Oluştur</h3>
                     <div style="margin:8px 0 12px; color:var(--text-muted); font-size:0.95rem;">Görsel seç ve kısa bir başlık ekle.</div>
                     <input id="story-file-input" type="file" accept="image/*" style="display:none;">
                     <div style="display:flex; gap:10px; align-items:center;">

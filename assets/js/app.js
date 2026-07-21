@@ -1686,7 +1686,6 @@ function isCurrentUserPost(post) {
         if (!value || !currentUid) return false;
         return String(value) === String(currentUid);
     });
-
     return hasMatchingIdentity || hasMatchingUid;
 }
 
@@ -1731,9 +1730,7 @@ function buildAnnouncementCard(announcementId, data, currentUsername) {
             </div>
             <div class="announcement-meta">${createdAt}</div>
         </div>
-        <div class="announcement-content">
-            ${content}
-        </div>
+        <div class="announcement-content">${content}</div>
         <div class="announcement-footer">
             <div class="announcement-stats">
                 <span>${likeCount} beğeni</span>
