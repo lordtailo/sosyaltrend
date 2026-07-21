@@ -458,6 +458,12 @@ body.dark-mode .right-panel [style*="linear-gradient(135deg, rgba(255,255,255"] 
     color: var(--text-muted);
     font-size: 0.9rem;
 }
+.announcement-card .announcement-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
 .announcement-card .announcement-action-btn {
     padding: 10px 16px;
     border-radius: 999px;
@@ -466,7 +472,10 @@ body.dark-mode .right-panel [style*="linear-gradient(135deg, rgba(255,255,255"] 
     color: var(--text-main);
     cursor: pointer;
     font-weight: 700;
-    transition: background 0.2s ease, transform 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: background 0.2s ease, transform 0.2s ease, color 0.2s ease;
 }
 .announcement-card .announcement-action-btn:hover {
     background: rgba(99, 102, 241, 0.12);

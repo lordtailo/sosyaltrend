@@ -1739,9 +1739,15 @@ function buildAnnouncementCard(announcementId, data, currentUsername) {
                 <span>${likeCount} beğeni</span>
                 <span><span class="announcement-comment-count">${commentCount}</span> yorum</span>
             </div>
-            <button id="comment-toggle-${announcementId}" class="announcement-action-btn" type="button" onclick="toggleAnnouncementComments('${announcementId}')">
-                ${commentCount > 0 ? `Yorumları Göster (${commentCount})` : 'Yorumları Göster'}
-            </button>
+            <div class="announcement-actions">
+                <button class="announcement-action-btn announcement-like-btn" type="button" onclick="likeAnnouncement('${announcementId}', ${isLiked}, this)">
+                    <i class="fa-${isLiked ? 'solid' : 'regular'} fa-heart"></i>
+                    <span>${likeCount}</span>
+                </button>
+                <button id="comment-toggle-${announcementId}" class="announcement-action-btn" type="button" onclick="toggleAnnouncementComments('${announcementId}')">
+                    ${commentCount > 0 ? `Yorumları Göster (${commentCount})` : 'Yorumları Göster'}
+                </button>
+            </div>
         </div>
         <div id="comments-ann-${announcementId}" class="comment-area announcement-comment-area">
             <div class="comment-input-area">
