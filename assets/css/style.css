@@ -211,7 +211,7 @@ body.dark-mode .right-panel [style*="linear-gradient(135deg, rgba(255,255,255"] 
 .story-small-avatar.seen { border-color: #ffffff; }
 .story-small-avatar.unseen { border-color: #8b5cf6; }
 .story-count-badge { position:absolute; top:12px; left:60px; right:8px; min-width:50px; padding:4px 8px; border-radius:999px; background: rgba(0,0,0,0.6); color:#fff; font-size:0.75rem; font-weight:700; text-align:center; line-height:1.2; white-space:nowrap; }
-.story-text-overlay { display:none !important; }
+.story-text-overlay { position:absolute; left:8px; right:8px; bottom:12px; color:#fff; font-weight:800; font-size:0.95rem; text-shadow:0 2px 8px rgba(0,0,0,0.5); }
 .story-card .overlay-gradient { position:absolute; inset:0; background:linear-gradient(180deg, transparent 40%, rgba(0,0,0,0.48)); pointer-events:none; }
 .story-text-cover { display:flex; align-items:center; justify-content:center; min-height:100%; padding:16px; text-align:center; color:#fff; font-weight:700; font-size:0.95rem; background: linear-gradient(180deg, rgba(20,23,78,0.92), rgba(31,41,55,0.92)); }
 .story-viewer-text { display:flex; align-items:center; justify-content:center; padding:20px; width:100%; min-height:320px; color: var(--text-main); font-size:1rem; text-align:center; background: rgba(255,255,255,0.95); border-radius:12px; }
