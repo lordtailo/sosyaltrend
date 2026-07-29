@@ -25,6 +25,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const VIEWED_GROUPS_KEY = 'slt_viewed_story_groups';
+    const PENDING_STORIES_KEY = 'slt_pending_stories';
+    let pendingRemoteSyncTimer = null;
+    let pendingRemoteSyncInFlight = false;
 
     function loadViewedGroups() {
         try {
@@ -58,6 +61,78 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function getCurrentUserUid() {
         return window.auth?.currentUser?.uid || (window.user && window.user.uid) || null;
+    }
+
+    function getCurrentUserContext() {
+        const authUser = window.auth?.currentUser || null;
+        const userData = window.user || {};
+        return {
+            uid: authUser?.uid || userData.uid || null,
+            displayName: authUser?.displayName || userData.displayName || userData.username || authUser?.email?.split('@')[0] || 'Sen',
+            username: userData.username || authUser?.email?.split('@')[0] || '',
+            avatarUrl: userData.avatarUrl || authUser?.photoURL || 'assets/img/strendsaydamv2.png'
+        };
+    }
+
+    function loadPendingStories() {
+        try {
+            const raw = localStorage.getItem(PENDING_STORIES_KEY);
+            if (!raw) return [];
+            const parsed = JSON.parse(raw);
+            return Array.isArray(parsed) ? parsed : [];
+        } catch (e) {
+            return [];
+        }
+    }
+
+    function savePendingStories(pendingStories) {
+        try {
+            localStorage.setItem(PENDING_STORIES_KEY, JSON.stringify(pendingStories));
+        } catch (e) {}
+    }
+
+    function enqueuePendingStory(story) {
+        if (!story || story.type !== 'story') return;
+        const pendingStories = loadPendingStories();
+        const alreadyQueued = pendingStories.some(item => item.id === story.id);
+        if (!alreadyQueued) {
+            pendingStories.push({ ...story, pendingAt: Date.now() });
+            savePendingStories(pendingStories);
+        }
+    }
+
+    function schedulePendingStorySync() {
+        if (pendingRemoteSyncTimer) clearTimeout(pendingRemoteSyncTimer);
+        pendingRemoteSyncTimer = setTimeout(() => {
+            void syncPendingStoriesToBackend();
+        }, 1500);
+    }
+
+    async function syncPendingStoriesToBackend() {
+        if (pendingRemoteSyncInFlight) return;
+        const pendingStories = loadPendingStories();
+        if (!pendingStories.length) return;
+        if (!hasFirestore()) {
+            schedulePendingStorySync();
+            return;
+        }
+        pendingRemoteSyncInFlight = true;
+        try {
+            const stillPending = [];
+            for (const pendingStory of pendingStories) {
+                if (!pendingStory || pendingStory.type !== 'story') continue;
+                const remoteUrl = await saveStoryToBackend({ ...pendingStory }, { skipLocalUpdate: true });
+                if (remoteUrl === null) {
+                    stillPending.push(pendingStory);
+                }
+            }
+            savePendingStories(stillPending);
+        } finally {
+            pendingRemoteSyncInFlight = false;
+            if (loadPendingStories().length) {
+                schedulePendingStorySync();
+            }
+        }
     }
 
     function isStoryLikedByCurrentUser(story) {
@@ -177,6 +252,24 @@ document.addEventListener('DOMContentLoaded', () => {
         return story.timestamp && (nowMs() - story.timestamp) >= STORY_EXPIRY_MS;
     }
 
+    async function removeExpiredStories() {
+        const activeStories = stories.filter((story) => story.type === 'story' && !isExpired(story));
+        const expiredStories = stories.filter((story) => story.type === 'story' && isExpired(story));
+        if (!expiredStories.length) return;
+        stories = [{ id: 'create', type: 'create', label: 'Stori Oluştur', img: 'assets/img/strendsaydamv2.png' }].concat(activeStories);
+        saveStories();
+        render();
+        for (const expiredStory of expiredStories) {
+            if (expiredStory.id && hasFirestore() && expiredStory.remote) {
+                try {
+                    await deleteRemoteStory(expiredStory);
+                } catch (err) {
+                    console.warn('Süresi dolan hikaye silinemedi:', err);
+                }
+            }
+        }
+    }
+
     function saveStories() {
         try {
             const toSave = stories.filter(s => s.type === 'story').map((story) => {
@@ -192,7 +285,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!hasFirestore() || !window.ref || !window.uploadBytes || !window.getDownloadURL || !window.storage) {
             throw new Error('Storage backend hazır değil');
         }
-        const ext = file.name.split('.').pop();
+        const ext = file.name.split('.').pop() || 'jpg';
         const ownerId = window.auth?.currentUser?.uid || (window.user && window.user.uid) || 'public';
         const storagePath = `stories/${ownerId}/${Date.now()}.${ext}`;
         const storageRef = window.ref(window.storage, storagePath);
@@ -289,10 +382,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function buildFirestoreStory(story) {
-        const currentUser = window.user || {};
+        const currentUser = getCurrentUserContext();
         return {
-            authorUid: window.auth?.currentUser?.uid || currentUser.uid || null,
-            authorName: currentUser.displayName || currentUser.username || story.user || 'Sen',
+            authorUid: currentUser.uid || story.authorUid || null,
+            authorName: currentUser.displayName || story.user || 'Sen',
             authorAvatar: currentUser.avatarUrl || story.avatar || 'assets/img/strendsaydamv2.png',
             label: story.label || '',
             caption: story.label || '',
@@ -311,37 +404,61 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     }
 
-    async function saveStoryToBackend(story) {
-        await waitForBackendReady();
-        if (!hasFirestore() || !story || story.type !== 'story') return null;
-        try {
-            const id = story.id || ('s_' + Date.now());
-            let imageUrl = story.img;
-            if (story.file) {
-                try {
-                    imageUrl = await uploadStoryImageFile(story.file);
-                } catch (uploadErr) {
-                    console.warn('Hikaye resmi yüklenemedi, yerelde kalacak:', uploadErr);
+    async function saveStoryToBackend(story, options = {}) {
+        const maxAttempts = 4;
+        for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+            await waitForBackendReady(8000);
+            if (!hasFirestore() || !story || story.type !== 'story') {
+                if (attempt < maxAttempts) {
+                    await new Promise((resolve) => setTimeout(resolve, 1500));
+                    continue;
                 }
+                if (!options.skipLocalUpdate) {
+                    enqueuePendingStory(story);
+                }
+                return null;
             }
-            const storyRef = getStoryDocRef(id);
-            await window.setDoc(storyRef, buildFirestoreStory({ ...story, img: imageUrl }));
-            story.id = id;
-            story.remote = true;
-            if (imageUrl) {
-                story.img = imageUrl;
+            try {
+                const id = story.id || ('s_' + Date.now());
+                let imageUrl = story.img;
+                if (story.file) {
+                    try {
+                        imageUrl = await uploadStoryImageFile(story.file);
+                    } catch (uploadErr) {
+                        console.warn('Hikaye resmi yüklenemedi, yerelde kalacak:', uploadErr);
+                    }
+                }
+                const storyRef = getStoryDocRef(id);
+                await window.setDoc(storyRef, buildFirestoreStory({ ...story, img: imageUrl }));
+                story.id = id;
+                story.remote = true;
+                if (imageUrl) {
+                    story.img = imageUrl;
+                }
+                if (!options.skipLocalUpdate) {
+                    saveStories();
+                }
+                return imageUrl;
+            } catch (err) {
+                console.warn('Hikaye uzak depoya kaydedilemedi:', err);
+                if (attempt < maxAttempts) {
+                    await new Promise((resolve) => setTimeout(resolve, 1500));
+                    continue;
+                }
+                if (!options.skipLocalUpdate) {
+                    enqueuePendingStory(story);
+                }
+                return null;
             }
-            return imageUrl;
-        } catch (err) {
-            console.warn('Hikaye uzak depoya kaydedilemedi:', err);
-            return null;
         }
+        return null;
     }
 
     async function deleteRemoteStory(story) {
-        if (!hasFirestore() || !window.auth?.currentUser || !story || !story.id) return;
+        if (!hasFirestore() || !story || !story.id) return;
         try {
-            if (story.authorUid && story.authorUid !== window.auth.currentUser.uid) return;
+            const currentUid = getCurrentUserUid();
+            if (story.authorUid && currentUid && story.authorUid !== currentUid) return;
             const storyRef = getStoryDocRef(story.id);
             await window.deleteDoc(storyRef);
         } catch (err) {
@@ -369,16 +486,38 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             window.onSnapshot(q, handleRemoteSnapshot);
             remoteListenerAttached = true;
+            await loadRemoteStoriesOnce();
         } catch (err) {
             console.warn('Remote story listener kurulamadı:', err);
             await loadRemoteStoriesOnce();
         }
     }
 
+    function attachStorySyncListeners() {
+        if (window.auth && typeof window.auth.onAuthStateChanged === 'function' && !window.__storyAuthListenerAttached) {
+            window.__storyAuthListenerAttached = true;
+            window.auth.onAuthStateChanged(() => {
+                schedulePendingStorySync();
+                void initRemoteStories();
+            });
+        }
+        if (!window.__storyVisibilityListenerAttached) {
+            window.__storyVisibilityListenerAttached = true;
+            document.addEventListener('visibilitychange', () => {
+                if (document.visibilityState === 'visible') {
+                    schedulePendingStorySync();
+                }
+            });
+            window.addEventListener('focus', () => {
+                schedulePendingStorySync();
+            });
+        }
+    }
+
     // initialize stories with create card + loaded ones
     (function initStories() {
         const loaded = loadStories();
-        stories = [{ id: 'create', type: 'create', label: 'Stori Oluştur', img: 'assets/img/strendsaydamv2.png' }].concat(loaded);
+        stories = [{ id: 'create', type: 'create', label: 'Stori Oluştur', img: 'assets/img/strandsaydamv2.png' }].concat(loaded);
     })();
 
     function render() {
@@ -492,7 +631,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!overlay) {
             overlay = document.createElement('div');
             overlay.id = 'story-viewer-overlay';
-            overlay.style.cssText = 'position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.85);z-index:4000;padding:20px;';
+            overlay.style.cssText = 'position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.85);z-index:2147483647;padding:20px;isolation:isolate;';
             document.body.appendChild(overlay);
         }
 
@@ -792,47 +931,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         <div id="story-preview-wrap" style="flex:1; min-width:160px;"></div>
                     </div>
                     <input id="story-caption" type="text" placeholder="Hikaye metnini veya başlığını yazın" style="width:100%; margin-top:10px; padding:10px; border-radius:10px; border:1px solid var(--border); background:var(--input-bg); color:var(--text-main);">
-                    <div style="display:flex; flex-wrap:wrap; gap:10px; margin-top:12px; align-items:center;">
-                        <label style="display:flex; flex-direction:column; gap:6px; font-size:0.85rem; color:var(--text-muted);">Font seçimi
-                            <select id="story-font-select" style="padding:10px; border-radius:10px; border:1px solid var(--border); background:var(--input-bg); color:var(--text-main); min-width:170px;">
-                                <option value="system-ui, sans-serif">Sans Serif</option>
-                                <option value="'Segoe UI', Tahoma, Geneva, Verdana, sans-serif">Segoe UI</option>
-                                <option value="Georgia, serif">Serif</option>
-                                <option value="'Times New Roman', Times, serif">Times New Roman</option>
-                                <option value="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace">Monospace</option>
-                                <option value="'Comic Sans MS', 'Comic Sans', cursive">Cursive</option>
-                                <option value="'Lucida Handwriting', 'Brush Script MT', cursive">Script</option>
-                                <option value="'Poppins', sans-serif">Poppins</option>
-                            </select>
-                        </label>
-                        <label style="display:flex; flex-direction:column; gap:6px; font-size:0.85rem; color:var(--text-muted);">Yazı rengi
-                            <input id="story-text-color" type="color" value="#ffffff" style="width:44px; height:44px; border-radius:12px; border:none; padding:0;">
-                        </label>
-                        <label style="display:flex; flex-direction:column; gap:6px; font-size:0.85rem; color:var(--text-muted);">Arka plan
-                            <input id="story-bg-color" type="color" value="#0f172a" style="width:44px; height:44px; border-radius:12px; border:none; padding:0;">
-                        </label>
-                    </div>
-                    <div style="display:flex; flex-wrap:wrap; gap:8px; margin-top:10px;">
-                        <div style="display:flex; flex-direction:column; gap:6px; font-size:0.85rem; color:var(--text-muted);">Arka plan renkleri
-                            <div style="display:flex; gap:8px; flex-wrap:wrap;">
-                                <button type="button" data-bg="#0f172a" class="story-color-swatch" style="width:28px; height:28px; border-radius:8px; border:1px solid rgba(255,255,255,0.4); background:#0f172a;"></button>
-                                <button type="button" data-bg="#6d28d9" class="story-color-swatch" style="width:28px; height:28px; border-radius:8px; border:1px solid rgba(255,255,255,0.4); background:#6d28d9;"></button>
-                                <button type="button" data-bg="#2563eb" class="story-color-swatch" style="width:28px; height:28px; border-radius:8px; border:1px solid rgba(255,255,255,0.4); background:#2563eb;"></button>
-                                <button type="button" data-bg="#15803d" class="story-color-swatch" style="width:28px; height:28px; border-radius:8px; border:1px solid rgba(255,255,255,0.4); background:#15803d;"></button>
-                                <button type="button" data-bg="#db2777" class="story-color-swatch" style="width:28px; height:28px; border-radius:8px; border:1px solid rgba(255,255,255,0.4); background:#db2777;"></button>
-                            </div>
-                        </div>
-                        <div style="display:flex; flex-direction:column; gap:6px; font-size:0.85rem; color:var(--text-muted);">Yazı renkleri
-                            <div style="display:flex; gap:8px; flex-wrap:wrap;">
-                                <button type="button" data-text="#ffffff" class="story-text-swatch" style="width:28px; height:28px; border-radius:8px; border:1px solid rgba(15,23,42,0.2); background:#ffffff;"></button>
-                                <button type="button" data-text="#000000" class="story-text-swatch" style="width:28px; height:28px; border-radius:8px; border:1px solid rgba(15,23,42,0.2); background:#000000;"></button>
-                                <button type="button" data-text="#fde047" class="story-text-swatch" style="width:28px; height:28px; border-radius:8px; border:1px solid rgba(15,23,42,0.2); background:#fde047;"></button>
-                                <button type="button" data-text="#f472b6" class="story-text-swatch" style="width:28px; height:28px; border-radius:8px; border:1px solid rgba(15,23,42,0.2); background:#f472b6;"></button>
-                                <button type="button" data-text="#34d399" class="story-text-swatch" style="width:28px; height:28px; border-radius:8px; border:1px solid rgba(15,23,42,0.2); background:#34d399;"></button>
-                            </div>
-                        </div>
-                    </div>
-                    <div id="story-text-style-preview" style="margin-top:12px; min-height:120px; width:100%; border-radius:14px; padding:16px; display:flex; align-items:center; justify-content:center; text-align:center; background:#0f172a; color:#fff; font-family:system-ui, sans-serif; box-shadow:0 10px 25px rgba(15,23,42,0.12);">Yazı stili önizlemesi</div>
                     <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:12px;">
                         <button id="story-cancel-btn" class="post-action-btn">İptal</button>
                         <button id="story-post-btn" class="post-action-btn primary">Gönder</button>
@@ -845,10 +943,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const selectBtn = modal.querySelector('#story-select-btn');
             const previewWrap = modal.querySelector('#story-preview-wrap');
             const captionInput = modal.querySelector('#story-caption');
-            const fontSelect = modal.querySelector('#story-font-select');
-            const bgColorInput = modal.querySelector('#story-bg-color');
-            const textColorInput = modal.querySelector('#story-text-color');
-            const stylePreview = modal.querySelector('#story-text-style-preview');
             const cancelBtn = modal.querySelector('#story-cancel-btn');
             const postBtn = modal.querySelector('#story-post-btn');
             let selectedDataUrl = '';
@@ -876,41 +970,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
 
-            const updateTextPreview = () => {
-                const fontFamily = fontSelect.value;
-                const bgColor = bgColorInput.value;
-                const textColor = textColorInput.value;
-                stylePreview.style.fontFamily = fontFamily;
-                stylePreview.style.background = bgColor;
-                stylePreview.style.color = textColor;
-                stylePreview.textContent = captionInput.value.trim() || 'Yazı stili önizlemesi';
-            };
-
-            const colorSwatches = modal.querySelectorAll('.story-color-swatch');
-            const textSwatches = modal.querySelectorAll('.story-text-swatch');
-            colorSwatches.forEach((btn) => {
-                btn.addEventListener('click', (ev) => {
-                    const value = ev.currentTarget.dataset.bg;
-                    if (value) {
-                        bgColorInput.value = value;
-                        updateTextPreview();
-                    }
-                });
-            });
-            textSwatches.forEach((btn) => {
-                btn.addEventListener('click', (ev) => {
-                    const value = ev.currentTarget.dataset.text;
-                    if (value) {
-                        textColorInput.value = value;
-                        updateTextPreview();
-                    }
-                });
-            });
-            fontSelect.addEventListener('change', updateTextPreview);
-            bgColorInput.addEventListener('change', updateTextPreview);
-            textColorInput.addEventListener('change', updateTextPreview);
-            captionInput.addEventListener('input', updateTextPreview);
-            updateTextPreview();
 
             cancelBtn.addEventListener('click', () => modal.remove());
             postBtn.addEventListener('click', async () => {
@@ -942,19 +1001,30 @@ document.addEventListener('DOMContentLoaded', () => {
                     likesCount: 0,
                     likedBy: [],
                     textStyle: {
-                        fontFamily: fontSelect.value,
-                        bgColor: bgColorInput.value,
-                        textColor: textColorInput.value
+                        fontFamily: 'system-ui, sans-serif',
+                        bgColor: '#0f172a',
+                        textColor: '#ffffff'
                     },
                     authorUid,
                     groupKey: authorUid || authorName
                 };
+                if (selectedFile && !imgData) {
+                    try {
+                        storyObj.img = await readFileAsDataUrl(selectedFile);
+                    } catch (err) {
+                        console.warn('Seçilen dosya önbelleğe alınamadı:', err);
+                    }
+                }
                 stories.push(storyObj);
                 saveStories();
+                enqueuePendingStory(storyObj);
                 const remoteUrl = await saveStoryToBackend(storyObj);
                 if (remoteUrl) {
                     storyObj.remote = true;
                     storyObj.img = remoteUrl;
+                    saveStories();
+                } else if (storyObj.img) {
+                    storyObj.remote = false;
                     saveStories();
                 }
                 modal.remove();
@@ -964,5 +1034,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     render();
-    initRemoteStories();
+    void removeExpiredStories();
+    attachStorySyncListeners();
+    schedulePendingStorySync();
+    void initRemoteStories();
 });
