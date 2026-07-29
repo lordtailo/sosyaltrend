@@ -498,17 +498,63 @@ function getVideoMetaPill(video) {
     return '';
 }
 
+function getCurrentUserId() {
+    try {
+        if (window?.auth?.currentUser?.uid) return window.auth.currentUser.uid;
+        if (window?.currentUser?.uid) return window.currentUser.uid;
+        for (const key of ['slt_current_user_uid', 'currentUserId', 'activeUserUid']) {
+            const value = localStorage.getItem(key);
+            if (value) return value;
+        }
+    } catch (error) {
+        console.warn('Kullanıcı kimliği okunamadı:', error);
+    }
+    return '';
+}
+
+function isOwnVideo(video) {
+    if (!video) return false;
+    const currentUid = getCurrentUserId();
+    return video.source === 'local' || video.author === 'Sen' || (Boolean(currentUid) && video.uid === currentUid);
+}
+
+function renderFeaturedHighlights(videos = []) {
+    const container = document.getElementById('videoHighlights');
+    if (!container) return;
+
+    const featured = (videos || []).slice(0, 3);
+    if (!featured.length) {
+        container.innerHTML = '<div class="video-spotlight-card"><div><strong>Henüz içerik yok</strong><span>İlk videoyu ekleyerek akışı başlat.</span></div><button type="button" onclick="document.getElementById(\'openVideoAddButton\')?.click()">Ekle</button></div>';
+        return;
+    }
+
+    container.innerHTML = featured.map(video => `
+        <div class="video-spotlight-card">
+            <div>
+                <strong>${esc(video.title || 'Video')}</strong>
+                <span>${esc(video.author || 'Kullanıcı')} • ${esc(getCategoryLabel(video.category || 'genel'))}</span>
+            </div>
+            <button type="button" onclick="event.stopPropagation(); openVideoModal('${video.id}')">İzle</button>
+        </div>
+    `).join('');
+}
+
 function renderVideos() {
     const grid = document.getElementById('videosGrid');
     const noVideos = document.getElementById('noVideosMessage');
     if (!grid || !noVideos) return;
 
     let videos = [...allVideos];
-    if (state.currentFilter === 'youtube') videos = videos.filter(x => x.vs.type === 'youtube');
-    else if (state.currentFilter === 'vimeo') videos = videos.filter(x => x.vs.type === 'vimeo');
+    if (state.currentFilter === 'mine') {
+        videos = videos.filter(x => isOwnVideo(x));
+    } else if (state.currentFilter === 'youtube') {
+        videos = videos.filter(x => x.vs.type === 'youtube');
+    } else if (state.currentFilter === 'vimeo') {
+        videos = videos.filter(x => x.vs.type === 'vimeo');
+    }
 
     const search = state.currentSearch.trim().toLowerCase();
-    if (state.currentFilter && state.currentFilter !== 'all') {
+    if (state.currentFilter && state.currentFilter !== 'all' && !['mine', 'youtube', 'vimeo', 'recent', 'popular'].includes(state.currentFilter)) {
         videos = videos.filter(x => (x.category || '').toLowerCase() === state.currentFilter.toLowerCase());
     }
     if (search) {
@@ -523,14 +569,17 @@ function renderVideos() {
         videos.sort((a, b) => normalizeTimestamp(b.time).getTime() - normalizeTimestamp(a.time).getTime());
     }
 
+    renderFeaturedHighlights(videos);
+
     if (!videos.length) {
         grid.style.display = 'none';
         grid.innerHTML = '';
-        noVideos.style.display = 'block';
+        noVideos.style.display = 'grid';
         noVideos.innerHTML = `
-            <i class="fa-solid fa-video-slash"></i>
+            <div class="video-empty-illustration"><i class="fa-solid fa-video-slash"></i></div>
             <h3>Bu filtrede video yok</h3>
             <p>Başka bir filtre seçin ya da yeni bir video paylaşın.</p>
+            <button type="button" class="video-action-btn" onclick="document.getElementById('openVideoAddButton')?.click()">İlk videoyu ekle</button>
         `;
         updateSummary([]);
         return;
@@ -591,7 +640,7 @@ function updateSummary(visibleVideos = allVideos) {
     const countEl = document.getElementById('videoResultsCount');
     if (!summary) return;
 
-    const activeLabel = state.currentFilter === 'teknoloji' ? 'Teknoloji' : state.currentFilter === 'haber' ? 'Haber' : state.currentFilter === 'müzik' ? 'Müzik' : state.currentFilter === 'eğitim' ? 'Eğitim' : state.currentFilter === 'eğlence' ? 'Eğlence' : state.currentFilter === 'genel' ? 'Genel' : 'Tümü';
+    const activeLabel = state.currentFilter === 'mine' ? 'Benim videolarım' : state.currentFilter === 'teknoloji' ? 'Teknoloji' : state.currentFilter === 'haber' ? 'Haber' : state.currentFilter === 'müzik' ? 'Müzik' : state.currentFilter === 'eğitim' ? 'Eğitim' : state.currentFilter === 'eğlence' ? 'Eğlence' : state.currentFilter === 'genel' ? 'Genel' : 'Tümü';
     const totalCount = allVideos.length;
     const visibleCount = Array.isArray(visibleVideos) ? visibleVideos.length : totalCount;
     const label = totalCount === 1 ? '1 video' : `${totalCount} video`;
