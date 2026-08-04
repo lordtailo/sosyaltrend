@@ -1748,7 +1748,6 @@ function buildAnnouncementCard(announcementId, data, currentUsername) {
     const isSaved = savedState.isSaved;
     const likeCount = data.likes ? data.likes.length : 0;
     const commentCount = data.comments ? data.comments.length : 0;
-
     const card = document.createElement('div');
     card.className = 'glass-card post-composer announcement-card';
     card.setAttribute('data-announcement-id', announcementId);
@@ -1770,17 +1769,15 @@ function buildAnnouncementCard(announcementId, data, currentUsername) {
         </div>
         <div class="announcement-content">${content}</div>
         <div class="announcement-footer">
-            <div class="announcement-stats">
-                <span>${likeCount} beğeni</span>
-                <span><span class="announcement-comment-count">${commentCount}</span> yorum</span>
-            </div>
+            <div class="announcement-stats"></div>
             <div class="announcement-actions">
-                <button class="announcement-action-btn announcement-like-btn" type="button" onclick="likeAnnouncement('${announcementId}', ${isLiked}, this)">
+                <button class="announcement-action-btn announcement-like-btn" type="button" data-liked="${isLiked ? 'true' : 'false'}" onclick="likeAnnouncement('${announcementId}', this)">
                     <i class="fa-${isLiked ? 'solid' : 'regular'} fa-heart"></i>
                     <span>${likeCount}</span>
                 </button>
-                <button id="comment-toggle-${announcementId}" class="announcement-action-btn" type="button" onclick="toggleAnnouncementComments('${announcementId}')">
-                    ${commentCount > 0 ? `Yorumları Göster (${commentCount})` : 'Yorumları Göster'}
+                <button id="comment-toggle-${announcementId}" class="announcement-action-btn announcement-comment-btn" type="button" onclick="toggleAnnouncementComments('${announcementId}')">
+                    <i class="fa-regular fa-comment"></i>
+                    <span class="announcement-comment-count">${commentCount}</span>
                 </button>
             </div>
         </div>
@@ -1840,40 +1837,49 @@ window.addAnnouncementsToFeed = async () => {
 };
 
 // Duyuru beğeni
-window.likeAnnouncement = async (announcementId, isCurrentlyLiked, btn) => {
+window.likeAnnouncement = async (announcementId, btn) => {
     if (!auth.currentUser) {
         alert('Beğenmek için giriş yapmalısınız');
         return;
     }
-    
+
     try {
         const ref = doc(db, "announcements", announcementId);
         const snap = await getDoc(ref);
         if (!snap.exists()) return;
-        
+
         const data = snap.data();
-        const likes = data.likes || [];
+        const likes = Array.isArray(data.likes) ? [...data.likes] : [];
         const username = user.username || auth.currentUser.email;
-        
+        const isCurrentlyLiked = btn?.dataset.liked === 'true';
+
+        let updatedLikes;
         if (isCurrentlyLiked) {
-            await updateDoc(ref, { likes: likes.filter(u => u !== username) });
+            updatedLikes = likes.filter(u => u !== username);
         } else {
-            await updateDoc(ref, { likes: [...likes, username] });
+            updatedLikes = likes.includes(username) ? likes : [...likes, username];
         }
-        
+
+        await updateDoc(ref, { likes: updatedLikes });
+
         // UI güncelle
+        const newCount = updatedLikes.length;
         if (btn) {
             const icon = btn.querySelector('i');
             const count = btn.querySelector('span');
-            const newCount = isCurrentlyLiked ? Math.max(0, likes.length - 1) : likes.length + 1;
-            count.textContent = newCount;
+
+            if (count) {
+                count.textContent = newCount;
+            }
+
+            btn.dataset.liked = String(!isCurrentlyLiked);
             if (isCurrentlyLiked) {
-                icon.classList.remove('fa-solid');
-                icon.classList.add('fa-regular');
+                icon?.classList.remove('fa-solid');
+                icon?.classList.add('fa-regular');
                 btn.style.color = '';
             } else {
-                icon.classList.remove('fa-regular');
-                icon.classList.add('fa-solid');
+                icon?.classList.remove('fa-regular');
+                icon?.classList.add('fa-solid');
                 btn.style.color = '#ef4444';
             }
         }
@@ -1891,9 +1897,11 @@ window.toggleAnnouncementComments = (announcementId) => {
     const isExpanded = commentArea.classList.toggle('expanded');
     if (toggleButton) {
         const commentCount = Number(document.querySelector(`[data-announcement-id="${announcementId}"] .announcement-comment-count`)?.textContent || 0);
-        toggleButton.textContent = isExpanded
-            ? `Yorumları Gizle (${commentCount})`
-            : (commentCount > 0 ? `Yorumları Göster (${commentCount})` : 'Yorumları Göster');
+        toggleButton.innerHTML = `
+            <i class="fa-regular fa-comment"></i>
+            <span class="announcement-comment-count">${commentCount}</span>
+        `;
+        toggleButton.title = isExpanded ? 'Yorumları gizle' : 'Yorumları göster';
     }
 };
 
@@ -1933,13 +1941,14 @@ window.postAnnouncementComment = async (announcementId) => {
         
         const announcementCard = document.querySelector(`[data-announcement-id="${announcementId}"]`);
         if (announcementCard) {
-            const commentCount = announcementCard.querySelector('.announcement-comment-count');
-            const toggleButton = document.getElementById(`comment-toggle-${announcementId}`);
-            if (commentCount) {
-                commentCount.textContent = updatedComments.length;
-            }
-            if (toggleButton) {
-                toggleButton.textContent = `Yorumları Gizle (${updatedComments.length})`;
+            const likeButton = announcementCard.querySelector('.announcement-like-btn span');
+            const commentButton = document.getElementById(`comment-toggle-${announcementId}`);
+            if (commentButton) {
+                const commentCountText = updatedComments.length > 0 ? updatedComments.length : '';
+                commentButton.innerHTML = `
+                    <i class="fa-regular fa-comment"></i>
+                    <span class="announcement-comment-count">${commentCountText}</span>
+                `;
             }
             const commentArea = document.getElementById(`comments-ann-${announcementId}`);
             if (commentArea && !commentArea.classList.contains('expanded')) {
@@ -1955,6 +1964,9 @@ window.renderAnnouncementComments = (announcementId, comments) => {
     const listDiv = document.getElementById(`list-ann-${announcementId}`);
     if (!listDiv) return;
 
+    const currentUsername = getCurrentBookmarkIdentity();
+    const canManageAll = window.user?.isAdmin;
+
     if (!Array.isArray(comments) || comments.length === 0) {
         listDiv.innerHTML = `<div class="comment-item"><p style="margin:0;color:var(--text-muted);font-size:0.92rem;">Henüz yorum yok. İlk yorumu sen yap!</p></div>`;
         return;
@@ -1969,6 +1981,7 @@ window.renderAnnouncementComments = (announcementId, comments) => {
         const minutes = String(date.getMinutes()).padStart(2, '0');
         const seconds = String(date.getSeconds()).padStart(2, '0');
         const formattedTime = `${day}.${month}.${year} ${hours}:${minutes}:${seconds}`;
+        const allowDelete = Boolean(currentUsername && (currentUsername === c.username || canManageAll));
 
         return `
             <div class="comment-item">
@@ -1977,7 +1990,7 @@ window.renderAnnouncementComments = (announcementId, comments) => {
                         <span class="comment-author">${c.displayName || c.username}</span>
                         <span class="comment-username">@${c.username}</span>
                     </div>
-                    <button class="comment-delete-btn" onclick="deleteAnnouncementComment('${announcementId}', ${idx})"><i class="fa-solid fa-trash"></i></button>
+                    ${allowDelete ? `<button class="comment-delete-btn" type="button" onclick="deleteAnnouncementComment('${announcementId}', ${idx})">Sil</button>` : ''}
                 </div>
                 <p>${c.text}</p>
                 <div class="comment-time">${formattedTime}</div>
@@ -2085,32 +2098,48 @@ window.editAnnouncement = async (announcementId) => {
     }
 };
 
-// Yorum sil
 window.deleteAnnouncementComment = async (announcementId, commentIndex) => {
-    if (!auth.currentUser || !user.isAdmin) {
-        alert('Sadece yöneticiler yorum silebilir');
+    if (!auth.currentUser) {
+        alert('Yorumu silmek için giriş yapmalısınız');
         return;
     }
-    
-    if (!confirm('Bu yorumu silmek istediğinizden emin misiniz?')) {
-        return;
-    }
-    
+
     try {
         const ref = doc(db, "announcements", announcementId);
         const snap = await getDoc(ref);
         if (!snap.exists()) return;
-        
+
         const data = snap.data();
-        const comments = data.comments || [];
-        
-        // Verilen indeks için yorumu sil
+        const comments = Array.isArray(data.comments) ? [...data.comments] : [];
+        const comment = comments[commentIndex];
+
+        if (!comment) return;
+
+        const currentUsername = getCurrentBookmarkIdentity();
+        const canDelete = currentUsername && (currentUsername === comment.username || window.user?.isAdmin);
+        if (!canDelete) {
+            alert('Bu yorumu silme yetkiniz yok.');
+            return;
+        }
+
+        if (!confirm('Bu yorumu silmek istediğinizden emin misiniz?')) {
+            return;
+        }
+
         comments.splice(commentIndex, 1);
-        
-        await updateDoc(ref, { comments: comments });
-        
-        // Yorumları yeniden render et
+        await updateDoc(ref, { comments });
+
         renderAnnouncementComments(announcementId, comments);
+
+        const commentButton = document.getElementById(`comment-toggle-${announcementId}`);
+        if (commentButton) {
+            const commentCountText = comments.length > 0 ? comments.length : '';
+            commentButton.innerHTML = `
+                <i class="fa-regular fa-comment"></i>
+                <span class="announcement-comment-count">${commentCountText}</span>
+            `;
+        }
+
         showToast('Yorum başarıyla silindi', 'success');
     } catch (e) {
         console.error('Yorum silme hatası:', e);

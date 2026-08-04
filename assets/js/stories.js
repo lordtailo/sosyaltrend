@@ -341,7 +341,21 @@ document.addEventListener('DOMContentLoaded', () => {
             comments: Array.isArray(data.comments) ? data.comments : [],
             authorUid: data.authorUid || null,
             groupKey: data.authorUid || data.authorName || data.author || data.user || 'unknown',
+            likesCount: Number(data.likesCount || 0),
+            likedBy: Array.isArray(data.likedBy) ? data.likedBy : [],
             expiresAt,
+        };
+    }
+
+    function mergeStoryLikeState(localStory, remoteStory) {
+        const localLikedBy = Array.isArray(localStory?.likedBy) ? localStory.likedBy : [];
+        const remoteLikedBy = Array.isArray(remoteStory?.likedBy) ? remoteStory.likedBy : [];
+        const mergedLikedBy = Array.from(new Set([...remoteLikedBy, ...localLikedBy]));
+        const remoteLikesCount = Number(remoteStory?.likesCount || 0);
+        const localLikesCount = Number(localStory?.likesCount || 0);
+        return {
+            likesCount: Math.max(remoteLikesCount, localLikesCount, mergedLikedBy.length),
+            likedBy: mergedLikedBy
         };
     }
 
@@ -358,7 +372,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
         remoteStories.forEach((story) => {
             if (story && story.id && !isExpired(story)) {
-                storyMap.set(story.id, story);
+                const existing = storyMap.get(story.id);
+                if (existing) {
+                    const likeState = mergeStoryLikeState(existing, story);
+                    storyMap.set(story.id, {
+                        ...existing,
+                        ...story,
+                        ...likeState,
+                        remote: story.remote || existing.remote || false
+                    });
+                } else {
+                    storyMap.set(story.id, story);
+                }
             }
         });
 
