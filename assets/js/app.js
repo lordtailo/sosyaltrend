@@ -1748,6 +1748,7 @@ function buildAnnouncementCard(announcementId, data, currentUsername) {
     const isSaved = savedState.isSaved;
     const likeCount = data.likes ? data.likes.length : 0;
     const commentCount = data.comments ? data.comments.length : 0;
+    const canDelete = window.user && window.user.isAdmin;
     const card = document.createElement('div');
     card.className = 'glass-card post-composer announcement-card';
     card.setAttribute('data-announcement-id', announcementId);
@@ -1779,6 +1780,12 @@ function buildAnnouncementCard(announcementId, data, currentUsername) {
                     <i class="fa-regular fa-comment"></i>
                     <span class="announcement-comment-count">${commentCount}</span>
                 </button>
+                ${canDelete ? `
+                <button class="announcement-action-btn announcement-delete-btn" type="button" onclick="window.deleteAnnouncement('${announcementId}')">
+                    <i class="fa-solid fa-trash-alt"></i>
+                    <span>Sil</span>
+                </button>
+                ` : ''}
             </div>
         </div>
         <div id="comments-ann-${announcementId}" class="comment-area announcement-comment-area">
@@ -1796,6 +1803,15 @@ function buildAnnouncementCard(announcementId, data, currentUsername) {
     return card;
 }
 
+function updateAnnouncementSectionVisibility() {
+    const announcementContainer = document.getElementById('announcement-feed');
+    const hasAnnouncements = announcementContainer && announcementContainer.children.length > 0;
+
+    if (announcementContainer) {
+        announcementContainer.style.display = hasAnnouncements ? 'grid' : 'none';
+    }
+}
+
 window.addAnnouncementsToFeed = async () => {
     try {
         const announcementContainer = document.getElementById('announcement-feed');
@@ -1807,6 +1823,7 @@ window.addAnnouncementsToFeed = async () => {
 
         if (announcementsSnap.empty) {
             announcementContainer.innerHTML = '';
+            updateAnnouncementSectionVisibility();
             return;
         }
 
@@ -1831,6 +1848,7 @@ window.addAnnouncementsToFeed = async () => {
                 renderAnnouncementComments(item.id, item.data.comments);
             }
         });
+        updateAnnouncementSectionVisibility();
     } catch (e) {
         console.error('Feed duyuru ekleme hatası:', e);
     }
@@ -2179,6 +2197,8 @@ window.listenForAnnouncementChanges = () => {
                 announcementElements.reverse().forEach((item) => {
                     announcementContainer.insertBefore(item.card, announcementContainer.firstChild);
                 });
+
+                updateAnnouncementSectionVisibility();
 
                 snap.forEach((doc) => {
                     const data = doc.data();
@@ -6430,32 +6450,27 @@ const initMobilePanelsAndCalendar = () => {
     const rightBtn = document.getElementById('rightOpenBtn');
     const leftAside = document.querySelector('aside');
     const rightAside = document.querySelector('.right-panel');
-    const overlay = document.getElementById('sideOverlay');
 
     const toggleLeft = () => {
-        if (leftAside && overlay) { // Güvenlik kontrolü
+        if (leftAside) {
             leftAside.classList.toggle('active');
-            overlay.classList.toggle('active');
         }
     };
 
     const toggleRight = () => {
-        if (rightAside && overlay) { // Güvenlik kontrolü
+        if (rightAside) {
             rightAside.classList.toggle('active');
-            overlay.classList.toggle('active');
         }
     };
 
     const closeAll = () => {
         leftAside?.classList.remove('active');
         rightAside?.classList.remove('active');
-        overlay?.classList.remove('active');
     };
 
     // BURASI ÖNEMLİ: Sadece eleman varsa olay ataması yap
     if (leftBtn) leftBtn.onclick = toggleLeft;
     if (rightBtn) rightBtn.onclick = toggleRight;
-    if (overlay) overlay.onclick = closeAll;
 
     // Sağ panelde takvim (takvim widget'ı)
     const initRightCalendar = () => {
@@ -8856,26 +8871,22 @@ setTimeout(() => {
 // 3. Mobil Yan Menü Yönetimi
 window.toggleLeftSidebar = function() {
     const sidebar = document.querySelector('aside');
-    const overlay = document.getElementById('sideOverlay');
     if (!sidebar) return;
     if (sidebar.classList.contains('active')) {
         return;
     }
     sidebar.classList.add('active');
-    if (overlay) overlay.classList.add('active');
     document.body.classList.add('side-open');
     updatePanelCloseButton();
 }
 
 window.toggleRightSidebar = function() {
     const rightPanel = document.querySelector('.right-panel');
-    const overlay = document.getElementById('sideOverlay');
     if (!rightPanel) return;
     if (rightPanel.classList.contains('active')) {
         return;
     }
     rightPanel.classList.add('active');
-    if (overlay) overlay.classList.add('active');
     document.body.classList.add('side-open');
     updatePanelCloseButton();
 }
@@ -8896,10 +8907,8 @@ function updatePanelCloseButton() {
 window.closeSideMenus = function() {
     const sidebar = document.querySelector('aside');
     const rightPanel = document.querySelector('.right-panel');
-    const overlay = document.getElementById('sideOverlay');
     if (sidebar) sidebar.classList.remove('active');
     if (rightPanel) rightPanel.classList.remove('active');
-    if (overlay) overlay.classList.remove('active');
     document.body.classList.remove('side-open');
     updatePanelCloseButton();
 }
