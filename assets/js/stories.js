@@ -10,24 +10,17 @@ document.addEventListener('DOMContentLoaded', () => {
         return story.authorUid || story.user || 'unknown';
     }
 
-    function getStoryLikeCount(story) {
-        const likedByCount = Array.isArray(story?.likedBy) ? story.likedBy.length : 0;
-        const explicitCount = Number(story?.likesCount || 0);
-        return Math.max(explicitCount, likedByCount);
-    }
-
     function prepareStory(story) {
         const title = story.title || story.label || '';
         const content = story.content || story.body || story.text || '';
-        const likedBy = Array.isArray(story.likedBy) ? story.likedBy : [];
         return {
             ...story,
             title,
             content,
             label: title || content || story.label || '',
             groupKey: story.groupKey || getStoryGroupKey(story),
-            likesCount: getStoryLikeCount({ ...story, likedBy }),
-            likedBy,
+            likesCount: Number(story.likesCount || 0),
+            likedBy: Array.isArray(story.likedBy) ? story.likedBy : [],
             textStyle: {
                 fontFamily: story.textStyle?.fontFamily || 'system-ui, sans-serif',
                 bgColor: story.textStyle?.bgColor || 'rgba(15,23,42,0.92)',
@@ -213,11 +206,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const liked = isStoryLikedByCurrentUser(story);
         if (liked) {
             story.likedBy = story.likedBy.filter(uid => uid !== currentUid);
-            story.likesCount = getStoryLikeCount(story);
+            story.likesCount = Math.max(0, Number(story.likesCount || 1) - 1);
         } else {
             story.likedBy = Array.isArray(story.likedBy) ? story.likedBy.slice() : [];
             story.likedBy.push(currentUid);
-            story.likesCount = getStoryLikeCount(story);
+            story.likesCount = Number(story.likesCount || 0) + 1;
             if (story.authorUid && window.sendNotification) {
                 const fromName = (window.user && (window.user.displayName || window.user.username)) || 'Bir kullanıcı';
                 window.sendNotification(story.authorUid, 'story_like', fromName, {
@@ -775,7 +768,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const currentUid = getCurrentUserUid();
             const isOwner = currentUid && item.authorUid && currentUid === item.authorUid;
             const liked = isStoryLikedByCurrentUser(item);
-            const currentLikeCount = getStoryLikeCount(item);
             const createActionButton = (className, title, html, handler) => {
                 const btn = document.createElement('button');
                 btn.type = 'button';
@@ -821,7 +813,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const rightActions = document.createElement('div'); rightActions.className = 'story-media-actions-right';
             const likeBtn = document.createElement('button'); likeBtn.type = 'button'; likeBtn.className = `story-action-btn story-like-btn${liked ? ' liked' : ''}`;
             likeBtn.title = 'Beğen';
-            likeBtn.innerHTML = `<i class="fa-solid fa-heart"></i><span class="like-count">${currentLikeCount}</span>`;
+            likeBtn.innerHTML = `<i class="fa-solid fa-heart"></i><span class="like-count">${Number(item.likesCount || 0)}</span>`;
             likeBtn.addEventListener('click', async (ev) => {
                 ev.stopPropagation();
                 await toggleStoryLike(item);
