@@ -283,7 +283,6 @@ async function initFriendFindPage() {
     !interestsFilterEl ||
     !clearFiltersEl ||
     !refreshEl ||
-    !countEl ||
     !summaryEl ||
     !loadMoreWrapEl ||
     !loadMoreBtnEl ||
@@ -292,10 +291,12 @@ async function initFriendFindPage() {
     return;
   }
 
+  const safeCountEl = countEl || { textContent: '' };
+
   await waitForAppReady();
 
   if (!window.auth || !window.db) {
-    showLoginRequiredState(listEl, statusEl, countEl);
+    showLoginRequiredState(listEl, statusEl, safeCountEl);
     return;
   }
 
@@ -318,7 +319,7 @@ async function initFriendFindPage() {
     renderList(
       listEl,
       statusEl,
-      countEl,
+      safeCountEl,
       summaryEl,
       loadMoreWrapEl,
       loadMoreBtnEl,
@@ -403,7 +404,7 @@ async function initFriendFindPage() {
   // Auth state netleşmeden erken "giriş yap" mesajı göstermemek için ilk tetiklemeyi dinleyiciyle yap.
   onAuthStateChanged(window.auth, async (fbUser) => {
     if (!fbUser) {
-      showLoginRequiredState(listEl, statusEl, countEl);
+      showLoginRequiredState(listEl, statusEl, safeCountEl);
       return;
     }
     await loadUsersPage(true);

@@ -878,25 +878,31 @@ async function loadSuggestions() {
         const currentUsername = String(currentUserData.username || '').trim().toLowerCase();
         const currentEmail = String(currentUserData.email || auth.currentUser?.email || '').trim().toLowerCase();
 
+        const normalizeIdentityValue = (value) => String(value || '').trim().toLowerCase();
+
         // Aynı kişiyi (farklı kayıtlarla gelse bile) tek öneriye indir
         const dedupedUsers = [];
-        const seenKeys = new Set();
+        const seenUserKeys = new Set();
         for (const user of usersArray) {
             const identityKeys = [
-                String(user.username || '').trim().toLowerCase(),
-                String(user.uid || user.id || '').trim().toLowerCase(),
-                String(user.email || '').trim().toLowerCase()
-            ].filter(Boolean);
+                user.id,
+                user.uid,
+                user.username,
+                user.email,
+                user.displayName
+            ]
+                .map(normalizeIdentityValue)
+                .filter(Boolean);
 
             if (!identityKeys.length) {
                 dedupedUsers.push(user);
                 continue;
             }
 
-            const hasExistingKey = identityKeys.some((key) => seenKeys.has(key));
+            const hasExistingKey = identityKeys.some((key) => seenUserKeys.has(key));
             if (hasExistingKey) continue;
 
-            identityKeys.forEach((key) => seenKeys.add(key));
+            identityKeys.forEach((key) => seenUserKeys.add(key));
             dedupedUsers.push(user);
         }
 
@@ -927,10 +933,13 @@ async function loadSuggestions() {
         const selectedSeen = new Set();
         for (const user of filteredUsers) {
             const identityKeys = [
-                String(user.username || '').trim().toLowerCase(),
-                String(user.uid || user.id || '').trim().toLowerCase(),
-                String(user.email || '').trim().toLowerCase()
-            ].filter(Boolean);
+                user.username,
+                user.uid || user.id,
+                user.email,
+                user.displayName
+            ]
+                .map(normalizeIdentityValue)
+                .filter(Boolean);
 
             const isDuplicateSelection = identityKeys.some((key) => selectedSeen.has(key));
             if (isDuplicateSelection) continue;
@@ -948,8 +957,25 @@ async function loadSuggestions() {
             .map((item) => item.trim())
             .filter(Boolean);
         const currentInterestSet = new Set(splitInterests(currentUserData.interests).map(normalizeInterest));
+        const insertedSuggestionKeys = new Set();
 
         selectedUsers.forEach((user) => {
+            const suggestionKey = [
+                String(user.id || user.uid || ''),
+                String(user.username || ''),
+                String(user.email || ''),
+                String(user.displayName || '')
+            ]
+                .map((value) => String(value).trim().toLowerCase())
+                .filter(Boolean)
+                .join('|');
+
+            if (!suggestionKey || insertedSuggestionKeys.has(suggestionKey)) return;
+            insertedSuggestionKeys.add(suggestionKey);
+
+            const cardId = `sugg_card_${String(user.id || user.uid || user.username || user.displayName || '').trim().replace(/\s+/g, '_')}`;
+            if (document.getElementById(cardId)) return;
+
             const fallbackAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(user.displayName || 'User')}&background=random&color=fff`;
             const userAvatar = user.avatarUrl || user.avatar || fallbackAvatar;
             const safeDisplayName = escapeHtml(user.displayName || 'İsimsiz');

@@ -2645,6 +2645,10 @@ body.dark-mode .feed-panel {
 }
 
 @media (max-width: 768px) {
+    .app-container > [data-include="partials/right-aside.html"] {
+        display: block;
+    }
+
     .app-container {
         grid-template-columns: 1fr;
         gap: 14px;

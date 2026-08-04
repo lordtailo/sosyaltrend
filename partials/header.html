@@ -68,10 +68,6 @@
         <i class="fa-solid fa-circle-half-stroke"></i>
         <span data-i18n="headerThemeShort">Tema Seç</span>
       </button>
-      <button id="mobileHeaderInviteBtn" type="button" class="header-nav-btn mobile-header-action-btn" onclick="window.openInviteModal && window.openInviteModal(); return false;" title="Arkadas Davet Et">
-        <i class="fa-solid fa-user-plus"></i>
-        <span data-i18n="headerInviteShort">Davet Et</span>
-      </button>
     </div>
     <div class="header-search" id="headerSearchWrapper">
       <button id="headerSearchButton" class="theme-btn" type="button" title="Ara" onclick="toggleHeaderSearch(event)">
@@ -87,9 +83,6 @@
     </div>
     <div class="header-tools">
       <button id="themeToggleBtn" class="theme-btn" onclick="toggleDarkMode()" title="Tema Değiştir"><i class="fa-solid fa-moon"></i></button>
-      <button id="headerInviteBtn" class="theme-btn" type="button" onclick="window.openInviteModal && window.openInviteModal()" title="Arkadaşını Davet Et">
-        <i class="fa-solid fa-user-plus"></i>
-      </button>
       <button id="headerChatBtn" class="theme-btn" type="button" onclick="if (typeof openChatsList === 'function') { openChatsList(); } return false;" title="Sohbet">
         <i class="fa-solid fa-comments"></i>
       </button>
@@ -116,6 +109,7 @@
     </button>
   </div>
   <button id="closePanelBtn" class="header-close-panel" onclick="closeSideMenus()" aria-label="Menüyü kapat">×</button>
+  <div id="sideOverlay" class="side-overlay" onclick="closeSideMenus()" aria-hidden="true"></div>
   <!-- Floating theme control for mobile (right-middle) -->
   <button id="floatingThemeBtn" class="floating-theme-btn" aria-label="Tema seçenekleri" style="display:none;">
     <i class="fa-solid fa-moon"></i>
