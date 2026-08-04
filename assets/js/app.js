@@ -1748,7 +1748,7 @@ function buildAnnouncementCard(announcementId, data, currentUsername) {
     const isSaved = savedState.isSaved;
     const likeCount = data.likes ? data.likes.length : 0;
     const commentCount = data.comments ? data.comments.length : 0;
-    const canDelete = window.user && window.user.isAdmin;
+    const canDelete = (window.user && window.user.isAdmin) || localStorage.getItem('st_isAdmin') === '1';
     const card = document.createElement('div');
     card.className = 'glass-card post-composer announcement-card';
     card.setAttribute('data-announcement-id', announcementId);
