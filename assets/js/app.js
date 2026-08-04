@@ -6143,6 +6143,7 @@ window.loadPostsFeed = (showAll = false) => {
         <div class="post-content-block" style="margin-bottom:12px;${isAdminLikePost ? ' background: rgba(255,255,255,0.55); border: 1px solid rgba(99,102,241,0.16); border-radius: 16px; padding: 14px 16px;' : ''}">
             <p id="post-preview-${d.id}" data-original-encoded="${encodeURIComponent(decoded)}" class="post-text${decoded.length > 280 ? ' post-text-clamp' : ''}" style="white-space: pre-wrap; margin:0;${isAdminLikePost ? ' color: var(--text-main);' : ''}">${contentWithLinks}</p>
             ${decoded.length > 280 ? `<button id="toggle-${d.id}" class="read-more-btn" onclick="togglePostContent('${d.id}')" style="border:none; background:none; color: var(--primary); display:flex; align-items:center; gap:8px; font-weight:700; padding:0; margin-top:10px; cursor:pointer;"><i class="fa-solid fa-chevron-down"></i> ${getLangText('readMoreBtn', 'Daha fazlasını gör')}</button>` : ''}
+            ${youtubeHtml}
             ${isAdminLikePost ? `<div style="margin-top:12px; padding-top:10px; border-top:1px solid rgba(99,102,241,0.16); font-size:0.82rem; color:var(--text-muted); line-height:1.5;"><span style="display:inline-flex; align-items:center; gap:6px;"><i class="fa-solid fa-crown" style="color:var(--primary);"></i>SosyaLTrend yönetici ekibi</span></div>` : ''}
         </div>` : '';
 
@@ -6173,9 +6174,9 @@ window.loadPostsFeed = (showAll = false) => {
               </div>
         </div>
         
-        ${postContentHtml}${pollHtml}${postImageHtml}${youtubeHtml}
+        ${postContentHtml}${pollHtml}${postImageHtml}
 
-        <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:10px; min-height:28px;">
+        <div id="likers-row-${d.id}" style="display:none; align-items:center; justify-content:space-between; gap:12px; margin-bottom:10px; min-height:28px;">
             <div id="likers-${d.id}" style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;"></div>
         </div>
 
@@ -11343,9 +11344,16 @@ window.populateLikersPreview = async (postId, likes) => {
     try {
         const container = document.getElementById(`likers-${postId}`);
         if (!container) return;
+        const row = document.getElementById(`likers-row-${postId}`);
+        if (row) row.style.display = 'none';
         container.innerHTML = '';
-        if (!likes || likes.length === 0) return;
+        if (!likes || likes.length === 0) {
+            container.style.display = 'none';
+            return;
+        }
 
+        if (row) row.style.display = 'flex';
+        container.style.display = 'flex';
         const preview = likes.slice(0, 3);
         const userDataMap = {};
         
