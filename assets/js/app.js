@@ -8858,9 +8858,12 @@ window.toggleLeftSidebar = function() {
     const sidebar = document.querySelector('aside');
     const overlay = document.getElementById('sideOverlay');
     if (!sidebar) return;
-    const isActive = sidebar.classList.toggle('active');
-    if (overlay) overlay.classList.toggle('active', isActive);
-    document.body.classList.toggle('side-open', isActive);
+    if (sidebar.classList.contains('active')) {
+        return;
+    }
+    sidebar.classList.add('active');
+    if (overlay) overlay.classList.add('active');
+    document.body.classList.add('side-open');
     updatePanelCloseButton();
 }
 
@@ -8868,9 +8871,12 @@ window.toggleRightSidebar = function() {
     const rightPanel = document.querySelector('.right-panel');
     const overlay = document.getElementById('sideOverlay');
     if (!rightPanel) return;
-    const isActive = rightPanel.classList.toggle('active');
-    if (overlay) overlay.classList.toggle('active', isActive);
-    document.body.classList.toggle('side-open', isActive);
+    if (rightPanel.classList.contains('active')) {
+        return;
+    }
+    rightPanel.classList.add('active');
+    if (overlay) overlay.classList.add('active');
+    document.body.classList.add('side-open');
     updatePanelCloseButton();
 }
 
