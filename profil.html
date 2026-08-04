@@ -469,6 +469,11 @@
         <input type="text" id="newNameInput" class="form-input" placeholder="Adınızı girin">
       </div>
       <div style="margin-bottom: 20px;">
+        <label class="form-label" for="newUsernameInput">Kullanıcı Adı</label>
+        <input type="text" id="newUsernameInput" class="form-input" placeholder="@kullaniciadi" maxlength="20">
+        <div style="margin-top: 6px; color: var(--text-muted); font-size: 0.82rem;">Yalnızca harf, rakam, nokta, alt çizgi ve tire kullanabilirsiniz. @ işareti otomatik eklenir.</div>
+      </div>
+      <div style="margin-bottom: 20px;">
         <label class="form-label" for="newLocationInput">Konum</label>
         <input type="text" id="newLocationInput" class="form-input" placeholder="Örn. İstanbul">
       </div>
@@ -668,11 +673,12 @@
 
       <div class="profile-tabs-card" style="margin-bottom:20px;">
           <nav class="profile-tabs">
-            <a class="tab-btn profile-tab-btn active" href="#posts" onclick="openTab(event, 'my-posts-tab')"><i class="fa-solid fa-feather"></i> Gönderiler</a>
-            <a class="tab-btn profile-tab-btn" href="#likes" onclick="openTab(event, 'my-likes-tab')"><i class="fa-solid fa-heart"></i> Beğeniler</a>
-            <a class="tab-btn profile-tab-btn" href="#saves" onclick="openTab(event, 'my-saves-tab')"><i class="fa-solid fa-bookmark"></i> Kayıtlar</a>
-            <a class="tab-btn profile-tab-btn" href="#friends" onclick="openTab(event, 'my-friends-tab')"><i class="fa-solid fa-users"></i> Arkadaşlar</a>
-            <a class="tab-btn profile-tab-btn" href="#notifs" onclick="openTab(event, 'my-notifs-tab')"><i class="fa-solid fa-bell"></i> Bildirimler</a>
+            <a class="tab-btn profile-tab-btn active" href="#posts" data-tab="posts" onclick="openTab(event, 'my-posts-tab')"><i class="fa-solid fa-feather"></i> Gönderiler</a>
+            <a class="tab-btn profile-tab-btn" href="#stories" data-tab="stories" onclick="openTab(event, 'my-stories-tab')"><i class="fa-solid fa-images"></i> Hikayeler</a>
+            <a class="tab-btn profile-tab-btn" href="#likes" data-tab="likes" onclick="openTab(event, 'my-likes-tab')"><i class="fa-solid fa-heart"></i> Beğeniler</a>
+            <a class="tab-btn profile-tab-btn" href="#saves" data-tab="saves" onclick="openTab(event, 'my-saves-tab')"><i class="fa-solid fa-bookmark"></i> Kayıtlar</a>
+            <a class="tab-btn profile-tab-btn" href="#friends" data-tab="friends" onclick="openTab(event, 'my-friends-tab')"><i class="fa-solid fa-users"></i> Arkadaşlar</a>
+            <a class="tab-btn profile-tab-btn" href="#notifs" data-tab="notifs" onclick="openTab(event, 'my-notifs-tab')"><i class="fa-solid fa-bell"></i> Bildirimler</a>
           </nav>
         </div>
         <div class="profile-tab-content">
@@ -684,6 +690,16 @@
             <div id="no-posts-msg" style="display:none; text-align:center; color:var(--text-muted); padding:30px 0;">
               <i class="fa-solid fa-clone" style="font-size:2.4rem; margin-bottom:12px; display:block;"></i>
               Henüz gönderi yok.
+            </div>
+          </section>
+
+          <section id="my-stories-tab" class="tab-content content-card">
+            <h3>Hikayeler</h3>
+            <p>Bu profilde paylaştığınız hikayeler burada görünür. Beğeni ve yorum sayılarıyla birlikte görüntülenir.</p>
+            <div id="my-stories-list" style="margin-top:16px;"></div>
+            <div id="no-stories-msg" style="display:none; text-align:center; color:var(--text-muted); padding:30px 0;">
+              <i class="fa-solid fa-images" style="font-size:2.4rem; margin-bottom:12px; display:block;"></i>
+              Henüz hikaye paylaşılmamış.
             </div>
           </section>
 
@@ -762,6 +778,7 @@
 
 <div id="footer-placeholder"></div>
 <script src="assets/js/include.js"></script>
+<script src="assets/js/stories.js?v=20260804b"></script>
 <script type="module" src="assets/js/app.js?v=20260707d"></script>
 <script type="module" src="assets/js/profile.js?v=20260721a"></script>
 <script>
@@ -769,6 +786,7 @@
 function openProfileTabByHash(hash) {
   const tabMap = {
     posts: 'my-posts-tab',
+    stories: 'my-stories-tab',
     likes: 'my-likes-tab',
     saves: 'my-saves-tab',
     friends: 'my-friends-tab',
@@ -795,6 +813,11 @@ function openProfileTabByHash(hash) {
 document.addEventListener('DOMContentLoaded', function() {
   const hash = window.location.hash.replace('#','');
   if (hash) openProfileTabByHash(hash);
+  setTimeout(() => {
+    if (window.refreshProfileStoriesList) {
+      window.refreshProfileStoriesList(window.user || null);
+    }
+  }, 800);
 
   ['newInterestsInput', 'editInterestsInput'].forEach((inputId) => {
     const el = document.getElementById(inputId);
@@ -807,6 +830,11 @@ document.addEventListener('DOMContentLoaded', function() {
 window.addEventListener('hashchange', function() {
   const hash = window.location.hash.replace('#','');
   openProfileTabByHash(hash);
+  setTimeout(() => {
+    if (window.refreshProfileStoriesList) {
+      window.refreshProfileStoriesList(window.user || null);
+    }
+  }, 400);
 });
 
 // Basit bölüm düzenleyici: düzenleme panelini açıp ilgili alana odaklanır
@@ -1091,7 +1119,7 @@ window.toggleQuickInterest = function(button, interestLabel) {
     const isOwnProfile = !visitedUsername || (window.user && visitedUsername === window.user.username);
 
     // 1. Sekme Gizlilik Kontrolü: Profil gizliyse sadece o zaman ziyaretçilere engelle
-    const privateTabs = ['my-posts-tab', 'my-likes-tab', 'my-saves-tab'];
+    const privateTabs = ['my-posts-tab', 'my-stories-tab', 'my-likes-tab', 'my-saves-tab'];
     const isVisitedProfilePrivate = window.visitedProfileIsPrivate === true;
     const visitorDisallowedTabs = ['my-likes-tab', 'my-saves-tab', 'my-notifs-tab'];
     if (!isOwnProfile && visitorDisallowedTabs.includes(tabName)) {

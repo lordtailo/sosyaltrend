@@ -343,27 +343,6 @@ body.dark-mode .right-panel [style*="linear-gradient(135deg, rgba(255,255,255"] 
 /* overlay backdrop */
 #story-viewer-overlay { position:fixed; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,0.6); z-index:2147483647; padding:20px; isolation:isolate; }
 
-.announcement-card {
-    position: relative;
-    margin-bottom: 0 !important;
-    padding: 20px 22px;
-    border-radius: 24px;
-    background: var(--card-bg);
-    border: 1px solid rgba(148, 163, 184, 0.18);
-    box-shadow: 0 24px 60px rgba(15, 23, 42, 0.07);
-    overflow: hidden;
-}
-.announcement-card::before {
-    content: "";
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 6px;
-    height: 100%;
-    background: linear-gradient(180deg, var(--primary), #8b5cf6);
-    border-top-left-radius: 24px;
-    border-bottom-left-radius: 24px;
-}
 .announcement-card:hover {
     transform: translateY(-1px);
     box-shadow: 0 28px 70px rgba(15, 23, 42, 0.09);
@@ -405,18 +384,23 @@ body.dark-mode .right-panel [style*="linear-gradient(135deg, rgba(255,255,255"] 
     font-weight: 800;
     color: var(--text-main);
     margin-bottom: 4px;
+    position: relative;
+    z-index: 1;
 }
 .announcement-card .announcement-title .announcement-badge {
     padding: 4px 10px;
     border-radius: 999px;
-    background: rgba(99, 102, 241, 0.08);
+    background: rgba(99,102,241,0.08);
     color: var(--primary);
     font-size: 0.8rem;
     font-weight: 700;
+    border: 1px solid rgba(99,102,241,0.14);
 }
 .announcement-card .announcement-subtitle {
     font-size: 0.86rem;
     color: var(--text-muted);
+    position: relative;
+    z-index: 1;
 }
 .announcement-card .announcement-meta {
     text-align: right;
@@ -424,17 +408,22 @@ body.dark-mode .right-panel [style*="linear-gradient(135deg, rgba(255,255,255"] 
     font-size: 0.8rem;
     color: var(--text-muted);
     line-height: 1.4;
+    position: relative;
+    z-index: 1;
 }
 .announcement-card .announcement-content {
     margin-bottom: 18px;
     padding: 18px 20px;
     border-radius: 20px;
-    background: rgba(99, 102, 241, 0.05);
-    border: 1px solid rgba(99, 102, 241, 0.12);
+    background: rgba(255,255,255,0.9);
+    border: 1px solid rgba(99,102,241,0.14);
     color: var(--text-main);
     font-size: 0.96rem;
     line-height: 1.7;
     white-space: pre-wrap;
+    position: relative;
+    z-index: 1;
+    backdrop-filter: blur(8px);
 }
 .announcement-card .announcement-footer {
     display: flex;
@@ -453,8 +442,8 @@ body.dark-mode .right-panel [style*="linear-gradient(135deg, rgba(255,255,255"] 
 .announcement-card .announcement-footer .announcement-action-btn {
     padding: 10px 16px;
     border-radius: 999px;
-    border: 1px solid rgba(99, 102, 241, 0.14);
-    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid rgba(99,102,241,0.16);
+    background: rgba(255,255,255,0.95);
     color: var(--text-main);
     cursor: pointer;
     font-weight: 700;
@@ -465,8 +454,9 @@ body.dark-mode .right-panel [style*="linear-gradient(135deg, rgba(255,255,255"] 
     transform: translateY(-1px);
 }
 .announcement-card .post-content-block {
-    background: rgba(255,255,255,0.95);
-    border-color: rgba(226, 232, 240, 0.95);
+    background: rgba(255,255,255,0.92);
+    border-color: rgba(99, 102, 241, 0.16);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.5);
 }
 .announcement-card .announcement-content {
     margin-bottom: 16px;
@@ -2626,6 +2616,13 @@ header::before {
     display: flex;
     flex-direction: column;
     gap: 16px;
+}
+
+.glass-card.post.admin-post-card {
+    border: 1px solid rgba(99, 102, 241, 0.16) !important;
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.12), rgba(255, 255, 255, 0.06)) !important;
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06) !important;
+    color: var(--text-main) !important;
 }
 
 body.dark-mode .feed-panel {

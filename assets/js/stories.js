@@ -1,13 +1,66 @@
 // Simple stories renderer and viewer
+window.__sltStoriesRuntime = window.__sltStoriesRuntime || { stories: [] };
+
 document.addEventListener('DOMContentLoaded', () => {
     const container = document.getElementById('stories-row');
-    if (!container) return;
+    if (!container) {
+        const runtime = window.__sltStoriesRuntime || (window.__sltStoriesRuntime = { stories: [] });
+        runtime.stories = [];
+        runtime.lastUpdated = Date.now();
+    }
 
     // stories array will contain the create card plus persisted stories
     let stories = [];
 
+    function syncStoriesRuntime() {
+        const runtime = window.__sltStoriesRuntime || (window.__sltStoriesRuntime = { stories: [] });
+        runtime.stories = Array.isArray(stories) ? stories : [];
+        runtime.currentStory = Array.isArray(runtime.stories) ? runtime.stories.find((item) => item && item.type === 'story') || null : null;
+        runtime.lastUpdated = Date.now();
+    }
+
     function getStoryGroupKey(story) {
         return story.authorUid || story.user || 'unknown';
+    }
+
+    function normalizeStoryLikeEntry(value) {
+        return typeof value === 'string' ? value.trim() : String(value ?? '').trim();
+    }
+
+    function normalizeStoryLikeEntries(likedBy) {
+        if (!Array.isArray(likedBy)) return [];
+        return Array.from(new Set(likedBy
+            .map((value) => normalizeStoryLikeEntry(value))
+            .filter(Boolean)));
+    }
+
+    function getStoryLikeIdentityCandidates() {
+        const currentUid = getCurrentUserUid();
+        const currentContext = getCurrentUserContext();
+        const candidates = new Set();
+        const addCandidate = (value) => {
+            const normalized = normalizeStoryLikeEntry(value).toLowerCase();
+            if (!normalized) return;
+            if (['sen', 'you', 'user', 'guest', 'misafir', 'bir kullanıcı'].includes(normalized)) return;
+            candidates.add(normalized);
+        };
+
+        addCandidate(currentUid);
+        addCandidate(currentContext.uid);
+        addCandidate(currentContext.username);
+        addCandidate(currentContext.displayName);
+        addCandidate(window.auth?.currentUser?.email);
+        addCandidate(window.user?.email);
+        addCandidate(window.user?.username);
+        addCandidate(window.user?.displayName);
+
+        return Array.from(candidates);
+    }
+
+    function getCanonicalStoryLikeIdentity() {
+        const candidates = getStoryLikeIdentityCandidates();
+        if (candidates.length) return candidates[0];
+        return normalizeStoryLikeEntry(getCurrentUserUid() || getCurrentUserContext().username || getCurrentUserContext().displayName);
     }
 
     function prepareStory(story) {
@@ -20,7 +73,7 @@ document.addEventListener('DOMContentLoaded', () => {
             label: title || content || story.label || '',
             groupKey: story.groupKey || getStoryGroupKey(story),
             likesCount: Number(story.likesCount || 0),
-            likedBy: Array.isArray(story.likedBy) ? story.likedBy : [],
+            likedBy: normalizeStoryLikeEntries(story.likedBy),
             textStyle: {
                 fontFamily: story.textStyle?.fontFamily || 'system-ui, sans-serif',
                 bgColor: story.textStyle?.bgColor || 'rgba(15,23,42,0.92)',
@@ -176,8 +229,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function isStoryLikedByCurrentUser(story) {
-        const currentUid = getCurrentUserUid();
-        return currentUid && Array.isArray(story.likedBy) && story.likedBy.includes(currentUid);
+        const candidates = getStoryLikeIdentityCandidates();
+        if (!candidates.length) return false;
+        const likedBy = normalizeStoryLikeEntries(story?.likedBy);
+        return likedBy.some((value) => candidates.includes(normalizeStoryLikeEntry(value).toLowerCase()));
     }
 
     async function saveStoryMetadataToRemote(story) {
@@ -204,12 +259,23 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         const liked = isStoryLikedByCurrentUser(story);
+        const currentIdentity = getCanonicalStoryLikeIdentity();
+        const currentLikeCandidates = getStoryLikeIdentityCandidates();
+
         if (liked) {
-            story.likedBy = story.likedBy.filter(uid => uid !== currentUid);
-            story.likesCount = Math.max(0, Number(story.likesCount || 1) - 1);
+            story.likedBy = normalizeStoryLikeEntries(story.likedBy).filter((value) => {
+                const normalized = normalizeStoryLikeEntry(value).toLowerCase();
+                return !currentLikeCandidates.includes(normalized);
+            });
+            story.likesCount = Math.max(0, Number(story.likesCount || 0) - 1);
         } else {
-            story.likedBy = Array.isArray(story.likedBy) ? story.likedBy.slice() : [];
-            story.likedBy.push(currentUid);
+            story.likedBy = normalizeStoryLikeEntries(story.likedBy).filter((value) => {
+                const normalized = normalizeStoryLikeEntry(value).toLowerCase();
+                return !currentLikeCandidates.includes(normalized);
+            });
+            if (currentIdentity) {
+                story.likedBy.push(currentIdentity);
+            }
             story.likesCount = Number(story.likesCount || 0) + 1;
             if (story.authorUid && window.sendNotification) {
                 const fromName = (window.user && (window.user.displayName || window.user.username)) || 'Bir kullanıcı';
@@ -265,19 +331,49 @@ document.addEventListener('DOMContentLoaded', () => {
         alert('Şikayetiniz alındı. İnceleme için iletildi.');
     }
 
-    function loadStories() {
+    function readStoredStoriesFromStorage(storage) {
+        if (!storage) return [];
         try {
-            const raw = localStorage.getItem('slt_stories');
+            const raw = storage.getItem('slt_stories');
             if (!raw) return [];
-            const arr = JSON.parse(raw);
-            const now = Date.now();
-            const day = 24 * 60 * 60 * 1000;
-            // filter expired (older than 24 hours)
-            const valid = arr.filter(s => s.timestamp && (now - s.timestamp) < day).map(prepareStory);
-            return valid;
+            const parsed = JSON.parse(raw);
+            return Array.isArray(parsed) ? parsed : [];
         } catch (e) {
             return [];
         }
+    }
+
+    function readPendingStoriesFromStorage(storage) {
+        if (!storage) return [];
+        try {
+            const raw = storage.getItem(PENDING_STORIES_KEY);
+            if (!raw) return [];
+            const parsed = JSON.parse(raw);
+            return Array.isArray(parsed) ? parsed : [];
+        } catch (e) {
+            return [];
+        }
+    }
+
+    function loadStories() {
+        const sources = [];
+        sources.push(readStoredStoriesFromStorage(localStorage));
+        sources.push(readStoredStoriesFromStorage(sessionStorage));
+        sources.push(readPendingStoriesFromStorage(localStorage));
+        sources.push(readPendingStoriesFromStorage(sessionStorage));
+
+        const merged = [];
+        const seenIds = new Set();
+
+        sources.flat().forEach((item) => {
+            if (!item || !item.timestamp) return;
+            const id = item.id || `${item.type || 'story'}:${item.timestamp}`;
+            if (seenIds.has(id)) return;
+            seenIds.add(id);
+            merged.push(prepareStory(item));
+        });
+
+        return merged;
     }
 
     const STORY_COLLECTION = 'stories';
@@ -290,6 +386,39 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function isExpired(story) {
         return story.timestamp && (nowMs() - story.timestamp) >= STORY_EXPIRY_MS;
+    }
+
+    function getStoryExpiryTimestamp(story) {
+        if (!story) return null;
+        if (story.expiresAt instanceof Date) return story.expiresAt.getTime();
+        if (typeof story.expiresAt === 'number') return story.expiresAt;
+        if (story.expiresAt && typeof story.expiresAt.toMillis === 'function') return story.expiresAt.toMillis();
+        if (story.timestamp) return Number(story.timestamp) + STORY_EXPIRY_MS;
+        return null;
+    }
+
+    function formatRemainingTime(ms) {
+        const remaining = Math.max(0, Math.floor(ms / 1000));
+        if (remaining <= 0) return 'Süre doldu';
+        if (remaining < 60) return `${remaining} sn`;
+        const minutes = Math.floor(remaining / 60);
+        if (minutes < 60) return `${minutes} dk`;
+        const hours = Math.floor(minutes / 60);
+        if (hours < 24) return `${hours} sa`;
+        const days = Math.floor(hours / 24);
+        return `${days} gün`;
+    }
+
+    function getStoryStatusInfo(story) {
+        const expiryAt = getStoryExpiryTimestamp(story);
+        if (!expiryAt) {
+            return { state: 'active', label: 'Devam ediyor', remainingText: 'Süre bilgisi yok' };
+        }
+        const remainingMs = expiryAt - nowMs();
+        if (remainingMs <= 0) {
+            return { state: 'finished', label: 'Bitti', remainingText: 'Süre doldu' };
+        }
+        return { state: 'active', label: 'Devam ediyor', remainingText: `Kalan: ${formatRemainingTime(remainingMs)}` };
     }
 
     async function removeExpiredStories() {
@@ -318,6 +447,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 return clone;
             });
             localStorage.setItem('slt_stories', JSON.stringify(toSave));
+            syncStoriesRuntime();
         } catch (e) {}
     }
 
@@ -377,14 +507,14 @@ document.addEventListener('DOMContentLoaded', () => {
             authorUid: data.authorUid || null,
             groupKey: data.authorUid || data.authorName || data.author || data.user || 'unknown',
             likesCount: Number(data.likesCount || 0),
-            likedBy: Array.isArray(data.likedBy) ? data.likedBy : [],
+            likedBy: normalizeStoryLikeEntries(data.likedBy),
             expiresAt,
         };
     }
 
     function mergeStoryLikeState(localStory, remoteStory) {
-        const localLikedBy = Array.isArray(localStory?.likedBy) ? localStory.likedBy : [];
-        const remoteLikedBy = Array.isArray(remoteStory?.likedBy) ? remoteStory.likedBy : [];
+        const localLikedBy = normalizeStoryLikeEntries(localStory?.likedBy);
+        const remoteLikedBy = normalizeStoryLikeEntries(remoteStory?.likedBy);
         const mergedLikedBy = Array.from(new Set([...remoteLikedBy, ...localLikedBy]));
         const remoteLikesCount = Number(remoteStory?.likesCount || 0);
         const localLikesCount = Number(localStory?.likesCount || 0);
@@ -450,9 +580,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function buildFirestoreStory(story) {
         const currentUser = getCurrentUserContext();
+        const authorUsername = story.username || story.authorUsername || currentUser.username || '';
+        const displayName = story.displayName || story.authorName || story.user || currentUser.displayName || 'Sen';
         return {
             authorUid: currentUser.uid || story.authorUid || null,
-            authorName: currentUser.displayName || story.user || 'Sen',
+            authorName: displayName,
+            authorUsername,
+            username: authorUsername,
+            displayName,
             authorAvatar: currentUser.avatarUrl || story.avatar || 'assets/img/strendsaydamv2.png',
             title: story.title || story.label || '',
             content: story.content || '',
@@ -587,9 +722,14 @@ document.addEventListener('DOMContentLoaded', () => {
     (function initStories() {
         const loaded = loadStories();
         stories = [{ id: 'create', type: 'create', label: 'Stori Oluştur', img: 'assets/img/strandsaydamv2.png' }].concat(loaded);
+        syncStoriesRuntime();
     })();
 
     function render() {
+        syncStoriesRuntime();
+        if (!container) return;
+        const existingCards = Array.from(container.querySelectorAll('.story-card, .story-empty'));
+        existingCards.forEach((node) => node.remove());
         container.innerHTML = '';
         const createCard = document.createElement('div');
         createCard.className = 'story-card';
@@ -603,7 +743,8 @@ document.addEventListener('DOMContentLoaded', () => {
         container.appendChild(createCard);
 
         const grouped = new Map();
-        stories.filter(s => s.type === 'story').forEach((s) => {
+        const visibleStories = stories.filter(s => s.type === 'story' && !isExpired(s));
+        visibleStories.forEach((s) => {
             const key = s.groupKey || getStoryGroupKey(s);
             if (!grouped.has(key)) {
                 grouped.set(key, { key, stories: [], preview: s, latestTimestamp: s.timestamp || 0 });
@@ -1012,6 +1153,52 @@ document.addEventListener('DOMContentLoaded', () => {
         return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     }
 
+    window.getAllStories = function() {
+        return Array.isArray(window.__sltStoriesRuntime?.stories) ? window.__sltStoriesRuntime.stories.slice() : [];
+    };
+
+    window.getStoryStatusInfo = function(story) {
+        return getStoryStatusInfo(story);
+    };
+
+    window.getStoriesForProfile = function(profileData) {
+        const allStories = window.getAllStories();
+        const profileUid = String(profileData?.uid || profileData?.id || '').trim();
+        const profileUsername = String(profileData?.username || profileData?.userName || '').trim().toLowerCase();
+        const profileDisplayName = String(profileData?.displayName || profileData?.name || '').trim().toLowerCase();
+        return allStories.filter((story) => {
+            if (!story || story.type !== 'story') return false;
+            if (profileUid && story.authorUid && String(story.authorUid).trim() === profileUid) return true;
+            const storyValues = [
+                story.authorUid,
+                story.user,
+                story.authorName,
+                story.authorUsername,
+                story.username,
+                story.displayName,
+                story.userName,
+                story.user_name
+            ].filter((value) => value !== undefined && value !== null && String(value).trim())
+            .map((value) => String(value).trim().toLowerCase());
+            return storyValues.some((value) => value === profileUsername || value === profileDisplayName);
+        }).sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+    };
+
+    window.openStoryViewerForId = function(storyId) {
+        const allStories = window.getAllStories();
+        const targetStory = allStories.find((story) => String(story.id) === String(storyId));
+        if (targetStory) {
+            window.openStoryViewerForStory(targetStory);
+        }
+    };
+
+    window.openStoryViewerForStory = function(story) {
+        if (!story) return;
+        if (typeof openViewer === 'function') {
+            openViewer(story);
+        }
+    };
+
     /* Story create modal and handlers */
     function openCreateModal() {
         let modal = document.getElementById('story-upload-modal');
@@ -1123,7 +1310,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (activeMode === 'text' && !storyText) { alert('Lütfen başlık ya da içerik girin.'); return; }
                 const id = 's_' + Date.now();
                 const authorUid = window.auth?.currentUser?.uid || (window.user && window.user.uid) || null;
-                const authorName = (window.user && (window.user.displayName || window.user.username)) || 'Sen';
+                const profileUsername = (window.user && (window.user.username || window.user.userName)) || (window.auth?.currentUser?.email ? window.auth.currentUser.email.split('@')[0] : '') || '';
+                const authorName = (window.user && (window.user.displayName || window.user.name || window.user.username || profileUsername)) || 'Sen';
                 const storyObj = {
                     id,
                     type: 'story',
@@ -1131,6 +1319,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     content: content || '',
                     label: activeMode === 'text' ? (content || title || '') : (title || content || ''),
                     user: authorName,
+                    username: profileUsername,
+                    authorUsername: profileUsername,
+                    displayName: authorName,
+                    authorName,
                     avatar: (window.user && window.user.avatarUrl) || 'assets/img/strendsaydamv2.png',
                     img: activeMode === 'image' ? (imgData || '') : '',
                     file: activeMode === 'image' ? selectedFile : null,
@@ -1154,8 +1346,16 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 }
                 stories.push(storyObj);
+                syncStoriesRuntime();
                 saveStories();
                 enqueuePendingStory(storyObj);
+                try {
+                    if (container) {
+                        render();
+                    }
+                } catch (renderErr) {
+                    console.warn('Story render after create failed:', renderErr);
+                }
                 const remoteUrl = await saveStoryToBackend(storyObj);
                 if (remoteUrl) {
                     storyObj.remote = true;

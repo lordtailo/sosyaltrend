@@ -2908,6 +2908,49 @@ async function updateAdminStats() {
 
 // --- PROFIL DUZENLEME VE AVATAR FONKSIYONLARI ---
 let tempAvatarBuffer = null;
+
+function normalizeUsernameValue(value) {
+    const raw = String(value || '').trim();
+    const withoutAt = raw.replace(/^@+/, '').trim();
+    return withoutAt.toLowerCase().replace(/[^a-z0-9._-]/g, '');
+}
+
+function formatUsernameHandle(value) {
+    const normalized = normalizeUsernameValue(value);
+    return normalized ? `@${normalized}` : '';
+}
+
+async function updateUsernameAcrossCollections(oldUsername, newUsername) {
+    if (!oldUsername || !newUsername || oldUsername === newUsername) return;
+
+    const collectionTargets = [
+        { collectionName: 'posts', fieldName: 'username' },
+        { collectionName: 'posts', fieldName: 'authorUsername' },
+        { collectionName: 'blogs', fieldName: 'authorUsername' },
+        { collectionName: 'videos', fieldName: 'authorUsername' },
+        { collectionName: 'music', fieldName: 'authorUsername' }
+    ];
+
+    const updatePromises = [];
+
+    for (const target of collectionTargets) {
+        try {
+            const q = query(collection(db, target.collectionName), where(target.fieldName, '==', oldUsername));
+            const snap = await getDocs(q);
+            snap.forEach((docSnap) => {
+                const data = docSnap.data() || {};
+                if (data[target.fieldName] === oldUsername) {
+                    updatePromises.push(updateDoc(docSnap.ref, { [target.fieldName]: newUsername }));
+                }
+            });
+        } catch (err) {
+            console.warn(`Kullanıcı adı güncellenirken ${target.collectionName} koleksiyonu güncellenemedi:`, err);
+        }
+    }
+
+    await Promise.allSettled(updatePromises);
+}
+
     window.toggleEditProfile = () => {
         const visitedUsername = getVisitedProfileUsername();
         if (visitedUsername && window.user && visitedUsername !== window.user.username) {
@@ -2921,6 +2964,9 @@ let tempAvatarBuffer = null;
             // Mevcut değerleri doldur
             const nameInput = document.getElementById('newNameInput');
             if (nameInput) nameInput.value = user.displayName || "";
+
+            const usernameInput = document.getElementById('newUsernameInput');
+            if (usernameInput) usernameInput.value = user.username ? formatUsernameHandle(user.username) : "";
             
             const urlInput = document.getElementById('newAvatarUrlInput');
             if (urlInput && user.avatarUrl && user.avatarUrl.startsWith('http')) {
@@ -3468,6 +3514,8 @@ window.handleUrlInput = async (input) => {
     }
 
     const name = document.getElementById('newNameInput')?.value.trim();
+    const rawUsername = document.getElementById('newUsernameInput')?.value || '';
+    const usernameValue = normalizeUsernameValue(rawUsername);
     const location = document.getElementById('newLocationInput')?.value.trim();
     const hometown = document.getElementById('newHometownInput')?.value.trim();
     const dob = document.getElementById('newDobInput')?.value;
@@ -3481,6 +3529,26 @@ window.handleUrlInput = async (input) => {
           console.error('updateProfile error:', e);
         });
     }
+    if (usernameValue && usernameValue !== (user.username || '').trim()) {
+        if (!/^[a-z0-9._-]{3,20}$/.test(usernameValue)) {
+            alert('Kullanıcı adı en az 3, en fazla 20 karakter olmalı. Yalnızca harf, rakam, nokta, alt çizgi ve tire kullanabilirsiniz.');
+            return;
+        }
+
+        const existingUserSnap = await getDocs(query(collection(db, 'users'), where('username', '==', usernameValue), limit(1)));
+        const isTakenByAnotherUser = existingUserSnap.docs.some((docSnap) => docSnap.id !== auth.currentUser.uid);
+        if (isTakenByAnotherUser) {
+            alert('Bu kullanıcı adı zaten kullanılıyor. Lütfen başka bir kullanıcı adı seçin.');
+            return;
+        }
+
+        const previousUsername = (user.username || '').trim();
+        user.username = usernameValue;
+        updates.username = usernameValue;
+        localStorage.setItem('st_username', usernameValue);
+        await updateUsernameAcrossCollections(previousUsername, usernameValue);
+    }
+
     if (typeof location === 'string') {
         updates.location = location || null;
         user.location = location || '';
@@ -5980,7 +6048,28 @@ window.loadPostsFeed = (showAll = false) => {
               const p = d.data();
               if (p.hidden === true) return;
 
-              const isPage = p.username?.startsWith('page_') || p.username === 'official_system';
+              const isAdminLikePost = Boolean(
+                  p.isAdmin === true ||
+                  p.authorIsAdmin === true ||
+                  p.username === 'official_system' ||
+                  p.username === 'admin' ||
+                  p.author === 'official_system' ||
+                  p.author === 'admin' ||
+                  p.authorUsername === 'official_system' ||
+                  p.authorUsername === 'admin' ||
+                  p.authorEmail === 'officialfthuzun@gmail.com' ||
+                  p.adminUser === 'official_system' ||
+                  p.adminUser === 'admin' ||
+                  p.displayName === 'official_system' ||
+                  p.displayName === 'admin' ||
+                  p.name === 'official_system' ||
+                  p.name === 'admin' ||
+                  String(p.authorEmail || p.email || '').toLowerCase().includes('official') ||
+                  String(p.authorEmail || p.email || '').toLowerCase().includes('admin') ||
+                  String(p.username || p.authorUsername || p.author || p.displayName || p.name || '').toLowerCase().includes('official') ||
+                  String(p.username || p.authorUsername || p.author || p.displayName || p.name || '').toLowerCase().includes('admin')
+              );
+              const isPage = Boolean(p.username?.startsWith('page_'));
               const currentIdentity = getCurrentUserIdentity();
               const likeState = getBookmarkState(p.likes, currentIdentity);
               const saveState = getBookmarkState(p.savedBy, currentIdentity);
@@ -6031,13 +6120,14 @@ window.loadPostsFeed = (showAll = false) => {
         const youtubeHtml = extractAndRenderYoutubeVideos(decoded);
         const pollHtml = p.poll ? renderPostPoll(p.poll, d.id) : '';
         const postContentHtml = decoded ? `
-        <div class="post-content-block" style="margin-bottom:12px;">
-            <p id="post-preview-${d.id}" data-original-encoded="${encodeURIComponent(decoded)}" class="post-text${decoded.length > 280 ? ' post-text-clamp' : ''}" style="white-space: pre-wrap; margin:0;">${contentWithLinks}</p>
+        <div class="post-content-block" style="margin-bottom:12px;${isAdminLikePost ? ' background: rgba(255,255,255,0.55); border: 1px solid rgba(99,102,241,0.16); border-radius: 16px; padding: 14px 16px;' : ''}">
+            <p id="post-preview-${d.id}" data-original-encoded="${encodeURIComponent(decoded)}" class="post-text${decoded.length > 280 ? ' post-text-clamp' : ''}" style="white-space: pre-wrap; margin:0;${isAdminLikePost ? ' color: var(--text-main);' : ''}">${contentWithLinks}</p>
             ${decoded.length > 280 ? `<button id="toggle-${d.id}" class="read-more-btn" onclick="togglePostContent('${d.id}')" style="border:none; background:none; color: var(--primary); display:flex; align-items:center; gap:8px; font-weight:700; padding:0; margin-top:10px; cursor:pointer;"><i class="fa-solid fa-chevron-down"></i> ${getLangText('readMoreBtn', 'Daha fazlasını gör')}</button>` : ''}
+            ${isAdminLikePost ? `<div style="margin-top:12px; padding-top:10px; border-top:1px solid rgba(99,102,241,0.16); font-size:0.82rem; color:var(--text-muted); line-height:1.5;"><span style="display:inline-flex; align-items:center; gap:6px;"><i class="fa-solid fa-crown" style="color:var(--primary);"></i>SosyaLTrend yönetici ekibi</span></div>` : ''}
         </div>` : '';
 
         const postHtmlBase = `
-    <div class="glass-card post" data-post-id="${d.id}" style="${p.username === 'official_system' ? 'border: 2px solid var(--primary); background: rgba(99, 102, 241, 0.05);' : ''}; position: relative;">
+    <div class="glass-card post${isAdminLikePost ? ' admin-post-card' : ''}" data-post-id="${d.id}" style="position: relative;${isAdminLikePost ? ' background: linear-gradient(135deg, rgba(99, 102, 241, 0.12), rgba(255, 255, 255, 0.06)); border: 1px solid rgba(99, 102, 241, 0.16); box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06); color: var(--text-main);' : ''}">
         <div style="position: absolute; top: 15px; right: 15px; display: flex; gap: 8px; z-index: 55; pointer-events: auto;">
              <button type="button" class="translate-content-btn" data-translate-target="post-preview-${d.id}" onclick="event.preventDefault(); event.stopPropagation(); toggleTranslateContentToEnglish(this, 'post-preview-${d.id}'); return false;" title="${getLangText('translateToEnglishTitle', 'İngilizceye çevir')}" style="background:rgba(99,102,241,0.08); border:1px solid var(--border); color:var(--primary); cursor:pointer; width:32px; height:32px; border-radius:999px; display:inline-flex; align-items:center; justify-content:center; position:relative; z-index:40; pointer-events:auto;">
                  <span class="translate-lang-badge">EN</span>
@@ -6054,12 +6144,12 @@ window.loadPostsFeed = (showAll = false) => {
         <div style="display:flex; gap:10px; margin-bottom:10px;">
               <img src="${avatarUrl}" class="${isPage ? 'page-avatar' : 'user-avatar'}" style="cursor:pointer;" onclick="${isMine ? "navigateTo('profil')" : `location.href='profil.html?id=${encodeURIComponent(p.username)}'`}">
               <div>
-                  <div style="font-weight:700; display:flex; align-items:center; gap:5px; cursor:pointer;" onclick="${isMine ? "navigateTo('profil')" : `location.href='profil.html?id=${encodeURIComponent(p.username)}'`}">
+                  <div style="font-weight:700; display:flex; align-items:center; gap:5px; cursor:pointer;${isPage ? ' color: var(--text-main);' : ''}" onclick="${isMine ? "navigateTo('profil')" : `location.href='profil.html?id=${encodeURIComponent(p.username)}'`}">
                       ${authorDisplayName} ${isPage ? '<i class="fa-solid fa-circle-check" style="color:var(--primary); font-size:0.7rem;"></i>' : ''}
-                      <span class="post-time">• ${formatPostTimestamp(p.timestamp)}</span>
+                      <span class="post-time" style="${isPage ? 'color: var(--text-muted);' : ''}">• ${formatPostTimestamp(p.timestamp)}</span>
                       ${p.isEdited ? `<span style="font-size: 0.6rem; color: var(--text-muted); font-weight: normal;">(${getLangText('editedLabel', 'düzenlendi')})</span>` : ''}
                   </div>
-                  <div style="font-size:0.75rem; color:var(--text-muted); cursor:pointer;" onclick="${isMine ? "navigateTo('profil')" : `location.href='profil.html?id=${encodeURIComponent(p.username)}'`}">@${authorUsername}</div>
+                  <div style="font-size:0.75rem; color:${isPage ? 'var(--text-muted)' : 'var(--text-muted)'}; cursor:pointer;" onclick="${isMine ? "navigateTo('profil')" : `location.href='profil.html?id=${encodeURIComponent(p.username)}'`}">@${authorUsername}</div>
               </div>
         </div>
         

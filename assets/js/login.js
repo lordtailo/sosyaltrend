@@ -1,6 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import { getFirestore, doc, getDoc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getFirestore, doc, getDoc, setDoc, serverTimestamp, collection, query, where, getDocs, limit } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyBegJHqlfPagx8biFyS_FnE3iXOksgfoAU",
@@ -121,6 +121,12 @@ function showStatus(el, text, color) {
   el.style.color = color;
 }
 
+function normalizeUsernameInput(value) {
+  const raw = String(value || '').trim();
+  const withoutAt = raw.replace(/^@+/, '').trim();
+  return withoutAt.toLowerCase().replace(/[^a-z0-9._-]/g, '');
+}
+
 function handleAuthError(el, code) {
   if (!el) return;
   let message = 'Bir hata oluştu.';
@@ -180,19 +186,48 @@ function handleAuthError(el, code) {
   showStatus(el, message, '#ef4444');
 }
 
+async function resolveLoginEmail(loginInput) {
+  const trimmed = String(loginInput || '').trim();
+  if (!trimmed) return null;
+
+  const looksLikeEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed);
+  if (looksLikeEmail) return trimmed;
+
+  const normalizedUsername = normalizeUsernameInput(trimmed);
+  if (!normalizedUsername) return null;
+
+  try {
+    const usersQuery = query(collection(db, 'users'), where('username', '==', normalizedUsername), limit(1));
+    const usersSnap = await getDocs(usersQuery);
+    if (!usersSnap.empty) {
+      const userDoc = usersSnap.docs[0];
+      return userDoc.data()?.email || null;
+    }
+  } catch (err) {
+    console.warn('Username-to-email resolution failed:', err);
+  }
+
+  return null;
+}
+
 async function handleLogin(event) {
   event.preventDefault();
-  const email = document.getElementById('loginEmail')?.value.trim();
+  const loginInput = document.getElementById('loginEmail')?.value.trim();
   const pass = document.getElementById('loginPassword')?.value;
   const msg = document.getElementById('loginMsg');
 
-  if (!email || !pass) {
-    return showStatus(msg, 'Lütfen e-posta ve şifre girin.', '#ef4444');
+  if (!loginInput || !pass) {
+    return showStatus(msg, 'Lütfen e-posta veya kullanıcı adı ve şifre girin.', '#ef4444');
   }
 
   try {
     showStatus(msg, 'Giriş yapılıyor...', '#4f46e5');
-    await signInWithEmailAndPassword(auth, email, pass);
+    const resolvedEmail = await resolveLoginEmail(loginInput);
+    if (!resolvedEmail) {
+      return showStatus(msg, 'Bu kullanıcı adıyla ilişkili hesap bulunamadı.', '#ef4444');
+    }
+
+    await signInWithEmailAndPassword(auth, resolvedEmail, pass);
     showStatus(msg, 'Başarılı! Yönlendiriliyorsunuz...', '#10b981');
     setTimeout(() => (window.location.href = 'index.html'), 1200);
   } catch (err) {
@@ -203,7 +238,8 @@ async function handleLogin(event) {
 async function handleRegister(event) {
   event.preventDefault();
   const name = document.getElementById('regName')?.value.trim();
-  const username = document.getElementById('regUsername')?.value.trim();
+  const rawUsername = document.getElementById('regUsername')?.value.trim();
+  const username = normalizeUsernameInput(rawUsername);
   const email = document.getElementById('regEmail')?.value.trim();
   const pass = document.getElementById('regPassword')?.value;
   const location = document.getElementById('regLocation')?.value.trim();
@@ -217,6 +253,10 @@ async function handleRegister(event) {
 
   if (!name || !username || !email) {
     return showStatus(msg, 'Ad Soyad, kullanıcı adı ve e-posta gereklidir.', '#ef4444');
+  }
+
+  if (!/^[a-z0-9._-]{3,20}$/.test(username)) {
+    return showStatus(msg, 'Kullanıcı adı 3-20 karakter olmalı, yalnızca harf, rakam, nokta, alt çizgi ve tire kullanabilirsiniz.', '#ef4444');
   }
 
   if (!pass || pass.length < 6) {
@@ -277,7 +317,7 @@ async function handleForgot(event) {
 document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('toStep2Btn')?.addEventListener('click', () => {
     const name = document.getElementById('regName')?.value.trim();
-    const username = document.getElementById('regUsername')?.value.trim();
+    const username = normalizeUsernameInput(document.getElementById('regUsername')?.value.trim());
     const email = document.getElementById('regEmail')?.value.trim();
     const pass = document.getElementById('regPassword')?.value;
     const msg = document.getElementById('regMsg');

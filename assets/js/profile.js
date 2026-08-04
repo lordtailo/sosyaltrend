@@ -2,11 +2,12 @@ import './app.js';
 
 const VISITOR_HIDDEN_TABS = ['likes', 'saves', 'notifs'];
 const TAB_SECTION_IDS = {
-  posts: 'posts-tab',
-  friends: 'friends-tab',
-  likes: 'likes-tab',
-  saves: 'saves-tab',
-  notifs: 'notifs-tab'
+  posts: 'my-posts-tab',
+  stories: 'my-stories-tab',
+  friends: 'my-friends-tab',
+  likes: 'my-likes-tab',
+  saves: 'my-saves-tab',
+  notifs: 'my-notifs-tab'
 };
 
 function getQueryUsername() {
@@ -177,10 +178,11 @@ function createPostCard(post, includeActions = false) {
 }
 
 function setActiveTab(tabKey, disableHashUpdate = false) {
-  const tabs = document.querySelectorAll('.profile-tab');
+  const tabs = document.querySelectorAll('.profile-tab-btn');
   const sections = document.querySelectorAll('.tab-content');
   tabs.forEach((tab) => {
-    if (tab.dataset.tab === tabKey) tab.classList.add('active');
+    const tabValue = tab.dataset.tab || (tab.getAttribute('href') || '').replace('#', '');
+    if (tabValue === tabKey || tabValue === TAB_SECTION_IDS[tabKey]) tab.classList.add('active');
     else tab.classList.remove('active');
   });
   sections.forEach((section) => {
@@ -199,7 +201,7 @@ function setActiveTab(tabKey, disableHashUpdate = false) {
 
 function updateTabVisibility(isOwnProfile) {
   VISITOR_HIDDEN_TABS.forEach((tabKey) => {
-    const button = document.querySelector(`.profile-tab[data-tab="${tabKey}"]`);
+    const button = document.querySelector(`.profile-tab-btn[data-tab="${tabKey}"]`);
     if (button) {
       button.style.display = isOwnProfile ? 'inline-flex' : 'none';
     }
@@ -214,7 +216,8 @@ function showMessage(containerId, text) {
 }
 
 async function loadProfileData(profileUsername) {
-  const usersQuery = window.query(window.collection(db, 'users'), window.where('username', '==', profileUsername), window.limit(1));
+  if (!window.db) return null;
+  const usersQuery = window.query(window.collection(window.db, 'users'), window.where('username', '==', profileUsername), window.limit(1));
   const usersSnap = await window.getDocs(usersQuery);
   if (usersSnap.empty) return null;
   const userDoc = usersSnap.docs[0];
@@ -226,7 +229,7 @@ async function loadProfileDataWithFallback(profileUsername) {
   let profile = await loadProfileData(profileUsername);
   if (!profile && window.user && window.user.uid) {
     try {
-      const snap = await window.getDoc(window.doc(db, 'users', window.user.uid));
+      const snap = await window.getDoc(window.doc(window.db, 'users', window.user.uid));
       if (snap && snap.exists()) {
         profile = { uid: snap.id, ...snap.data() };
       }
@@ -245,21 +248,159 @@ function sortPostsByTimestampDesc(posts) {
   });
 }
 
+function normalizeIdentityValue(value) {
+  return String(value || '').trim().replace(/^@+/, '').toLowerCase();
+}
+
+function getProfileIdentityCandidates(profileData) {
+  const candidates = [];
+  const addCandidate = (value) => {
+    const normalized = normalizeIdentityValue(value);
+    if (!normalized) return;
+    if (!candidates.includes(normalized)) candidates.push(normalized);
+  };
+
+  addCandidate(profileData?.username);
+  addCandidate(profileData?.userName);
+  addCandidate(profileData?.displayName);
+  addCandidate(profileData?.name);
+  addCandidate(profileData?.uid);
+  addCandidate(profileData?.id);
+  addCandidate(window.user?.username);
+  addCandidate(window.user?.userName);
+  addCandidate(window.user?.displayName);
+  addCandidate(window.user?.name);
+  addCandidate(window.user?.uid);
+  addCandidate(window.user?.id);
+  addCandidate(window.auth?.currentUser?.email?.split('@')[0]);
+  addCandidate(window.auth?.currentUser?.displayName);
+  addCandidate(window.auth?.currentUser?.uid);
+
+  return candidates;
+}
+
+function storyMatchesProfile(story, profileData) {
+  if (!story) return false;
+  const identityCandidates = getProfileIdentityCandidates(profileData);
+  if (!identityCandidates.length) return true;
+
+  const storyValues = [];
+  const addStoryValue = (value) => {
+    const normalized = normalizeIdentityValue(value);
+    if (normalized) storyValues.push(normalized);
+  };
+
+  addStoryValue(story.authorUid);
+  addStoryValue(story.uid);
+  addStoryValue(story.username);
+  addStoryValue(story.authorUsername);
+  addStoryValue(story.userName);
+  addStoryValue(story.user);
+  addStoryValue(story.displayName);
+  addStoryValue(story.authorName);
+  addStoryValue(story.name);
+  addStoryValue(story.authorEmail);
+  addStoryValue(story.email);
+
+  return storyValues.some((value) => identityCandidates.includes(value));
+}
+
+function readStoredStoriesFromLocalStorage(storageKey) {
+  try {
+    const raw = localStorage.getItem(storageKey);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (e) {
+    return [];
+  }
+}
+
+function getLocalProfileStories(profileData) {
+  const localSources = [];
+
+  if (Array.isArray(window.__sltStoriesRuntime?.stories)) {
+    localSources.push(...window.__sltStoriesRuntime.stories);
+  }
+
+  localSources.push(...readStoredStoriesFromLocalStorage('slt_stories'));
+  localSources.push(...readStoredStoriesFromLocalStorage('slt_pending_stories'));
+
+  const uniqueStories = [];
+  const seenIds = new Set();
+
+  localSources.forEach((story) => {
+    if (!story || story.type !== 'story') return;
+    const storyId = story.id || `${story.type || 'story'}:${story.timestamp || Date.now()}`;
+    if (seenIds.has(storyId)) return;
+    seenIds.add(storyId);
+    uniqueStories.push(story);
+  });
+
+  return uniqueStories.filter((story) => storyMatchesProfile(story, profileData));
+}
+
 async function loadPosts(username) {
   try {
-    const postsQuery = window.query(window.collection(db, 'posts'), window.where('username', '==', username));
-    const postsSnap = await window.getDocs(postsQuery);
-    const posts = postsSnap.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }));
-    return sortPostsByTimestampDesc(posts);
+    if (!window.db || !window.collection || !window.query || !window.where || !window.getDocs) {
+      return [];
+    }
+
+    const candidateUsernames = [username, username?.replace(/^@+/, '')].filter(Boolean);
+    const posts = [];
+
+    for (const candidate of candidateUsernames) {
+      const postsQuery = window.query(window.collection(window.db, 'posts'), window.where('username', '==', candidate));
+      const postsSnap = await window.getDocs(postsQuery);
+      posts.push(...postsSnap.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() })));
+    }
+
+    const authorUsernamePostsQuery = window.query(window.collection(window.db, 'posts'), window.where('authorUsername', '==', username));
+    const authorUsernamePostsSnap = await window.getDocs(authorUsernamePostsQuery);
+    posts.push(...authorUsernamePostsSnap.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() })));
+
+    const uniquePosts = posts.filter((post, index, all) => index === all.findIndex((item) => item.id === post.id));
+    return sortPostsByTimestampDesc(uniquePosts);
   } catch (err) {
     console.error('loadPosts: sorgu hatası', err.message || err);
     return [];
   }
 }
 
+async function loadProfileStories(profileData) {
+  try {
+    const localStories = getLocalProfileStories(profileData);
+    const remoteStories = [];
+
+    if (window.db && window.collection && window.getDocs) {
+      try {
+        const q = window.query ? window.query(window.collection(window.db, 'stories')) : null;
+        const snap = q ? await window.getDocs(q) : null;
+        if (snap) {
+          snap.forEach((docSnap) => {
+            const story = { id: docSnap.id, ...docSnap.data() };
+            if (storyMatchesProfile(story, profileData)) {
+              remoteStories.push(story);
+            }
+          });
+        }
+      } catch (err) {
+        console.warn('loadProfileStories: Firestore hikaye okuma hatası', err);
+      }
+    }
+
+    const combinedStories = [...localStories, ...remoteStories];
+    const uniqueStories = combinedStories.filter((story, index, all) => index === all.findIndex((item) => (item.id || '') === (story.id || '')));
+    return sortPostsByTimestampDesc(uniqueStories.map((story) => ({ ...story, type: story.type || 'story' })));
+  } catch (err) {
+    console.error('loadProfileStories: sorgu hatası', err.message || err);
+    return [];
+  }
+}
+
 async function loadLikes(username) {
   try {
-    const likesQuery = window.query(window.collection(db, 'posts'), window.where('likes', 'array-contains', username));
+    const likesQuery = window.query(window.collection(window.db, 'posts'), window.where('likes', 'array-contains', username));
     const likesSnap = await window.getDocs(likesQuery);
     const posts = likesSnap.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }));
     return sortPostsByTimestampDesc(posts);
@@ -271,7 +412,7 @@ async function loadLikes(username) {
 
 async function loadSaves(username) {
   try {
-    const savesQuery = window.query(window.collection(db, 'posts'), window.where('savedBy', 'array-contains', username));
+    const savesQuery = window.query(window.collection(window.db, 'posts'), window.where('savedBy', 'array-contains', username));
     const savesSnap = await window.getDocs(savesQuery);
     const posts = savesSnap.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }));
     return sortPostsByTimestampDesc(posts);
@@ -289,7 +430,7 @@ async function loadFriendProfiles(profileData) {
   const friends = [];
   await Promise.all(friendUids.map(async (uid) => {
     try {
-      const snap = await window.getDoc(window.doc(db, 'users', uid));
+      const snap = await window.getDoc(window.doc(window.db, 'users', uid));
       if (snap.exists()) friends.push({ uid: snap.id, ...snap.data() });
     } catch (error) {
       console.warn('Friend fetch error', error);
@@ -407,6 +548,67 @@ function renderPosts(posts) {
   list.innerHTML = posts.map(createPostCard).join('');
 }
 
+function renderStoriesSection(stories, profileData) {
+  const list = document.getElementById('my-stories-list');
+  const empty = document.getElementById('no-stories-msg');
+  if (!list) return;
+
+  const safeStories = Array.isArray(stories) ? stories : [];
+  if (!safeStories.length) {
+    list.innerHTML = `
+      <div style="padding:18px; border:1px dashed var(--border); border-radius:16px; background:rgba(255,255,255,0.55); color:var(--text-muted); text-align:center;">
+        Bu profilde henüz paylaşılmış hikaye yok.
+      </div>
+    `;
+    if (empty) empty.style.display = 'block';
+    return;
+  }
+
+  if (empty) empty.style.display = 'none';
+
+  const storyCards = safeStories.map((story) => {
+    const storyId = String(story.id || '').replace(/'/g, "\\'");
+    const title = escapeHTML(story.title || story.label || story.content || 'Hikaye');
+    const content = escapeHTML(stripYoutubeLinks(story.content || story.body || story.text || '')) || 'Hikaye içeriği eklenmedi.';
+    const coverHtml = story.img
+      ? `<img src="${escapeHTML(story.img)}" alt="${title}" style="width:100%; height:100%; object-fit:cover;">`
+      : `<div style="display:flex; align-items:center; justify-content:center; width:100%; height:100%; padding:10px; box-sizing:border-box; background:linear-gradient(135deg, rgba(99,102,241,0.95), rgba(139,92,246,0.92)); color:#fff; text-align:center; font-weight:700; font-size:0.84rem; line-height:1.3;">${title}</div>`;
+    const likeCount = Number(story.likesCount || 0);
+    const commentCount = Array.isArray(story.comments) ? story.comments.length : 0;
+    const timestamp = formatTimestamp(story.timestamp);
+    return `
+      <div class="glass-card" data-story-id="${storyId}" style="padding:14px; display:flex; gap:14px; align-items:center; margin-bottom:12px; cursor:pointer; transition: transform 0.15s ease, box-shadow 0.15s ease;">
+        <div style="width:92px; height:92px; border-radius:14px; overflow:hidden; flex-shrink:0; background:rgba(99,102,241,0.08);">
+          ${coverHtml}
+        </div>
+        <div style="flex:1; min-width:0;">
+          <div style="font-weight:800; color:var(--text-main); margin-bottom:6px;">${title}</div>
+          <div style="color:var(--text-muted); font-size:0.92rem; line-height:1.5; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;">${content}</div>
+          <div style="margin-top:10px; display:flex; flex-wrap:wrap; gap:8px; color:var(--text-muted); font-size:0.82rem;">
+            <span><i class="fa-solid fa-heart" style="margin-right:4px;"></i>${likeCount}</span>
+            <span><i class="fa-regular fa-comment" style="margin-right:4px;"></i>${commentCount}</span>
+            <span><i class="fa-regular fa-clock" style="margin-right:4px;"></i>${timestamp}</span>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  list.innerHTML = `
+    <div style="margin-bottom:12px; color:var(--text-muted); font-size:0.94rem; font-weight:700;">Bu profilde paylaştığınız hikayeler</div>
+    ${storyCards}
+  `;
+
+  list.querySelectorAll('[data-story-id]').forEach((card) => {
+    const storyId = card.getAttribute('data-story-id');
+    card.addEventListener('click', () => {
+      if (typeof window.openStoryViewerForId === 'function') {
+        window.openStoryViewerForId(storyId);
+      }
+    });
+  });
+}
+
 function renderFriendsPreview(friends) {
   const widget = document.getElementById('friends-widget-list');
   const widgetEmpty = document.getElementById('friends-widget-empty');
@@ -498,6 +700,13 @@ async function loadAndRenderTab(tabKey, profileData, isOwnProfile) {
     const posts = await loadPosts(profileData.username);
     renderPosts(posts);
   }
+  if (tabKey === 'stories') {
+    const stories = await loadProfileStories(profileData);
+    renderStoriesSection(stories, profileData);
+    if (typeof window.refreshProfileStoriesList === 'function') {
+      window.refreshProfileStoriesList(profileData);
+    }
+  }
   if (tabKey === 'friends') {
     const friends = await loadFriendProfiles(profileData);
     renderFriendsList(friends);
@@ -518,6 +727,15 @@ window.refreshProfileActiveTab = async function() {
   if (!activeProfileContext) return;
   const { profileData, isOwnProfile, tabKey } = activeProfileContext;
   await loadAndRenderTab(tabKey, profileData, isOwnProfile);
+};
+
+window.refreshProfileStoriesList = async function(profileData) {
+  try {
+    const stories = await loadProfileStories(profileData || activeProfileContext?.profileData);
+    renderStoriesSection(stories, profileData || activeProfileContext?.profileData);
+  } catch (err) {
+    console.error('refreshProfileStoriesList hata:', err);
+  }
 };
 
 function selectInitialTab(isOwnProfile) {
@@ -567,13 +785,23 @@ async function initProfilePage() {
   const initialTab = selectInitialTab(isOwnProfile);
   setActiveTab(initialTab, true);
   await loadAndRenderTab(initialTab, profileData, isOwnProfile);
+  if (initialTab === 'stories') {
+    await window.refreshProfileStoriesList?.(profileData);
+  }
 
-  const tabButtons = document.querySelectorAll('.profile-tab');
+  const tabButtons = document.querySelectorAll('.profile-tab-btn');
   tabButtons.forEach((button) => {
-    button.addEventListener('click', async () => {
-      const tabKey = button.dataset.tab;
-      setActiveTab(tabKey);
-      await loadAndRenderTab(tabKey, profileData, isOwnProfile);
+    button.addEventListener('click', async (event) => {
+      const tabKey = button.dataset.tab || (button.getAttribute('href') || '').replace('#', '');
+      const normalizedTabKey = tabKey === 'posts' ? 'posts' : (tabKey === 'stories' ? 'stories' : tabKey);
+      setActiveTab(normalizedTabKey);
+      await loadAndRenderTab(normalizedTabKey, profileData, isOwnProfile);
+      if (normalizedTabKey === 'stories') {
+        await window.refreshProfileStoriesList?.(profileData);
+      }
+      if (event && typeof event.preventDefault === 'function') {
+        event.preventDefault();
+      }
     });
   });
 
