@@ -6333,7 +6333,7 @@ font-size: 0.9rem; font-weight: 800; color: var(--primary); margin: 20px 0 10px;
         max-width: none;
         height: 100vh;
         background: var(--card-bg);
-        z-index: 5000;
+        z-index: 1000000;
         transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
         padding: 32px 16px 16px;
         overflow-y: auto;
@@ -6357,6 +6357,7 @@ font-size: 0.9rem; font-weight: 800; color: var(--primary); margin: 20px 0 10px;
     
     aside.active, .right-panel.active {
         transform: translateX(0);
+        z-index: 1000001;
     }
 
     .right-panel form {
@@ -6369,7 +6370,6 @@ font-size: 0.9rem; font-weight: 800; color: var(--primary); margin: 20px 0 10px;
         min-width: 0;
     }
 
-    }
 }
 
 @media (max-width: 768px) {
