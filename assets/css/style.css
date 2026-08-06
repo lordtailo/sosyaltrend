@@ -2126,12 +2126,13 @@ header::before {
     justify-content: center;
     cursor: pointer;
     box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-    z-index: 1000005;
+    z-index: 1000010 !important;
     pointer-events: auto;
+    transform: translateZ(0);
 }
 
 .header-close-panel.active {
-    display: inline-flex;
+    display: inline-flex !important;
 }
 
 .header-close-panel.left-active {
@@ -6706,7 +6707,7 @@ font-size: 0.9rem; font-weight: 800; color: var(--primary); margin: 20px 0 10px;
 /* MOBILE - Facebook-like adjustments */
 @media (max-width: 768px) {
     /* Header smaller and more compact */
-    header { height: 56px; padding: 0 12px; top: 10px; }
+    header { height: 56px; padding: 0 12px; top: 10px; z-index: 1000015 !important; }
     .header-center {
         display: flex;
         flex-wrap: nowrap;
