@@ -6381,9 +6381,9 @@ font-size: 0.9rem; font-weight: 800; color: var(--primary); margin: 20px 0 10px;
 
     /* Keep side panels full-height under the header on mobile */
     aside, .right-panel, .side-overlay {
-        top: 0;
-        height: 100vh;
-        padding-top: 64px; /* header yüksekliği kadar içerik iç boşluğu */
+        top: 64px;
+        height: calc(100vh - 64px);
+        padding-top: 16px; /* header yüksekliği kadar içerik iç boşluğu */
     }
 
     /* Footer: don't force column layout on mobile — revert to desktop grid
