@@ -1247,6 +1247,31 @@ body.dark-mode .post-composer {
   color:#fff;
 }
 
+/* Footer-specific theme button: show icon + label and allow larger size */
+.footer-theme-btn {
+    width: auto;
+    height: auto;
+    padding: 8px 12px;
+    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: linear-gradient(145deg, var(--card-bg), var(--bg));
+    border: 1px solid var(--border);
+    color: var(--text-main);
+    overflow: visible;
+}
+
+/* Ensure icon size inside footer button */
+.footer-theme-btn i {
+    font-size: 1rem;
+    line-height: 1;
+}
+
+@media (max-width: 480px) {
+    .footer-theme-btn { width: 100%; justify-content: center; }
+}
+
 .header-msg-btn {
     display: inline-flex;
     align-items: center;
@@ -2188,6 +2213,62 @@ body.side-open .header-close-panel {
     box-shadow: 0 20px 40px rgba(0,0,0,0.16);
     display: flex;
     flex-direction: column;
+}
+
+/* Anchor notifications dropdown to the right edge when inside header-tools to avoid overflow */
+.header-tools .notification-wrapper .notifications-dropdown {
+    left: auto;
+    right: 0;
+    transform: none;
+    /* allow dropdown to grow leftwards but never overflow the viewport */
+    max-width: min(420px, calc(100vw - 24px));
+}
+
+/* Make notifications dropdown look and behave like chat widget box */
+.notifications-dropdown.chat-like {
+    position: fixed;
+    top: 84px; /* below header */
+    right: 24px;
+    width: min(380px, calc(100vw - 32px));
+    max-height: min(72vh, 520px);
+    background: linear-gradient(180deg, rgba(248,250,252,0.98), rgba(255,255,255,0.95));
+    border-radius: 20px;
+    box-shadow: 0 24px 70px rgba(15,23,42,0.18);
+    z-index: 1000002;
+    border: 1px solid rgba(148,163,184,0.12);
+    overflow: hidden;
+    backdrop-filter: blur(8px);
+    animation: slideUp 0.22s ease-out;
+    display: flex;
+    flex-direction: column;
+}
+
+.notifications-dropdown.chat-like .friends-dropdown-title {
+    padding: 14px 16px;
+    border-bottom: 1px solid rgba(148,163,184,0.08);
+    background: rgba(255,255,255,0.94);
+    font-weight: 800;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+}
+
+.notifications-dropdown.chat-like .friends-dropdown-list {
+    padding: 12px;
+    overflow-y: auto;
+    max-height: calc(72vh - 140px);
+    background: var(--bg);
+}
+
+@media (max-width: 900px) {
+    .notifications-dropdown.chat-like {
+        position: fixed;
+        top: 56px;
+        left: 50%;
+        right: auto;
+        transform: translateX(-50%);
+        width: min(95vw, 360px);
+    }
 }
 
 .friends-dropdown {

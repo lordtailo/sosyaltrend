@@ -41,13 +41,28 @@
           </div>
         </div>
       </div>
+      
+    </div>
+    <div class="header-search" id="headerSearchWrapper">
+      <button id="headerSearchButton" class="theme-btn" type="button" title="Ara" onclick="toggleHeaderSearch(event)">
+        <i class="fa-solid fa-magnifying-glass"></i>
+      </button>
+      <div id="headerSearchBox" class="search-wrapper" style="display:none;">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <input id="headerSearchInput" type="search" placeholder="Ara..." aria-label="Site içinde ara" />
+        <button id="headerSearchSubmit" class="header-search-submit" type="button" title="Arama yap">
+          <span data-i18n="searchBtn">Ara</span>
+        </button>
+      </div>
+    </div>
+    <div class="header-tools">
       <div class="notification-wrapper">
-        <button id="notificationsBtn" type="button" class="header-nav-btn" onclick="toggleNotifications(); return false;" title="Bildirimler">
+        <button id="notificationsBtn" type="button" class="header-msg-btn" onclick="toggleNotifications(); return false;" title="Bildirimler">
           <i class="fa-solid fa-bell"></i>
           <span data-i18n="headerNotification">Bildirim</span>
           <span id="notificationBadge" class="nav-dot-badge" style="display:none;"></span>
         </button>
-        <div id="notificationsDropdown" class="notifications-dropdown" style="display:none;">
+        <div id="notificationsDropdown" class="notifications-dropdown chat-like" style="display:none;">
           <div class="friends-dropdown-title">
             <span><i class="fa-solid fa-bell"></i> <span data-i18n="headerInbox">Bildirim Kutusu</span></span>
             <button type="button" class="friends-dropdown-close" onclick="toggleNotifications()" aria-label="Kapat">×</button>
@@ -64,27 +79,9 @@
           </div>
         </div>
       </div>
-      <button id="mobileHeaderThemeBtn" type="button" class="header-nav-btn mobile-header-action-btn" onclick="toggleDarkMode(); return false;" title="Tema Sec">
-        <i class="fa-solid fa-circle-half-stroke"></i>
-        <span data-i18n="headerThemeShort">Tema Seç</span>
-      </button>
-    </div>
-    <div class="header-search" id="headerSearchWrapper">
-      <button id="headerSearchButton" class="theme-btn" type="button" title="Ara" onclick="toggleHeaderSearch(event)">
-        <i class="fa-solid fa-magnifying-glass"></i>
-      </button>
-      <div id="headerSearchBox" class="search-wrapper" style="display:none;">
-        <i class="fa-solid fa-magnifying-glass"></i>
-        <input id="headerSearchInput" type="search" placeholder="Ara..." aria-label="Site içinde ara" />
-        <button id="headerSearchSubmit" class="header-search-submit" type="button" title="Arama yap">
-          <span data-i18n="searchBtn">Ara</span>
-        </button>
-      </div>
-    </div>
-    <div class="header-tools">
-      <button id="themeToggleBtn" class="theme-btn" onclick="toggleDarkMode()" title="Tema Değiştir"><i class="fa-solid fa-moon"></i></button>
-      <button id="headerChatBtn" class="theme-btn" type="button" onclick="if (typeof openChatsList === 'function') { openChatsList(); } return false;" title="Sohbet">
+      <button id="headerChatBtn" class="header-msg-btn" type="button" onclick="if (typeof openChatsList === 'function') { openChatsList(); } return false;" title="Sohbet">
         <i class="fa-solid fa-comments"></i>
+        <span data-i18n="headerChat">Sohbet</span>
       </button>
       <div class="profile-trigger" id="profileTrigger" title="Profil menüsü" aria-label="Profil menüsü" role="button" tabindex="0" onclick="event.stopPropagation(); window.toggleProfileDropdown && window.toggleProfileDropdown(this); return false;" onkeydown="if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.stopPropagation(); window.toggleProfileDropdown && window.toggleProfileDropdown(this); }">
         <div class="avatar-wrap offline" id="headerAvatarWrap">
