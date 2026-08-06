@@ -2126,13 +2126,21 @@ header::before {
     justify-content: center;
     cursor: pointer;
     box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-    z-index: 1000010 !important;
+    z-index: 2147483647 !important;
     pointer-events: auto;
     transform: translateZ(0);
 }
 
 .header-close-panel.active {
     display: inline-flex !important;
+}
+
+/* Ensure the close button is visible when any side panel is open — fallback if JS didn't toggle classes */
+body.side-open .header-close-panel {
+    display: inline-flex !important;
+    pointer-events: auto !important;
+    z-index: 2147483647 !important;
+    transform: none !important;
 }
 
 .header-close-panel.left-active {
@@ -2149,6 +2157,10 @@ header::before {
     .header-close-panel {
         right: auto;
         left: 12px;
+        /* Ensure button sits above transformed side panels */
+        z-index: 2147483647 !important;
+        transform: none !important;
+        will-change: transform;
     }
     .header-close-panel.right-active {
         right: 12px;

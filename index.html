@@ -42,7 +42,7 @@
             <div class="post-composer-header">
                 <div class="post-composer-profile">
                     <div class="post-composer-avatar">
-                        <img id="composerAvatar" src="assets/img/strendsaydamv2.png" alt="Profil">
+                        <img id="composerAvatar" src="assets/img/strendsaydamv2.png" alt="Profil" onclick="navigateTo('profil')" style="cursor:pointer;">
                     </div>
                     <div>
                         <div class="post-composer-title" data-i18n="composerTitle">Yeni paylaşım yapmaya hazır mısınız?</div>
@@ -179,6 +179,7 @@
   </div>
 
   <div id="footer-placeholder"></div>
+    <button id="closePanelBtn" class="header-close-panel" onclick="closeSideMenus()" aria-label="Menüyü kapat">×</button>
 
 <script src="assets/js/include.js?v=20260804b"></script>
 <script src="assets/js/stories.js?v=20260804b" defer></script>

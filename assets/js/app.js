@@ -8900,7 +8900,7 @@ function updatePanelCloseButton() {
     const rightActive = rightPanel && rightPanel.classList.contains('active');
     if (!closeBtn) return;
     closeBtn.classList.toggle('active', !!(leftActive || rightActive));
-    // Close button should appear on opposite side of the open panel
+    // Show close button on the opposite side of the open panel (left panel -> right button, right panel -> left button)
     closeBtn.classList.toggle('left-active', !!rightActive);
     closeBtn.classList.toggle('right-active', !!leftActive);
 }
