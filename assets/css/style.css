@@ -1555,7 +1555,7 @@ header {
     position: fixed; /* Sticky yerine fixed */
     top: 0;
     left: 0;
-    z-index: 999999;
+    z-index: 1000002;
     border-bottom: none;
     box-sizing: border-box;
 }
@@ -2109,10 +2109,10 @@ header::before {
 }
 
 .header-close-panel {
-    position: absolute;
-    top: 100%;
+    position: fixed;
+    top: 16px;
     left: 16px;
-    margin-top: 8px;
+    margin: 0;
     display: none;
     width: 40px;
     height: 40px;
@@ -2126,7 +2126,8 @@ header::before {
     justify-content: center;
     cursor: pointer;
     box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-    z-index: 10005;
+    z-index: 1000005;
+    pointer-events: auto;
 }
 
 .header-close-panel.active {
