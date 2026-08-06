@@ -2271,6 +2271,26 @@ body.side-open .header-close-panel {
     }
 }
 
+/* Friend activity page styles */
+.activity-item { padding:12px; margin-bottom:10px; }
+.activity-item { padding:12px; margin-bottom:10px; display:flex; align-items:flex-start; gap:12px; }
+.activity-item img { width:48px; height:48px; border-radius:12px; object-fit:cover; }
+.activity-item .activity-type { font-size:1rem; color:var(--text-muted); margin-left:8px; align-self:center; }
+.activity-filter .post-action-btn { padding:8px 12px; font-weight:700; border-radius:10px; }
+.activity-filter .post-action-btn.active { box-shadow: 0 10px 26px rgba(99,102,241,0.08); transform: translateY(-2px); }
+
+/* skeleton */
+.skeleton { opacity: 0.9; }
+.skeleton .skeleton-avatar { width:48px; height:48px; border-radius:12px; background:linear-gradient(90deg,#e6e9ef,#f4f6fb,#e6e9ef); background-size:200% 100%; animation: shimmer 1.2s linear infinite; }
+.skeleton .skeleton-line { height:10px; background:linear-gradient(90deg,#e6e9ef,#f4f6fb,#e6e9ef); background-size:200% 100%; animation: shimmer 1.2s linear infinite; border-radius:6px; margin-bottom:8px; }
+.skeleton .skeleton-line.short { width:40%; }
+@keyframes shimmer { 0% { background-position: -150% 0 } 100% { background-position: 150% 0 } }
+
+.name-btn { background:none; border:none; padding:0; font-weight:700; color:var(--text-main); cursor:pointer; }
+.avatar-btn { background:none; border:none; padding:0; width:48px; height:48px; display:inline-flex; align-items:center; justify-content:center; cursor:pointer; }
+.avatar-btn img { border-radius:12px; }
+.post-action-btn.primary { background: linear-gradient(135deg, var(--primary), #4f46e5); color:#fff; border:none; }
+
 .friends-dropdown {
     left: 50%;
     transform: translateX(-50%);
