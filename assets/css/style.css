@@ -2773,11 +2773,24 @@ body.dark-mode .feed-panel {
     .app-container {
         grid-template-columns: 1fr;
         gap: 14px;
-        padding: 96px 14px 24px;
+        padding: 96px 12px 96px;
+        width: min(100%, 100vw);
+        max-width: 100%;
+        box-sizing: border-box;
     }
 
     #main-content {
+        width: 100%;
+        min-width: 0;
         gap: 14px;
+    }
+
+    #main-content,
+    .page-content,
+    .feed-stack {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
     }
 
     .feed-toolbar {
@@ -2786,6 +2799,25 @@ body.dark-mode .feed-panel {
 
     .feed-toolbar-btn {
         flex: 1 1 calc(50% - 6px);
+    }
+
+    .post-composer,
+    .glass-card,
+    .feed-panel,
+    .feed-items > .glass-card {
+        width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
+    }
+
+    .post-composer-area [contenteditable] {
+        overflow-wrap: anywhere;
+        word-break: break-word;
+    }
+
+    .feed-items {
+        width: 100%;
+        min-width: 0;
     }
 }
 
