@@ -219,33 +219,55 @@ function renderRetractTebrikButton(targetUid, targetUsername) {
 
 // Initialize chat widget container (loader) — delegates implementation to assets/js/chat-widget.js
 function initChatWidget() {
-    // Prevent double-loading
-    if (window.__chatWidgetLoaderInstalled) return;
+    if (document.getElementById('chat-widget-container')) {
+        return Promise.resolve(document.getElementById('chat-widget-container'));
+    }
+
+    if (window.__chatWidgetLoaderInstalled) {
+        return new Promise((resolve) => {
+            const boot = () => {
+                const widget = document.getElementById('chat-widget-container');
+                if (widget) {
+                    resolve(widget);
+                } else {
+                    setTimeout(boot, 30);
+                }
+            };
+            boot();
+        });
+    }
+
     window.__chatWidgetLoaderInstalled = true;
 
     // If implementation already present, call it
     if (typeof window._initChatWidgetImpl === 'function') {
         window._initChatWidgetImpl();
-        return;
+        return Promise.resolve(document.getElementById('chat-widget-container'));
     }
 
     // Dynamically load the chat widget implementation
     const existing = document.querySelector('script[data-chat-widget]');
     if (existing) {
-        existing.addEventListener('load', () => {
-            if (typeof window._initChatWidgetImpl === 'function') window._initChatWidgetImpl();
+        return new Promise((resolve) => {
+            existing.addEventListener('load', () => {
+                if (typeof window._initChatWidgetImpl === 'function') window._initChatWidgetImpl();
+                resolve(document.getElementById('chat-widget-container'));
+            });
         });
-        return;
     }
 
-    const s = document.createElement('script');
-    s.src = 'assets/js/chat-widget.js';
-    s.async = true;
-    s.dataset.chatWidget = '1';
-    s.onload = () => {
-        if (typeof window._initChatWidgetImpl === 'function') window._initChatWidgetImpl();
-    };
-    document.body.appendChild(s);
+    return new Promise((resolve) => {
+        const s = document.createElement('script');
+        s.src = 'assets/js/chat-widget.js';
+        s.async = true;
+        s.dataset.chatWidget = '1';
+        s.onload = () => {
+            if (typeof window._initChatWidgetImpl === 'function') window._initChatWidgetImpl();
+            resolve(document.getElementById('chat-widget-container'));
+        };
+        s.onerror = () => resolve(null);
+        document.body.appendChild(s);
+    });
 }
 
 async function loadTopLikedPosts() {
@@ -11131,9 +11153,13 @@ async function cancelFriendRequestToUid(targetUid, targetUsername) {
 
 // Profil sayfasını ziyaret ettiğiniz arkadaşın profilinizi açarsanız
 
-function handleProfileAction() {
+window.handleProfileAction = function() {
   const currentUser = auth.currentUser;
-  const viewedUserId = new URLSearchParams(window.location.search).get('uid') || window.currentVisitedProfileUid;
+  const params = new URLSearchParams(window.location.search);
+  const viewedUsername = params.get('id') || params.get('username') || '';
+  const viewedUserId = params.get('uid') || window.currentVisitedProfileUid || viewedUsername;
+  const profileNameEl = document.getElementById('profilePageName');
+  const displayName = (profileNameEl?.textContent || '').trim() || viewedUsername || viewedUserId || 'Kullanıcı';
 
   if (!currentUser) {
     window.location.href = 'login.html';
@@ -11146,9 +11172,9 @@ function handleProfileAction() {
   }
 
   if (typeof openChatWithUser === 'function') {
-    openChatWithUser(viewedUserId, viewedUserId);
+    openChatWithUser(viewedUserId, displayName);
   }
-}
+};
 
 function getGiftCardType(message) {
     if (!message) return null;
@@ -11790,25 +11816,61 @@ function initChatListsPanel() {
 }
 
 window.showChatHistoryView = function() {
-    window.__chatHistoryPending = true;
+    if (typeof window.closeChatWidget === 'function') {
+        window.closeChatWidget();
+    }
 
-    if (!document.getElementById('chat-widget-container')) {
+    if (typeof window.openHistoryWidget === 'function') {
+        window.openHistoryWidget();
+    } else if (!document.getElementById('chat-history-widget-container')) {
         initChatWidget();
+        const historyWidget = document.getElementById('chat-history-widget-container');
+        if (historyWidget) {
+            historyWidget.classList.add('active');
+        }
     }
 
-    const widget = document.getElementById('chat-widget-container');
-    if (widget) {
-        widget.classList.add('active');
+    const historyWidget = document.getElementById('chat-history-widget-container');
+    if (historyWidget) {
+        historyWidget.classList.add('active');
     }
 
-    const titleEl = document.getElementById('chat-widget-title');
+    const titleEl = document.getElementById('chat-history-title');
     if (titleEl) {
         titleEl.textContent = 'Sohbet Geçmişi';
     }
 
-    const messagesContainer = document.getElementById('chat-widget-messages');
+    const historyCount = document.getElementById('chat-history-count');
+    if (historyCount) {
+        historyCount.style.display = 'inline-flex';
+        historyCount.textContent = '0 kayıt';
+    }
+
+    const messagesContainer = document.getElementById('chat-history-messages');
     if (messagesContainer) {
-        messagesContainer.innerHTML = '<div class="chat-empty"><i class="fa-regular fa-comment"></i><p>Sohbet geçmişi yükleniyor...</p></div>';
+        messagesContainer.innerHTML = `
+            <div class="chat-history-skeleton-view">
+                <div class="chat-history-skeleton-card">
+                    <div class="chat-history-skeleton-head">
+                        <span class="chat-history-skeleton-avatar"></span>
+                        <span class="chat-history-skeleton-line chat-history-skeleton-title"></span>
+                        <span class="chat-history-skeleton-line chat-history-skeleton-small"></span>
+                    </div>
+                    <div class="chat-history-skeleton-preview">
+                        <span class="chat-history-skeleton-line"></span>
+                        <span class="chat-history-skeleton-line"></span>
+                        <span class="chat-history-skeleton-line"></span>
+                    </div>
+                </div>
+                <div class="chat-history-skeleton-card compact">
+                    <div class="chat-history-skeleton-head">
+                        <span class="chat-history-skeleton-avatar"></span>
+                        <span class="chat-history-skeleton-line chat-history-skeleton-title"></span>
+                        <span class="chat-history-skeleton-line chat-history-skeleton-small"></span>
+                    </div>
+                </div>
+            </div>
+        `;
     }
 
     setChatWidgetInputVisible(false);
@@ -11821,25 +11883,16 @@ window.showChatHistoryView = function() {
     currentGroupMembers = [];
 
     document.body.classList.add('chat-open');
-    window.closeChatsList && window.closeChatsList();
 
-    const renderHistory = () => {
-        const container = document.getElementById('chat-widget-messages');
-        if (!container) {
-            if (window.__chatHistoryPending) {
-                setTimeout(renderHistory, 120);
-            }
-            return;
-        }
-
-        window.__chatHistoryPending = false;
-        if (typeof window.renderChatHistoryInWidget === 'function') {
-            window.renderChatHistoryInWidget();
-        }
-    };
-
-    renderHistory();
+    if (typeof window.renderChatHistoryInWidget === 'function') {
+        window.renderChatHistoryInWidget('chat-history-messages');
+    }
 };
+
+function isConversationCleaned(convData = {}) {
+    const lastMessage = String(convData.lastMessage || '').trim().toLowerCase();
+    return lastMessage === 'sohbet temizlendi' && Boolean(convData.historyCleared);
+}
 
 function setChatWidgetInputVisible(visible = true) {
     const inputShell = document.querySelector('#chat-widget-container .chat-widget-input');
@@ -11848,9 +11901,9 @@ function setChatWidgetInputVisible(visible = true) {
     }
 }
 
-window.renderChatHistoryInWidget = async function() {
-    const messagesContainer = document.getElementById('chat-widget-messages');
-    const titleEl = document.getElementById('chat-widget-title');
+window.renderChatHistoryInWidget = async function(targetMessageContainerId = 'chat-widget-messages') {
+    const messagesContainer = document.getElementById(targetMessageContainerId || 'chat-widget-messages');
+    const titleEl = document.getElementById(targetMessageContainerId === 'chat-history-messages' ? 'chat-history-title' : 'chat-widget-title');
     if (!messagesContainer) return;
 
     if (titleEl) {
@@ -11866,7 +11919,29 @@ window.renderChatHistoryInWidget = async function() {
         return;
     }
 
-    messagesContainer.innerHTML = '<div class="chat-empty"><i class="fa-solid fa-spinner"></i><p>Geçmiş yükleniyor...</p></div>';
+    messagesContainer.innerHTML = `
+        <div class="chat-history-skeleton-view">
+            <div class="chat-history-skeleton-card">
+                <div class="chat-history-skeleton-head">
+                    <span class="chat-history-skeleton-avatar"></span>
+                    <span class="chat-history-skeleton-line chat-history-skeleton-title"></span>
+                    <span class="chat-history-skeleton-line chat-history-skeleton-small"></span>
+                </div>
+                <div class="chat-history-skeleton-preview">
+                    <span class="chat-history-skeleton-line"></span>
+                    <span class="chat-history-skeleton-line"></span>
+                    <span class="chat-history-skeleton-line"></span>
+                </div>
+            </div>
+            <div class="chat-history-skeleton-card compact">
+                <div class="chat-history-skeleton-head">
+                    <span class="chat-history-skeleton-avatar"></span>
+                    <span class="chat-history-skeleton-line chat-history-skeleton-title"></span>
+                    <span class="chat-history-skeleton-line chat-history-skeleton-small"></span>
+                </div>
+            </div>
+        </div>
+    `;
 
     try {
         const currentUserId = auth.currentUser.uid;
@@ -11886,7 +11961,7 @@ window.renderChatHistoryInWidget = async function() {
             .filter((docSnap) => {
                 const convData = docSnap.data() || {};
                 const participants = Array.isArray(convData.participants) ? convData.participants : [];
-                return participants.includes(currentUserId);
+                return participants.includes(currentUserId) && !isConversationCleaned(convData);
             })
             .sort((a, b) => {
                 const aTime = a.data()?.lastMessageAt?.toDate ? a.data().lastMessageAt.toDate().getTime() : 0;
@@ -11896,16 +11971,52 @@ window.renderChatHistoryInWidget = async function() {
 
         if (!conversations.length) {
             messagesContainer.innerHTML = '<div class="chat-empty"><i class="fa-regular fa-comment"></i><p>Henüz sohbet geçmişi yok</p></div>';
+            const historyCount = document.getElementById('chat-history-count');
+            if (historyCount) {
+                historyCount.textContent = '0 kayıt';
+                historyCount.style.display = 'inline-flex';
+            }
             return;
         }
 
+        const getDateFromStamp = (stamp) => {
+            if (!stamp) return null;
+            if (typeof stamp.toDate === 'function') {
+                return stamp.toDate();
+            }
+            if (typeof stamp.toMillis === 'function') {
+                return new Date(stamp.toMillis());
+            }
+            if (typeof stamp.seconds === 'number') {
+                return new Date(stamp.seconds * 1000);
+            }
+            if (stamp instanceof Date) {
+                return stamp;
+            }
+            return null;
+        };
+
+        const formatChatHistoryTime = (stamp) => {
+            const date = getDateFromStamp(stamp);
+            if (!date || Number.isNaN(date.getTime())) {
+                return 'Bilinmiyor';
+            }
+            return `${date.toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric' })} ${date.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}`;
+        };
+
         const historyHtml = [];
+
         for (const docSnap of conversations) {
             const convData = docSnap.data() || {};
+            if (isConversationCleaned(convData)) {
+                continue;
+            }
+
             const conversationId = docSnap.id;
             const isGroup = Boolean(convData.group);
-            const lastMessage = convData.lastMessage || 'Sohbet temizlendi';
+            const lastMessage = String(convData.lastMessage || '').trim();
             const lastSenderId = convData.lastSenderId || null;
+            const lastMessageAt = convData.lastMessageAt || null;
             let displayName = 'Sohbet';
             let username = '';
             let avatarUrl = 'assets/img/strendsaydamv2.png';
@@ -11931,28 +12042,159 @@ window.renderChatHistoryInWidget = async function() {
                 }
             }
 
+            const messagesQuery = query(
+                collection(db, 'conversations', conversationId, 'messages'),
+                orderBy('createdAt', 'desc'),
+                limit(8)
+            );
+
+            const messagesSnap = await getDocs(messagesQuery);
+            const messages = (messagesSnap.docs || [])
+                .map((messageDoc) => {
+                    const messageData = messageDoc.data() || {};
+                    return {
+                        id: messageDoc.id,
+                        text: messageData.text || messageData.message || 'Ek içerik',
+                        senderId: messageData.senderId || 'system',
+                        createdAt: messageData.createdAt || messageData.timestamp || messageData.sentAt || null
+                    };
+                })
+                .reverse();
+
+            const messageDetails = (messages || []).map((message) => {
+                const messageSender = message.senderId === currentUserId ? 'Sen' : (message.senderId === 'system' ? 'Sistem' : 'Kişi');
+                const when = formatChatHistoryTime(message.createdAt);
+                return `
+                    <div class="chat-history-message-row">
+                        <span class="chat-history-author">${escapeHtml(messageSender)}</span>
+                        <span class="chat-history-message-text">${escapeHtml(message.text)}</span>
+                        <span class="chat-history-message-time">${escapeHtml(when)}</span>
+                    </div>
+                `;
+            }).join('');
+
+            const latestMessage = (messages || []).length ? messages[messages.length - 1] : null;
+            const latestTime = formatChatHistoryTime(latestMessage?.createdAt || lastMessageAt);
+            const historyMessageCount = messages.length;
+
             const previewText = lastSenderId === currentUserId
                 ? `Sen: ${lastMessage || 'Mesaj yok'}`
                 : `${isGroup ? 'Grup' : displayName}: ${lastMessage || 'Mesaj yok'}`;
 
+            const summaryMessage = messages.length
+                ? `${historyMessageCount} mesaj`
+                : (lastMessage.toLowerCase() === 'sohbet temizlendi' ? 'Sohbet temizlendi' : 'Henüz mesaj yok');
+
             historyHtml.push(`
-                <div class="chat-friend-item" style="cursor:pointer;" onclick="window.openConversationFromList('${conversationId}', '${displayName}', ${isGroup})">
-                    <div class="chat-friend-avatar-wrap online">
-                        <img src="${avatarUrl}" class="chat-friend-avatar" alt="">
+                <article class="chat-history-card" data-conversation-id="${escapeHtml(conversationId)}" data-display-name="${escapeHtml(displayName)}" data-is-group="${isGroup ? '1' : '0'}">
+                    <div class="chat-history-card-head">
+                        <div class="chat-history-avatar-wrap">
+                            <img src="${avatarUrl}" alt="" class="chat-history-avatar">
+                        </div>
+                        <div class="chat-history-head-copy">
+                            <div class="chat-history-title">${escapeHtml(displayName)}</div>
+                            <div class="chat-history-subtitle">${escapeHtml(previewLabel)} · ${escapeHtml(username || '')}</div>
+                        </div>
+                        <div class="chat-history-time-badge">${escapeHtml(formatChatHistoryTime(lastMessageAt))}</div>
                     </div>
-                    <div class="chat-friend-info">
-                        <p class="chat-friend-name">${escapeHtml(displayName)}</p>
-                        <p class="chat-friend-lastmsg">${escapeHtml(previewText)}</p>
+                    <div class="chat-history-preview">
+                        <div class="chat-history-preview-actions">
+                            <button class="chat-history-toggle-btn" type="button" data-action="toggle">
+                                <i class="fa-solid fa-eye"></i>
+                                <span class="chat-history-toggle-label">Görüntüle</span>
+                            </button>
+                        </div>
+                        <div class="chat-history-preview-details" hidden>
+                            <div class="chat-history-summary">
+                                <span class="chat-history-summary-label">
+                                    <i class="fa-regular fa-comment-dots"></i>
+                                    <span>${escapeHtml(summaryMessage)}</span>
+                                </span>
+                                <span class="chat-history-summary-divider">•</span>
+                                <span class="chat-history-summary-time">Son: ${escapeHtml(latestTime)}</span>
+                            </div>
+                            <div class="chat-history-preview-title">
+                                <i class="fa-solid fa-comment-dots"></i>
+                                <span>${escapeHtml(previewText)}</span>
+                            </div>
+                            <div class="chat-history-messages">
+                                ${messageDetails}
+                            </div>
+                        </div>
                     </div>
-                </div>
+                    <div class="chat-history-card-footer" hidden>
+                        <button class="chat-history-delete-btn" type="button" data-action="delete">
+                            <i class="fa-solid fa-trash"></i> Sil
+                        </button>
+                    </div>
+                </article>
             `);
         }
 
+        const historyCount = document.getElementById('chat-history-count');
+        if (historyCount) {
+            historyCount.textContent = `${conversations.length} kayıt`;
+            historyCount.style.display = 'inline-flex';
+        }
+
         messagesContainer.innerHTML = `
-            <div style="display:grid; gap:8px; padding:4px 0;">
+            <div class="chat-history-view">
                 ${historyHtml.join('')}
             </div>
         `;
+
+        messagesContainer.querySelectorAll('.chat-history-card').forEach((card) => {
+            const conversationId = card.dataset.conversationId || '';
+            const displayName = card.dataset.displayName || 'Sohbet';
+            const isGroup = card.dataset.isGroup === '1';
+
+            const openConversation = async () => {
+                if (!conversationId) return;
+                await window.openConversationFromList(conversationId, displayName, isGroup);
+            };
+
+            const head = card.querySelector('.chat-history-card-head');
+            if (head) {
+                head.onclick = (event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    openConversation();
+                };
+            }
+
+            const toggleBtn = card.querySelector('.chat-history-toggle-btn');
+            const previewDetails = card.querySelector('.chat-history-preview-details');
+            const footer = card.querySelector('.chat-history-card-footer');
+            if (toggleBtn && previewDetails) {
+                toggleBtn.onclick = (event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    const isOpen = !previewDetails.hidden;
+                    previewDetails.hidden = isOpen;
+                    if (footer) {
+                        footer.hidden = isOpen;
+                    }
+                    toggleBtn.classList.toggle('is-open', !isOpen);
+                    const label = toggleBtn.querySelector('.chat-history-toggle-label');
+                    const icon = toggleBtn.querySelector('i');
+                    if (label) {
+                        label.textContent = isOpen ? 'Görüntüle' : 'Gizle';
+                    }
+                    if (icon) {
+                        icon.className = isOpen ? 'fa-solid fa-eye' : 'fa-solid fa-eye-slash';
+                    }
+                };
+            }
+
+            const deleteBtn = card.querySelector('.chat-history-delete-btn');
+            if (deleteBtn) {
+                deleteBtn.onclick = (event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    window.clearChatHistory(conversationId);
+                };
+            }
+        });
     } catch (error) {
         console.error('Sohbet geçmişi yüklenirken hata:', error);
         messagesContainer.innerHTML = '<div class="chat-empty"><i class="fa-solid fa-circle-exclamation"></i><p>Geçmiş yüklenemedi</p></div>';
@@ -12273,30 +12515,40 @@ window.loadRecentChats = async function() {
                 collection(db, 'conversations'),
                 where('participants', 'array-contains', currentUserId)
             ));
+            if (!convSnap.docs.length) {
+                convSnap = await getDocs(collection(db, 'conversations'));
+            }
         } catch (queryError) {
             console.warn('array-contains sorgusu başarısız, yedek listeleme denenecek:', queryError);
             convSnap = await getDocs(collection(db, 'conversations'));
         }
 
-        const conversations = (convSnap.docs || [])
-            .filter((docSnap) => {
-                const convData = docSnap.data() || {};
-                const participants = Array.isArray(convData.participants) ? convData.participants : [];
-                return participants.includes(currentUserId) && !shouldHideConversation(docSnap.id);
-            })
-            .sort((a, b) => {
-                const aTime = a.data()?.lastMessageAt?.toDate ? a.data().lastMessageAt.toDate().getTime() : 0;
-                const bTime = b.data()?.lastMessageAt?.toDate ? b.data().lastMessageAt.toDate().getTime() : 0;
-                return bTime - aTime;
-            })
-            .slice(0, 20);
+        const conversations = [];
+        for (const docSnap of convSnap.docs || []) {
+            const convData = docSnap.data() || {};
+            const participants = Array.isArray(convData.participants) ? convData.participants : [];
+            if (!participants.includes(currentUserId)) {
+                continue;
+            }
+            const lastMessage = String(convData.lastMessage || '').trim();
+            const hasVisibleHistory = Boolean(lastMessage) || Boolean(convData.historyCleared) || await conversationHasMessages(docSnap.id);
+            if (!hasVisibleHistory || isConversationCleaned(convData)) {
+                continue;
+            }
+            conversations.push(docSnap);
+        }
+
+        conversations.sort((a, b) => {
+            const aTime = a.data()?.lastMessageAt?.toDate ? a.data().lastMessageAt.toDate().getTime() : 0;
+            const bTime = b.data()?.lastMessageAt?.toDate ? b.data().lastMessageAt.toDate().getTime() : 0;
+            return bTime - aTime;
+        }).slice(0, 20);
 
         if (!conversations.length) {
             friendsList.innerHTML = '<div class="chat-lists-empty"><i class="fa-solid fa-comment-slash"></i><p>Henüz sohbetiniz yok</p></div>';
             return;
         }
 
-        const hiddenConversationIds = getHiddenConversationIds();
         const recentChats = [];
         for (const docSnap of conversations) {
             const convData = docSnap.data();
@@ -12305,10 +12557,6 @@ window.loadRecentChats = async function() {
             const lastMessage = convData.lastMessage || 'Yeni sohbet';
             const lastSenderId = convData.lastSenderId || null;
             const unreadCount = convData.unreadCount?.[currentUserId] || 0;
-
-            if (shouldHideConversation(conversationId)) {
-                continue;
-            }
 
             if (isGroup) {
                 const groupName = convData.groupName || 'Grup Sohbeti';
@@ -12332,9 +12580,7 @@ window.loadRecentChats = async function() {
             try {
                 const friendRef = doc(db, 'users', otherParticipantId);
                 const friendSnap = await getDoc(friendRef);
-                if (!friendSnap.exists()) continue;
-
-                const friendData = friendSnap.data();
+                const friendData = friendSnap.exists() ? friendSnap.data() : {};
                 const avatarUrl = getAvatarUrl(friendData.avatarUrl || 'assets/img/strendsaydamv2.png', 'user');
                 const displayName = friendData.displayName || friendData.username || otherParticipantId;
                 const username = friendData.username || 'user';
@@ -12713,15 +12959,50 @@ window.addFriendFromChat = async function() {
 }
 
 // Open chat with a user
+function buildConversationIdForUsers(userA, userB) {
+    const normalizedUsers = [String(userA || ''), String(userB || '')].filter(Boolean);
+    return normalizedUsers.sort().join('_');
+}
+
+async function resolveConversationIdForUsers(currentUserId, targetUserId) {
+    const candidateId = buildConversationIdForUsers(currentUserId, targetUserId);
+    try {
+        const candidateRef = doc(db, 'conversations', candidateId);
+        const candidateSnap = await getDoc(candidateRef);
+        if (candidateSnap.exists()) {
+            return candidateId;
+        }
+
+        const convSnap = await getDocs(query(
+            collection(db, 'conversations'),
+            where('participants', 'array-contains', currentUserId)
+        ));
+
+        const matchingConversation = (convSnap.docs || []).find((docSnap) => {
+            const participants = Array.isArray(docSnap.data()?.participants) ? docSnap.data().participants : [];
+            return participants.includes(currentUserId) && participants.includes(targetUserId);
+        });
+
+        return matchingConversation?.id || candidateId;
+    } catch (error) {
+        console.warn('Konuşma kimliği çözülürken hata:', error);
+        return candidateId;
+    }
+}
+
 window.openChatWithUser = async function(userId, displayName) {
     if (!auth.currentUser) {
         alert('Lütfen giriş yapın');
         return;
     }
-    
-    // Initialize widget if needed
-    if (!document.getElementById('chat-widget-container')) {
-        initChatWidget();
+
+    await initChatWidget();
+
+    const widgetEl = document.getElementById('chat-widget-container');
+    if (!widgetEl) {
+        console.error('Chat widget DOM not available after initialization');
+        alert('Sohbet widgeti hazır değil. Lütfen tekrar deneyin.');
+        return;
     }
     
     // If userId looks like username (not UID), find the actual UID from Firestore
@@ -12745,13 +13026,11 @@ window.openChatWithUser = async function(userId, displayName) {
     try {
         // Create or get conversation
         const currentUserId = auth.currentUser.uid;
-        const conversationId = [currentUserId, actualUserId].sort().join('_');
-        
+        const conversationId = await resolveConversationIdForUsers(currentUserId, actualUserId);
         const convRef = doc(db, 'conversations', conversationId);
         const convSnap = await getDoc(convRef);
         
         if (!convSnap.exists()) {
-            // Create new conversation
             await setDoc(convRef, {
                 participants: [currentUserId, actualUserId],
                 lastMessage: '',
@@ -12763,6 +13042,14 @@ window.openChatWithUser = async function(userId, displayName) {
                 },
                 createdAt: serverTimestamp()
             });
+        } else {
+            const existingParticipants = Array.isArray(convSnap.data()?.participants) ? convSnap.data().participants : [];
+            const missingParticipants = [currentUserId, actualUserId].filter((participantId) => !existingParticipants.includes(participantId));
+            if (missingParticipants.length) {
+                await updateDoc(convRef, {
+                    participants: Array.from(new Set([...existingParticipants, ...missingParticipants]))
+                });
+            }
         }
         
         currentConversationId = conversationId;
@@ -12777,11 +13064,14 @@ window.openChatWithUser = async function(userId, displayName) {
         
         // Show widget
         const widgetEl = document.getElementById('chat-widget-container');
-        widgetEl.classList.add('active');
+        if (widgetEl) {
+            widgetEl.classList.add('active');
+        }
         document.body.classList.add('chat-open');
 
         setChatClearButtonVisibility(true);
         setGroupChatHeaderActionsVisibility(false);
+        setChatWidgetInputVisible(true);
         
         // Load messages
         loadChatMessages(conversationId);
@@ -13126,14 +13416,14 @@ window.sendChatMessage = async function() {
     
     try {
         const currentUserId = auth.currentUser.uid;
-        
-        // user data log removed
+        const currentUserRef = doc(db, 'users', currentUserId);
+        const currentUserSnap = await getDoc(currentUserRef);
+        const currentUserData = currentUserSnap.exists() ? currentUserSnap.data() : {};
 
-        
         const messageData = {
             senderId: currentUserId,
-            senderName: user.displayName || user.username || 'Anonim',
-            senderAvatar: user.avatarUrl || 'assets/img/strendsaydamv2.png',
+            senderName: currentUserData.displayName || currentUserData.username || auth.currentUser.email || 'Anonim',
+            senderAvatar: currentUserData.avatarUrl || 'assets/img/strendsaydamv2.png',
             text: text,
             createdAt: serverTimestamp()
         };
@@ -13726,8 +14016,10 @@ window.deleteMessage = async function(messageId) {
     }
 }
 
-window.clearChatHistory = async function() {
-    if (!currentConversationId || !auth.currentUser) {
+window.clearChatHistory = async function(targetConversationId = null) {
+    const selectedConversationId = targetConversationId || currentConversationId;
+
+    if (!selectedConversationId || !auth.currentUser) {
         alert('Önce bir sohbet seçin.');
         return;
     }
@@ -13743,28 +14035,33 @@ window.clearChatHistory = async function() {
     if (headerClearButton) headerClearButton.disabled = true;
 
     try {
-        const messagesQuery = query(collection(db, 'conversations', currentConversationId, 'messages'));
+        const messagesQuery = query(collection(db, 'conversations', selectedConversationId, 'messages'));
         const snapshot = await getDocs(messagesQuery);
 
         const deletePromises = [];
         snapshot.forEach((docSnap) => {
-            deletePromises.push(deleteDoc(doc(db, 'conversations', currentConversationId, 'messages', docSnap.id)));
+            deletePromises.push(deleteDoc(doc(db, 'conversations', selectedConversationId, 'messages', docSnap.id)));
         });
 
         await Promise.all(deletePromises);
-        await updateDoc(doc(db, 'conversations', currentConversationId), {
+        await updateDoc(doc(db, 'conversations', selectedConversationId), {
             lastMessage: 'Sohbet temizlendi',
             lastMessageAt: serverTimestamp(),
-            lastSenderId: 'system'
+            lastSenderId: 'system',
+            historyCleared: true
         });
 
-        if (messagesContainer) {
+        if (selectedConversationId === currentConversationId && messagesContainer) {
             messagesContainer.innerHTML = `
                 <div class="chat-empty">
                     <i class="fa-regular fa-comment"></i>
                     <p>Sohbet geçmişi silindi.</p>
                 </div>
             `;
+        }
+
+        if (typeof window.renderChatHistoryInWidget === 'function') {
+            window.renderChatHistoryInWidget('chat-history-messages');
         }
     } catch (e) {
         console.error('Sohbet geçmişi silme hatası', e);

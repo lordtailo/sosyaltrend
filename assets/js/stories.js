@@ -63,13 +63,30 @@ document.addEventListener('DOMContentLoaded', () => {
         return normalizeStoryLikeEntry(getCurrentUserUid() || getCurrentUserContext().username || getCurrentUserContext().displayName);
     }
 
+    function resolveStoryTimestampValue(value) {
+        if (!value) return 0;
+        if (typeof value?.toMillis === 'function') return value.toMillis();
+        if (value instanceof Date) return value.getTime();
+        if (typeof value === 'number') return value;
+        if (typeof value === 'string') {
+            const parsed = Date.parse(value);
+            return Number.isNaN(parsed) ? 0 : parsed;
+        }
+        if (typeof value === 'object' && typeof value.seconds === 'number') {
+            return value.seconds * 1000 + Math.floor((value.nanoseconds || 0) / 1000000);
+        }
+        return 0;
+    }
+
     function prepareStory(story) {
         const title = story.title || story.label || '';
         const content = story.content || story.body || story.text || '';
+        const timestamp = resolveStoryTimestampValue(story.timestamp ?? story.createdAt ?? story.created_at ?? story.created ?? story.date) || nowMs();
         return {
             ...story,
             title,
             content,
+            timestamp,
             label: title || content || story.label || '',
             groupKey: story.groupKey || getStoryGroupKey(story),
             likesCount: Number(story.likesCount || 0),
@@ -366,11 +383,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const seenIds = new Set();
 
         sources.flat().forEach((item) => {
-            if (!item || !item.timestamp) return;
-            const id = item.id || `${item.type || 'story'}:${item.timestamp}`;
+            if (!item) return;
+            const timestamp = resolveStoryTimestampValue(item.timestamp ?? item.createdAt ?? item.created_at ?? item.created ?? item.date);
+            const id = item.id || `${item.type || 'story'}:${timestamp || Date.now()}`;
             if (seenIds.has(id)) return;
             seenIds.add(id);
-            merged.push(prepareStory(item));
+            merged.push(prepareStory({ ...item, timestamp: timestamp || item.timestamp || item.createdAt || item.created || item.date || nowMs() }));
         });
 
         return merged;
@@ -385,7 +403,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function isExpired(story) {
-        return story.timestamp && (nowMs() - story.timestamp) >= STORY_EXPIRY_MS;
+        return false;
     }
 
     function getStoryExpiryTimestamp(story) {
@@ -484,14 +502,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function normalizeRemoteStory(docId, data) {
-        if (!data || !data.timestamp) return null;
-        const timestamp = data.timestamp && typeof data.timestamp.toMillis === 'function'
-            ? data.timestamp.toMillis()
-            : (typeof data.timestamp === 'number' ? data.timestamp : nowMs());
+        if (!data) return null;
+        const timestamp = resolveStoryTimestampValue(data.timestamp ?? data.createdAt ?? data.created_at ?? data.created ?? data.date) || nowMs();
         const expiresAt = data.expiresAt && typeof data.expiresAt.toMillis === 'function'
             ? data.expiresAt.toMillis()
             : (data.expiresAt instanceof Date ? data.expiresAt.getTime() : timestamp + STORY_EXPIRY_MS);
-        if (nowMs() >= expiresAt) return null;
         return {
             id: docId,
             type: 'story',
@@ -561,7 +576,7 @@ document.addEventListener('DOMContentLoaded', () => {
     async function loadRemoteStoriesOnce() {
         if (!hasFirestore()) return;
         try {
-            const q = window.query(window.collection(window.db, STORY_COLLECTION), window.orderBy('timestamp', 'desc'), window.limit(100));
+            const q = window.query(window.collection(window.db, STORY_COLLECTION), window.orderBy('timestamp', 'desc'), window.limit(500));
             const snap = await window.getDocs(q);
             const remoteDocs = [];
             snap.forEach((docSnap) => {
@@ -686,7 +701,7 @@ document.addEventListener('DOMContentLoaded', () => {
             await loadRemoteStoriesOnce();
             return;
         }
-        const q = window.query(window.collection(window.db, STORY_COLLECTION), window.orderBy('timestamp', 'desc'), window.limit(100));
+        const q = window.query(window.collection(window.db, STORY_COLLECTION), window.orderBy('timestamp', 'desc'), window.limit(500));
         try {
             window.onSnapshot(q, handleRemoteSnapshot);
             remoteListenerAttached = true;

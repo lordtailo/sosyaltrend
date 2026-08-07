@@ -252,6 +252,29 @@ function normalizeIdentityValue(value) {
   return String(value || '').trim().replace(/^@+/, '').toLowerCase();
 }
 
+function resolveStoryTimestampValue(value) {
+  if (!value) return 0;
+  if (typeof value?.toMillis === 'function') return value.toMillis();
+  if (value instanceof Date) return value.getTime();
+  if (typeof value === 'number') return value;
+  if (typeof value === 'string') {
+    const parsed = Date.parse(value);
+    return Number.isNaN(parsed) ? 0 : parsed;
+  }
+  if (typeof value === 'object' && typeof value.seconds === 'number') {
+    return value.seconds * 1000 + Math.floor((value.nanoseconds || 0) / 1000000);
+  }
+  return 0;
+}
+
+function getStoryTimestamp(story) {
+  return resolveStoryTimestampValue(story?.timestamp ?? story?.createdAt ?? story?.created_at ?? story?.created ?? story?.date) || 0;
+}
+
+function sortStoriesByTimestampDesc(stories) {
+  return [...stories].sort((a, b) => getStoryTimestamp(b) - getStoryTimestamp(a));
+}
+
 function getProfileIdentityCandidates(profileData) {
   const candidates = [];
   const addCandidate = (value) => {
@@ -391,7 +414,14 @@ async function loadProfileStories(profileData) {
 
     const combinedStories = [...localStories, ...remoteStories];
     const uniqueStories = combinedStories.filter((story, index, all) => index === all.findIndex((item) => (item.id || '') === (story.id || '')));
-    return sortPostsByTimestampDesc(uniqueStories.map((story) => ({ ...story, type: story.type || 'story' })));
+    return sortStoriesByTimestampDesc(uniqueStories.map((story) => ({
+      ...story,
+      type: story.type || 'story',
+      timestamp: getStoryTimestamp(story) || story.timestamp || story.createdAt || story.created || story.date || 0,
+      title: story.title || story.label || story.content || story.body || story.text || '',
+      content: story.content || story.body || story.text || '',
+      label: story.label || story.title || story.content || story.body || story.text || ''
+    })));
   } catch (err) {
     console.error('loadProfileStories: sorgu hatası', err.message || err);
     return [];
@@ -528,7 +558,9 @@ function renderProfileHeader(profileData, isOwnProfile) {
     if (!isOwnProfile) {
       chatBtn.onclick = () => {
         if (typeof window.openChatWithUser === 'function') {
-          window.openChatWithUser(profileData.username, profileData.uid);
+          const targetUserId = profileData.uid || profileData.userId || profileData.id || profileData.username;
+          const targetDisplayName = profileData.displayName || profileData.name || profileData.username || 'Kullanıcı';
+          window.openChatWithUser(targetUserId, targetDisplayName);
         }
       };
     }
