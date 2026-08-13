@@ -1038,6 +1038,27 @@ body.dark-mode .post-composer {
     color: var(--danger);
 }
 
+.post-composer-rules {
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.post-composer-rules small {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    display: inline;
+    transition: color 0.2s ease;
+}
+
+.post-composer-rules small:hover {
+    color: var(--primary);
+}
+
 .trigger-input:focus {
     border-color: var(--primary);
     background: rgba(99, 102, 241, 0.08);

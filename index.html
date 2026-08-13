@@ -62,6 +62,10 @@
                         <div id="postInput" contenteditable="true" oninput="updatePostCount()" onkeyup="updatePostCount()" onpaste="setTimeout(updatePostCount, 0)" data-placeholder="Gönderinizi buraya yazın..." data-i18n-placeholder="postPlaceholder"></div>
                         <div id="post-charcount" class="post-charcount">0/1000</div>
                     </div>
+                    <div class="post-composer-rules">
+                        <i class="fa-solid fa-circle-info" onclick="window.openPostRulesModal && window.openPostRulesModal()" style="cursor: pointer; color: var(--primary); font-size: 0.9rem; vertical-align: middle;"></i>
+                        <small data-i18n="rulesText" onclick="window.openPostRulesModal && window.openPostRulesModal()" style="cursor: pointer;">Paylaşım yapmadan önce kısa kuralları gözden geçirin.</small>
+                    </div>
                     <div class="post-composer-row">
                         <div class="post-composer-actions">
                             <input type="file" id="imageInput" accept="image/*" style="display: none;">
