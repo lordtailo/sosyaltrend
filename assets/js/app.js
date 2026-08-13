@@ -1348,6 +1348,9 @@ function buildInlineShareCard(postId, postData) {
                     <button class="tool-btn" onclick="window.reportPost('${postId}', '${(authorUsername || '').replace(/'/g, "\\'")}' )" title="Gönderiyi bildir" style="gap:5px; margin-left:auto; color:#f59e0b;"><i class="fa-regular fa-flag"></i></button>
                     <button class="tool-btn" onclick="window.openShareMenu('${postId}')" style="gap:5px;"><i class="fa-solid fa-share"></i></button>
                 </div>
+                <div id="likers-row-${postId}" style="display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin-top:12px; margin-bottom:10px; min-height:28px; max-height:0; overflow:hidden; transition:max-height 0.3s ease;" data-likes='${JSON.stringify(postData.likes || [])}'>
+                    <div id="likers-${postId}" style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;"></div>
+                </div>
                 <div id="comments-${postId}" class="comment-area" style="display:none; margin-top:10px;">
                     <div id="list-${postId}">${(postData.comments || []).map((c) => `
                         <div class="comment-item" style="margin-bottom:8px;">
@@ -1404,6 +1407,19 @@ window.renderMySharesInline = async function() {
                                 <div style="font-size:0.8rem; color:var(--text-secondary);">${shares.length} gönderi</div>
                             </div>
                             <div style="display:flex; flex-direction:column; gap:10px;">${shares.join('')}</div>`;
+                        
+                        // Tüm postlar için beğenenler avatarlarını populate et
+                        setTimeout(() => {
+                            const promises = [];
+                            snap.forEach((docSnap) => {
+                                const post = docSnap.data();
+                                const isMine = post.username === uname || post.adminUser === uname;
+                                if (isMine && post.likes && post.likes.length > 0) {
+                                    promises.push(window.populateLikersPreview(docSnap.id, post.likes));
+                                }
+                            });
+                            Promise.all(promises).catch(e => console.warn('Beğenenler yüklenemedi:', e));
+                        }, 100);
                 }
 
                 panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -6300,7 +6316,7 @@ window.loadPostsFeed = (showAll = false) => {
         
         ${postContentHtml}${pollHtml}${postImageHtml}
 
-        <div id="likers-row-${d.id}" style="display:none; align-items:center; justify-content:space-between; gap:12px; margin-bottom:10px; min-height:28px;">
+        <div id="likers-row-${d.id}" style="display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin-top:12px; margin-bottom:10px; min-height:28px; max-height:0; overflow:hidden; transition:max-height 0.3s ease;">
             <div id="likers-${d.id}" style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;"></div>
         </div>
 
@@ -11506,14 +11522,14 @@ window.populateLikersPreview = async (postId, likes) => {
         const container = document.getElementById(`likers-${postId}`);
         if (!container) return;
         const row = document.getElementById(`likers-row-${postId}`);
-        if (row) row.style.display = 'none';
+        if (row) row.style.maxHeight = '0';
         container.innerHTML = '';
         if (!likes || likes.length === 0) {
             container.style.display = 'none';
             return;
         }
 
-        if (row) row.style.display = 'flex';
+        if (row) row.style.maxHeight = '1000px';
         container.style.display = 'flex';
         const preview = likes.slice(0, 3);
         const userDataMap = {};
