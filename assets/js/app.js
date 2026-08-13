@@ -58,6 +58,80 @@ window.clearReply = function(postId) {
     }
 };
 
+// Post Composer Modal Functions
+window.openPostComposerModal = function() {
+    const modal = document.getElementById('postComposerModal');
+    const rightAside = document.querySelector('[data-include="partials/right-aside.html"]');
+    
+    if (modal) {
+        modal.classList.remove('closing');
+        modal.style.display = 'flex';
+        document.body.style.overflow = 'hidden'; // Scroll kapat
+        document.body.classList.add('modal-open'); // CSS hook
+        
+        // Sağ menüyü grayedout yap (sol menü gibi)
+        if (rightAside) {
+            rightAside.style.setProperty('display', 'block', 'important');
+            rightAside.style.setProperty('opacity', '0.35', 'important');
+            rightAside.style.setProperty('filter', 'blur(2px)', 'important');
+            rightAside.style.setProperty('pointer-events', 'none', 'important');
+            rightAside.style.setProperty('z-index', '1', 'important');
+        }
+        
+        // Focus input
+        setTimeout(() => {
+            const input = document.getElementById('postInput');
+            if (input) input.focus();
+        }, 100);
+    }
+};
+
+window.closePostComposerModal = function() {
+    const modal = document.getElementById('postComposerModal');
+    const rightAside = document.querySelector('[data-include="partials/right-aside.html"]');
+    
+    if (modal) {
+        // Sağ menüyü normal haline geri getir (grayedout kaldır)
+        if (rightAside) {
+            rightAside.style.removeProperty('opacity');
+            rightAside.style.removeProperty('filter');
+            rightAside.style.removeProperty('pointer-events');
+            rightAside.style.removeProperty('z-index');
+        }
+        
+        // Animasyonlu kapanış
+        modal.classList.add('closing');
+        
+        // Animasyon bitince display:none yap
+        const handleAnimationEnd = () => {
+            modal.style.display = 'none';
+            modal.removeEventListener('animationend', handleAnimationEnd);
+            document.body.classList.remove('modal-open'); // CSS hook kaldır
+        };
+        
+        modal.addEventListener('animationend', handleAnimationEnd);
+        
+        // Fallback: 400ms sonra display:none yap (animasyon yoksa)
+        setTimeout(() => {
+            if (modal.style.display !== 'none') {
+                modal.style.display = 'none';
+                modal.removeEventListener('animationend', handleAnimationEnd);
+                document.body.classList.remove('modal-open'); // CSS hook kaldır
+            }
+        }, 400);
+        
+        document.body.style.overflow = ''; // Scroll restore
+    }
+};
+
+// Close modal when pressing Escape
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+        window.closePostComposerModal();
+    }
+});
+
+
 window.updateReplyTargetDisplay = function(postId) {
     const infoBox = document.getElementById(`reply-info-${postId}`);
     const input = document.getElementById(`input-${postId}`);
@@ -104,6 +178,15 @@ function updatePostCount() {
     }
     const len = text.length;
     counter.textContent = `${len}/1000`;
+    
+    // Character count rengini değiştir
+    counter.classList.remove('warning', 'danger');
+    if (len > 900) {
+        counter.classList.add('danger');
+    } else if (len > 700) {
+        counter.classList.add('warning');
+    }
+    
     updateShareButtonState();
 }
 window.updatePostCount = updatePostCount;
@@ -4384,6 +4467,10 @@ function getAvatarUrl(avatarUrlOrSeed, type = 'user') {
     // Post composer avatar güncelleme
     const composerAvatar = document.getElementById('composerAvatar');
     if (composerAvatar) composerAvatar.src = avatarUrl;
+    
+    // Trigger avatar güncelleme
+    const triggerAvatar = document.getElementById('triggerAvatar');
+    if (triggerAvatar) triggerAvatar.src = avatarUrl;
     if(pJd && !pJd.innerText) pJd.innerText = '—';
     if(sSi) sSi.innerText = user.email ? shortenEmail(user.email) : '—';
     if (isOwnProfile && pSi) pSi.innerText = user.email ? shortenEmail(user.email) : '—';
@@ -6408,6 +6495,12 @@ if (typeof updatePostCount === 'function') updatePostCount();
             document.getElementById('postInput').innerText = "";
             if (typeof updatePostCount === 'function') updatePostCount();
             window.clearImagePreview();
+            
+            // Gönderi widget'ını kapat
+            if (typeof window.closePostComposerModal === 'function') {
+                window.closePostComposerModal();
+            }
+            
             // küçük onay bildirimi
             const t = document.createElement('div');
             t.innerText = getLangText('postedToast', 'Gönderildi');
@@ -6415,8 +6508,8 @@ if (typeof updatePostCount === 'function') updatePostCount();
             document.body.appendChild(t);
             setTimeout(() => t.remove(), 1800);
 
-            // refresh feed shortly
-            setTimeout(() => { if (typeof loadPostsFeed === 'function') loadPostsFeed(); }, 800);
+            // Feed'i yenile ve yeni gönderiyi göster
+            setTimeout(() => { if (typeof loadPostsFeed === 'function') loadPostsFeed(); }, 300);
         } catch (e) {
             console.error("Paylaşım hatası:", e);
             alert(getLangText('postFailedAlert', 'Gönderi paylaşılamadı.'));
@@ -7523,7 +7616,16 @@ window.loadProfileSections = async (section = 'all', showAllPosts = false, showA
         return;
     }
 
-    console.log('[loadProfileSections]', 'section:', section, 'uname:', uname, 'visitedUsername:', visitedUsername, 'targetUsername:', targetUsername, 'user:', user);
+    // Normalize the username to match how it's stored in the database (for likes/saves comparison)
+    const normalizeBookmarkIdentity = (value) => {
+      if (typeof value !== 'string') return '';
+      const trimmed = value.trim();
+      if (!trimmed) return '';
+      return trimmed.toLowerCase().split('@')[0];
+    };
+    const normalizedUname = normalizeBookmarkIdentity(uname);
+
+    console.log('[loadProfileSections]', 'section:', section, 'uname:', uname, 'normalizedUname:', normalizedUname, 'visitedUsername:', visitedUsername, 'targetUsername:', targetUsername, 'user:', user);
 
     // if a specific section is requested, ensure only its tab-content is visible
     if (section && section !== 'all') {
@@ -7578,8 +7680,8 @@ window.loadProfileSections = async (section = 'all', showAllPosts = false, showA
         snap.forEach(d => {
             const p = d.data();
             const isMine = p.username === uname || p.adminUser === uname;
-            const isLiked = p.likes?.includes(uname);
-            const isSaved = p.savedBy?.includes(uname);
+            const isLiked = p.likes?.includes(normalizedUname);
+            const isSaved = p.savedBy?.includes(normalizedUname);
             const canReportPost = true;
             const decodedProfileContent = decodeEntities ? decodeEntities(p.content||"") : (p.content||"");
             const profileContentWithLinks = stripYoutubeLinks(decodedProfileContent).replace(/(#[\wığüşöçİĞÜŞÖÇ]+)/g,'<span class="hashtag-link" onclick="searchTrend(\'$1\')">$1</span>');
@@ -7764,7 +7866,16 @@ window.loadProfileSections = async (section = 'all', showAllPosts = false, showA
 // remove all likes usually used by clear button
 window.clearAllLikes = async function() {
     if (!user || !user.username) return;
-    const uname = user.username;
+    
+    // Normalize the username to match how it's stored in the database
+    const normalizeBookmarkIdentity = (value) => {
+      if (typeof value !== 'string') return '';
+      const trimmed = value.trim();
+      if (!trimmed) return '';
+      return trimmed.toLowerCase().split('@')[0];
+    };
+    const uname = normalizeBookmarkIdentity(user.username);
+    
     try {
         const q = query(collection(db, 'posts'), where('likes', 'array-contains', uname));
         const snap = await getDocs(q);
@@ -7781,7 +7892,16 @@ window.clearAllLikes = async function() {
 // remove all saved posts
 window.clearAllSaves = async function() {
     if (!user || !user.username) return;
-    const uname = user.username;
+    
+    // Normalize the username to match how it's stored in the database
+    const normalizeBookmarkIdentity = (value) => {
+      if (typeof value !== 'string') return '';
+      const trimmed = value.trim();
+      if (!trimmed) return '';
+      return trimmed.toLowerCase().split('@')[0];
+    };
+    const uname = normalizeBookmarkIdentity(user.username);
+    
     try {
         const q = query(collection(db, 'posts'), where('savedBy', 'array-contains', uname));
         const snap = await getDocs(q);
@@ -11383,12 +11503,23 @@ window.populateLikersPreview = async (postId, likes) => {
         const preview = likes.slice(0, 3);
         const userDataMap = {};
         
-        // Firestore'dan avatar bilgilerini çek
+        // Firestore'dan avatar bilgilerini çek - normalize edilerek eşleştir
         try {
-            const q = query(collection(db, 'users'), where('username', 'in', preview));
-            const snap = await getDocs(q);
-            snap.forEach(doc => { 
-                userDataMap[doc.data().username] = doc.data(); 
+            const normalizeBookmarkIdentity = (value) => {
+              if (typeof value !== 'string') return '';
+              const trimmed = value.trim();
+              if (!trimmed) return '';
+              return trimmed.toLowerCase().split('@')[0];
+            };
+            
+            const usersSnap = await getDocs(collection(db, 'users'));
+            usersSnap.forEach(doc => {
+                const userData = doc.data();
+                if (userData.username) {
+                    // Normalize edilmiş username'i de map'e ekle
+                    const normalizedUsername = normalizeBookmarkIdentity(userData.username);
+                    userDataMap[normalizedUsername] = userData;
+                }
             });
         } catch (e) {
             console.warn('Avatar query failed, using fallbacks', e);
@@ -11402,7 +11533,7 @@ window.populateLikersPreview = async (postId, likes) => {
             img.src = avatar;
             img.title = userData?.displayName || username;
             img.style.cssText = 'width:28px;height:28px;border-radius:50%;border:2px solid var(--card-bg);object-fit:cover;cursor:pointer;';
-            img.onclick = () => { window.location.href = `profil.html?id=${encodeURIComponent(username)}`; };
+            img.onclick = () => { window.location.href = `profil.html?id=${encodeURIComponent(userData?.username || username)}`; };
             container.appendChild(img);
         });
 
@@ -11440,41 +11571,39 @@ window.openLikersModal = async (postId) => {
             return;
         }
 
-        // Batch ile kullanıcı verilerini çek (max 10 per query)
-        const chunks = [];
-        for (let i=0; i<likes.length; i+=10) {
-            chunks.push(likes.slice(i, i+10));
-        }
+        // Tüm kullanıcı verilerini çek ve normalize edilerek eşleştir
+        const normalizeBookmarkIdentity = (value) => {
+          if (typeof value !== 'string') return '';
+          const trimmed = value.trim();
+          if (!trimmed) return '';
+          return trimmed.toLowerCase().split('@')[0];
+        };
         
-        const users = [];
-        for (const chunk of chunks) {
-            try {
-                const q = query(collection(db, 'users'), where('username', 'in', chunk));
-                const snap = await getDocs(q);
-                snap.forEach(d => { 
-                    users.push(d.data()); 
-                });
-            } catch(e) {
-                console.warn('Batch query failed', e);
-            }
-        }
-
-        // Map yap - order koru
+        // Tüm kullanıcıları çek
+        const usersSnap = await getDocs(collection(db, 'users'));
         const userMap = {};
-        users.forEach(u => { 
-            if (u.username) userMap[u.username] = u; 
+        
+        usersSnap.forEach(doc => {
+            const userData = doc.data();
+            if (userData.username) {
+                // Normalize edilmiş username'i de map'e ekle
+                const normalizedUsername = normalizeBookmarkIdentity(userData.username);
+                userMap[normalizedUsername] = userData;
+            }
         });
 
         // HTML render et
         const listHtml = likes.map(username => {
+            // Username zaten normalizedir, doğrudan map'ten al
             const userData = userMap[username];
             const avatar = getAvatarUrl(userData?.avatarUrl || userData?.avatar);
-            const name = userData?.displayName || username;
-            return `<div style="display:flex; align-items:center; gap:10px; padding:10px 0; border-bottom:1px solid var(--border); cursor:pointer;" onclick="window.location.href='profil.html?id=${encodeURIComponent(username)}'">
+            const name = userData?.displayName || userData?.username || username;
+            const displayUsername = userData?.username || username;
+            return `<div style="display:flex; align-items:center; gap:10px; padding:10px 0; border-bottom:1px solid var(--border); cursor:pointer;" onclick="window.location.href='profil.html?id=${encodeURIComponent(displayUsername)}'">
                         <img src="${avatar}" style="width:40px;height:40px;border-radius:50%;object-fit:cover;">
                         <div style="flex:1;">
                             <div style="font-weight:700; font-size:0.9rem;">${name}</div>
-                            <div style="font-size:0.8rem;color:var(--text-muted)">@${username}</div>
+                            <div style="font-size:0.8rem;color:var(--text-muted)">@${displayUsername}</div>
                         </div>
                     </div>`;
         }).join('');

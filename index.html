@@ -38,84 +38,85 @@
     <main id="main-content">
       <div id="page-feed" class="page-content active">
                 <div class="feed-stack">
-        <div class="glass-card post-composer">
-            <div class="post-composer-header">
-                <div class="post-composer-profile">
-                    <div class="post-composer-avatar">
-                        <img id="composerAvatar" src="assets/img/strendsaydamv2.png" alt="Profil" onclick="navigateTo('profil')" style="cursor:pointer;">
-                    </div>
-                    <div>
-                        <div class="post-composer-title" data-i18n="composerTitle">Yeni paylaşım yapmaya hazır mısınız?</div>
-                        <div class="post-composer-subtitle" data-i18n="composerSubtitle">Hikayenizi, fotoğrafınızı veya fikirlerinizi hemen arkadaşlarınızla paylaşın ve onlarla eğlenceli vakit geçirin.</div>
-                    </div>
+        <!-- Post Composer Trigger (Minimal) -->
+        <div class="post-composer-trigger glass-card" onclick="openPostComposerModal()">
+            <div class="post-composer-trigger-content">
+                <img id="triggerAvatar" src="assets/img/strendsaydamv2.png" alt="Profil" class="trigger-avatar" onclick="event.stopPropagation(); navigateTo('profil')" style="cursor: pointer;">
+                <input type="text" placeholder="Ne hakkında paylaşım yapmak istiyorsun?" data-i18n-placeholder="postPlaceholder" readonly class="trigger-input">
+                <div class="trigger-icons">
+                    <i class="fa-regular fa-image" onclick="event.stopPropagation(); openPostComposerModal(); setTimeout(() => document.getElementById('imageInput').click(), 200);" style="cursor: pointer;"></i>
+                    <i class="fa-regular fa-face-smile" onclick="event.stopPropagation(); openPostComposerModal(); setTimeout(() => document.getElementById('emojiToggle').click(), 200);" style="cursor: pointer;"></i>
                 </div>
-            </div>
-            <div class="post-composer-area">
-                <div id="postInput" contenteditable="true" oninput="updatePostCount()" onkeyup="updatePostCount()" onpaste="setTimeout(updatePostCount, 0)" data-placeholder="Gönderinizi buraya yazın..." data-i18n-placeholder="postPlaceholder"></div>
-                <div id="post-charcount" class="post-charcount">0/1000</div>
-            </div>
-            <div class="post-composer-row">
-                <div class="post-composer-actions">
-                    <input type="file" id="imageInput" accept="image/*" style="display: none;">
-                    <button class="post-action-btn icon-btn" type="button" onclick="document.getElementById('imageInput').click()">
-                        <i class="fa-regular fa-image"></i>
-                        <span data-i18n="photoBtn">Fotoğraf</span>
-                    </button>
-                    <div class="emoji-wrapper">
-                        <button class="post-action-btn icon-btn emoji-toggle-btn" id="emojiToggle" type="button">
-                            <i class="fa-regular fa-face-smile"></i>
-                            <span data-i18n="emojiBtn">Emoji</span>
-                        </button>
-                        <div id="emojiPickerPanel" class="emoji-picker"></div>
-                    </div> 
-                    <button class="post-action-btn icon-btn poll-toggle-btn" id="pollToggle" type="button">
-                        <i class="fa-solid fa-square-poll-vertical"></i>
-                        <span data-i18n="pollBtn">Anket</span>
-                    </button>
-                </div>
-                <button id="shareBtn" class="post-action-btn primary" type="button" data-i18n="shareBtn">Paylaş</button>
-            </div>
-            <div id="post-help" style="margin-top:14px; display:flex; align-items:center; gap:12px; width:100%; flex-wrap:wrap;">
-                <span id="postRulesTrigger" role="button" tabindex="0" style="display:inline-flex; align-items:center; gap:6px; color:var(--text-main); font-size:0.74rem; font-style:normal; font-weight:400; cursor:pointer; text-decoration:none;">
-                    <i class="fa-solid fa-circle-info" style="color:var(--primary);"></i>
-                    Paylaşım yapmadan önce kısa kuralları gözden geçirin.
-                </span>
-                <span style="margin-left:auto; display:inline-flex; align-items:center; gap:6px; color:var(--text-muted); font-size:0.72rem; font-style:normal; font-weight:400; text-align:right;">
-                    <i class="fa-solid fa-check-circle" style="color:var(--primary);"></i>
-                    Kuralları okuduğunuz için teşekkür ederiz.
-                </span>
-            </div>
-            <div id="pollForm" class="poll-form" style="display: none;">
-                <div class="poll-form-grid">
-                    <label for="pollQuestionComposer" data-i18n="pollQuestionLabel">Anket sorusu</label>
-                    <input id="pollQuestionComposer" type="text" placeholder="Anket sorusunu yazın..." data-i18n-placeholder="pollQuestionPlaceholder">
-                    <label data-i18n="pollOptionsLabel">Seçenekler</label>
-                    <input id="pollOption1Composer" type="text" placeholder="Seçenek 1" data-i18n-placeholder="pollOption1Placeholder">
-                    <input id="pollOption2Composer" type="text" placeholder="Seçenek 2" data-i18n-placeholder="pollOption2Placeholder">
-                    <input id="pollOption3Composer" type="text" placeholder="Seçenek 3 (isteğe bağlı)" data-i18n-placeholder="pollOption3Placeholder">
-                    <input id="pollOption4Composer" type="text" placeholder="Seçenek 4 (isteğe bağlı)" data-i18n-placeholder="pollOption4Placeholder">
-                    <div class="poll-form-row">
-                        <label for="pollDaysComposer" data-i18n="pollDaysLabel">Gün</label>
-                        <input id="pollDaysComposer" type="number" min="0" max="30" value="0">
-                        <label for="pollHoursComposer" data-i18n="pollHoursLabel">Saat</label>
-                        <input id="pollHoursComposer" type="number" min="0" max="23" value="0">
-                        <label for="pollMinutesComposer" data-i18n="pollMinutesLabel">Dakika</label>
-                        <input id="pollMinutesComposer" type="number" min="1" max="59" value="30">
-                    </div>
-                </div> 
-                <div class="poll-form-actions">
-                    <button id="cancelPollBtn" class="post-action-btn icon-btn" type="button" data-i18n="cancelBtn">İptal</button>
-                    <button id="createPollFromComposerBtn" class="post-action-btn primary" type="button" data-i18n="createPollBtn">Anket Oluştur</button>
-                </div>
-                <div id="pollFormMessage" class="poll-form-message"></div>
-            </div>
-            <div id="imagePreviewContainer" class="post-composer-preview" style="display: none;">
-                <img id="imagePreview" src="" alt="Gönderi resmi önizlemesi">
-                <button type="button" onclick="clearImagePreview()" class="post-preview-remove">
-                    <i class="fa-solid fa-xmark"></i>
-                </button>
             </div>
         </div>
+
+        <!-- Post Composer Modal -->
+        <div id="postComposerModal" class="post-composer-modal" style="display: none;" onclick="if(event.target === this) closePostComposerModal()">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>Gönderi Oluştur</h2>
+                    <button class="modal-close-btn" onclick="closePostComposerModal()">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="post-composer-area">
+                        <div id="postInput" contenteditable="true" oninput="updatePostCount()" onkeyup="updatePostCount()" onpaste="setTimeout(updatePostCount, 0)" data-placeholder="Gönderinizi buraya yazın..." data-i18n-placeholder="postPlaceholder"></div>
+                        <div id="post-charcount" class="post-charcount">0/1000</div>
+                    </div>
+                    <div class="post-composer-row">
+                        <div class="post-composer-actions">
+                            <input type="file" id="imageInput" accept="image/*" style="display: none;">
+                            <button class="post-action-btn icon-btn" type="button" onclick="document.getElementById('imageInput').click()">
+                                <i class="fa-regular fa-image"></i>
+                                <span data-i18n="photoBtn">Fotoğraf</span>
+                            </button>
+                            <div class="emoji-wrapper">
+                                <button class="post-action-btn icon-btn emoji-toggle-btn" id="emojiToggle" type="button">
+                                    <i class="fa-regular fa-face-smile"></i>
+                                    <span data-i18n="emojiBtn">Emoji</span>
+                                </button>
+                                <div id="emojiPickerPanel" class="emoji-picker"></div>
+                            </div> 
+                            <button class="post-action-btn icon-btn poll-toggle-btn" id="pollToggle" type="button">
+                                <i class="fa-solid fa-square-poll-vertical"></i>
+                                <span data-i18n="pollBtn">Anket</span>
+                            </button>
+                        </div>
+                        <button id="shareBtn" class="post-action-btn primary" type="button" data-i18n="shareBtn">Paylaş</button>
+                    </div>
+                    <div id="pollForm" class="poll-form" style="display: none;">
+                        <div class="poll-form-grid">
+                            <label for="pollQuestionComposer" data-i18n="pollQuestionLabel">Anket sorusu</label>
+                            <input id="pollQuestionComposer" type="text" placeholder="Anket sorusunu yazın..." data-i18n-placeholder="pollQuestionPlaceholder">
+                            <label data-i18n="pollOptionsLabel">Seçenekler</label>
+                            <input id="pollOption1Composer" type="text" placeholder="Seçenek 1" data-i18n-placeholder="pollOption1Placeholder">
+                            <input id="pollOption2Composer" type="text" placeholder="Seçenek 2" data-i18n-placeholder="pollOption2Placeholder">
+                            <input id="pollOption3Composer" type="text" placeholder="Seçenek 3 (isteğe bağlı)" data-i18n-placeholder="pollOption3Placeholder">
+                            <input id="pollOption4Composer" type="text" placeholder="Seçenek 4 (isteğe bağlı)" data-i18n-placeholder="pollOption4Placeholder">
+                            <div class="poll-form-row">
+                                <label for="pollDaysComposer" data-i18n="pollDaysLabel">Gün</label>
+                                <input id="pollDaysComposer" type="number" min="0" max="30" value="0">
+                                <label for="pollHoursComposer" data-i18n="pollHoursLabel">Saat</label>
+                                <input id="pollHoursComposer" type="number" min="0" max="23" value="0">
+                                <label for="pollMinutesComposer" data-i18n="pollMinutesLabel">Dakika</label>
+                                <input id="pollMinutesComposer" type="number" min="1" max="59" value="30">
+                            </div>
+                        </div> 
+                        <div class="poll-form-actions">
+                            <button id="cancelPollBtn" class="post-action-btn icon-btn" type="button" data-i18n="cancelBtn">İptal</button>
+                            <button id="createPollFromComposerBtn" class="post-action-btn primary" type="button" data-i18n="createPollBtn">Anket Oluştur</button>
+                        </div>
+                        <div id="pollFormMessage" class="poll-form-message"></div>
+                    </div>
+                    <div id="imagePreviewContainer" class="post-composer-preview" style="display: none;">
+                        <img id="imagePreview" src="" alt="Gönderi resmi önizlemesi">
+                        <button type="button" onclick="clearImagePreview()" class="post-preview-remove">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                    </div>
+                </div> <!-- modal-body -->
+            </div> <!-- modal-content -->
+        </div> <!-- postComposerModal -->
+        
         <div id="stories-row" class="stories-row" aria-label="Hikayeler"></div>
         <div class="feed-toolbar">
             <button class="feed-toolbar-btn" type="button" onclick="window.openLatestHomePosts && window.openLatestHomePosts()">

@@ -430,7 +430,16 @@ async function loadProfileStories(profileData) {
 
 async function loadLikes(username) {
   try {
-    const likesQuery = window.query(window.collection(window.db, 'posts'), window.where('likes', 'array-contains', username));
+    // Normalize the username to match how it's stored in the database
+    const normalizeBookmarkIdentity = (value) => {
+      if (typeof value !== 'string') return '';
+      const trimmed = value.trim();
+      if (!trimmed) return '';
+      return trimmed.toLowerCase().split('@')[0];
+    };
+    const normalizedUsername = normalizeBookmarkIdentity(username);
+    
+    const likesQuery = window.query(window.collection(window.db, 'posts'), window.where('likes', 'array-contains', normalizedUsername));
     const likesSnap = await window.getDocs(likesQuery);
     const posts = likesSnap.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }));
     return sortPostsByTimestampDesc(posts);
@@ -442,7 +451,16 @@ async function loadLikes(username) {
 
 async function loadSaves(username) {
   try {
-    const savesQuery = window.query(window.collection(window.db, 'posts'), window.where('savedBy', 'array-contains', username));
+    // Normalize the username to match how it's stored in the database
+    const normalizeBookmarkIdentity = (value) => {
+      if (typeof value !== 'string') return '';
+      const trimmed = value.trim();
+      if (!trimmed) return '';
+      return trimmed.toLowerCase().split('@')[0];
+    };
+    const normalizedUsername = normalizeBookmarkIdentity(username);
+    
+    const savesQuery = window.query(window.collection(window.db, 'posts'), window.where('savedBy', 'array-contains', normalizedUsername));
     const savesSnap = await window.getDocs(savesQuery);
     const posts = savesSnap.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }));
     return sortPostsByTimestampDesc(posts);
