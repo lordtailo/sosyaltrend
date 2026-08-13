@@ -3150,11 +3150,15 @@ body.dark-mode .feed-panel {
 
 @media (max-width: 768px) {
     .app-container > [data-include="partials/left-aside.html"] {
-        display: none;
+        display: block;
+        order: 1;
+        width: 100%;
     }
 
     .app-container > [data-include="partials/right-aside.html"] {
         display: block;
+        order: 3;
+        width: 100%;
     }
 
     .app-container {
@@ -3171,6 +3175,7 @@ body.dark-mode .feed-panel {
         width: 100%;
         min-width: 0;
         gap: 14px;
+        order: 2;
     }
 
     #main-content,

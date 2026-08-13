@@ -11522,14 +11522,21 @@ window.populateLikersPreview = async (postId, likes) => {
         const container = document.getElementById(`likers-${postId}`);
         if (!container) return;
         const row = document.getElementById(`likers-row-${postId}`);
-        if (row) row.style.maxHeight = '0';
+        
         container.innerHTML = '';
         if (!likes || likes.length === 0) {
             container.style.display = 'none';
+            if (row) {
+                row.style.display = 'none';
+                row.style.maxHeight = '0';
+            }
             return;
         }
 
-        if (row) row.style.maxHeight = '1000px';
+        if (row) {
+            row.style.display = 'flex';
+            row.style.maxHeight = '1000px';
+        }
         container.style.display = 'flex';
         const preview = likes.slice(0, 3);
         const userDataMap = {};
