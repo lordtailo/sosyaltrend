@@ -62,12 +62,19 @@ window.clearReply = function(postId) {
 window.openPostComposerModal = function() {
     const modal = document.getElementById('postComposerModal');
     const rightAside = document.querySelector('[data-include="partials/right-aside.html"]');
+    const emojiPicker = document.getElementById('emojiPickerPanel');
     
     if (modal) {
         modal.classList.remove('closing');
         modal.style.display = 'flex';
         document.body.style.overflow = 'hidden'; // Scroll kapat
         document.body.classList.add('modal-open'); // CSS hook
+        
+        // Emoji picker'ı body'ye taşı (z-index problemi çöz)
+        if (emojiPicker && emojiPicker.parentElement !== document.body) {
+            emojiPicker._originalParent = emojiPicker.parentElement;
+            document.body.appendChild(emojiPicker);
+        }
         
         // Sağ menüyü grayedout yap (sol menü gibi)
         if (rightAside) {
@@ -89,14 +96,22 @@ window.openPostComposerModal = function() {
 window.closePostComposerModal = function() {
     const modal = document.getElementById('postComposerModal');
     const rightAside = document.querySelector('[data-include="partials/right-aside.html"]');
+    const emojiPicker = document.getElementById('emojiPickerPanel');
     
     if (modal) {
+        // Emoji picker'ı orijinal parent'ına geri al
+        if (emojiPicker && emojiPicker._originalParent) {
+            emojiPicker._originalParent.appendChild(emojiPicker);
+            delete emojiPicker._originalParent;
+        }
+        
         // Sağ menüyü normal haline geri getir (grayedout kaldır)
         if (rightAside) {
             rightAside.style.removeProperty('opacity');
             rightAside.style.removeProperty('filter');
             rightAside.style.removeProperty('pointer-events');
             rightAside.style.removeProperty('z-index');
+            rightAside.style.removeProperty('display');
         }
         
         // Animasyonlu kapanış
