@@ -157,6 +157,8 @@ body.dark-mode .right-panel [style*="linear-gradient(135deg, rgba(255,255,255"] 
     -webkit-overflow-scrolling: touch;
     scrollbar-width: thin;
     margin-bottom: 12px;
+    position: relative;
+    z-index: 10;
 }
 .stories-row::-webkit-scrollbar { height: 8px; }
 .story-card {

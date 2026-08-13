@@ -1341,15 +1341,15 @@ function buildInlineShareCard(postId, postData) {
                 ${content ? `<div style="white-space:pre-wrap; color:var(--text-main); line-height:1.55; font-size:0.94rem;">${content}</div>` : ''}
                 ${imageHtml}
                 ${youtubeHtml}
+                <div id="likers-row-${postId}" style="display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin-top:12px; margin-bottom:6px; min-height:28px; max-height:0; overflow:hidden; transition:max-height 0.3s ease;" data-likes='${JSON.stringify(postData.likes || [])}'>
+                    <div id="likers-${postId}" style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;"></div>
+                </div>
                 <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center; margin-top:12px;">
                     <button class="tool-btn icon-count" onclick="likePost('${postId}', this)" data-liked="${isLiked ? 'true' : 'false'}" aria-pressed="${isLiked ? 'true' : 'false'}" style="gap:3px; color:${isLiked ? '#ef4444' : ''}"><i class="${isLiked ? 'fa-solid' : 'fa-regular'} fa-heart"></i><span>(${likeState.normalizedSavedBy.length})</span></button>
                     <button class="tool-btn icon-count" onclick="toggleCommentSection('${postId}')" style="gap:3px;"><i class="fa-regular fa-comment"></i><span>(${commentCount})</span></button>
                     <button class="tool-btn icon-count" onclick="toggleBookmark('${postId}', this)" data-saved="${isSaved ? 'true' : 'false'}" aria-pressed="${isSaved ? 'true' : 'false'}" style="gap:3px; color:${isSaved ? '#f59e0b' : ''}"><i class="${isSaved ? 'fa-solid' : 'fa-regular'} fa-bookmark"></i><span>(${saveState.normalizedSavedBy.length})</span></button>
                     <button class="tool-btn" onclick="window.reportPost('${postId}', '${(authorUsername || '').replace(/'/g, "\\'")}' )" title="Gönderiyi bildir" style="gap:5px; margin-left:auto; color:#f59e0b;"><i class="fa-regular fa-flag"></i></button>
                     <button class="tool-btn" onclick="window.openShareMenu('${postId}')" style="gap:5px;"><i class="fa-solid fa-share"></i></button>
-                </div>
-                <div id="likers-row-${postId}" style="display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin-top:12px; margin-bottom:10px; min-height:28px; max-height:0; overflow:hidden; transition:max-height 0.3s ease;" data-likes='${JSON.stringify(postData.likes || [])}'>
-                    <div id="likers-${postId}" style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;"></div>
                 </div>
                 <div id="comments-${postId}" class="comment-area" style="display:none; margin-top:10px;">
                     <div id="list-${postId}">${(postData.comments || []).map((c) => `
@@ -6316,7 +6316,7 @@ window.loadPostsFeed = (showAll = false) => {
         
         ${postContentHtml}${pollHtml}${postImageHtml}
 
-        <div id="likers-row-${d.id}" style="display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin-top:12px; margin-bottom:10px; min-height:28px; max-height:0; overflow:hidden; transition:max-height 0.3s ease;">
+        <div id="likers-row-${d.id}" style="display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin-top:12px; margin-bottom:6px; min-height:28px; max-height:0; overflow:hidden; transition:max-height 0.3s ease;">
             <div id="likers-${d.id}" style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;"></div>
         </div>
 
